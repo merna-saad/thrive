@@ -144,15 +144,24 @@ A caller owes it two things:
 - The row renders `id={revealRowId(target)}` and `tabindex="-1"`. `revealRowId` is
   the single place that id is built, so the caller and the row cannot drift.
 - Whatever had to change for the row to exist has already happened — a card
-  expanded, a filter cleared. `arriveAtRow` returns silently on a missing row; it
-  is a courtesy on top of the real change, not the change itself.
+  expanded, a filter cleared. `arriveAtRow` returns without doing anything on a
+  missing row rather than throwing at a student; it is a courtesy on top of the
+  real change, not the change itself. **In development it warns**, naming the id
+  it could not find.
 
 ### The known sharp edge
 
 **`arriveAtRow` awaits exactly one `tick()`.** If the row needs more than one
-flush to exist, the arrival silently does nothing — no error, no mark, no focus
-move, and a student who sees no change concludes the click failed. Which is the
-bug the arrival mark was built to fix, arriving by a different route.
+flush to exist, the arrival does nothing — no mark, no focus move, and a student
+who sees no change concludes the click failed. Which is the bug the arrival mark
+was built to fix, arriving by a different route.
+
+**It is no longer silent about it.** `import.meta.env.DEV` guards a
+`console.warn` naming the id it could not find, so the next caller that arrives
+too early announces itself in a terminal instead of being hunted. Note what that
+costs: `check:interaction` drives the PRODUCTION build, where the branch is
+compiled out, so **no gate covers it.** Verified by hand against `vite dev`
+instead — a normal arrival warns about nothing, a missing row warns exactly once.
 
 One tick is enough for every caller today: expanding a card is one state write.
 **6b's undo is the first case that might not be** — unticking a task moves it

@@ -931,7 +931,14 @@ destructuring, and an unknown identifier in a Svelte template is not a type erro
   reveal read as a dead click, it is what an id-parsing row lookup did before
   `tickItem` dispatched on the attached source row, and it is what a hover-swallowed
   press looked like. Where a courtesy can silently not happen, prefer it failing
-  loudly — and where it currently cannot, say so at the definition.
+  loudly — and where it currently cannot, say so at the definition. `arriveAtRow`
+  is the worked example: it still returns rather than throwing at a student, but it
+  warns in development.
+- **Say when a check cannot see what it looks like it checks.** The gate fails on
+  console warnings, which reads as covering the one above — it does not, because
+  the gate drives a production build. Written into the gate at the assertion, not
+  only in a doc, because a check that appears to cover something it cannot is worse
+  than no check.
 - **Full CONTEXT regeneration is for accumulated drift across a session**, not for
   a four-spot delta inside one. Confirmed by the owner 2026-08-21 after this file
   was patched thirty minutes after being written. The rule stands for the normal
@@ -996,10 +1003,15 @@ Calm, plain, honest about what is simulated.
 
    **And `arriveAtRow`'s single `tick()` needs checking there.** Unticking moves a
    task between groups; if that regrouping takes two flushes, the arrival lands on
-   a row that does not exist yet and returns silently — no error, no mark, no focus
-   move. That is the failure the cue exists to prevent, arriving by another route.
-   Decided 2026-08-21: check it explicitly in 6b, and if one tick is not enough,
-   **make it fail loudly rather than quietly.**
+   a row that does not exist yet and does nothing — no mark, no focus move. That is
+   the failure the cue exists to prevent, arriving by another route. Decided
+   2026-08-21: check it explicitly in 6b, and if one tick is not enough, **make it
+   fail loudly rather than quietly.**
+
+   A dev-only `console.warn` now names the missing id, so the case is audible
+   before it is understood. **No gate covers that branch** — `check:interaction`
+   drives the production build, where it is compiled out — so it was verified by
+   hand against `vite dev`.
 3. **Then, in order:** the calendar (15 components, largest surface; needs
    `buildScheduleData()`, still unported), appointments, then the **Ask THRIVE
    page** — three tabs (chat, class recommender, job recommender), a chat window,

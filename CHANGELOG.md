@@ -37,6 +37,12 @@ it", and stops DOM code living in a `.svelte.ts` that declares no runes.
 CONVENTIONS gains the rule and the two cases that are NOT arrivals. No behaviour
 change.
 
+**`arriveAtRow` warns in dev** when the row it was sent to is absent, naming the
+id. Not a throw — a student never sees an exception over a wayfinding cue. No gate
+covers the branch (the gate drives a production build), so it was verified by hand
+against `vite dev`; the gate now fails on console warnings regardless, with a note
+at the assertion saying what it cannot see.
+
 **`CONTEXT.md` regenerated in full** at `d3621b9`, then patched in four spots for
 the `arrive` split. Sections 5, 6, 7, 13, 14, 15 and 17 all moved.
 

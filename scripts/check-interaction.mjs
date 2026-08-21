@@ -158,6 +158,11 @@ function check(name, passed, detail = '') {
 	console.log(`${(passed ? 'PASS' : 'FAIL').padEnd(7)}${name.padEnd(58)}${detail}`);
 }
 
+/** Console output a passing page should not produce. */
+function noisy(msg) {
+	return msg.type() === 'error' || msg.type() === 'warning';
+}
+
 /** A check this fixture cannot currently produce. Loud, and counted apart. */
 function unproven(name, reason) {
 	unprovenCount += 1;
@@ -233,7 +238,7 @@ try {
 	// ── Desktop ────────────────────────────────────────────────────────────
 	const page = await browser.newPage({ viewport: DESKTOP });
 	page.on('pageerror', (error) => pageErrors.push(`desktop: ${error}`));
-	page.on('console', (msg) => msg.type() === 'error' && pageErrors.push(`desktop: ${msg.text()}`));
+	page.on('console', (msg) => noisy(msg) && pageErrors.push(`desktop: ${msg.text()}`));
 	await page.goto(BASE + ROUTE, { waitUntil: 'networkidle' });
 
 	arrivalMs = await page.evaluate(() => {
@@ -586,7 +591,7 @@ try {
 	// ── Phone: no cursor, so click has to be enough ────────────────────────
 	const phone = await browser.newPage({ viewport: PHONE, hasTouch: true, isMobile: true });
 	phone.on('pageerror', (error) => pageErrors.push(`phone: ${error}`));
-	phone.on('console', (msg) => msg.type() === 'error' && pageErrors.push(`phone: ${msg.text()}`));
+	phone.on('console', (msg) => noisy(msg) && pageErrors.push(`phone: ${msg.text()}`));
 	await phone.goto(BASE + ROUTE, { waitUntil: 'networkidle' });
 
 	check(
@@ -608,7 +613,24 @@ try {
 	check('a pill is a 44px touch target', (phonePill?.height ?? 0) >= 44, `${phonePill?.height}px`);
 	await phone.close();
 
-	check('nothing threw anywhere on the way', pageErrors.length === 0, pageErrors.join(' | '));
+	/*
+	 * Warnings count, not just throws.
+	 *
+	 * `arriveAtRow` warns when the row it was sent to is not in the DOM -- a silent
+	 * no-op there is the failure the arrival cue exists to prevent, so it says so.
+	 * That warning is behind `import.meta.env.DEV` and this gate drives the
+	 * PRODUCTION build, so it is compiled out and **this check cannot see it**.
+	 * Stated rather than implied, because a check that looks like it covers
+	 * something it cannot is worse than no check.
+	 *
+	 * What this does cover is any warning that survives into production, which is
+	 * a category worth failing on regardless.
+	 */
+	check(
+		'nothing threw or warned anywhere on the way',
+		pageErrors.length === 0,
+		pageErrors.join(' | ')
+	);
 
 	await browser.close();
 } finally {

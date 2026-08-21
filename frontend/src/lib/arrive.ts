@@ -132,16 +132,41 @@ function markArrival(row: HTMLElement): void {
  * all, so the cue is the only thing that distinguishes an arrival from a dead
  * click.
  *
- * Returns silently when the row is not there. A caller that expanded the wrong
- * card, or asked for a row that has since been filtered out, gets nothing rather
- * than an exception -- the arrival is a courtesy on top of whatever it was that
- * actually changed.
+ * ## The missing row, and why it warns
+ *
+ * A student never sees an exception over a wayfinding cue, so this returns
+ * without doing anything when the row is not in the DOM. But **a silent no-op is
+ * the worst failure mode this app has** -- it is what made the reveal read as a
+ * dead click in the first place -- and the arrival is exactly the wrong place to
+ * hide one, so in development it says so.
+ *
+ * The realistic cause is timing. This awaits ONE `tick()`, which is enough for
+ * every caller today because expanding a card is a single state write. A caller
+ * whose row needs two flushes to exist -- 6b's undo moving a task between groups
+ * is the candidate -- would land here, do nothing, and look identical to a
+ * successful arrival at a row that was already visible. See CONVENTIONS.
+ *
+ * `import.meta.env.DEV` means the warning does not ship. That is deliberate and
+ * it has a cost worth stating: `check:interaction` drives the production build,
+ * so **the gate cannot see this branch.** It is a message to whoever is building
+ * the next caller, not a covered behaviour.
  */
 export async function arriveAtRow(target: RevealTarget): Promise<void> {
 	await tick();
 
-	const row = document.getElementById(revealRowId(target));
-	if (!row) return;
+	const rowId = revealRowId(target);
+	const row = document.getElementById(rowId);
+
+	if (!row) {
+		if (import.meta.env.DEV) {
+			console.warn(
+				`arriveAtRow: no element with id "${rowId}". The row was not in the DOM one ` +
+					`tick after the request. Whatever had to change for it to exist has not ` +
+					`finished, or it renders no id. Nothing was focused and nothing was marked.`
+			);
+		}
+		return;
+	}
 
 	row.focus({ preventScroll: true });
 	row.scrollIntoView({ block: 'nearest' });

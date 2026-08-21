@@ -65,7 +65,7 @@ No framework surface. All of it ported in Phase 2 and under test.
 | `tickItem.ts` | `tickItem()` and `isTickable()`. Dispatches on the **attached source row**, never by parsing an id. |
 | `quickList.ts` | The scratch list: `QuickItem` plus its store and panel store. |
 | `reveal.ts` | **"Show me the row behind this number", as arithmetic.** `planReveal` is the one question a card asks. Read this before touching the popovers. |
-| `arrive.ts` | **`arriveAtRow` — the ONE way any surface moves a student to a row.** Focus, scroll, and the arrival mark. Never hand-roll a `scrollIntoView`; see CONVENTIONS. |
+| `arrive.ts` | **`arriveAtRow` — the ONE way any surface moves a student to a row.** Focus, scroll, and the arrival mark. Awaits one `tick()` and **warns in dev** when the row is not there. Never hand-roll a `scrollIntoView`; see CONVENTIONS. |
 | `nav.ts` | **One list drives the rail, the bottom bar, and every stub page.** |
 | `features.ts` | `FEATURES` — both floating widgets off. |
 | `title.ts` | `pageTitle()` — Next's `"%s · THRIVE"` template. |
@@ -168,7 +168,7 @@ control must not scroll away with the content it controls.
 | Command | What it proves |
 |---|---|
 | `npm test` | 389 tests. Pure logic and source scans. Nothing renders. |
-| `npm run check:interaction` | 37 assertions on the popovers in a real browser. **The only gate that can press a button.** |
+| `npm run check:interaction` | 37 assertions on the popovers in a real browser. **The only gate that can press a button.** Fails on a console warning too — but it drives the PRODUCTION build, so it cannot see `arriveAtRow`'s dev-only warn. |
 | `npm run check` | Types agree. **Does NOT prove the page renders** — see BUGS.md. |
 | `npm run build` | It compiles. |
 | `python3 scripts/check-contrast.py` | 58 assertions. **Parses `app.css`**, so tokens cannot drift from their checks. |

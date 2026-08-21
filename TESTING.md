@@ -117,6 +117,15 @@ when the fixture has no target past a collapsed slice. Degrading silently to a
 weaker assertion is how a gate stops meaning anything. Today's fixture proves it
 (8 → 25 rows), but a quieter one would not.
 
+**It fails on console warnings, not only throws** — and the note at that assertion
+says what it cannot see. `arriveAtRow` warns in development when the row it was
+sent to is absent, and that warning is behind `import.meta.env.DEV` while this gate
+drives the production build, so the branch is compiled out. Stated at the check
+rather than left implied, because an assertion that looks like it covers something
+it cannot is worse than no assertion. That branch was verified by hand against
+`vite dev`: a normal arrival warns about nothing, a row with its id removed warns
+exactly once and names the id.
+
 **Skips loudly and exits 0** with no chromium, same as the layout gate.
 
 ### The layout gate

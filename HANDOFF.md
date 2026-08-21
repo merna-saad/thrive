@@ -126,6 +126,12 @@ No behaviour change; same 37 assertions.
 - **`arriveAtRow`'s single `tick()` gets checked explicitly in 6b** (owner), and
   if one tick is not enough it must **fail loudly rather than quietly**. A silent
   no-op is the failure mode the owner most wants caught.
+- **`arriveAtRow` warns in dev on a missing row** (owner, asked and answered). Not
+  a throw: a student must never see an exception over a wayfinding cue. The branch
+  is behind `import.meta.env.DEV`, so **no gate covers it** — `check:interaction`
+  drives the production build. Verified by hand against `vite dev` instead, both
+  directions. The gate now fails on console warnings anyway, with a note at the
+  assertion saying exactly what it cannot see.
 
 ### What broke
 
@@ -147,11 +153,10 @@ matched `ShowMore`.
   thing that wants a rendered assertion.
 - **The done-group branch in `TasksCard`'s reveal effect is still unreachable**
   from Home — no pill counts a done task. 6b's undo wants it.
-- **`arriveAtRow` awaits ONE `tick()` and returns silently on a missing row.**
-  Enough for every caller today (expanding a card is one state write). 6b's undo
-  is the first case that might need two, and the failure would be invisible. It is
-  named at the definition, in CONVENTIONS, and in CONTEXT §17 so 6b cannot miss
-  it.
+- **`arriveAtRow` awaits ONE `tick()`.** Enough for every caller today (expanding
+  a card is one state write). 6b's undo is the first case that might need two. It
+  is named at the definition, in CONVENTIONS as a sharp edge, and in CONTEXT §17,
+  and it now warns in dev — so 6b will hear it rather than having to know.
 - **`CONTEXT.md` regenerated in full** at `d3621b9`. No longer a loose end.
 
 ### Still open from earlier phases
