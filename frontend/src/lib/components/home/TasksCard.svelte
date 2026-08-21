@@ -5,6 +5,8 @@
 	import { COLLAPSED_TASK_ROWS } from '$lib/cardLayout';
 	import { collapseList } from '$lib/collapse';
 	import { buildHomeGroups, nonEmptyGroups } from '$lib/homeGroups';
+	import { planReveal } from '$lib/reveal';
+	import { focusRevealedRow, getRevealChannel } from '$lib/reveal.svelte';
 	import { taskDoneOverrides } from '$lib/userEdits.svelte';
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 	import ProgressBar from '$lib/components/ui/ProgressBar.svelte';
@@ -57,8 +59,23 @@
 	 *
 	 * The done group starts collapsed behind its count: it is the record of what is
 	 * finished, not the list of what to do.
+	 *
+	 * ## Reveal is a second way to open it, not a replacement
+	 *
+	 * A stat pill's popover can ask for a row that is currently collapsed. The card
+	 * answers that itself: it reads the page's reveal channel, checks whether the
+	 * request is about one of its own rows, and if the row is past the collapsed
+	 * slice it sets its OWN `openExpanded`. Nothing outside writes that variable,
+	 * and `ShowMore` still toggles it exactly as before -- a student can collapse
+	 * again straight afterwards.
+	 *
+	 * Expanding cannot move the grid: `.thrive-card-body` is a FIXED height above
+	 * `lg`, not a maximum, so growing the content can only ever scroll it. That
+	 * guarantee was already in place and this feature needs nothing added to it.
 	 */
 	let { rows }: { rows: HomeRow[] } = $props();
+
+	const reveal = getRevealChannel();
 
 	let openExpanded = $state(false);
 	let doneExpanded = $state(false);
@@ -78,6 +95,59 @@
 
 	const openCollapse = $derived(collapseList(flatOpen, COLLAPSED_TASK_ROWS, openExpanded));
 	const doneCollapse = $derived(collapseList(board.done, 0, doneExpanded));
+
+	/**
+	 * The last reveal request this card acted on.
+	 *
+	 * A plain `let`, deliberately not `$state`: writing it must not re-trigger the
+	 * effect that writes it. It is what makes handling idempotent without the
+	 * channel needing a `clear()` -- and clearing from in here would be this card
+	 * deciding on behalf of Upcoming Events, with effect ordering settling which of
+	 * them saw the request.
+	 */
+	let handledNonce = -1;
+
+	/*
+	 * Answer a reveal request, if it is about one of these rows.
+	 *
+	 * `flatOpen` and `board.done` are read here and NOT `openCollapse` /
+	 * `doneCollapse`. That is not tidiness: the collapse states depend on
+	 * `openExpanded`, so reading one would make this effect depend on the variable
+	 * it writes, and the write would re-run it. `planReveal` takes the full list
+	 * and the limit and answers the same question without the cycle.
+	 *
+	 * The done group is included. Neither pill counts a done task today, so this
+	 * branch is unreachable from Home as it stands -- it is here because the
+	 * alternative is a card that silently ignores half its own rows, and 6b's undo
+	 * is going to want exactly this path.
+	 */
+	$effect(() => {
+		const request = reveal.current();
+		if (!request || request.nonce === handledNonce) return;
+		if (request.target.kind !== 'task') return;
+
+		const openIds = flatOpen.map((row) => row.task.id);
+		const openPlan = planReveal(openIds, COLLAPSED_TASK_ROWS, request.target.id);
+
+		if (openPlan.found) {
+			handledNonce = request.nonce;
+			if (openPlan.expand) openExpanded = true;
+			void focusRevealedRow(request.target);
+			return;
+		}
+
+		const donePlan = planReveal(
+			board.done.map((row) => row.task.id),
+			0,
+			request.target.id
+		);
+
+		if (donePlan.found) {
+			handledNonce = request.nonce;
+			if (donePlan.expand) doneExpanded = true;
+			void focusRevealedRow(request.target);
+		}
+	});
 </script>
 
 <SectionCard

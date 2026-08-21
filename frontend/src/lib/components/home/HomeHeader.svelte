@@ -2,7 +2,7 @@
 	import ProgramTimelineCompact from './ProgramTimelineCompact.svelte';
 	import GreetingPanel from './GreetingPanel.svelte';
 	import type { DegreeProgress, ProgramTimeline, Student } from '$lib/data';
-	import type { TaskRowData } from '$lib/homeView';
+	import type { EventRowData, TaskRowData } from '$lib/homeView';
 
 	/**
 	 * Everything above the grid, in ONE panel.
@@ -33,7 +33,7 @@
 		dateLabel,
 		greeting,
 		taskItems,
-		weekEventIds
+		eventRows
 	}: {
 		student: Student;
 		degree: DegreeProgress;
@@ -41,7 +41,8 @@
 		dateLabel: string;
 		greeting: string;
 		taskItems: TaskRowData[];
-		weekEventIds: string[];
+		/** Passed through to the stat pills, which count and list this week's. */
+		eventRows: EventRowData[];
 	} = $props();
 </script>
 
@@ -52,5 +53,5 @@
 	     still does not read as part of the greeting. -->
 	<div class="border-t border-hairline-soft"></div>
 
-	<GreetingPanel {student} {degree} {dateLabel} {greeting} {taskItems} {weekEventIds} />
+	<GreetingPanel {student} {degree} {dateLabel} {greeting} {taskItems} {eventRows} />
 </div>

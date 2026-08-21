@@ -9,7 +9,7 @@
 	import Tag from '$lib/components/ui/Tag.svelte';
 	import TaskStatPills from './TaskStatPills.svelte';
 	import type { DegreeProgress, Student } from '$lib/data';
-	import type { TaskRowData } from '$lib/homeView';
+	import type { EventRowData, TaskRowData } from '$lib/homeView';
 
 	/**
 	 * The greeting.
@@ -43,7 +43,7 @@
 		dateLabel,
 		greeting,
 		taskItems,
-		weekEventIds
+		eventRows
 	}: {
 		student: Student;
 		degree: DegreeProgress;
@@ -52,7 +52,7 @@
 		/** "Good morning" etc., decided on the server. */
 		greeting: string;
 		taskItems: TaskRowData[];
-		weekEventIds: string[];
+		eventRows: EventRowData[];
 	} = $props();
 
 	const firstName = $derived(student.name.split(' ')[0]);
@@ -79,7 +79,7 @@
 	     The counts see the student's own ticks and ignores, so the pills cannot
 	     contradict the cards below them. -->
 	<div class="mt-2 flex flex-wrap items-center gap-1.5">
-		<TaskStatPills items={taskItems} {weekEventIds} />
+		<TaskStatPills items={taskItems} {eventRows} />
 
 		<!-- The goal chip leads the context group: everything else is in service of
 		     it. Primary-toned rather than status-toned -- a goal is not a status. -->

@@ -36,6 +36,19 @@ export interface CourseRow {
 export interface EventRowData {
 	event: Event;
 	dateBlock: { month: string; day: string; time: string };
+	/**
+	 * Inside the seven-day window the "events this week" pill counts.
+	 *
+	 * A flag on the row rather than a second list of ids. It replaced
+	 * `weekEventIds`, which the pill received alongside the rows and which meant
+	 * two shapes of the same information travelling down: the pill had ids with no
+	 * titles to render, and the card had titles with no idea which were in the
+	 * window. One flag answers both, and it cannot drift from the row it is on.
+	 *
+	 * Decided on the server, because "is this within seven days of now" is a date
+	 * question and CONVENTIONS.md puts every one of those in a `load` function.
+	 */
+	thisWeek: boolean;
 }
 
 /** A task plus the due descriptor the server computed for it. */

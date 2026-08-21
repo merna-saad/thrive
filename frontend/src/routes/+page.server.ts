@@ -47,7 +47,9 @@ const WEEK_WINDOW_DAYS = 7;
  * the student's persisted ticks and ignores, which only exist in the browser.
  * Counting them here would freeze them at the fixture's answer and let the pills
  * contradict the cards directly beneath them. What goes down instead is the
- * classified rows and the raw ids -- the data to count, not the count.
+ * classified rows -- the data to count, not the count. Each event row carries a
+ * `thisWeek` flag, which is the date half of that question answered here so the
+ * client only has to filter on a boolean.
  */
 export const load: PageServerLoad = async () => {
 	const [student, courses, tasks, events, degree, timeline] = await Promise.all([
@@ -65,18 +67,6 @@ export const load: PageServerLoad = async () => {
 		task,
 		due: describeDue(task.dueDate, now)
 	}));
-
-	/*
-	 * The IDS of this week's events, not a count.
-	 *
-	 * Raw `Event.id`s, passed through unchanged. The ignore store is keyed on this
-	 * exact form, and the client checks against it without stripping a prefix --
-	 * MIGRATION.md section 9 defect 12 is what happens when a second normaliser
-	 * appears. There is nothing to normalise: these are already raw.
-	 */
-	const weekEventIds = events
-		.filter((event) => isWithinDays(event.start, WEEK_WINDOW_DAYS, now))
-		.map((event) => event.id);
 
 	/*
 	 * Today's classes only.
@@ -107,9 +97,23 @@ export const load: PageServerLoad = async () => {
 		scheduleLabel: formatMeetingPattern(course.schedule)
 	}));
 
+	/*
+	 * Every upcoming event, each one told whether it falls in the week window.
+	 *
+	 * The window is the date question, so it is answered here. What travels down
+	 * is the classified rows, not a count and not a second list of ids: the pill
+	 * counts `thisWeek` rows the student has not ignored, and the card renders
+	 * from the same array. Two views of one list cannot contradict each other.
+	 *
+	 * `event.id` is a RAW `Event.id` and stays raw everywhere it goes. The ignore
+	 * store is keyed on exactly this form and the client checks against it without
+	 * stripping a prefix -- MIGRATION.md section 9 defect 12 is what happens when a
+	 * second normaliser appears. There is nothing here to normalise.
+	 */
 	const eventRows: EventRowData[] = events.map((event) => ({
 		event,
-		dateBlock: eventDateBlock(event.start)
+		dateBlock: eventDateBlock(event.start),
+		thisWeek: isWithinDays(event.start, WEEK_WINDOW_DAYS, now)
 	}));
 
 	return {
@@ -120,7 +124,6 @@ export const load: PageServerLoad = async () => {
 		todaysClasses,
 		courseRows,
 		eventRows,
-		weekEventIds,
 		/** Formatted here so no component calls `formatLongDate()` with no argument. */
 		dateLabel: formatLongDate(now),
 		greeting: greetingFor(now),

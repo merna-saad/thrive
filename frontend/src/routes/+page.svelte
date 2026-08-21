@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { pageTitle } from '$lib/title';
+	import { createRevealChannel, setRevealChannel } from '$lib/reveal.svelte';
 	import HomeHeader from '$lib/components/home/HomeHeader.svelte';
 	import MyClasses from '$lib/components/home/MyClasses.svelte';
 	import TasksCard from '$lib/components/home/TasksCard.svelte';
@@ -32,8 +33,29 @@
 	 *
 	 * `space-y-2` rather than `space-y-3`: with the header down to one panel there
 	 * are only two gaps left on this page, and 4px each is worth having.
+	 *
+	 * ## The page owns "reveal this row"
+	 *
+	 * The stat pills open a popover of the actual items behind each count, and
+	 * those items jump to the row on the page -- which may be collapsed behind a
+	 * "show more" in a card the popover has no business reaching into.
+	 *
+	 * So the channel lives HERE, at the one point that can see both the pills in
+	 * the header and the cards in the grid, and it carries a request rather than
+	 * state: a pill asks, and each card decides for itself whether the request is
+	 * about one of its rows and whether it needs to open. Every card keeps its own
+	 * collapse state and its own show-more control, unchanged. This adds a second
+	 * way in, it does not take the first one away.
+	 *
+	 * Handed down through CONTEXT rather than as a prop. Three of the four
+	 * components between here and `TaskStatPills` have no interest in reveal, and
+	 * more importantly context dies with this component -- so "collapse resets on
+	 * navigation" stays true because of where the channel lives rather than because
+	 * something remembers to reset it.
 	 */
 	let { data }: { data: PageData } = $props();
+
+	setRevealChannel(createRevealChannel());
 </script>
 
 <svelte:head><title>{pageTitle()}</title></svelte:head>
@@ -46,7 +68,7 @@
 		dateLabel={data.dateLabel}
 		greeting={data.greeting}
 		taskItems={data.taskItems}
-		weekEventIds={data.weekEventIds}
+		eventRows={data.eventRows}
 	/>
 
 	<div class="grid grid-cols-1 gap-2 lg:grid-cols-2">

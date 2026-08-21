@@ -4,6 +4,7 @@
 	import Sparkles from '@lucide/svelte/icons/sparkles';
 
 	import { messages } from '$lib/messages';
+	import { revealRowId } from '$lib/reveal';
 	import Button from '$lib/components/ui/Button.svelte';
 	import IgnoreButton from '$lib/components/ui/IgnoreButton.svelte';
 	import Tag from '$lib/components/ui/Tag.svelte';
@@ -45,9 +46,20 @@
 		/** Omitted where the row is not dismissible. */
 		onIgnore?: () => void;
 	} = $props();
+
+	/**
+	 * The jump target for the "events this week" popover.
+	 *
+	 * Keyed on the RAW `Event.id`, the same key space the ignore store uses and the
+	 * popover asks with. `tabindex="-1"` keeps the row out of the tab order while
+	 * letting a jump put focus on it -- see the note in `TaskRow`.
+	 */
+	const rowId = $derived(revealRowId({ kind: 'event', id: event.id }));
 </script>
 
 <article
+	id={rowId}
+	tabindex="-1"
 	data-flush="true"
 	class="thrive-panel flex items-start gap-2.5 p-2 transition-colors duration-(--motion-fast) ease-standard hover:bg-bg"
 >

@@ -3,12 +3,16 @@
 
 	import { messages } from '$lib/messages';
 	import { VISIBLE_EVENTS } from '$lib/cardLayout';
+	import { collapseList } from '$lib/collapse';
 	import { clearIgnoredEvents } from '$lib/ignoredEvents';
 	import { ignoreEvents } from '$lib/ignoreUndo.svelte';
+	import { expandedEventLimit, planReveal } from '$lib/reveal';
+	import { focusRevealedRow, getRevealChannel } from '$lib/reveal.svelte';
 	import { showToast } from '$lib/toast.svelte';
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 	import IgnoreUndoBar from '$lib/components/ui/IgnoreUndoBar.svelte';
 	import SectionCard from '$lib/components/ui/SectionCard.svelte';
+	import ShowMore from '$lib/components/ui/ShowMore.svelte';
 	import EventRow from './EventRow.svelte';
 	import type { EventRowData } from '$lib/homeView';
 
@@ -17,19 +21,36 @@
 	 *
 	 * Reads the ignore store, so the filtering happens here rather than on the
 	 * server. The dates are still classified on the server: every row arrives with
-	 * its `dateBlock` already split into month, day and time strings, and nothing
-	 * here touches a timestamp. Same arrangement as `TaskStatPills`.
+	 * its `dateBlock` already split into month, day and time strings and its
+	 * `thisWeek` flag already decided, and nothing here touches a timestamp. Same
+	 * arrangement as `TaskStatPills`.
 	 *
 	 * ## Filter FIRST, then slice. The order is the behaviour.
 	 *
-	 * The card shows four rows. Slicing to four on the server and filtering ignored
-	 * ones here would leave gaps: ignore two of the four and the card shows two
-	 * rows while four more sit unseen behind them. Filtering first and slicing
+	 * The card shows four rows at rest. Slicing to four on the server and filtering
+	 * ignored ones here would leave gaps: ignore two of the four and the card shows
+	 * two rows while four more sit unseen behind them. Filtering first and slicing
 	 * second is what makes the next event MOVE UP.
 	 *
-	 * This is why the slice is `VISIBLE_EVENTS` rather than a collapse: it is
-	 * load-bearing behaviour, not layout. There is no "show more" here -- Home
-	 * shows the next four and the rest is what /events is for.
+	 * ## Collapsed is the next four. Expanded is this week.
+	 *
+	 * This card had no show-more at all, on the grounds that Home shows the next
+	 * four and `/events` is the rest. The stat pill popover is what changed that,
+	 * and the reason is a measured contradiction rather than a preference: the pill
+	 * counts events THIS WEEK -- 21 against the fixture -- while the card showed
+	 * four upcoming, so seventeen of the items the popover listed had no row on this
+	 * page to jump to. A list of jumps that mostly cannot jump is worse than no
+	 * list.
+	 *
+	 * So the card's full list is now the reachable prefix: everything inside the
+	 * week window, or the collapsed four, whichever is longer. `expandedEventLimit`
+	 * carries that arithmetic and the argument for why one `max()` is enough -- both
+	 * sets are prefixes of the same ascending list. `/events` is still the rest, and
+	 * on a quiet week nothing changes at all, because there is nothing past four to
+	 * expand to.
+	 *
+	 * The pill and the card are now two views of one set, which is the same property
+	 * the client-side counting exists to protect: they cannot disagree.
 	 *
 	 * ## The key is a raw `Event.id`
 	 *
@@ -48,10 +69,46 @@
 	 */
 	let { rows }: { rows: EventRowData[] } = $props();
 
+	const reveal = getRevealChannel();
+
 	let listEl = $state<HTMLDivElement | null>(null);
+	let expanded = $state(false);
 
 	const kept = $derived(rows.filter((entry) => !ignoreEvents.isIgnored(entry.event.id)));
-	const shown = $derived(kept.slice(0, VISIBLE_EVENTS));
+
+	/** Counted after the ignore filter, so the limit follows what is really left. */
+	const weekCount = $derived(kept.filter((entry) => entry.thisWeek).length);
+
+	/** Everything this card is willing to render -- the reachable prefix. */
+	const reachable = $derived(kept.slice(0, expandedEventLimit(VISIBLE_EVENTS, weekCount)));
+
+	const collapse = $derived(collapseList(reachable, VISIBLE_EVENTS, expanded));
+
+	/** See the note on the same variable in `TasksCard`. */
+	let handledNonce = -1;
+
+	/*
+	 * Answer a reveal request, if it is about one of these rows.
+	 *
+	 * Reads `reachable` and not `collapse`: the latter depends on `expanded`, which
+	 * this effect writes, and reading it would make the write re-run the effect.
+	 */
+	$effect(() => {
+		const request = reveal.current();
+		if (!request || request.nonce === handledNonce) return;
+		if (request.target.kind !== 'event') return;
+
+		const plan = planReveal(
+			reachable.map((entry) => entry.event.id),
+			VISIBLE_EVENTS,
+			request.target.id
+		);
+		if (!plan.found) return;
+
+		handledNonce = request.nonce;
+		if (plan.expand) expanded = true;
+		void focusRevealedRow(request.target);
+	});
 
 	function onIgnore(entry: EventRowData) {
 		ignoreEvents.ignore(entry.event.id, entry.event.title);
@@ -71,10 +128,27 @@
 	}
 </script>
 
+<!-- Passed to `SectionCard` only when there is something to reveal. The footer
+     band draws its own rule and padding, so handing over a snippet that renders
+     nothing would leave an empty ruled strip under every short list.
+
+     It goes in the footer rather than in the body because this card SCROLLS at
+     rest: a show-more inside the scroll area is unreachable exactly when it is
+     wanted. See the note in `SectionCard`. -->
+{#snippet showMoreFooter()}
+	<ShowMore
+		hiddenCount={collapse.hiddenCount}
+		expanded={collapse.isExpanded}
+		controls="upcoming-events-list"
+		onToggle={() => (expanded = !expanded)}
+	/>
+{/snippet}
+
 <SectionCard
 	title={messages.home.events.title}
 	description={messages.home.events.description}
 	href="/events"
+	footer={collapse.canExpand ? showMoreFooter : undefined}
 >
 	{#if rows.length === 0}
 		<EmptyState icon={CalendarDays} message={messages.home.events.empty} />
@@ -102,8 +176,13 @@
 
 			<!-- tabindex -1 makes this focusable programmatically but keeps it out of
 			     the tab order, which is what a focus landing spot wants. -->
-			<div bind:this={listEl} tabindex="-1" class="divide-y divide-hairline outline-none">
-				{#each shown as entry (entry.event.id)}
+			<div
+				bind:this={listEl}
+				id="upcoming-events-list"
+				tabindex="-1"
+				class="divide-y divide-hairline outline-none"
+			>
+				{#each collapse.visible as entry (entry.event.id)}
 					<EventRow
 						event={entry.event}
 						dateBlock={entry.dateBlock}

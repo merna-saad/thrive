@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { cn } from '$lib/utils';
 	import { messages } from '$lib/messages';
+	import { revealRowId } from '$lib/reveal';
 	import { rowPriorityOf, taskLabels } from '$lib/taskView';
 	import Tag from '$lib/components/ui/Tag.svelte';
 	import type { DueDescriptor } from '$lib/format';
@@ -53,6 +54,17 @@
 	 * `taskLabels` state chip, which is why the two are derived from the same
 	 * inputs.
 	 */
+	/**
+	 * The jump target for the stat pill popovers.
+	 *
+	 * `tabindex="-1"` below makes the row focusable programmatically without
+	 * putting every row in the tab order, and it deliberately keeps its focus ring
+	 * -- being able to see where the jump landed is the whole point of moving focus
+	 * rather than only scrolling. Built by `revealRowId` rather than by a template
+	 * here, so the id and the popover's target cannot drift apart.
+	 */
+	const rowId = $derived(revealRowId({ kind: 'task', id: task.id }));
+
 	const priorityStyles: Record<typeof priority, string> = {
 		urgent: 'border-l-urgent bg-urgent-soft',
 		soon: 'border-l-watch bg-watch-soft',
@@ -62,6 +74,8 @@
 </script>
 
 <div
+	id={rowId}
+	tabindex="-1"
 	data-done={done}
 	class={cn(
 		'thrive-row flex items-start gap-2 border-l-2 px-2 py-1.5',
