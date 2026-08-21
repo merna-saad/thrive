@@ -1,3 +1,4 @@
+import type { Event } from "$lib/data";
 import type { ScheduleItem } from "$lib/schedule";
 
 /**
@@ -70,6 +71,33 @@ export function icsFromItem(item: ScheduleItem): IcsEvent | null {
 }
 
 /**
+ * The same, from an `Event` — which is what HOME holds.
+ *
+ * A second mapper rather than a shared one, and that is deliberate. The two
+ * inputs are genuinely different shapes: a `ScheduleItem` carries a `detail`
+ * string that is a location on an event row and a course code on a task, and
+ * `startISO` is OPTIONAL on it because a recurring class is a weekday rule. An
+ * `Event` has a real `location` field and its `start` is required, so this one
+ * cannot fail and does not return null.
+ *
+ * Collapsing them would mean widening `ScheduleItem` or narrowing `Event` to a
+ * lowest common shape, and the fallback each needs is different. Two five-line
+ * mappers over one function with a discriminant.
+ */
+export function icsFromEvent(event: Event): IcsEvent {
+	return {
+		id: event.id,
+		title: event.title,
+		start: event.start,
+		// The one rule they DO share: an event with no distinct end is a marker at
+		// its start rather than an event of unknown length.
+		end: event.end ?? event.start,
+		location: event.location || undefined,
+		description: event.description,
+	};
+}
+
+/**
  * The file's text.
  *
  * `stampISO` is the DTSTAMP instant -- when this file was produced. Passed in
@@ -135,4 +163,14 @@ export function downloadItemIcs(item: ScheduleItem): boolean {
 	if (!event) return false;
 	downloadIcs(item.id, [event]);
 	return true;
+}
+
+/**
+ * The whole download, from an `Event`. Home's path.
+ *
+ * No boolean, because there is no failure case: an `Event` always has a start.
+ * The calendar's version needs one because a class meeting has no instant.
+ */
+export function downloadEventIcs(event: Event): void {
+	downloadIcs(event.id, [icsFromEvent(event)]);
 }

@@ -10,6 +10,7 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import IgnoreButton from '$lib/components/ui/IgnoreButton.svelte';
 	import Tag from '$lib/components/ui/Tag.svelte';
+	import { downloadEventIcs } from '$lib/ics';
 	import { eventJoins, isEventJoined, setEventJoined } from '$lib/userEdits.svelte';
 	import { cn } from '$lib/utils';
 	import type { TagTone } from '$lib/tones';
@@ -135,8 +136,12 @@
 			used to be one toggle reading "You're in", which removed you when pressed
 			again — an off-switch nobody could discover.
 
-			"Add to calendar" is still visual only. It is not blocked on anything now
-			that `$lib/ics` is ported; it is simply not what this follow-on was for.
+			"Add to calendar" is live too, and it was the last inert control in the app.
+			It downloads an `.ics` the student chooses to import — THRIVE still never
+			writes to a real calendar and there is no API call anywhere in this path.
+			`icsFromEvent` is Home's mapper; the calendar has its own, because a
+			`ScheduleItem` and an `Event` are genuinely different shapes and need
+			different fallbacks. See `$lib/ics`.
 		-->
 		<div class="mt-1.5 flex flex-wrap items-center gap-1.5">
 			{#if joined}
@@ -161,7 +166,7 @@
 				</Button>
 			{/if}
 
-			<Button size="sm">
+			<Button size="sm" onclick={() => downloadEventIcs(event)}>
 				<CalendarPlus aria-hidden="true" class="size-3" />
 				{copy.addToCalendar}
 				<span class="sr-only">{copy.subject(event.title)}</span>

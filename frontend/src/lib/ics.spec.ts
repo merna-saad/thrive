@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { buildIcs, icsFilename, icsFromItem, type IcsEvent } from "$lib/ics";
+import { buildIcs, icsFilename, icsFromEvent, icsFromItem, type IcsEvent } from "$lib/ics";
+import type { Event } from "$lib/data";
 import type { ScheduleItem } from "$lib/schedule";
 
 /**
@@ -172,6 +173,63 @@ describe("icsFromItem", () => {
 		// `detail` is `""` on plenty of rows -- a to-do has no location at all.
 		expect(icsFromItem(item({ detail: "" }))?.location).toBeUndefined();
 	});
+});
+
+describe("icsFromEvent", () => {
+  /*
+   * Home's mapper. A second one rather than a shared one, because the two inputs
+   * are different shapes: an `Event` has a real `location` and a required `start`,
+   * a `ScheduleItem` has a `detail` that means different things per stream and an
+   * OPTIONAL `startISO`. The tests below are what stop the two drifting apart on
+   * the one rule they DO share.
+   */
+  function evt(over: Partial<Event> = {}): Event {
+    return {
+      id: "evt-3-1",
+      title: "Product Club Mixer",
+      type: "club",
+      start: "2026-08-17T17:00:00.000Z",
+      end: "2026-08-17T19:00:00.000Z",
+      location: "Rady Commons",
+      relevantToGoal: false,
+      ...over,
+    };
+  }
+
+  it("maps an event", () => {
+    expect(icsFromEvent(evt())).toEqual({
+      id: "evt-3-1",
+      title: "Product Club Mixer",
+      start: "2026-08-17T17:00:00.000Z",
+      end: "2026-08-17T19:00:00.000Z",
+      location: "Rady Commons",
+      description: undefined,
+    });
+  });
+
+  it("falls back to the start when there is no end, exactly as the item mapper does", () => {
+    // The one rule the two mappers share, so it is asserted on both. An event with
+    // no distinct end is a marker at its start, not an event of unknown length.
+    expect(icsFromEvent(evt({ end: undefined }))?.end).toBe("2026-08-17T17:00:00.000Z");
+  });
+
+  it("keys the UID on the RAW Event.id, which is what Home holds", () => {
+    // Not the calendar's `evt-evt-3-1`. Re-importing the same event from either
+    // surface should update one entry rather than making two.
+    const out = buildIcs([icsFromEvent(evt())], STAMP).split("\r\n");
+    expect(out).toContain("UID:evt-3-1@thrive.local");
+  });
+
+  it("drops an empty location rather than exporting a blank one", () => {
+    expect(icsFromEvent(evt({ location: "" })).location).toBeUndefined();
+  });
+
+  it("never returns null, because an Event always has a start", () => {
+    // Which is why it has no boolean return and `downloadItemIcs` does: a
+    // recurring class meeting is a weekday rule with no instant, and an `Event`
+    // cannot be one.
+    expect(icsFromEvent(evt())).not.toBeNull();
+  });
 });
 
 describe("icsFilename", () => {

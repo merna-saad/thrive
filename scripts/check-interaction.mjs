@@ -1521,9 +1521,33 @@ try {
 	 * passes `event.id` to `setEventJoined`. If those ever disagree, the popover
 	 * would jump to a row the store has never heard of.
 	 */
-	const home = await browser.newPage({ viewport: DESKTOP });
+	const home = await browser.newPage({ viewport: DESKTOP, acceptDownloads: true });
 	home.on('pageerror', (error) => pageErrors.push(`home-join: ${error}`));
 	home.on('console', (msg) => noisy(msg) && pageErrors.push(`home-join: ${msg.text()}`));
+
+	/*
+	 * Capture the .ics instead of catching the download.
+	 *
+	 * `downloadIcs` builds a Blob, makes an object URL and clicks an anchor. Asserting
+	 * that a download FIRED would prove the button is wired and nothing else — and
+	 * "wired" is not the interesting claim, since the file is read by a calendar
+	 * client rather than by a person and an unescaped comma or a wrong DTSTART
+	 * imports "successfully" and is wrong.
+	 *
+	 * So this wraps `createObjectURL` before the page loads and keeps the text. The
+	 * assertions below are about the CONTENT: the right event, at the right instant.
+	 */
+	await home.addInitScript(() => {
+		const original = URL.createObjectURL.bind(URL);
+		window.__icsFiles = [];
+		URL.createObjectURL = (blob) => {
+			if (blob instanceof Blob && blob.type.includes('calendar')) {
+				blob.text().then((text) => window.__icsFiles.push(text));
+			}
+			return original(blob);
+		};
+	});
+
 	await home.goto(BASE + ROUTE, { waitUntil: 'networkidle' });
 	await home.waitForTimeout(SETTLE);
 
@@ -1584,6 +1608,66 @@ try {
 			'and deletes the key rather than storing false',
 			undone.stored.length === 0,
 			'which is what makes "never touched" answerable'
+		);
+	}
+
+
+	// ── Home's "Add to calendar" ───────────────────────────────────────────
+	/*
+	 * The last inert control in the app, wired after the join. Nothing leaves the
+	 * browser: this builds a file the student chooses to import, and there is no
+	 * calendar API call anywhere in the path.
+	 */
+	const exported = await home.evaluate(async () => {
+		const row = document.querySelector('article[id^="reveal-event-"]');
+		if (!row) return null;
+
+		const title = row.querySelector('h3')?.textContent.trim() ?? '';
+		[...row.querySelectorAll('button')]
+			.find((b) => /Add to calendar/i.test(b.textContent))
+			?.click();
+		await new Promise((r) => setTimeout(r, 200));
+
+		return { title, rowId: row.id, files: window.__icsFiles ?? [] };
+	});
+
+	if (!exported) {
+		unproven('the Add to calendar button produces an .ics', 'no event rows on Home');
+	} else {
+		const text = exported.files[0] ?? '';
+		const lines = text.split('\r\n');
+
+		check(
+			'the Add to calendar button produces an .ics',
+			exported.files.length === 1,
+			`${exported.files.length} file(s) captured`
+		);
+		check(
+			'it is a valid single-event calendar',
+			lines[0] === 'BEGIN:VCALENDAR' &&
+				lines.at(-1) === 'END:VCALENDAR' &&
+				lines.filter((l) => l === 'BEGIN:VEVENT').length === 1
+		);
+		check(
+			'it names the event the row is showing',
+			lines.some((l) => l.startsWith('SUMMARY:') && l.includes(exported.title.slice(0, 20))),
+			exported.title
+		);
+		check(
+			'it carries a real DTSTART, not a placeholder',
+			lines.some((l) => /^DTSTART:\d{8}T\d{6}Z$/.test(l)),
+			lines.find((l) => l.startsWith('DTSTART:')) ?? 'none'
+		);
+		/*
+		 * The UID must be the RAW `Event.id` — the same id the join store keys on and
+		 * the same one the row's DOM id carries. If Home ever exported the calendar's
+		 * doubly-prefixed form, importing the same event from the two surfaces would
+		 * make two entries in the student's real calendar instead of updating one.
+		 */
+		check(
+			'the UID is the raw Event.id, so re-importing updates rather than duplicates',
+			lines.includes(`UID:${exported.rowId.replace(/^reveal-event-/, '')}@thrive.local`),
+			lines.find((l) => l.startsWith('UID:')) ?? 'none'
 		);
 	}
 
