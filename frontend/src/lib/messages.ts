@@ -389,7 +389,26 @@ export const messages = {
 			noItems: 'no items',
 			itemCount: (count: number) => (count === 1 ? '1 item' : `${count} items`),
 			/** The "+n" when a day has more categories than there are dots for. */
-			overflow: (count: number) => `+${count}`
+			overflow: (count: number) => `+${count}`,
+
+			/*
+			 * Booking mode -- the `/appointments` call site. Same grid, a different
+			 * question, so `dayLabel` above is reused and only the middle clause
+			 * changes: "what is on this day" becomes "can this day be booked".
+			 */
+			timesOpen: (count: number) => (count === 1 ? '1 time open' : `${count} times open`),
+			nothingOpen: 'nothing open',
+			/*
+			 * The two ends of the window are DIFFERENT sentences, and conflating them
+			 * was a real bug: the six leading cells of a month grid belong to the
+			 * previous month, so a grid opened on the current month announced days in
+			 * the recent past as "too far ahead to book". They look identical on
+			 * screen -- both are grey and both refuse the click -- so the accessible
+			 * name is the only place the difference can be told, which makes it the
+			 * only place it can be got wrong unnoticed.
+			 */
+			beyondWindow: 'too far ahead to book',
+			alreadyPast: 'already past'
 		},
 
 		/* --- The selected day's header -------------------------------------- */
@@ -603,6 +622,161 @@ export const messages = {
 			   dismissal there is permanent by design. */
 			unIgnore: 'Un-ignore'
 		}
+	},
+
+	/* --- Appointments ------------------------------------------------------ */
+	appointments: {
+		documentTitle: 'Appointments',
+		eyebrow: 'appointments',
+		title: 'Book time with someone',
+		/**
+		 * Names the window, because the calendar's grey days otherwise look like a
+		 * bug rather than a rule.
+		 */
+		intro:
+			'Academic advising and career coaching. Pick a day with open times, then a time. Booking runs a month ahead.',
+
+		/** The two services. Keyed by `Advisor.service`. */
+		serviceLabel: {
+			advising: 'Academic Advising',
+			career: 'Career Coaching'
+		},
+
+		card: {
+			/**
+			 * The words AFTER the figure, so the figure itself can take the numeric
+			 * face. Splitting it here keeps the plural in this file rather than
+			 * leaving a component to slice the number back out of a finished phrase.
+			 */
+			openTimesSuffix: (count: number) =>
+				count === 1 ? 'open time this month' : 'open times this month',
+			noOpenTimes: 'No open times this month',
+			book: 'Book',
+			/** The pressed state's label. Says what is happening, not what to do. */
+			booking: 'Booking',
+			/** Screen-reader tail, so three identical buttons are distinguishable. */
+			bookWith: (name: string) => ` with ${name}`
+		},
+
+		calendar: {
+			headingId: 'booking-calendar',
+			title: 'Pick a day',
+			/**
+			 * The key for the mark. Says what the dot MEANS in words, so the grid
+			 * never rests on hue -- and names the two reasons a day is closed,
+			 * because they look identical and a student would otherwise assume the
+			 * advisor is simply never free.
+			 */
+			key: 'A dot and a number mark the days with open times. Grey days are full, or past the month you can book in.'
+		},
+
+		panel: {
+			headingId: 'booking-heading',
+			/** Names the service, since two cards can open this panel. */
+			heading: (service: string) => `Book ${service.toLowerCase()}`,
+			subheading: (name: string) => `with ${name} · 30 minutes`,
+			close: 'Close booking panel',
+
+			modeLegend: 'Meeting type',
+			modeAny: 'Any',
+			modeInPerson: 'In person',
+			modeZoom: 'Zoom',
+
+			timesLegend: 'Available times',
+			/** Names the day being committed to, since the panel is where you commit. */
+			timesFor: (day: string) => `on ${day}`,
+			/** Two dead ends, and they are not the same dead end. */
+			noTimesForFilter: 'Nothing open that day with this meeting type. Try Any, or another day.',
+			noDaySelected: 'Pick a day on the calendar to see what is open.',
+			/** Spoken tail on a slot chip, so "taken" is not carried by a strikethrough. */
+			slotMode: (mode: string) => ` ${mode}`,
+			slotTaken: ', already taken',
+			takenTitle: 'Already taken',
+
+			reasonLabel: 'What do you want to talk about?',
+			reasonPlaceholder: 'A sentence is plenty. It helps them prepare.',
+			reasonCount: (used: number, max: number) => `${used}/${max}`,
+
+			confirm: 'Confirm booking',
+			confirming: 'Booking…',
+			/** The live line beside the button: what is about to happen. */
+			pickTime: 'Pick a time to continue.',
+			selected: (day: string, time: string, mode: string) => `${day} at ${time}, ${mode}`
+		},
+
+		confirmed: {
+			headingId: 'booking-confirmed',
+			heading: 'You’re booked',
+			line: (day: string, time: string, name: string) => `${day} at ${time} with ${name}.`,
+			/** The reason, quoted back, so a student can see what was recorded. */
+			reasonQuote: (reason: string) => `“${reason}”`,
+			/**
+			 * The standing promise. THRIVE never writes to a real calendar, and this
+			 * is the surface where a student would most reasonably assume it had.
+			 */
+			note: 'It is on your THRIVE calendar and listed under your appointments. Nothing was written to a real calendar and nobody was notified.',
+			done: 'Done',
+			addToCalendar: 'Add to calendar',
+			/** The .ics event's title. Names the role, not just the person. */
+			icsTitle: (role: string, name: string) => `${role} with ${name}`
+		},
+
+		myDay: {
+			headingId: 'my-day',
+			title: 'Your day',
+			todayChip: 'today',
+			empty: 'Nothing booked this day. Any time works.',
+			/**
+			 * The exclusion, stated rather than left to be noticed.
+			 *
+			 * This pane shows classes and appointments only. An assignment due at
+			 * 11:59pm does not block a 2pm meeting, so listing deadlines here would
+			 * make a free afternoon look busy -- but a student who knows they have
+			 * work due needs to be told why it is absent.
+			 */
+			scope: 'Classes and booked time only. Deadlines are not shown here — they do not occupy an hour.'
+		},
+
+		list: {
+			headingId: 'my-appointments',
+			title: 'Your appointments',
+			upcoming: (count: number) => `${count} upcoming`,
+			empty: 'Nothing booked yet. Pick a service above to find a time.',
+			cancel: 'Cancel',
+			cancelling: 'Cancelling',
+			cancelSubject: (when: string) => ` appointment on ${when}`,
+			/** "Tue, Aug 12 at 9:30 AM". Built on the server. */
+			whenLabel: (date: string, time: string) => `${date} at ${time}`,
+			advisorLine: (name: string, role: string) => `${name} · ${role}`,
+			/**
+			 * Stands in when an appointment's advisor cannot be resolved. Not
+			 * reachable with the mock fixtures; the row is kept rather than dropped
+			 * if it ever is, so a booking never silently disappears.
+			 */
+			unknownAdvisor: 'Advisor'
+		},
+
+		/** Failures a student can actually hit. All three are states, not crashes. */
+		errors: {
+			noSlot: 'Pick a time first.',
+			gone: 'That appointment is no longer on file.',
+			/**
+			 * The catch-all, and it exists because of a real silent no-op.
+			 *
+			 * The first form submission in this app came back 403 -- SvelteKit's CSRF
+			 * check, because `adapter-node` had no `ORIGIN` to compare against. The
+			 * `enhance` handler treated anything that was neither a success nor a
+			 * `fail()` as "nothing to say", so the button visibly did NOTHING: no
+			 * confirmation, no error, no console message a student would ever see.
+			 *
+			 * A press that produces no response is this repo's worst failure mode.
+			 * Every branch of the callback now ends in something on screen.
+			 */
+			unexpected: 'Something went wrong on our end. Nothing was booked — try again.'
+		},
+
+		disclaimer:
+			'This is a prototype. Bookings are held in THRIVE only. Nothing is written to your calendar, and no one is notified.'
 	},
 
 	/** Event origin tags. One per EventType. */
