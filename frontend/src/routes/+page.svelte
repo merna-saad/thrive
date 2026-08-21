@@ -1,38 +1,53 @@
 <script lang="ts">
 	import { pageTitle } from '$lib/title';
+	import GreetingPanel from '$lib/components/home/GreetingPanel.svelte';
+	import MyClasses from '$lib/components/home/MyClasses.svelte';
+	import ProgramTimelineCompact from '$lib/components/home/ProgramTimelineCompact.svelte';
+	import TasksCard from '$lib/components/home/TasksCard.svelte';
+	import TodaysClasses from '$lib/components/home/TodaysClasses.svelte';
+	import UpcomingEvents from '$lib/components/home/UpcomingEvents.svelte';
+	import type { PageData } from './$types';
 
 	/**
-	 * Home, as a heading only.
+	 * Home.
 	 *
-	 * The real dashboard is six providers, a greeting computed from the server
-	 * clock, and five cards -- all of it Phase 5 or later. What is here is enough
-	 * to prove the shell and navigation work end to end.
+	 * The one page the whole app is arranged around. Six providers in one
+	 * `Promise.all`, every date classified in `+page.server.ts`, four cards in a
+	 * grid that fits one viewport.
 	 *
-	 * Deliberately NOT PagePlaceholder: Home is not an unbuilt section, it is the
-	 * one page the whole app is arranged around, and labelling it "coming next"
-	 * alongside the genuine stubs would misrepresent where the work is.
+	 * ## The grid, and why it is two columns and not four
+	 *
+	 * Two columns at `lg`, one below it. The cards are ordered so the pair a
+	 * student acts on -- Tasks and today's classes -- lands in the first row, and
+	 * the pair they browse lands in the second. On a phone that same order becomes
+	 * the scroll order, which is the right priority either way.
+	 *
+	 * Each card caps its own height on desktop and scrolls inside; see
+	 * `.thrive-card-body` in `app.css` for why that is a fixed height rather than a
+	 * maximum. The result is that expanding any card moves nothing else.
 	 */
+	let { data }: { data: PageData } = $props();
 </script>
 
 <svelte:head><title>{pageTitle()}</title></svelte:head>
 
 <div class="space-y-3">
-	<header>
-		<p class="thrive-eyebrow">home · your day at a glance</p>
-		<!-- font-bold at the call site. The Next h1 here is the greeting inside the
-		     panel, at weight 400 -- one of the twelve in defect 4. -->
-		<h1 class="mt-1 text-3xl font-bold text-ink">THRIVE</h1>
-		<p class="mt-1.5 max-w-prose text-sm text-body">
-			One calm view of your MSBA program: classes, deadlines, degree progress, and what to do
-			next.
-		</p>
-	</header>
+	<!-- Read-only strip. The full stepper lives on /degree. -->
+	<ProgramTimelineCompact timeline={data.timeline} />
 
-	<div data-tone="sunken" class="thrive-panel px-4 py-8 text-center">
-		<p class="text-base text-ink">The dashboard lands in a later phase.</p>
-		<p class="mx-auto mt-1 max-w-md text-xs text-muted-ink">
-			The shell, the design tokens, the date rules, and the persistence layer are in place and
-			under test. Use the navigation to see the routes that exist.
-		</p>
+	<GreetingPanel
+		student={data.student}
+		degree={data.degree}
+		dateLabel={data.dateLabel}
+		greeting={data.greeting}
+		taskItems={data.taskItems}
+		weekEventIds={data.weekEventIds}
+	/>
+
+	<div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
+		<TasksCard rows={data.taskItems} />
+		<TodaysClasses rows={data.todaysClasses} dateLabel={data.dateLabel} />
+		<MyClasses rows={data.courseRows} />
+		<UpcomingEvents rows={data.eventRows} />
 	</div>
 </div>

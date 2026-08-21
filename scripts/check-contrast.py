@@ -311,6 +311,22 @@ REQUIRED_CSS = [
         r"\.thrive-eyebrow\s*\{[^}]*var\(--font-sans\)",
         "`.thrive-eyebrow` uses the sans face",
     ),
+    # The fit-on-one-screen contract. Each of these is a property Home's grid
+    # depends on, and each is silent when broken: the page still renders, it just
+    # stops fitting or starts moving when a card expands.
+    (r"--thrive-card-body-cap:", "the card height cap is a token"),
+    (
+        r"\.thrive-card-body\s*\{",
+        "`.thrive-card-body` is declared",
+    ),
+    (
+        r"@media\s*\(width\s*>=\s*64rem\)\s*\{\s*\.thrive-card-body\s*\{[^}]*height:\s*var\(--thrive-card-body-cap\)",
+        "the cap applies as a FIXED height at 64rem, so the grid cannot move",
+    ),
+    (
+        r"@media\s*\(width\s*>=\s*64rem\)\s*\{\s*\.thrive-card-body\s*\{[^}]*overflow-y:\s*auto",
+        "the capped card scrolls inside rather than clipping",
+    ),
 ]
 
 

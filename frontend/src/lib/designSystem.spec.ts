@@ -91,6 +91,9 @@ describe("the design system's unenforced rules", () => {
       "thrive-row",
       "thrive-checkbox",
       "thrive-strike",
+      // The fit-on-one-screen mechanism. Fixed height and inside-scroll on
+      // desktop, no cap on mobile -- see app.css.
+      "thrive-card-body",
     ];
 
     const used = new Set<string>();

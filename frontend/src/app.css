@@ -260,6 +260,35 @@
   --thrive-topbar-height: 3.5rem;
   --thrive-bottomnav-height: 3.75rem;
 
+  /* The dashboard card body height, desktop only. See `.thrive-card-body`.
+
+     MEASURED, NOT GUESSED. Driven in a real browser against the built page;
+     every number below came off `getBoundingClientRect`, not arithmetic:
+
+       task row 54px    group heading 22px    course card 141px
+       event row 141px  class row 55px        card header band 67px
+       program strip 78px   greeting panel 201px   stack gap 12px
+
+     Solved for a 1512x1052 viewport (MacBook Pro 14 at default scaling). The
+     top bar is sticky, so the budget is viewport - 56, not the whole height:
+
+       19rem = 304px body  ->  grid 968px  <=  996px budget
+
+     At that cap the collapsed content of three of the four cards fits exactly
+     with nothing to scroll: Tasks 299px, My Classes 294px, today's classes
+     55px. Upcoming Events is 449px and DOES scroll at rest, on purpose -- its
+     four rows are load-bearing behaviour rather than layout, see
+     VISIBLE_EVENTS in $lib/cardLayout.
+
+     One step either way is worse, and both were measured: 18.5rem puts Tasks
+     3px over and starts it scrolling at rest, 19.5rem puts the grid over
+     budget. This is a narrow window, which is why it is a token and why the
+     numbers are written down.
+
+     The matching collapsed ROW COUNTS live in `$lib/cardLayout` -- they are
+     integers JavaScript slices with, so they cannot be CSS. */
+  --thrive-card-body-cap: 19rem;
+
   /* Typography stack. Both faces are self-hosted via @fontsource above; these
      two variables are what the Next app's next/font call produced, kept under
      the same names so the --font-sans / --font-mono chains below are unchanged.
@@ -688,6 +717,45 @@
   /* A panel inside a panel does not need an edge at all. */
   .thrive-panel[data-flush='true'] {
     border-color: transparent;
+  }
+
+  /* ── The dashboard card body ────────────────────────────────────────────
+     The fit-on-one-screen mechanism, as one class.
+
+     THE PROBLEM: Home rendered fourteen task rows beside a card showing one
+     class. The tallest card decided the height of the page, the grid's second
+     row started below the fold, and two of the four cards may as well not have
+     existed.
+
+     DESKTOP -- a FIXED height, and scroll inside.
+     Fixed, not `max-height`, and that is the whole point. With `max-height` a
+     card that is short at rest still GROWS when expanded, which moves its grid
+     row and shoves the cards below it down -- recreating the problem in a
+     smaller form. A fixed height means expanding can only ever scroll, so the
+     grid is immovable by construction rather than by luck.
+
+     The cost, stated rather than discovered later: a card with little content
+     shows empty space up to the cap. That is the trade for a grid that never
+     moves, and bounded empty space in a card you can see beats unbounded empty
+     space beside a card you cannot.
+
+     MOBILE -- no cap at all.
+     Cards stack in one column and expand normally, pushing content down. A
+     nested scroll area inside a page that already scrolls is fiddly on a phone:
+     the inner region eats the swipe that was meant for the page. The breakpoint
+     is 64rem, matching the `lg:grid-cols-2` the grid switches at, so one column
+     and no cap always arrive together. */
+  .thrive-card-body {
+    min-height: 0;
+  }
+
+  @media (width >= 64rem) {
+    .thrive-card-body {
+      height: var(--thrive-card-body-cap);
+      overflow-y: auto;
+      /* Stops a flick at the end of the list scrolling the page behind it. */
+      overscroll-behavior: contain;
+    }
   }
 
   /* ── The row ────────────────────────────────────────────────────────────
