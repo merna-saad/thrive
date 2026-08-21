@@ -22,7 +22,25 @@ import type { Task } from "./data";
  * hand-written array that could agree with the test and disagree with the card.
  */
 
-const NOW = new Date("2026-08-21T12:00:00Z");
+/**
+ * The fixture clock, and every fixture instant, built from LOCAL PARTS.
+ *
+ * Not `new Date("2026-08-21T12:00:00Z")` with `Z` due dates beside it, which is
+ * what this file had until the Phase 7a timezone sweep. `tsk-today` was
+ * `2026-08-21T23:00:00Z`, and 23:00 UTC is already TOMORROW anywhere east of
+ * UTC+2 -- so `describeDue` classified it `upcoming`, the "every overdue and
+ * due-today task is reachable" test counted one row instead of two, and the
+ * suite failed in Asia/Tokyo, Asia/Kathmandu and Australia/Lord_Howe.
+ *
+ * The bug was in the fixture, not in `describeDue`: a task due at 23:00 local on
+ * the 21st IS due today, and that is what the assertion means. `local()` is the
+ * rule TESTING.md already states -- build from local parts, serialise only on the
+ * way out -- applied here at last.
+ */
+const local = (year: number, month: number, day: number, hour: number, minute = 0) =>
+	new Date(year, month - 1, day, hour, minute).toISOString();
+
+const NOW = new Date(2026, 7, 21, 12, 0);
 
 function task(id: string, dueDate: string): Task {
 	return {
@@ -120,7 +138,7 @@ describe("revealing a task the Tasks card has collapsed", () => {
 		 * it in the popover has to open the card.
 		 */
 		const rows = [
-			row("tsk-overdue", "2026-08-18T17:00:00Z"),
+			row("tsk-overdue", local(2026, 8, 18, 17)),
 			row("nodate-1", "not a date"),
 			row("nodate-2", "not a date"),
 			row("nodate-3", "not a date"),
@@ -138,8 +156,8 @@ describe("revealing a task the Tasks card has collapsed", () => {
 		// The companion assertion: the same call must be able to answer "no", or
 		// the test above would pass on a function that always expands.
 		const list = flatOpenIds([
-			row("tsk-overdue", "2026-08-18T17:00:00Z"),
-			row("tsk-later", "2026-08-25T17:00:00Z")
+			row("tsk-overdue", local(2026, 8, 18, 17)),
+			row("tsk-later", local(2026, 8, 25, 17))
 		]);
 
 		expect(planReveal(list, COLLAPSED_TASK_ROWS, "tsk-overdue")).toEqual({
@@ -160,12 +178,12 @@ describe("revealing a task the Tasks card has collapsed", () => {
 		 * cannot show and no amount of expanding will fix it.
 		 */
 		const rows = [
-			row("tsk-overdue", "2026-08-01T17:00:00Z"),
-			row("tsk-today", "2026-08-21T23:00:00Z"),
-			row("tsk-soon", "2026-08-24T17:00:00Z"),
+			row("tsk-overdue", local(2026, 8, 1, 17)),
+			row("tsk-today", local(2026, 8, 21, 23)),
+			row("tsk-soon", local(2026, 8, 24, 17)),
 			// Three weeks out: really is dropped by the card, and really is not
 			// counted by either pill.
-			row("tsk-far", "2026-09-14T17:00:00Z")
+			row("tsk-far", local(2026, 9, 14, 17))
 		];
 
 		const list = flatOpenIds(rows);
