@@ -71,14 +71,14 @@ Exactly two, both deliberate, both documented at their definition:
    a clock, but the same hydration shape and gated the same way. (Not yet ported;
    the floating panels are a later phase.)
 
-A third `matchMedia` read landed on 2026-08-21 and is deliberately NOT in this
-list, because it does not have the shape the list is about:
-**`hoverIntent`** (`src/lib/actions/hoverIntent.ts`) reads `(hover: hover)`
-inside a pointer event handler. An event handler only ever runs after hydration,
-so there is no first-paint answer to get wrong and nothing for the server and the
-client to disagree about. The rule that applies to it is a different one: it is
-the ONE place that media feature is expressed in JavaScript, so a component asks
-for the behaviour rather than re-deciding what a hovering device is.
+A third briefly existed and is gone: `hoverIntent` read `(hover: hover)` for the
+stat pill popovers' hover opener. Hover was removed from that interaction on
+2026-08-21 — three pills in one row meant a cursor crossing it opened and closed
+panels nobody asked for — and the action went with it. **Hover-to-reveal in this
+app is CSS**, Tailwind's `hover:` utilities, which compile to
+`@media (hover: hover)` without any JavaScript needing an opinion. If a surface
+ever genuinely needs the JS form, put the media query in one action rather than
+in each component.
 
 Anything else reading the clock on the client is a bug until argued otherwise
 in review.

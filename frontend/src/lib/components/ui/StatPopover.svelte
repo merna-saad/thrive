@@ -6,7 +6,6 @@
 	import { messages } from '$lib/messages';
 	import { clickOutside } from '$lib/actions/clickOutside';
 	import { escapeKey } from '$lib/actions/escapeKey';
-	import { hoverIntent } from '$lib/actions/hoverIntent';
 	import type { RevealItem } from '$lib/reveal';
 
 	/**
@@ -16,33 +15,35 @@
 	 * tasks, each one a jump to its row on the page. Wraps a trigger rather than
 	 * being one, so the pill keeps its own look and this keeps the behaviour.
 	 *
-	 * ## Click always. Hover only where a cursor exists.
+	 * ## Click, and only click
 	 *
-	 * Click is the way in, on every device. Hover is additive and gated on
-	 * `(hover: hover)` -- the same media feature Tailwind compiles every `hover:`
-	 * utility in this app into, so the JS opener and the CSS reveals agree about
-	 * what a hovering device is. A phone has no cursor, and a popover reachable
-	 * only by hover is a popover a phone cannot open. The gate lives in
-	 * `hoverIntent` so there is one expression of it; see that file.
+	 * This opened on hover as well, gated on `(hover: hover)`, and it was tried and
+	 * rejected on 2026-08-21: three pills sit in one row, so a cursor crossing that
+	 * row opened and closed panels nobody asked for. The panel that appears where
+	 * you are not looking is noise, and the panel that vanishes as you reach for it
+	 * is worse.
 	 *
-	 * `hoverIntent` sits on the WRAPPER, not the trigger, so moving the mouse off
-	 * the pill and onto the panel it just opened is not a "leave".
+	 * Click is unambiguous, works on every device, and was always the primary path.
+	 * Pressing the pill again closes it.
 	 *
-	 * ## Hover does not move focus
+	 * Hover-to-reveal in this app is CSS -- Tailwind's `hover:` utilities, which
+	 * compile to `@media (hover: hover)`. Nothing here needs a JavaScript opinion
+	 * about what a hovering device is any more, and `hoverIntent` went with the
+	 * behaviour rather than being kept in case something wanted it.
 	 *
-	 * Opening by pointer leaves focus where it was; opening by click or keyboard
-	 * moves it to the first item. Moving a mouse across a dashboard should never
-	 * relocate the caret -- three pills in a row would fling focus about as the
-	 * cursor crossed them. Which is also why the component tracks WHY it is open
-	 * rather than only whether; see `openedBy`.
+	 * ## Opening moves focus into the list
+	 *
+	 * Unconditionally, now that the only way in is a deliberate press. A student who
+	 * clicks a pill is asking to read the list, and putting focus on its first item
+	 * is what makes the next keystroke work.
 	 *
 	 * ## Dismissal, and the one focus rule
 	 *
 	 * Escape, a pointer down outside, or focus leaving the widget. All three route
 	 * through `dismiss()`, which restores focus to the trigger IF AND ONLY IF focus
-	 * is currently inside the panel. One rule covers every case: Escape from a
-	 * keyboard-opened list puts you back on the pill, while a mouse leaving a
-	 * hover-opened list moves nothing, because there was nothing of yours in there.
+	 * is currently inside the panel. That condition is nearly always true now, but
+	 * it is the honest form of the rule and it costs nothing: a dismissal must never
+	 * MOVE focus, only give it back when it was holding it.
 	 *
 	 * Choosing an item is the exception, and `dismiss(HAND_OFF)` names it: focus is
 	 * about to land on the revealed row, so it must not be pulled back to the pill
@@ -80,40 +81,29 @@
 	const panelId = $props.id();
 	const labelId = `${panelId}-label`;
 
-	/**
-	 * WHY it is open, not just whether.
+	/*
+	 * One boolean, because there is now one way in.
 	 *
-	 * A bare boolean was wrong twice, and both faults only showed up when the page
-	 * was driven in a real browser:
+	 * This was `openedBy: 'pointer' | 'command' | null` while the popover also
+	 * opened on hover, and it had to be: with a bare boolean, hover opened the panel
+	 * and the click that followed found it open and closed it, so pressing a pill
+	 * did nothing at all. Recording WHY it was open is what told a pointer leaving
+	 * that it had not been the one to open it.
 	 *
-	 *  1. Pressing the pill did nothing visible. A mouse click is preceded by a
-	 *     pointer entering, so the hover had already opened the panel and the click
-	 *     arrived to find it open and closed it again.
-	 *  2. Clicking to open and then moving the mouse closed it, because a pointer
-	 *     leaving the widget cannot tell a hover it started from a click it did not.
-	 *
-	 * With the reason recorded, both answer themselves. Hover opens only what is
-	 * shut, hover closes only what hover opened, and a click on a hover-opened panel
-	 * PROMOTES it -- the student pressed the button, so they get the pinned version
-	 * with focus in the list rather than a panel that vanishes on the next mouse
-	 * twitch. Click on an already-pinned panel is the one that closes.
+	 * Hover is gone, so that distinction has nothing left to distinguish and it is
+	 * removed rather than left as a branch that can only ever take one value.
 	 */
-	type OpenReason = 'pointer' | 'command';
-
-	let openedBy = $state<OpenReason | null>(null);
+	let open = $state(false);
 	let triggerEl = $state<HTMLButtonElement | null>(null);
 	let panelEl = $state<HTMLDivElement | null>(null);
-
-	const open = $derived(openedBy !== null);
 
 	function itemButtons(): HTMLButtonElement[] {
 		return panelEl ? [...panelEl.querySelectorAll<HTMLButtonElement>('button[data-item]')] : [];
 	}
 
 	/** `edge` is which end to land on, for ArrowUp opening from the trigger. */
-	async function openPanel(reason: OpenReason, edge: 'first' | 'last' = 'first') {
-		openedBy = reason;
-		if (reason !== 'command') return;
+	async function openPanel(edge: 'first' | 'last' = 'first') {
+		open = true;
 
 		// The panel does not exist until Svelte has flushed the state above.
 		await tick();
@@ -125,18 +115,13 @@
 		if (!open) return;
 
 		const held = !handOff && panelEl?.contains(document.activeElement);
-		openedBy = null;
+		open = false;
 		if (held) triggerEl?.focus();
 	}
 
-	/** Hover never closes a panel the student deliberately opened. */
-	function onPointerLeave() {
-		if (openedBy === 'pointer') dismiss();
-	}
-
 	function onTriggerClick() {
-		if (openedBy === 'command') dismiss();
-		else void openPanel('command');
+		if (open) dismiss();
+		else void openPanel();
 	}
 
 	function onTriggerKeydown(event: KeyboardEvent) {
@@ -144,10 +129,10 @@
 		// a disclosure holding a list is expected to have.
 		if (event.key === 'ArrowDown') {
 			event.preventDefault();
-			void openPanel('command', 'first');
+			void openPanel('first');
 		} else if (event.key === 'ArrowUp') {
 			event.preventDefault();
-			void openPanel('command', 'last');
+			void openPanel('last');
 		}
 	}
 
@@ -178,21 +163,6 @@
 	}
 
 	/**
-	 * Tabbing into a hover-opened list pins it.
-	 *
-	 * Otherwise the panel is still only "pointer-open", so the next time the mouse
-	 * drifts off the widget it closes and drags focus back to the pill -- out of a
-	 * list the student had just deliberately walked into with the keyboard. Reaching
-	 * for it with a key is a command whichever way it opened.
-	 */
-	function onWidgetFocusin(event: FocusEvent) {
-		if (openedBy !== 'pointer') return;
-		if (event.target instanceof Node && panelEl?.contains(event.target)) {
-			openedBy = 'command';
-		}
-	}
-
-	/**
 	 * Tab out of the widget closes it.
 	 *
 	 * `relatedTarget` is where focus is GOING. A move between two items inside the
@@ -214,17 +184,11 @@
 	}
 </script>
 
-<!-- The positioning context for the panel, and the hover boundary for the whole
-     widget. `onfocusout` is a focus event and does bubble, so it belongs here. -->
-<div
-	class="relative"
-	use:hoverIntent={{
-		onEnter: () => !open && void openPanel('pointer'),
-		onLeave: onPointerLeave
-	}}
-	onfocusin={onWidgetFocusin}
-	onfocusout={onWidgetFocusout}
->
+<!-- The positioning context for the panel, and the focus boundary for the whole
+     widget. `onfocusout` is a focus event and does bubble, so it belongs here.
+     No pointer handlers: this element carried the hover opener, and with that
+     gone it is markup with no behaviour of its own. -->
+<div class="relative" onfocusout={onWidgetFocusout}>
 	<button
 		bind:this={triggerEl}
 		type="button"
