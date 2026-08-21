@@ -1,4 +1,6 @@
 <script lang="ts">
+	import AlertTriangle from '@lucide/svelte/icons/triangle-alert';
+
 	import Tag from '$lib/components/ui/Tag.svelte';
 	import { messages } from '$lib/messages';
 	import { categoryLabel, categoryTag, type ScheduleItem } from '$lib/schedule';
@@ -32,27 +34,85 @@
 	 *
 	 * ## Not here yet
 	 *
-	 * `compact` (the week column's stacked variant) and `onOpen` (the details
-	 * dialog's trigger) both belong to views this phase does not build. Neither is
-	 * stubbed: an unused prop reads as a feature that exists.
+	 * `onOpen`, the details dialog's trigger. `ItemDetail` is Phase 7c and an
+	 * unused prop reads as a feature that exists.
 	 */
 	let {
 		item,
+		compact = false,
+		dateLabel,
 		onTick
 	}: {
 		item: ScheduleItem;
+		/**
+		 * The week column's shape. Time stacked ABOVE the title, no detail line, no
+		 * type tag, and the title clamped to three lines.
+		 *
+		 * Side-by-side was tried first in the prototype and read badly: an ~80px
+		 * column minus a time gutter left "MGT 142 · Machine Learning for Business"
+		 * wrapping to five lines, and adjacent columns ran together into one string.
+		 *
+		 * Compact rows carry NO checkbox, deliberately. A 17px control inside an
+		 * 80px column with a three-line title is a mis-tap waiting to happen, and
+		 * the week view's job is shape rather than action -- selecting the day drops
+		 * a student into the day panel, where the same row is fully tickable.
+		 */
+		compact?: boolean;
+		/**
+		 * Pre-formatted date, shown beside the detail line.
+		 *
+		 * For the agenda when its groups are NOT days: grouped by type or by course,
+		 * a row's time alone does not say which of thirty days it falls on. Passed in
+		 * already formatted, because the caller is the only one that knows the day
+		 * key and this component never interprets a date. `showsRowDate` in
+		 * `$lib/calendarViews` is the decision of when to pass it.
+		 */
+		dateLabel?: string;
 		onTick?: (item: ScheduleItem, done: boolean) => void;
 	} = $props();
 
 	const done = $derived(item.done === true);
-	const tickable = $derived(isTickable(item) && Boolean(onTick));
+	const tickable = $derived(!compact && isTickable(item) && Boolean(onTick));
 	const time = $derived(item.allDay ? messages.calendar.row.allDay : item.timeLabel);
 
 	// Scoped to the row, so two views showing the same item cannot collide.
 	const checkboxId = $derived(`tick-${item.id}`);
 </script>
 
-<div data-done={done ? 'true' : undefined} class="thrive-row flex items-baseline gap-2 px-2 py-1.5">
+{#if compact}
+	<!-- A left rule rather than a border box. Without it the stacked rows in
+	     adjacent day columns run together and read as one wrapped sentence. -->
+	<div
+		data-done={done ? 'true' : undefined}
+		class="thrive-row border-l-2 border-line px-1.5 py-1"
+	>
+		<span class={cn('thrive-numeric flex items-center gap-1 text-3xs', done ? 'text-faint' : 'text-muted-ink')}>
+			{#if item.urgent}
+				<!-- The one place urgency is a glyph rather than a pill: there is no
+				     room for the word, and the pill would take the whole column. The
+				     accessible name still carries it. -->
+				<AlertTriangle aria-label={messages.calendar.row.urgentLabel} class="size-3 shrink-0 text-urgent" />
+			{/if}
+			{time}
+		</span>
+		<!-- No `block` here, and that is load-bearing rather than a tidy-up.
+		     `line-clamp-3` works by setting `display: -webkit-box`, so a `display`
+		     utility beside it wins in the cascade and the clamp silently does
+		     nothing. Measured before the fix: a 71px column rendered "MGT 142 ·
+		     Machine Learning for Business" 140px tall — seven lines, not three —
+		     and nothing warned, because an unclamped clamp is not an error. -->
+		<span
+			data-done={done ? 'true' : undefined}
+			class={cn(
+				'thrive-strike mt-0.5 line-clamp-3 text-xs font-medium break-words',
+				done ? 'text-muted-ink' : 'text-ink'
+			)}
+		>
+			{item.title}
+		</span>
+	</div>
+{:else}
+	<div data-done={done ? 'true' : undefined} class="thrive-row flex items-baseline gap-2 px-2 py-1.5">
 	<!-- The checkbox is a SIBLING of the title, never a wrapper round the row: a
 	     label spanning the whole row would make every control inside it tick the
 	     item off. The title still labels the box, via `for`, which is what makes
@@ -99,8 +159,17 @@
 			{item.title}
 		</label>
 
-		{#if item.detail || item.label}
+		{#if dateLabel || item.detail || item.label}
 			<span class="mt-0.5 flex flex-wrap items-center gap-1.5">
+				{#if dateLabel}
+					<!-- Which day, when the group heading is not already saying it. First
+					     in the line because it is the coarser fact: a student scanning a
+					     type-grouped agenda is asking "when", and the course code is
+					     context for the answer rather than the answer. Already formatted
+					     upstream; this component never interprets a date. -->
+					<span class="text-3xs font-medium text-body">{dateLabel}</span>
+				{/if}
+
 				{#if item.detail}
 					<!-- A course code or a room. Words, so no numeric treatment. -->
 					<span class="truncate text-3xs text-muted-ink">{item.detail}</span>
@@ -136,4 +205,5 @@
 			{categoryLabel[item.category].toLowerCase()}
 		</span>
 	</span>
-</div>
+	</div>
+{/if}
