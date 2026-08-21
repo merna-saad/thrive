@@ -7,7 +7,8 @@
 	import { clearIgnoredEvents } from '$lib/ignoredEvents';
 	import { ignoreEvents } from '$lib/ignoreUndo.svelte';
 	import { expandedEventLimit, planReveal } from '$lib/reveal';
-	import { arriveAtRow, getRevealChannel } from '$lib/reveal.svelte';
+	import { arriveAtRow } from '$lib/arrive';
+	import { getRevealChannel } from '$lib/reveal.svelte';
 	import { showToast } from '$lib/toast.svelte';
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 	import IgnoreUndoBar from '$lib/components/ui/IgnoreUndoBar.svelte';

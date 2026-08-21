@@ -6,7 +6,8 @@
 	import { collapseList } from '$lib/collapse';
 	import { buildHomeGroups, nonEmptyGroups } from '$lib/homeGroups';
 	import { planReveal } from '$lib/reveal';
-	import { arriveAtRow, getRevealChannel } from '$lib/reveal.svelte';
+	import { arriveAtRow } from '$lib/arrive';
+	import { getRevealChannel } from '$lib/reveal.svelte';
 	import { taskDoneOverrides } from '$lib/userEdits.svelte';
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 	import ProgressBar from '$lib/components/ui/ProgressBar.svelte';

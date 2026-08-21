@@ -119,6 +119,60 @@ differences, not date drift.
 
 ---
 
+## Moving a student to a row goes through `arriveAtRow`
+
+**One function, `$lib/arrive`. Never a hand-rolled `scrollIntoView`.**
+
+### Why
+
+Several things want to say "here is the row you asked about": a stat pill's
+popover jumping to a task (built), 6b's undo returning to a task just ticked, the
+calendar's "next up" line pointing at the item it names. Each could do it itself,
+and each would arrive slightly differently — a different scroll `block`, a mark or
+no mark, focus moved or only the viewport nudged.
+
+**Two arrival treatments on one page is worse than either of them alone**, because
+a student learns the cue once and then it means something else somewhere else.
+
+### What it does, and what a caller owes it
+
+`arriveAtRow(target)` awaits a tick, focuses the row, scrolls it with
+`block: 'nearest'`, and marks it with `.thrive-arrived` for one beat.
+
+A caller owes it two things:
+
+- The row renders `id={revealRowId(target)}` and `tabindex="-1"`. `revealRowId` is
+  the single place that id is built, so the caller and the row cannot drift.
+- Whatever had to change for the row to exist has already happened — a card
+  expanded, a filter cleared. `arriveAtRow` returns silently on a missing row; it
+  is a courtesy on top of the real change, not the change itself.
+
+### What is NOT an arrival
+
+Not every focus move. The distinction matters because the wrong cases would look
+identical from outside:
+
+- **Navigation inside a widget.** `StatPopover` moving focus between its own
+  items. No row is involved.
+- **Focus recovery.** `UpcomingEvents` focusing its list container after an event
+  is ignored. The row focus was on has just stopped existing, and the container is
+  the nearest thing that still means "you were here". Marking it would tell the
+  student they had been taken somewhere when they had in fact lost their place.
+
+### Asking versus doing
+
+Two halves, and they are different modules on purpose:
+
+- **`$lib/arrive`** — "I know which row." Plain `.ts`, no runes.
+- **`$lib/reveal.svelte`** — "something else has to find it." The channel a
+  popover writes a request into; the card that owns the row answers, expands
+  itself if it must, and then calls `arriveAtRow`.
+
+Reach for the channel only when the asker cannot know which card owns the row.
+Otherwise call the function.
+
+---
+
 ## Never resolve a row by parsing its id
 
 **Attach the resolved source object at merge time and dispatch on that.**
