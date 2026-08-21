@@ -4,6 +4,53 @@ Dated session summaries, most recent first.
 
 ---
 
+## 2026-08-21 — two follow-ons: honest disclosures, honest links
+
+**HEAD:** `df72ad1` · 2 commits, both pushed · **451 tests, 20 files, all green**
+· `svelte-check` 0/0 over 389 files · build clean · contrast **58/58** · layout
+**36/36** · interaction **59/59**
+
+### Each show-more control governs its own region
+
+Both disclosures on the Tasks card declared `aria-controls="tasks-card-list"` —
+the whole list, including the done group neither of them expands. Each announced
+to a screen reader that it expands something it does not, and it had trapped the
+interaction gate twice while 6b was being written, because "the control for the
+open list" had to be disambiguated by document order.
+
+`#tasks-open-list` and `#tasks-done-list` now exist, each named by exactly one
+control. Two new assertions: no two controls claim the same region, and every
+claimed region resolves.
+
+### A card links out only when its destination is built
+
+Three of Home's four cards pointed their "View all" at parked routes that render
+a title and a note. `isBuiltRoute(href)` asks `primaryNav`, and `SectionCard`
+withholds the link when the answer is no — so **building a route restores its
+links with no further edit**, and no card carries its own opinion.
+
+Lost their link: Tasks, My Classes, Upcoming Events. Today's classes keeps
+`/calendar`.
+
+`isKnownRoute` separates "parked on purpose" from "mistyped", because both fail
+`isBuiltRoute` and only one of them should be silent. A dev warning covers the
+other.
+
+### Known issues
+
+- Desktop is pixel-identical (bands 67/103px, page 1218px). On a phone the Tasks
+  band is 22px shorter — its description regains the link's width and sets on one
+  line instead of two. A horizontal reflow, not the button's height.
+- `/calendar` keeps its card link while its own body is still a note. It is in
+  `primaryNav`, and the rail already links there.
+
+### Next priorities
+
+The calendar. `/classes` is unlikely to be built at all; its route and card stay,
+unlinked.
+
+---
+
 ## 2026-08-21 — Phase 6b: task editing is live
 
 **HEAD:** `5cdad70` · 4 commits, all pushed · **439 tests, 19 files, all green**

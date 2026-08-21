@@ -1,6 +1,6 @@
 # TESTING
 
-**Last verified:** 2026-08-21 at `5cdad70`. **439 tests, 19 files, all passing.**
+**Last verified:** 2026-08-21 at `df72ad1`. **451 tests, 20 files, all passing.**
 Verified green in all seven timezones of the sweep below.
 
 ```bash
@@ -15,7 +15,7 @@ Plus two gates that are tests in everything but name:
 ```bash
 python3 scripts/check-contrast.py    # 58 assertions: 42 pairs, 6 ceilings, 10 structural
 npm run check:layout                 # 12 routes x 3 viewports, in a real browser
-npm run check:interaction            # 55 assertions: the popovers and task editing
+npm run check:interaction            # 59 assertions: the popovers and task editing
 ```
 
 `check-contrast.py` PARSES `app.css` rather than mirroring it, so a token edited
@@ -56,6 +56,7 @@ rather than being appended to the pure-logic ones.
 | `providers.spec.ts` | 47 | The four provider properties (Promise-returning, copies-not-references, deterministic generation, fixtures relative to now), the public surface of `$lib/data` including what must **not** leak, and every store behaviour: booking claims, double-book throws, cancel releases only its own slot, `submitRequest` idempotence, unknown ids returning null |
 | `collapse.spec.ts` | 13 | The fit-on-one-screen rule at its boundaries: exactly-at-the-limit produces no control, one-over holds back one, a zero limit means show-none (the done group), a negative limit clamps rather than slicing from the end, and `visible` is never the caller's array |
 | `homeGroups.spec.ts` | 19 | Home's grouping: the four groups in order with `unknown` first, "this week" held to a week, done pulled out, a student's override outranking the fixture BOTH ways, and an unparseable date landing in its own group rather than vanishing. Plus ordering (6b): the student's own keys, an explicit placement outranking an implicit one, reordering inside the dateless group, and a stale key for a row that is gone |
+| `nav.spec.ts` | 12 | The nav lists disjoint and duplicate-free, and the two questions a card asks them: `isBuiltRoute` (exact, never a prefix — a prefix match would call `/calendar/2026` built and send someone to a 404) and `isKnownRoute`, which exists only to separate "parked on purpose" from "mistyped". Written to survive a route being BUILT: the relationship is pinned, not today's four hrefs |
 | `taskBoard.spec.ts` | 43 | The editing half. `resolveRows` returning an untouched row BY REFERENCE (so an open note panel is not torn down by a sibling's tick), reclassifying only when the date moved, created tasks described against the same instant; the date converters in LOCAL time with a full round-trip; **every path through a due date that will not parse**, each of which threw a RangeError before this existed; `reorderedIds` and the drop-below-me off-by-one; and `isDatedGroup` pinning "Needs a date" as a source, never a destination |
 | `taskView.spec.ts` | 14 | `rowPriorityOf` (deadline outranks stated priority; done strips the tint), `taskLabels` (two-label cap, course code over source word, Done replaces rather than joins), and the tone maps — including that `standingTone` never lands on `primary` |
 | `programStrip.spec.ts` | 5 | `abbreviateTerm` on all four seasons, an unexpected shape passed through unchanged, and every phase status having a spoken form |
@@ -75,7 +76,7 @@ rather than being appended to the pure-logic ones.
 
 ### The interaction gate
 
-`npm run check:interaction` · `scripts/check-interaction.mjs` · 55 assertions.
+`npm run check:interaction` · `scripts/check-interaction.mjs` · 59 assertions.
 
 **Why it exists.** The other five gates were ALL green on a version of the stat
 pill popovers where pressing a pill did nothing at all. Hover had already opened
@@ -295,7 +296,7 @@ assertions over opening, keyboard navigation, all four dismissal paths, the
 reveal, and the clamped panel at 375px. Those assertions were a **throwaway
 probe**, run once, and they do not exist in the repo.
 
-**It is now a gate.** `npm run check:interaction`, 55 assertions after 6b, decided
+**It is now a gate.** `npm run check:interaction`, 59 assertions, decided
 and built the same day. No new dependency, and see its own section below.
 
 The gap it closes is no longer one widget: 6b's editing is gated through the same

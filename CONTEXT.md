@@ -1,4 +1,4 @@
-<!-- updated-at: 5cdad70 -->
+<!-- updated-at: df72ad1 -->
 
 # CONTEXT
 
@@ -9,8 +9,13 @@ without asking anyone.
 stale claims sitting beside fresh ones with no way to tell them apart. (One
 exception was taken and approved on 2026-08-21: a four-spot delta inside the same
 session, on a file written thirty minutes earlier. Full regeneration is for
-accumulated drift across a session; the rule stands for the normal case, and this
-file is a full regeneration.)
+accumulated drift across a session; the rule stands for the normal case.)
+
+This file was regenerated in full at `5cdad70` and then PATCHED for two small
+changes later the same session — the show-more `aria-controls` fix and the
+built-vs-parked link rule. Same sanctioned exception, flagged here rather than
+quietly: §11, §13, §14 and §17 carry the delta, and the counts in §5 were
+re-measured. Say the word and it gets a clean regeneration.
 
 ---
 
@@ -68,7 +73,7 @@ thrive/
 └── scripts/
     ├── check-contrast.py       58 assertions over the palette and app.css
     ├── check-layout.mjs        12 routes x 3 viewports, in a real browser
-    └── check-interaction.mjs   55 assertions: the popovers and task editing
+    └── check-interaction.mjs   59 assertions: the popovers and task editing
 ```
 
 `MIGRATION.md` is also the **only surviving copy** of the prototype inventory —
@@ -162,11 +167,11 @@ See DEPENDENCIES.md.
 | then | The Ask THRIVE page | not started |
 | later | Floating widgets, behind `FEATURES` | not started |
 
-**439 tests, 19 spec files, all passing.** `svelte-check` clean over 388 files.
-Build clean. Contrast **58/58**. Layout **36/36**. Interaction **55/55**.
-48 commits, all pushed.
+**451 tests, 20 spec files, all passing.** `svelte-check` clean over 389 files.
+Build clean. Contrast **58/58**. Layout **36/36**. Interaction **59/59**.
+51 commits, all pushed.
 
-**126 files under `frontend/src`** — ~18,039 lines, 12,646 source / 5,393 test.
+**127 files under `frontend/src`** — ~18,286 lines, 12,769 source / 5,517 test.
 
 ---
 
@@ -698,9 +703,39 @@ configure yet. It was also the reason the mobile **More sheet** could go — wit
 four destinations there is no overflow, and an overflow button that opens nothing
 is worse than no button.
 
-**`/events` is still parked and is still load-bearing in the copy.** Home's
-Upcoming Events card says the rest of the list is there, and its "View all" points
-at it. Unparking it is a separate decision from the one in §13.
+**`/events` is still parked, and its card no longer links to it.** Home's Upcoming
+Events card used to carry a "View all" pointing there; a link that lands on a
+placeholder reads as broken rather than unfinished, so the link is withheld while
+the route is parked. The card's heading and content are unchanged. Unparking
+`/events` brings the link back with no edit — see below.
+
+### A card links out only when its destination is built
+
+`isBuiltRoute(href)` asks `primaryNav`, and `SectionCard` renders its "View all"
+only when the answer is yes. **`primaryNav` membership IS the definition** of a
+real destination — the same list that decides what the rail and the bottom bar
+show — so moving a route out of `parkedNav` restores every card's link to it with
+no further edit.
+
+Decided in `SectionCard`, the one component that renders the affordance, rather
+than per card: four cards link out and three of them pointed at parked routes, so
+the alternative was four places to edit and four chances to forget one. Same
+reasoning as `parkedNav` being a separate list rather than a flag — make the
+failure impossible rather than something to remember.
+
+**Which cards lost their link:** Tasks (`/assignments`), My Classes (`/classes`),
+Upcoming Events (`/events`). Today's classes keeps `/calendar`, which is primary.
+
+**`isKnownRoute` is the companion, and it exists to separate two answers that look
+identical.** A parked route and a mistyped one both fail `isBuiltRoute`, for
+completely different reasons, and hiding a link because somebody fat-fingered an
+href is the silent no-op this repo treats as its worst failure mode. So
+`SectionCard` warns in development on an href in neither list. A warning and not a
+throw: `PagePlaceholder` can throw because it IS the page, whereas taking Home
+down over a "View all" would be worse than the missing link.
+
+**`/classes` is unlikely ever to be built** (owner, 2026-08-21). The route and its
+card stay; only the link goes.
 
 **`/assignments` is parked and is now the next real consumer of a 6b component.**
 The Tasks card's "View all" points at it, and it renders the same `TaskRow` — with
@@ -1061,6 +1096,20 @@ ordering never decides who saw the request.
 states derive from the variable the effect writes, so reading one would make the
 write re-run the effect.
 
+**Each show-more control governs its OWN region.** The Tasks card has two — the
+open list's in the pinned footer, the done group's inside the body — and both used
+to declare `aria-controls="tasks-card-list"`, the whole list including the group
+neither of them expands. To a screen-reader user each then announces that it
+expands something it does not. `#tasks-open-list` renders only when there are open
+rows (so it is never an empty box taking a gap) and `#tasks-done-list` renders
+always, empty while collapsed, so the id its control names is never absent.
+
+It also cost two debugging rounds in the interaction gate, where "the control for
+the open list" had to be disambiguated by document order and taking the first one
+expanded Done instead — which looks exactly like the card refusing to open. Two
+assertions hold it now: no two controls claim the same region, and every claimed
+region resolves.
+
 **`planReveal` has a second caller now**, which is the argument for having made it
 a pure function rather than a method on the channel: `undoTick` asks it the same
 question directly, with no channel involved, because it already knows which row it
@@ -1185,6 +1234,21 @@ behaves exactly as it did before any of this.
 **The pill and the card are now two views of one set**, which is the same property
 the client-side counting protects: they cannot disagree.
 
+**The header band carries a `min-h-11` floor** so it cannot shrink when a card's
+"View all" is withheld — the link is a 44px touch target on mobile and would
+otherwise be the tallest thing in a band whose title and description are short.
+Measured, it is not the binding constraint on this fixture (the text block is 53px
+at 375px, the link 44px), which is exactly why the floor is worth having: the
+property should hold because a rule says so, not because today's copy is long
+enough. No floor above `lg`, where the link is ~26px and a floor could only ever
+grow a card.
+
+**What the withheld link DID change, measured:** desktop is pixel-identical — all
+four bands 67/103px, page 1218px. On a phone the Tasks band is **22px shorter**,
+and the cause is horizontal rather than vertical: its description regains the width
+the link took and now sets on one line instead of two. Nothing moves sideways and
+nothing overlaps; the page is simply 22px shorter, at 3281px.
+
 The show-more sits in the card's footer band rather than its body, because this
 card scrolls at rest and a control inside the scroll area is unreachable exactly
 when it is wanted. It is passed to `SectionCard` **only when there is something to
@@ -1246,12 +1310,12 @@ as it is built, or Mandarin stops being possible.
 
 | Command | What it proves |
 |---|---|
-| `npm test` | 439 tests. Pure logic and source scans. **Nothing renders.** |
+| `npm test` | 451 tests. Pure logic and source scans. **Nothing renders.** |
 | `npm run check` | Types agree. **Does NOT prove the page renders** |
 | `npm run build` | It compiles |
 | `python3 scripts/check-contrast.py` | 58 assertions: 42 pairs, 6 ceilings, 10 structural |
 | `npm run check:layout` | 12 routes × 3 viewports in a real browser |
-| `npm run check:interaction` | 55 assertions in a real browser: the popovers **and** task editing |
+| `npm run check:interaction` | 59 assertions in a real browser: the popovers, task editing, and what the cards link to |
 
 **Four properties every gate here has.** The first three were the original set;
 the fourth was added on 2026-08-21.
@@ -1286,7 +1350,7 @@ it, and it knows no fixture ids — the task ids it needs are discovered by choo
 the popover's own items and reading where focus landed, or by reading the rows on
 the page.
 
-**Verified to fail, six ways**, each broken on purpose:
+**Verified to fail, seven ways**, each broken on purpose:
 
 | Broken | Result |
 |---|---|
@@ -1296,6 +1360,7 @@ the page.
 | The undo's expansion moved into an effect | **1 red, and NO console warning** |
 | The title field's `onblur` removed | 2 red |
 | A `dragend` put back on the row | 1 red (`derived_inert`) |
+| `{#if href}` restored, so every card links out | 2 red (4 of 4 cards linking out) |
 
 **The fourth is the one worth the ink.** It is the failure 6a predicted for 6b, it
 produces no error and no visible difference from a successful arrival at a row that
@@ -1388,6 +1453,12 @@ saying why tracking them would overwrite what the student is typing), and two
 - **Making an invisible state visible means auditing every path it can now
   reach.** 6a surfaced unparseable due dates; 6b found the RangeError that had been
   unreachable behind them.
+- **A link to a page that is not built is worse than no link.** A student who
+  spends a click to reach a placeholder distrusts the next link. Derive "is this
+  built" from the navigation, so building a route restores its links with no edit.
+- **A control's `aria-controls` must name the region it actually expands.** Two
+  controls claiming one region is a promise to a screen reader that neither keeps,
+  and it makes "the control for this list" ambiguous to anything scripting the page.
 - **Prefer a type to a rule someone has to remember.** "You cannot drop into Needs
   a date" is `Exclude<GroupKey, 'unknown'>`, not a runtime guard and a comment.
 - **A discard control must out-race every save-on-focus-loss path.** `blur` fires
@@ -1475,15 +1546,15 @@ Calm, plain, honest about what is simulated.
    fit and is a visible change to Home's densest card — owner's call. Recorded at
    the constant.
 
-6. **The Tasks card's two show-more controls share `aria-controls`.** The done
-   group's and the open list's both name `tasks-card-list`. Harmless to a reader,
-   but two controls claiming the same region is not right, and it trapped the
-   interaction gate twice during authoring (taking the first expands Done, not the
-   list).
-
-7. **Nothing gates the drag on touch.** HTML5 drag does not fire there at all,
+6. **Nothing gates the drag on touch.** HTML5 drag does not fire there at all,
    which is why the keyboard move buttons exist — but no gate asserts those buttons
-   are the only route on a phone, or that they are reachable there.
+   are the only route on a phone, or that they are reachable there. **Flag again
+   when we test on a real phone** (owner, 2026-08-21).
+
+7. **`/calendar` keeps its card link while its own body is still a note.** It is in
+   `primaryNav`, so `isBuiltRoute` says yes, and the rail already links there — so a
+   card doing the same is no worse. Worth revisiting only if "in the navigation" and
+   "has real content" come apart for longer than one phase.
 
 **Carried**
 
@@ -1493,7 +1564,7 @@ Calm, plain, honest about what is simulated.
    correct types, correct classes and no page overflow. `check:interaction` now
    covers the popovers and task editing on one page; it is still not a general
    answer.
-10. **Home fits 1218px, not 1052px.** Accepted. Phone is 3303px.
+10. **Home fits 1218px, not 1052px.** Accepted. Phone is 3281px.
 11. **Three dead providers:** `getSyllabi`, `getResources`, `getCurrentResume`.
 12. **`requestTypeHelp` has no consumer** anywhere in the prototype.
 13. **The ignore store key-space defect** — Home and the calendar keyed it
@@ -1533,6 +1604,10 @@ Calm, plain, honest about what is simulated.
   a nicety.
 - **`escapeKey` and `clickOutside` each have a second caller.** `DueDateEditor`.
 - The `readOnlyHint` string and the disabled checkboxes are gone.
+- **The shared `aria-controls` on the Tasks card's two show-more controls.** Each
+  governs its own region now, and two assertions hold it.
+- **"View all" links landing on placeholders.** Withheld while a route is parked,
+  derived from `primaryNav`.
 
 ---
 

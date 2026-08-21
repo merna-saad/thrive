@@ -1,4 +1,4 @@
-<!-- built-at: 5cdad70 -->
+<!-- built-at: df72ad1 -->
 <!-- updated: 2026-08-21 -->
 
 # CODEMAP
@@ -6,7 +6,7 @@
 Navigation map for the THRIVE rebuild. Read this before opening files.
 
 **Built:** 2026-08-21, refreshed at session close.
-**Size:** 126 files under `frontend/src` — ~18,039 lines, 12,646 source / 5,393 test.
+**Size:** 127 files under `frontend/src` — ~18,286 lines, 12,769 source / 5,517 test.
 
 > The `built-at` comment above is machine-read by the codemap staleness hook.
 > Keep it as the first line, in that exact `<!-- built-at: <hash> -->` form.
@@ -66,7 +66,7 @@ No framework surface. All of it ported in Phase 2 and under test.
 | `quickList.ts` | The scratch list: `QuickItem` plus its store and panel store. |
 | `reveal.ts` | **"Show me the row behind this number", as arithmetic.** `planReveal` is the one question a card asks. Read this before touching the popovers. |
 | `arrive.ts` | **`arriveAtRow` — the ONE way any surface moves a student to a row.** Focus, scroll, and the arrival mark. Awaits one `tick()` and **warns in dev** when the row is not there. Never hand-roll a `scrollIntoView`; see CONVENTIONS. |
-| `nav.ts` | **One list drives the rail, the bottom bar, and every stub page.** |
+| `nav.ts` | **One list drives the rail, the bottom bar, and every stub page** — and now whether a card links out at all. `isBuiltRoute` asks `primaryNav`; `isKnownRoute` separates "parked on purpose" from "typo". |
 | `features.ts` | `FEATURES` — both floating widgets off. |
 | `title.ts` | `pageTitle()` — Next's `"%s · THRIVE"` template. |
 | `utils.ts` | `cn()`. Survives for the `class`-override case only. |
@@ -168,7 +168,9 @@ with one boolean, pressing the pill did nothing at all. Hover was then rejected
 outright and that state went with it. See FINDINGS.
 
 `SectionCard` is the one to understand: three bands — header, capped body,
-pinned footer. The footer sits OUTSIDE the scroll area because the show-more
+pinned footer. It also **withholds its "View all" when the destination is a parked
+route**, so no card can send a student to a placeholder; the header row carries a
+`min-h-11` floor so the band cannot shrink when the link is absent. The footer sits OUTSIDE the scroll area because the show-more
 control must not scroll away with the content it controls.
 
 ---
@@ -177,8 +179,8 @@ control must not scroll away with the content it controls.
 
 | Command | What it proves |
 |---|---|
-| `npm test` | 439 tests. Pure logic and source scans. Nothing renders. |
-| `npm run check:interaction` | 55 assertions in a real browser: the popovers **and** 6b's editing — tick, undo, the undo arrival (including the hidden-row case), a drag between groups, rename-on-blur. **The only gate that can press a button.** Fails on a console warning too — but it drives the PRODUCTION build, so it cannot see `arriveAtRow`'s dev-only warn. |
+| `npm test` | 451 tests. Pure logic and source scans. Nothing renders. |
+| `npm run check:interaction` | 59 assertions in a real browser: the popovers **and** 6b's editing — tick, undo, the undo arrival (including the hidden-row case), a drag between groups, rename-on-blur. **The only gate that can press a button.** Fails on a console warning too — but it drives the PRODUCTION build, so it cannot see `arriveAtRow`'s dev-only warn. |
 | `npm run check` | Types agree. **Does NOT prove the page renders** — see BUGS.md. |
 | `npm run build` | It compiles. |
 | `python3 scripts/check-contrast.py` | 58 assertions. **Parses `app.css`**, so tokens cannot drift from their checks. |
@@ -235,7 +237,7 @@ Four properties and three key spaces: see `CONTEXT.md` §8.
 
 ---
 
-## Tests — 439, 19 files
+## Tests — 451, 20 files
 
 `npm test`. Vitest, **Node environment, no jsdom**, so nothing renders.
 
@@ -248,6 +250,7 @@ in TESTING.md.
 |---|---|
 | `format.spec.ts` (89) | `describeDue` across every branch, field and boundary; both private helpers via their public surfaces; both DST transitions |
 | `taskBoard.spec.ts` (43) | `resolveRows` identity and reclassification, the date converters including every unparseable-date path, `reorderedIds` |
+| `nav.spec.ts` (12) | The two lists disjoint and duplicate-free; `isBuiltRoute` exact rather than prefix; `isKnownRoute` separating parked from mistyped |
 | `calendarStores.spec.ts` (35) | Prefs, quick list, annotations, ignored events, `tickItem`, and the three key spaces |
 | `schedule.spec.ts` (27) | Grid arithmetic, filtering, grouping, the collapsed `dayKeyOf` |
 | `userEdits.spec.ts` (27) | Property 4 one setter at a time, added tasks, the undo slot |
@@ -336,11 +339,11 @@ npm run dev -- --open      # dev server, :5173
 npm run build              # production build
 node build/index.js        # run the build, :3000
 npm run check              # svelte-check
-npm test                   # vitest run — 439 tests
+npm test                   # vitest run — 451 tests
 
 python3 scripts/check-contrast.py    # 58 assertions: 42 pairs, 6 ceilings, 10 structural
 npm run check:layout                 # 12 routes x 3 viewports, in a real browser
-npm run check:interaction            # 55 assertions: the popovers and task editing
+npm run check:interaction            # 59 assertions: the popovers and task editing
 ```
 
 If a page looks stale locally, something is holding the port:

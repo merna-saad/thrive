@@ -4,6 +4,92 @@ Session log, newest first. What happened, what was decided, what is still open.
 
 ---
 
+## 2026-08-21 — two follow-ons after 6b
+
+**HEAD:** `df72ad1` · 2 commits, both pushed · 451 tests green · all six gates green.
+
+Both were loose ends 6b's own handoff had just written down, closed the same day.
+
+### 1. Each show-more control governs its own region
+
+Loose end 6 from the entry below. Both disclosures on the Tasks card named
+`tasks-card-list` — the whole list, including the done group neither expands.
+
+Fixed by giving each region an id: `#tasks-open-list` renders only when there are
+open rows (so it is never an empty box taking a `space-y-3` gap — safe, because
+the footer control exists only when there are rows to hide) and
+`#tasks-done-list` renders always, empty while collapsed, so the id its control
+names is never absent.
+
+The gate's selectors are `button[aria-controls="tasks-open-list"]` now, which
+deleted the `.at(-1)` document-order hack that had cost two debugging rounds. Two
+assertions hold the property.
+
+### 2. A card links out only when its destination is built
+
+`isBuiltRoute(href)` asks `primaryNav`; `SectionCard` renders its "View all" only
+when the answer is yes. Decided in the one component that renders the affordance,
+so all four cards got it at once and a fifth gets it free.
+
+**Tasks, My Classes and Upcoming Events lost their link.** Today's classes keeps
+`/calendar`.
+
+`isKnownRoute` is the companion: a parked route and a typo both fail
+`isBuiltRoute` for different reasons, and hiding a link over a typo is the silent
+no-op this repo hates, so `SectionCard` warns in dev on an href in neither list.
+
+**The layout claim, stated precisely rather than as "no shift".** A `min-h-11`
+floor on the header row guarantees the band cannot shrink below the link's 44px
+touch target. Desktop is pixel-identical — four bands at 67/103px, page 1218px.
+**On a phone the Tasks band is 22px shorter**, because its description regains the
+width the link occupied and sets on one line instead of two. That is a horizontal
+reflow, not the button's height, and no floor can prevent it. Reported rather than
+smoothed over.
+
+### Decisions made
+
+- **`primaryNav` membership IS the definition of "built"** (owner). Derived, so
+  unparking a route restores its links with no edit.
+- **`/classes` is unlikely ever to be built** (owner). Route and card stay; only
+  the link goes.
+- **`COLLAPSED_TASK_ROWS` stays at 4** (owner): a 124px inner scroll is barely
+  noticeable, losing a quarter of the visible tasks is, and the grid not moving is
+  what mattered.
+- **Touch drag stays unaddressed** (owner), to be flagged again on a real phone.
+- **A task past seven days leaving Home's list is fine** (owner); `/assignments`
+  comes later.
+- **A dev warning, not a throw, for an unknown href.** `PagePlaceholder` can throw
+  because it IS the page; taking Home down over a "View all" would be worse than
+  the broken link.
+
+### What broke
+
+Nothing in the product. Two authoring faults of mine, both fixed before commit: a
+python re-indent that left the new wrapper's contents one tab short, and a first
+attempt at the gate helper that factored the selector into a shared function —
+which `page.evaluate` cannot see, since it serialises only the one function it is
+given (`ReferenceError: tasksCardControl is not defined`).
+
+### Loose ends carried forward
+
+- **`/calendar` keeps its card link while its own body is still a note.** It is
+  primary and the rail already links there, so the card is no worse. Revisit only
+  if "in the navigation" and "has real content" stay apart.
+- **Nothing gates the drag on touch** — unchanged, and deferred to a real phone by
+  decision.
+- **CONTEXT was PATCHED for these two changes, not regenerated.** §11, §13, §14 and
+  §17, plus the counts in §5. The sanctioned same-session exception, flagged at the
+  top of the file.
+
+### Still open from earlier phases
+
+Unchanged: §9 defect 1 (process-global mock stores, **BLOCKING** a multi-person
+demo), shallow provider copies, `buildScheduleData()` unported, three dead
+providers, `requestTypeHelp` with no consumer, the calendar half of the ignore
+key-space defect, Home fitting 1218px rather than 1052px.
+
+---
+
 ## 2026-08-21 — Phase 6b: task editing
 
 **HEAD:** `5cdad70` · 4 commits, all pushed · 439 tests green · all six gates green.
