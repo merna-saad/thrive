@@ -390,6 +390,26 @@
      integers JavaScript slices with, so they cannot be CSS. */
   --thrive-card-body-cap: 18.75rem;
 
+  /* Ask THRIVE's chat window, above `xl` only.
+
+     A definite height is what makes the LOG the scroller instead of the
+     document. Without it the log's `flex-1 min-h-0` resolves to its own content
+     -- there is no height to divide up -- so the page grows, the composer walks
+     off the bottom of the screen as the conversation gets longer, and the log's
+     `tabindex` guards an overflow that never happens.
+
+     34rem, not a viewport calculation. `calc(100dvh - topbar - gutters -
+     header)` was the first shape and it is brittle in two directions: the header
+     above it wraps to two lines at some widths, and `dvh` moves under a mobile
+     browser's collapsing chrome. A fixed panel that always fits the shortest
+     desktop viewport this app targets (1052px) is the calmer answer, and the
+     document is allowed to scroll past it the way it does past any other panel.
+
+     Below `xl` this is deliberately NOT applied: on a phone the whole page
+     scrolling is the right behaviour, and a 544px box inside a 812px screen
+     would give a student two nested scrollbars to fight. */
+  --thrive-chat-height: 34rem;
+
   /* The stat pill popover. See `.thrive-popover`.
 
      17rem holds a two-line task title without wrapping it to four, and is
