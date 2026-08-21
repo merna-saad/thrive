@@ -4,6 +4,43 @@ Dated session summaries, most recent first.
 
 ---
 
+## 2026-08-21 — session close: CONTEXT regenerated after two phases
+
+**HEAD:** `bac3fbf` · 15 commits this session · 507 tests · six gates green · green
+in all seven timezones.
+
+### What changed
+
+Docs only. CONTEXT.md regenerated in full — read first, all 1,769 lines, because
+regenerating a file that size from partial knowledge would drop standing decisions
+from phases 1–6.
+
+It gained **a new §14 for the calendar**, which is the second-largest surface in the
+app and had no section at all. Gates → 15, standing decisions → 16, voice → 17,
+loose ends → 18, timeline → 19, with every cross-reference re-checked.
+
+setup_info.md: the stale test count, and **the timezone sweep documented for the
+first time** — it has caught two real failures and had no entry in the "how to run
+things" doc, which is how it went unrun against one spec for weeks.
+
+### Known issues
+
+Nine things the regeneration caught. Six were stale facts; **three were
+forward-looking claims that had come true differently** and had quietly become false
+assertions about the present — `nowMinutes()` described as the calendar's clock read
+when the calendar declined it, the "next up" line described as `arriveAtRow`'s third
+caller when it never became one, and the ignore store described as normalising
+through `eventIdOf()` when the fix was that it normalises nothing. In FINDINGS,
+because a patch is structurally unable to catch that class.
+
+### Next priorities
+
+7c: `ItemDetail`, `AddItemForm`, `DayEventsSection`, the `thrive:event-joins` key
+space with its consumer on screen, and `check:layout` extended to the week and
+agenda views.
+
+---
+
 ## 2026-08-21 — 7b follow-on: the week breakpoint moves to 48rem
 
 **507 tests · six gates green · green in all seven timezones.**

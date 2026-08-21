@@ -4,6 +4,52 @@ Reusable patterns and lessons. Things worth knowing again.
 
 ---
 
+## 2026-08-21 — a forward-looking claim decays into a false claim about the present
+
+The most useful thing regenerating CONTEXT.md after two deferred phases turned up,
+and it is not the stale counts.
+
+A snapshot doc naturally contains sentences about what will happen next. Three of
+them had come true **differently**, and each had silently become an assertion about
+the present that was simply wrong:
+
+| The claim | What happened |
+|---|---|
+| "`nowMinutes()` — the calendar's sanctioned client clock read" | The calendar declined it and reads the server's clock. The function still has no caller |
+| "the calendar's 'next up' is `arriveAtRow`'s third caller and lands with the calendar" | It never became one. The line is static in the source, so there is nothing to jump to |
+| "`ignoredEvents` — normalised through `eventIdOf()`" | Now exactly backwards. The store normalises nothing; that was the fix |
+
+### Why this class is worse than a stale count
+
+**A stale count is obviously a count.** "451 tests" next to a suite of 507 is wrong
+in a way anybody spots, and nothing downstream depends on believing it.
+
+These three read as *design*. Each was written as a considered decision, in the
+register the rest of the file uses for considered decisions, and each would have been
+followed. The second one in particular would have sent the next session hunting for a
+call site that does not exist — or worse, adding one, which needs a third
+`RevealKind` and an id-space decision nobody wanted to make.
+
+### The rule
+
+**When a doc predicts, mark the prediction, and re-check every one of them when the
+phase it predicted lands.** Not just the numbers.
+
+And the corollary for regeneration: **this is exactly what a patch cannot fix.** A
+patch updates the paragraphs you thought of; it leaves the forward-looking sentences
+elsewhere in the file sitting beside fresh text with nothing marking which is which.
+The three above were in §7, §13 and §8 — three sections a calendar patch would have
+had no reason to open.
+
+### The sibling, from the same regeneration
+
+**A verification claim decays the same way.** TESTING.md said the suite was green in
+all seven timezones. It was not, and had not been for weeks, because that line was
+written before the test that broke it. Same shape: a true statement about the past
+presented as a standing property.
+
+---
+
 ## 2026-08-21 — a computed style read at t=0 is a reading of the transition, not the value
 
 Cost about twenty minutes and nearly produced a "fix" for a bug that did not

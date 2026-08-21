@@ -52,7 +52,7 @@ npm run build            # production build
 node build/index.js      # run the build, :3000
 npm run preview          # vite's preview of the build, :4173
 npm run check            # svelte-check
-npm test                 # vitest run, 451 tests
+npm test                 # vitest run, 507 tests
 npm run test:unit        # vitest watch
 ```
 
@@ -61,6 +61,25 @@ From the repo root:
 ```bash
 python3 scripts/check-contrast.py    # must stay 58/58
 ```
+
+### The timezone sweep
+
+**Run this after touching anything date-shaped.** It is part of the definition of
+green, not an extra, and it has caught two real failures — one in a test written the
+same session, one in a test that had never been swept.
+
+```bash
+cd ~/code/thrive/frontend
+for tz in UTC America/Los_Angeles Asia/Tokyo Pacific/Kiritimati \
+          Pacific/Midway Australia/Lord_Howe Asia/Kathmandu; do
+  TZ=$tz npx vitest --run
+done
+```
+
+Seven zones, UTC+14 to UTC−11, including Australia/Lord_Howe's 30-minute DST
+offset. Takes about 15 seconds. Note "date-shaped" means the change OR the test:
+the second failure was in a spec that predated the sweep line in TESTING.md, so the
+claim that the suite was green in all seven zones had been false for weeks.
 
 ### Gotcha: stale servers
 

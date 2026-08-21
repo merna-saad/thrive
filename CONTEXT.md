@@ -1,4 +1,4 @@
-<!-- updated-at: bfa0ac3 -->
+<!-- updated-at: bac3fbf -->
 
 # CONTEXT
 
@@ -6,11 +6,14 @@ The living context file. Read this and you should be able to pick up the work
 without asking anyone.
 
 **Regenerated in full every handoff.** Never patch it — a partial edit leaves
-stale claims sitting beside fresh ones with no way to tell them apart. This file
-was patched twice mid-session on 2026-08-21 under the sanctioned same-session
-exception, and this regeneration reconciles both: it caught an internal
-contradiction the patches had introduced (§13 claimed the phone was 3303px in one
-paragraph and 3281px in another), which is the argument for the rule.
+stale claims sitting beside fresh ones with no way to tell them apart.
+
+This regeneration was **deferred across two phases on purpose** (owner, twice),
+because three calendar phases were in flight and a stale-and-flagged file beats a
+half-patched one. It therefore covers 7a and 7b together, and the deferral is
+itself the evidence for the rule: before this pass the file still said the calendar
+"lands in a later phase" while two thirds of it was built and pushed. Stale is
+survivable; contradictory is not.
 
 ---
 
@@ -97,16 +100,35 @@ Every phase of the port works from it.
 them:** 25 providers (not 21), 83 tests (not 61), and `todayKey()` lives in
 `buildSchedule.ts` (not `format.ts`).
 
-**Standing rule: where MIGRATION.md and the prototype source disagree, the
-source wins, and it gets reported.** Exercised three times so far — §2 overstated
-`buildSlotsFor`'s determinism, §2 omitted that provider copies are shallow, and
-§4's one-line entry for the task-editing components omits `lib/taskBoard.ts`
-entirely, which is where most of the behaviour actually lives. §2 carries a
-correction note.
+### The standing rule, and the three shapes it now has
 
-**And a fourth case, which is a different shape:** sometimes the source is
-*wrong* and porting it verbatim is the bug. Every date converter in the Next
-`taskBoard.ts` throws a `RangeError` on a due date that will not parse. See §7.
+**Where MIGRATION.md and the prototype source disagree, the source wins, and it
+gets reported.** Exercised three times — §2 overstated `buildSlotsFor`'s
+determinism, §2 omitted that provider copies are shallow, and §4's one-line entry
+for the task-editing components omits `lib/taskBoard.ts` entirely, which is where
+most of the behaviour actually lives.
+
+**Shape two: sometimes the source is simply WRONG, and porting it verbatim is the
+bug.** Every date converter in the Next `taskBoard.ts` throws a `RangeError` on a
+due date that will not parse (§7). The agenda rendered all three groupings
+identically, so a type-grouped list showed thirty days of rows each reading "9:30
+AM" with nothing saying which day (§14).
+
+> **The right instinct when the source is wrong is to improve on it, not to port
+> the mistake** (owner, 2026-08-21). Recorded as a rule because it will come up
+> again, and because "the source wins" read alone points the other way.
+
+**Shape three, new in 7b: sometimes the source contradicts ITSELF, and there is no
+behaviour to defer to.** MIGRATION §4 and `WeekView.tsx`'s own doc comment both
+say week view is not rendered below `40rem` and the parent falls back to the
+agenda. `CalendarView.tsx` renders it at every width, and `WeekView` handles narrow
+screens with `overflow-x-auto` + `min-w-[42rem]` — a horizontal scroll, which is
+the exact thing that comment calls the wrong answer.
+
+> **A source that contradicts itself is not a source to follow** (owner,
+> 2026-08-21). "The source wins" resolves a disagreement between the spec and the
+> code. It cannot resolve a disagreement inside the code, and reaching for it there
+> would have shipped the scroll.
 
 ---
 
@@ -125,21 +147,26 @@ fixtures on purpose, and the provider signatures are the only contract Django
 will have to honour.
 
 Two things now queued need it rather than merely wanting it — Ask THRIVE's saved
-chat history and Group Projects' shared data. See §17.
+chat history and Group Projects' shared data. See §18.
 
 **No shadcn-svelte and no bits-ui yet.** Deferred deliberately; `MIGRATION.md`
 §4 lists the Radix primitives that will need equivalents. The stat pill popover
 and the due-date editor are both hand-built floating widgets rather than deferred
-to one of them — see §13.
+to one of them — see §13. The calendar added one more hand-built control and one
+deliberately native one: the key bar's chips are labelled checkboxes, and the
+agenda's grouping control is a plain `<select>` (§14).
 
 **One dependency added since Phase 1: `playwright-core`** (2026-08-21), for the
 layout gate. It has since paid for itself several times over: the same dependency
-carries the interaction gate, which caught a dead button five other gates called
-green, a `derived_inert` warning live in the production build, and the undo
-arrival's silent no-op. `@types/node` was rejected in Phase 5 because
+carries the interaction gate and every by-hand browser pass, and between them they
+have caught a dead button five other gates called green, a `derived_inert` warning
+live in the production build, the undo arrival's silent no-op, and 7b's unclamped
+`line-clamp`. `@types/node` was rejected in Phase 5 because
 `import.meta.glob(..., { query: "?raw" })` did that job with nothing added — the
 rule is "do not add one where the platform already answers", not "never add one".
 See DEPENDENCIES.md.
+
+**No dependency changed in 7a or 7b.**
 
 ---
 
@@ -160,18 +187,22 @@ See DEPENDENCIES.md.
 | — | Stat pill popovers, the reveal channel, the arrival cue, `check:interaction` | done |
 | 6b | Task editing — tick, undo, rename, priority, notes, due date, reorder, add | done |
 | — | Honest affordances: no link to a parked route, no copy with nowhere to copy | done |
-| **next** | **The calendar — 15 components, the largest surface** | not started |
+| **7a** | **Calendar spine — `buildScheduleData`, month grid, selected day, day sections** | **done** |
+| **7b** | **Calendar views + filter — switcher, week, agenda, key bar** | **done** |
+| **next** | **7c — item detail, add form, the events section** | not started |
 | then | `/assignments` — the same `TaskRow`, no groups | not started |
 | then | Appointments | not started |
 | then | **Ask THRIVE — a full page: second left rail, chat, saved history** | scoped, not built |
 | later | **Group Projects — a fifth nav item, and the first shared surface** | scoped, not built |
 | later | Floating widgets, behind `FEATURES` | not started |
 
-**451 tests, 20 spec files, all passing.** `svelte-check` clean over 389 files.
-Build clean. Contrast **58/58**. Layout **36/36**. Interaction **60/60**.
-55 commits, all pushed.
+**507 tests, 23 spec files, all passing**, and green in **all seven timezones** of
+the sweep. `svelte-check` clean over 411 files. Build clean. Contrast **58/58**.
+Layout **36/36**. Interaction **60/60**. 71 commits, all pushed.
 
-**127 files under `frontend/src`** — ~18,286 lines, 12,769 source / 5,517 test.
+**147 files under `frontend/src`** — ~22,933 lines, 16,625 source / 6,308 test.
+
+**Two routes are now built:** `/` and `/calendar`.
 
 ---
 
@@ -223,15 +254,22 @@ to an indicator and get away with it.
 | `watch` / `needs-help` | `#8f6220` / `#6a5fb0` | Status only |
 | `civic` / `later` | `#8a5f8f` / `#64748b` | Categorical only, never status |
 
-**`indigo` has two consumers, and they are the same sentence.** "You are here" in
-the navigation, and `.thrive-arrived` — the ring on a row something has just moved
-the student to. An arrival cue *is* "this is where you are now", so this widened
-indigo's use without weakening its meaning. Anything else wanting indigo has to
-make that same argument.
+**`indigo` has three consumers now, and they are all the same sentence.** "You are
+here" in the navigation, `.thrive-arrived` (the ring on a row something has just
+moved the student to), and the calendar's two markers: today's date in a week
+column, and the "next up" item — named in the header's line and outlined in the
+square strip so the two agree. An arrival cue and a "this is next" marker *are*
+"this is where you are now", so this widened indigo's use without weakening its
+meaning. Anything else wanting indigo has to make that same argument.
 
-**6b did not add a third.** The tick's feedback is the row striking through and
-moving, the undo strip, and the live sentence; the arrival ring is spent on the
-undo. See §13 on why `justChanged` was dropped.
+**`categoryDot` / `categoryTag` are the one place hues are used CATEGORICALLY
+rather than as status**, and they are exempt from the reservations by construction:
+eleven calendar streams need more distinct dots than the reserved palette supplies,
+which is why the categorical `civic` plum and the neutral `later` slate exist.
+Every dot is paired with a written label in the key and in every row, so no meaning
+there rests on colour alone. **Coral is deliberately absent from that map** — a
+month grid dotted coral on every assignment day would drain "overdue" of meaning,
+so assignments take amber, which already means "due soon" on a `DueChip`.
 
 **`on-track` is the only reserved colour whose value has changed.** It moved off
 green on 08-15 because green had become "an action you can take" and a green chip
@@ -280,6 +318,14 @@ Expressed as two classes so a component asks for a **treatment**, not a font:
 case, tracking, weight for a small label). A component that writes `font-mono`
 fails `designSystem.spec.ts`.
 
+**The calendar was the rule's largest single test, and it is the biggest visual
+difference from the prototype.** The Next calendar set the day figure, the
+breakdown line, the whole "next up" sentence, every category tag, the view
+switcher, the key bar's chips, the weekday initials and the agenda's group headings
+in mono. Here only the values are: the day figure, the `n of m done` fraction, the
+clock times, the day numbers, the `+n` overflow, and the group counts. Everything
+made of words is DM Sans.
+
 **Weight is not in the type scale.** Set it at the call site or you get 400. Only
 400/500/700 load, so `font-semibold` (600) synthesises — never use it.
 
@@ -294,24 +340,34 @@ Nine, and each exists because Tailwind cannot express it at the call site:
 `.thrive-checkbox`, `.thrive-strike`, `.thrive-card-body`, `.thrive-popover`,
 `.thrive-arrived`.
 
-**Still nine after 6b**, which is worth noting because a phase that added six
-components added no new treatments. Every editor panel is `bg-sunken` plus a
-hairline and a radius, which are ordinary utilities; the drop indicator during a
-drag is a `before:` pseudo-element built from `rounded-pill` and `bg-primary`.
+**Still nine after 7a and 7b**, which is worth noting: two phases and thirteen new
+components added no new treatments. The calendar's panels are `.thrive-panel`, its
+rows are `.thrive-row`, its strike-through is `.thrive-strike`, and its key-bar
+chips are ordinary utilities.
 
 - **`.thrive-popover`** carries only a WIDTH:
   `min(--thrive-popover-width, 100vw - 2 * --thrive-popover-viewport-inset)`. The
   clamp is what stops a pill near the right edge opening a panel off the screen.
-  Not a `max-width`, or three pills would open three different-width lists. Its
-  surface, hairline and radius are ordinary utilities.
+  Not a `max-width`, or three pills would open three different-width lists.
 - **`.thrive-arrived`** is the arrival ring. See §13, and note it is the only one
   of the nine applied from TypeScript rather than markup — which is why
   `designSystem.spec.ts` scans `.ts` files too.
 - **`.thrive-checkbox` did not grow for 6b.** A 17px box is below the 24px WCAG
   2.5.8 pointer target the Next row cited when it built a 24px skin. Rather than
   change a design-system size, the row makes its **title** the checkbox's
-  `<label>`, so the tick target is the width of the row. Same outcome, no token
-  touched.
+  `<label>`, so the tick target is the width of the row.
+
+### One token added in 7a: `--thrive-checkbox-size`
+
+17px, and it replaced that number written in two places. `.thrive-checkbox` sizes
+itself from it, and any row rendering a **spacer** where a checkbox would go
+reaches for the same value via `size-checkbox` — the calendar's `ItemRow` does,
+which is what makes a list of classes and tickable tasks align in one column
+instead of two ragged ones. The Next version hardcoded `size-[17px]` there: a
+literal that agrees with the stylesheet only until somebody resizes the control.
+
+Measured after: the time column lands at a single x across tickable and untickable
+rows.
 
 ### Durations: motion versus dwell
 
@@ -330,12 +386,30 @@ because two things do.
 
 `arrive.ts` READS `--thrive-arrival-duration` from the computed root style rather
 than repeating it, so the timer that removes the mark and the animation that fades
-it cannot drift apart — and 1200ms stays a design-system value rather than becoming
-a number in a TypeScript file. `check-interaction.mjs` reads the same token for the
-same reason.
+it cannot drift apart. `check-interaction.mjs` reads the same token for the same
+reason.
 
 **1200ms is a judgement, not a measurement**, and it stands until a real student
 says otherwise (decided 2026-08-21).
+
+### `transition-colors` includes `outline-color`, and that has two consequences
+
+Found in 7b while verifying the key bar's focus ring.
+
+**One: a computed style read immediately after a state change is a reading of the
+transition, not the value.** `getComputedStyle(chip).outlineColor` the instant
+focus lands returns the *starting* colour — `currentColor`, i.e. the chip's text —
+and settles on `--thrive-primary` 120ms later. It nearly bought a permanent change
+to a class string justified by a comment stating a wrong measurement. **Wait past
+the longest transition on an element before reading a computed style.** In
+FINDINGS.
+
+**Two: every focusable element carrying `transition-colors` has a focus ring that
+FADES IN.** Minor, and `Button.svelte` already avoids it by enumerating
+`transition-[background-color,color,border-color,opacity]` rather than reaching for
+the shorthand — an enumeration now known to be load-bearing rather than fussy. Not
+swept repo-wide; recorded so the next person choosing between the two knows what
+the shorthand includes.
 
 ### The one responsive token
 
@@ -353,9 +427,9 @@ numbers, the yellow constraint shown legible-on-navy beside decorative-on-cream,
 and the two-face rule as a table of worked pairs. Throwaway; delete before
 Release 1.
 
-**It does not show the popover or the arrival ring, and that is a decision**
-(owner, 2026-08-21): it is slated for deletion, so it is not worth the time. The
-same reasoning covers 6b's editor panels.
+**It does not show the popover, the arrival ring, or anything the calendar added,
+and that is a decision** (owner, 2026-08-21): it is slated for deletion, so it is
+not worth the time.
 
 ---
 
@@ -366,10 +440,12 @@ the server inside `load` functions; components receive pre-formatted strings.
 
 Full statement in `CONVENTIONS.md`. The short version:
 
-- Read the clock in a `load` function. **Once.** `+page.server.ts` for Home calls
+- Read the clock in a `load` function. **Once.** Home's `+page.server.ts` calls
   `new Date()` a single time and every classification measures against it — two
   calls are two answers, and a task classified against 11:59:59 while the next
-  line reads 12:00:00 is somehow both today and overdue.
+  line reads 12:00:00 is somehow both today and overdue. The calendar's load does
+  the same and takes **three** values off that one instant: `todayKey`,
+  `nowMinutes` and `nowISO`.
 - **`describeDue(iso, now)` stays pure and keeps its `now` parameter.** That
   parameter is what makes the narrowed exception possible.
 - **The narrowed exception:** anything the student can edit gets `nowISO` as a
@@ -380,45 +456,80 @@ Full statement in `CONVENTIONS.md`. The short version:
   `EventRowData` carries a `thisWeek` boolean, not an ISO string the client
   compares — see §13.
 
-**6b is the first phase to actually use the narrowed exception**, and it uses it
-exactly as specified. `+page.svelte` passes `data.nowISO` into `resolveRows` and
-into every date control; nothing in `taskBoard.ts` calls `new Date()` with no
-argument. `new Date(iso)` is parsing a string the server sent, which is a
-different act from asking the browser what day it is.
-
 **Nothing enforces this, and that is the point of writing it down.** In Next the
 `"use client"` boundary enforced it at compile time. SvelteKit has no such wall:
 a component can `import { describeDue }` and call it with no `now`, and the
 default parameter is `new Date()`, so it compiles, renders something plausible,
 and is wrong in another timezone. **Review is the enforcement.**
 
-### The three sanctioned client reads
+### The sanctioned client reads — and the calendar DECLINED one
 
-1. **`nowMinutes()`** in `calendarSources.ts` — minutes past midnight, for the
-   calendar's "next up" line. Called from a handler or a memo, never during a
-   server render, and only when the selected day *is* today.
+The list is unchanged, but its first entry now has a consumer that chose not to be
+one, and the reasoning generalises.
+
+1. **`nowMinutes()`** in `calendarSources.ts` — minutes past midnight. **Still
+   has no caller.** It was written for the calendar's "next up" line and the
+   calendar reads the server's clock instead, via `nowMinutesAt(now)` in
+   `buildSchedule.ts`.
+
+   **Why it was declined.** In Next, `CalendarView` was a `"use client"` component,
+   so its memo could only ever run in a browser. The Svelte component renders on
+   the SERVER first, so a `$derived` calling `nowMinutes()` would run during SSR:
+   the server would paint one "next up" row and one ringed square, and the browser
+   would silently replace both a beat after hydration. That is the quiet drift this
+   whole rule is about. The value freezes at page load either way, so the client
+   read costs a visible flip and buys nothing.
+
+   Kept on the list for a caller that genuinely runs only in a handler.
 2. **`matchesWide()`** in the floating-panel geometry — listed, and **not ported
-   yet**; the floating panels are a later phase.
+   yet**; the floating panels are a later phase. Note 7b did NOT become its first
+   consumer: see the viewport rule below.
 3. **`TaskNotes`' autofocus gate** — `matchMedia('(hover: hover)')`, added in 6b.
    Opening the note panel is an explicit request to write, so focus lands in the
-   field, but only where a keyboard will not cover the screen: on a phone
-   autofocus throws the keyboard over half the card and the note button sits in a
-   thumb's resting arc.
+   field, but only where a keyboard will not cover the screen.
 
 **Read (3) against the deleted one, because they look identical and are not.**
 `hoverIntent` read `(hover: hover)` to gate hover-to-*reveal*, which is CSS —
 Tailwind's `hover:` utilities compile to that media query with no JavaScript
-needing an opinion — so when hover came out of the popovers the action was deleted
-rather than parked. `TaskNotes` decides whether to move **focus**, and there is no
-CSS form of that to prefer. That is the whole test for a fourth: *could CSS have
-done this?*
+needing an opinion. `TaskNotes` decides whether to move **focus**, and there is no
+CSS form of that to prefer. That is the whole test: *could CSS have done this?*
 
 **A `Date.now()` used as an id nonce is not a clock read** in the sense this rule
 is about. `quickList.ts` and `taskBoard.ts`'s `mintTaskId` both use one; neither
 is ever parsed back into a day. A nonce is not a date.
 
-Anything else reading the clock on the client is a bug until argued otherwise in
-review.
+### A viewport question that CSS can answer belongs in CSS
+
+7b is where the hover rule was first tested on something other than hover, and it
+held.
+
+The week-to-agenda fallback (§14) is **two media-gated wrappers**, not a
+`matchMedia` read. Three reasons, in order of weight: CSS has an exact equivalent
+so the JS form buys nothing; a `matchMedia` read has to GUESS during SSR, so one
+width of student watches the wrong view paint and be replaced after hydration; and
+the cost is only that both subtrees build, which is cheap and keeps the hidden one
+out of the accessibility tree via `display: none`.
+
+**Pick the breakpoint by measuring, not by naming a size.** 40rem was built first
+because that is the number MIGRATION and the Next comment both use. Measured, it
+gave 71px columns — correctly clamped and still not readable — so it moved to 48rem
+and 89px. "Fits" and "is legible" are different bars. **And the knob is always the
+breakpoint:** a min-width would put back the horizontal scroll the fallback exists
+to remove, which is what the source did.
+
+### The accepted client-side formats
+
+Locale-formatting differences, never date drift. Every one of these formats a day
+key already built from local parts.
+
+| Where | Why it cannot move to the server |
+|---|---|
+| The calendar's day heading | The day is chosen in the browser |
+| The agenda's group headings | The range is walked client-side |
+| `taskToItem` / `todoToItem`'s `timeLabel` | Their source rows are `localStorage`-only |
+| **`MiniCalendar`'s month label and each day cell's accessible date** (7a) | The grid pages to ANY month with no round trip — the whole point of keeping classes as weekday rules — so there is no finite set of months a `load` could pre-format |
+| **`WeekView`'s weekday abbreviations** (7b) | Same: the week is chosen client-side |
+| **The agenda's per-row date** (7b) | Same: the thirty-day range is walked client-side |
 
 ### `describeDue` has four states, not three
 
@@ -434,33 +545,38 @@ answer for a date that does not exist.
 the list**, headed "Needs a date". Loud is correct, invisible is not — a deadline
 that silently does not exist is worse than one shouting for attention, and it is
 the only group a student can actually fix. It is not tinted `urgent`: that tone is
-reserved for real deadlines, and a missing date is a data problem. Being first
-also means it survives the collapse to four rows on a capped card.
+reserved for real deadlines, and a missing date is a data problem.
 
-That ordering has two consequences, one found per phase.
-
-**In 6a:** four undated rows fill the collapsed slice on their own and push the
-overdue task — the one the coral pill counts — off screen. `reveal.spec.ts` pins
-that path.
-
-**In 6b: making those rows visible made a latent crash certain.** Every date
-converter carries the task's existing clock time over when only its day changes,
-by reading `new Date(fromISO).getHours()`. For an unparseable date that is `NaN`,
-`setHours(NaN, NaN)` yields an Invalid Date, and `Invalid Date.toISOString()`
-**throws a RangeError**. `toDateInputValue` was quieter and no better, returning
-the literal `"NaN-NaN-NaN"` that a date input silently rejects.
-
-The group guaranteed to hit it is `unknown`, whose entire purpose is that a
-student can fix it — so every route out of it would have raised an exception in
-front of the person using the one control it was surfaced for. Reproduced against
-the Next source before fixing. All three converters now guard it via one
-`clockFrom` helper falling back to the reference instant and then to local
-midnight; a date that never parsed has no time of day to preserve, so nothing is
-lost. Five tests cover the paths.
+That ordering has two consequences, one found per phase. **In 6a:** four undated
+rows fill the collapsed slice on their own and push the overdue task off screen;
+`reveal.spec.ts` pins that path. **In 6b: making those rows visible made a latent
+crash certain** — every date converter read `new Date(fromISO).getHours()`, which
+is `NaN` for an unparseable date, and `Invalid Date.toISOString()` **throws a
+RangeError**. All three converters now guard it via one `clockFrom` helper.
 
 **The lesson generalises and is in FINDINGS:** when you make a previously
-invisible state visible, audit every path that state can now reach. The fixtures
-contain no unparseable date, so no amount of using the app would have found it.
+invisible state visible, audit every path that state can now reach.
+
+### The timezone sweep is part of the definition of green
+
+Seven zones from UTC+14 to UTC−11, including Australia/Lord_Howe's 30-minute DST
+offset. **Run it after touching anything date-shaped**, and it has now caught two
+real failures.
+
+The second, in 7a, is the instructive one. `reveal.spec.ts` had `NOW` as a `Z`
+instant with `Z` due dates beside it — the exact shape TESTING.md forbids two
+paragraphs above the sweep command. `tsk-today` at `2026-08-21T23:00:00Z` is
+already *tomorrow* anywhere east of UTC+2, so the "every overdue and due-today task
+stays reachable" property counted one row instead of two. Red in Asia/Tokyo,
+Asia/Kathmandu and Australia/Lord_Howe; green in the other four including both
+extremes.
+
+**The bug was the FIXTURE, not `describeDue`.** A task due at 23:00 local on the
+21st really is due today. Reaching for the classifier would have broken correct
+behaviour to make a wrong test pass. And the file had never been swept: TESTING.md
+claimed the suite was green in all seven zones and it was not, because that line
+was written before that test was. **A verification claim decays exactly like a
+comment does.**
 
 ---
 
@@ -475,9 +591,8 @@ survives a restart; those are shared by everyone and do not.
 
 **And it is the layer that runs out first.** Everything persisted so far is one
 student's private view of their own data, which is exactly what `localStorage` is
-for. The two features queued in §17 are not: saved chat history is too large and
-too long-lived for it, and Group Projects is shared between people by definition.
-Both need Django, and neither is a case of wanting it sooner.
+for. The two features queued in §18 are not: saved chat history is too large and
+too long-lived, and Group Projects is shared between people by definition.
 
 ### Four properties that must survive
 
@@ -489,54 +604,73 @@ Both need Django, and neither is a case of wanting it sooner.
 4. **A write matching the source value forgets the override.**
 
 All four pinned by tests. **Hydration is one explicit `hydrateStores()`** in the
-root `+layout.svelte` inside `$effect`, and nowhere else (`hydrateTaskNotes()`
-sits beside it because notes are not an override store and so are not in the
-registry). Storage presence, not `$app/environment`, decides browser-vs-server —
-which keeps the whole layer testable in Node with no jsdom.
+root `+layout.svelte` inside `$effect`, and nowhere else. Storage presence, not
+`$app/environment`, decides browser-vs-server — which keeps the whole layer
+testable in Node with no jsdom.
 
-**6b was the first phase to write to this layer from the UI, and it needed no
-changes to it.** Every one of the seven keys plus `taskNotes` and the undo slot
-was built in 3b and used as-is. That is the phase's main evidence that the layer
-was designed rather than guessed: the only additions were pure functions on top.
+**Property 2 is visible on the calendar and is correct there.** `mergedSchedule`
+reads nine stores, all empty until `hydrateStores()` runs, so the server and the
+first client render both show "no personal items" and the student's own tasks,
+to-dos and custom events land on the render after mount. A saved filter appearing
+a beat after load is the same property and is expected.
 
 ### Resolve overrides ONCE per page, not once per consumer
-
-The corollary 6b added, and it is now in CONVENTIONS.
 
 Home has two things reading the same task list: the stat pills and the Tasks card.
 `+page.svelte` calls `resolveRows` and hands the same array to both. If the card
 resolved its own, moving a due date would restyle the list while the coral pill
-above it went on counting the server's stale `due.urgency` — two views of one list
-that can disagree, which is the exact bug that moved the counting to the client in
-6a, one level up.
+above it went on counting the server's stale `due.urgency`.
 
-### Three key spaces, never merge them
+**The calendar's form of the same rule is "one filter, applied once"** — see §14.
+
+### Three key spaces, never merge them — and the HIGH defect that is now closed
 
 | Space | Module | Keyed on |
 |---|---|---|
 | Task id | `userEdits.svelte.ts` | the task's own id |
-| Calendar item id | `calendarItems.ts` | `asg-12`, `apt-3`, `task-7`, `todo-x` |
-| Raw `Event.id` | `ignoredEvents.ts` | normalised through `eventIdOf()` |
+| Calendar item id | `calendarItems.ts` | `asg-12`, `apt-3`, `task-7`, `todo-x`, `custom-…`, `evt-evt-3-1` |
+| Raw `Event.id` | `ignoredEvents.ts` | `evt-3-1` — **stored verbatim** |
 
-**Home only ever holds raw `Event.id`s** and passes them through unchanged.
-`eventIdOf()` is for calendar ITEM ids (`evt-evt-3-1`), a different key space Home
-never touches. Calling it there would be normalising something already normal —
-which is how a second normaliser gets added, and §9 defect 12 is what happens
-next. The reveal targets in §13 hold raw ids for the same reason, and
-`reveal.spec.ts` asserts they pass through untouched.
+**The ignore store's two surfaces did not share a key space, and this was graded
+HIGH.** Fixed in 7a.
+
+`eventIdOf` strips exactly one leading `evt-`. Given a calendar item id
+(`evt-evt-3-1`) that recovers the raw id. Given a RAW id — which begins with `evt-`
+too — it *mangles* it to `3-1`. And **the store was normalising its own
+arguments**, so Home's write to `evt-3-1` landed under `3-1` while the calendar's
+landed under `evt-3-1`. Each surface self-consistent, neither able to see the
+other: ignoring an event on Home left it showing on the calendar and the reverse.
+
+**The fix is that the store normalises NOTHING it is handed.** It keys on precisely
+the string given, and the one surface holding a prefixed id — the calendar — calls
+`eventIdOf` once at its own boundary. `filterSchedule` was always in the raw space,
+so **Home was the broken side**, and no Home component changed: every call site
+there already passed `event.id` raw.
+
+`eventIdOf`'s doc comment used to claim "passing a raw id through twice is safe".
+That false sentence is why the bug was written twice, and it is gone.
+
+**Old keys are inert, not migrated** (owner). An event ignored on Home before the
+fix reappears once. Absence means "never touched" in this store, so a stale key is
+harmless rather than corrupt, and a migration shim whose only input is a browser
+nobody can inspect is worse than the one-time reappearance.
+
+**The double prefix itself is deliberate and stays.** Every calendar item id names
+its stream, and events are the one stream whose source ids share that prefix.
+Dropping it would make the space non-uniform — `asg-12`, `apt-3`, `task-7`, then a
+bare `evt-3-1` — and the label and urgent stores are keyed on that space.
 
 **Student-created task ids are prefixed `own-`** so they cannot collide with a
-fixture's and so their origin is readable in `localStorage`. `removeAddedTask`
-clears the five sibling overrides too, leaving no orphan keys pointing at an id
-that no longer exists.
+fixture's. `removeAddedTask` clears the five sibling overrides too.
 
 ### What is deliberately NOT persisted
 
-Card collapse state, and the reveal channel that can drive it. See §13 — the
-non-persistence is structural, not a `reset()` somebody remembers to call.
-
-Also not persisted: the drag in progress, the open editor, the note draft before
-it commits, and the live-region sentence. All momentary.
+Card collapse state, and the reveal channel that can drive it (§13). Also: the
+drag in progress, the open editor, the note draft before it commits, the live-region
+sentence, and the calendar's `selectedKey` / `monthKey` — a selected day is a
+momentary place, not a preference. **The calendar's FILTER is persisted**, through
+`calendarPrefs`, because a filter that resets on every navigation is a filter
+nobody uses twice.
 
 ### `.svelte.ts` is not decoration
 
@@ -545,10 +679,8 @@ Svelte only processes runes in `.svelte.js` / `.svelte.ts`. A plain `.ts` with
 `userEdits`, `taskNotes`, `toast`, `ignoreUndo`, `reveal`.
 
 **And the suffix is a claim, so it has to be true in the other direction too.**
-`arrive.ts` is DOM code with no runes and is a plain `.ts` for exactly that
-reason — it was moved out of `reveal.svelte.ts` on 2026-08-21 partly to stop
-implying otherwise. `taskBoard.ts` is the same: pure functions, no runes, plain
-`.ts`, and 6b added no seventh rune file.
+`arrive.ts` is DOM code with no runes and is a plain `.ts` for exactly that reason.
+7a and 7b added five pure modules and **no seventh rune file**.
 
 ---
 
@@ -567,30 +699,29 @@ nobody reintroduces them thinking they were an oversight.
 | The `use*` prefix on every reader | Signalled call-order rules that do not apply |
 | `useFloatingGeometry`'s ref-into-a-hook | A React Compiler render-phase rule; `bind:this` removes it |
 | `useState` + `useRef` for the More sheet | Moot — the sheet is gone (§11) |
-| `useTaskBoard`'s two `useMemo`s and three `useCallback`s | Same: deriveds recompute on read, and a plain function is stable enough |
-| `TaskNotes`' `latest` ref + syncing `useEffect` | It existed only so an unmount cleanup could read the current draft. `onDestroy` reads it directly |
+| `useTaskBoard`'s two `useMemo`s and three `useCallback`s | Deriveds recompute on read |
+| `TaskNotes`' `latest` ref + syncing `useEffect` | `onDestroy` reads the draft directly |
+| **`MiniCalendar`'s `gridRef` + `requestAnimationFrame`** | A ref to query the grid, and a frame's guess at when the month had re-rendered. `bind:this` plus `await tick()` is the flush, not a guess |
+| **`CalendarView`'s five `useMemo`s** | Same as above: filter, labels, next-up, squares, day groups all recompute on read |
 
-**One collapse was requested and made:** `localDayKey(iso)` folded into
-`dayKeyOf(value: Date | string)`.
+**Two collapses were requested and made:** `localDayKey(iso)` folded into
+`dayKeyOf(value: Date | string)`, and `CalendarView`'s
+`view === "agenda" ? <Agenda/> : <dayPanel/>` became a **snippet** rendered by two
+branches — the ternary read as "agenda is the odd one out" and hid that the day
+panel is shared by month and week.
 
 **One hook was split rather than translated.** `useTaskBoard` did resolution,
 grouping, counting and mutation in one place; here grouping and counting are
 `homeGroups.ts` (6a) and resolution plus the date arithmetic are `taskBoard.ts`
-(6b). Both pure, both fully testable, and the split is what let 6a ship a correct
-read-only card without stubbing anything.
+(6b).
 
 **Hooks that became module singletons:** `useTaskToggle` → `taskToggle`,
 `useIgnoreEvents` → `ignoreEvents`. One undo slot app-wide rather than one per
-calling component, which matches what `toast` already did deliberately.
-
-**The reveal channel is deliberately NOT a module singleton**, and it is the one
-place that pattern was rejected — see §13.
+calling component. **The reveal channel is deliberately NOT one** — see §13.
 
 **`onDestroy` is not a `useEffect` teardown, and 6b needed the difference.**
-`TaskNotes` commits its draft on destroy. Written as an `$effect` returning a
-cleanup, it would re-run on every keystroke and commit on each one — the exact
-behaviour the component exists to avoid. `onDestroy` is not reactive at all,
-which is what the React unmount effect actually meant.
+`TaskNotes` commits its draft on destroy; written as an `$effect` returning a
+cleanup it would commit on every keystroke.
 
 ---
 
@@ -604,180 +735,135 @@ which is what the React unmount effect actually meant.
   match, which is what makes that a guarantee rather than an intention.
 - **The top bar is 48px above `lg`, 56px below.** The CONTROLS change size — 44px
   touch, 36px pointer — and the bar's height follows from them. WCAG 2.5.5 asks
-  44px of a touch target and 2.5.8 asks 24px of a pointer one. The stat pills
-  follow the same pair (`min-h-11 lg:min-h-9`), including the inert zero one, and
-  so do 6b's editor buttons.
+  44px of a touch target and 2.5.8 asks 24px of a pointer one. The stat pills, 6b's
+  editor buttons, and 7b's view switcher and key-bar chips all follow the same pair
+  (`min-h-11` below, relaxing above).
 - **`--thrive-page-gutter-bottom`** is the page's bottom breathing room, used
-  twice: on mobile added to the bottom nav's height (that bar is fixed *over* the
-  page), and above `lg` it is the whole padding.
-- **Icons are component references held as values**, rendered via
-  `{@const Icon = item.icon}`. Not `<svelte:component>`, deprecated in Svelte 5.
+  twice: on mobile added to the bottom nav's height, and above `lg` it is the whole
+  padding.
+- **Icons are component references held as values.** Not `<svelte:component>`,
+  deprecated in Svelte 5.
 - **Accessibility:** skip link, `main` landmark with `tabindex="-1"`, exactly one
   `nav` landmark in the a11y tree at a time, `aria-current="page"` on the active
   item.
-- **`Toast` is mounted here**, once, for every route. See below.
+- **`Toast` is mounted here**, once, for every route.
 
 **One thing the shell will have to grow:** Ask THRIVE wants a SECOND left rail
-beside the nav rail (§17). The single-`nav`-landmark rule above is the constraint
-to design against — two rails must not become two nav landmarks competing for the
-same name.
+beside the nav rail (§18). The single-`nav`-landmark rule is the constraint to
+design against.
 
 ### The app-wide toast
 
-`toast.svelte.ts` shipped in Phase 3b with its six tests and **no consumer** —
-nothing rendered it, so `showToast` wrote to a store no one read. Harmless while
-nothing called it, and it sat in the loose-end list as "one import".
-
-6b's copy-to-quick-list is the first caller and would have been the worst possible
-one to leave unrendered: the floating quick list is feature-flagged off, so the
-copy has **no visible destination either**. The button would have succeeded,
-persisted, and shown the student nothing at all — a silent no-op from an action
-that worked. So the component was built and mounted.
+`toast.svelte.ts` shipped in Phase 3b with six tests and **no consumer**. 6b's
+copy-to-quick-list is the first caller and would have been the worst possible one
+to leave unrendered: the floating quick list is feature-flagged off, so the copy
+has **no visible destination either**.
 
 `role="status"` rather than `alert`: copying a row is not urgent and must not
-interrupt what a screen reader is already saying. The region is **mounted always**
-and only its text changes, because a live region created and populated in the same
-tick announces unreliably. `pointer-events-none` so a confirmation can never
-swallow a press meant for the page beneath it.
+interrupt a screen reader. The region is **mounted always** and only its text
+changes, because a live region created and populated in the same tick announces
+unreliably. `pointer-events-none` so a confirmation can never swallow a press.
 
 **It currently has no caller, and that is expected** (owner, 2026-08-21). Copy-to-
-list is now gated on the same flag, so the toast and its one raiser return
-together. Not dead code, and not to be removed and re-added.
+list is gated on the same flag, so the toast and its one raiser return together.
 
 ### The two actions
 
-`frontend/src/lib/actions/` — Svelte actions rather than translated `useEffect`s.
-The shared shape is that **the listener's lifetime is the element's**: put one on
-something inside an `{#if open}` and it exists exactly when the thing it dismisses
-does, so there is no open state to keep a listener in step with.
+`frontend/src/lib/actions/` — `escapeKey` and `clickOutside`. Svelte actions rather
+than translated `useEffect`s, and the shared shape is that **the listener's
+lifetime is the element's**: put one inside an `{#if open}` and it exists exactly
+when the thing it dismisses does.
 
-| Action | Role | Callers |
-|---|---|---|
-| `escapeKey` | Escape-to-dismiss | `StatPopover`, `DueDateEditor` |
-| `clickOutside` | Capture-phase `pointerdown`, with an `alsoInside` list | `StatPopover`, `DueDateEditor` |
+Callers: `StatPopover` and `DueDateEditor` for both. **Neither gained a third in
+7a or 7b** — the calendar has no dismissible floating surface yet; `ItemDetail` in
+7c is the candidate.
 
 `clickOutside` takes `alsoInside` because a disclosure's own trigger is not inside
 its panel but *is* inside its widget. Without it, pressing the trigger to close
-fires the dismissal, the panel unmounts, and the trigger's own click reopens what
-was just dismissed — a button that visibly refuses to close.
-
-**Both gained a second caller in 6b**, which is the argument for having made them
-actions rather than effects: `DueDateEditor` replaced the Next version's two
-`useEffect`-managed document listeners with two `use:` directives and no open
-state to keep them in step with.
+fires the dismissal, the panel unmounts, and the trigger's own click reopens it.
 
 **The same shape, one level up.** `TasksCard` clears its drag state from a
-`document` `dragend` listener inside an `$effect` keyed on `drag !== null`. It is
-not an action because there is no element whose lifetime matches — the drag
-outlives any one row, which is precisely the bug it fixes (§13).
+`document` `dragend` listener inside an `$effect` keyed on `drag !== null`. Not an
+action, because no element's lifetime matches — the drag outlives any one row.
 
-**`hoverIntent` existed and was deleted**, same day. It held the one
-`(hover: hover)` gate for the popovers' hover opener. When hover came out of that
-interaction it had no caller, and it was deleted rather than parked: nothing queued
-has a hover-reveal requirement that Tailwind's `hover:` utilities do not already
-cover. See §15.
+**`hoverIntent` existed and was deleted**, same day. See §16.
 
 ### Feature flags
 
 `FEATURES.floatingTodo` and `FEATURES.floatingAssistant`, both `false`. Mount
-points exist in `AppShell`, gated. **Left untouched when `/ask` became a route** —
-two Ask THRIVE surfaces is a later decision, not an accident to create now. Note
-that decision gets sharper with the full Ask THRIVE page scoped in §17: a floating
-assistant and a page with a chat window and saved history are two homes for one
-conversation.
+points exist in `AppShell`, gated.
 
-**`floatingTodo` gates a second thing: the task row's copy-to-list control.**
-The quick list is the only surface where a copied item is visible, so with the flag
-off the copy succeeded, persisted, and showed the student nothing — the same
-"invisible result reads as broken" argument that withholds a "View all" pointing at
-a parked route. Nothing was deleted: the store, `addQuickItem`, its tests and the
-toast all stay, and flipping one word restores the button to a byte-identical row.
+**`floatingTodo` gates a second thing: the task row's copy-to-list control.** The
+quick list is the only surface where a copied item is visible, so with the flag off
+the copy succeeded, persisted, and showed the student nothing.
 
 **A flag that gates a destination should gate the routes INTO it.** That is the
-generalisable form, and it is why this was not just a visibility tweak: the flag
-owns a surface, so it owns every affordance that only makes sense once that
-surface exists.
+generalisable form.
+
+**A note the calendar sharpens:** the quick list's *items* now surface somewhere
+the flag does not gate. The agenda renders undated to-dos, which are `QuickItem`s,
+and they are tickable there. That is deliberate — the agenda is the only view that
+can carry them and they would otherwise be invisible forever — but it means the
+store has a visible consumer while its panel does not.
 
 ---
 
 ## 11. Routes and navigation
 
 13 routes. **Four are in the navigation:** Home, Calendar, Appointments, Ask
-THRIVE — in that order.
+THRIVE — in that order. **Two are built:** `/` and `/calendar`.
 
 Nine of the previous eleven destinations were placeholders, and a nav that is
 four-fifths stubs reads as broken rather than unfinished.
 
-**A fifth is coming.** Group Projects (§17) is scoped as a nav item, which will be
-the first addition since the trim to four — and the first time the four-item
-bottom bar has to hold five things. Worth deciding deliberately rather than
-discovering when it lands.
+**A fifth nav item is coming.** Group Projects (§18) will be the first addition
+since the trim to four — and the first time the four-slot bottom bar has to hold
+five things.
 
 ### Parked, not deleted
 
 `/classes`, `/syllabi`, `/assignments`, `/degree`, `/events`, `/career`,
 `/resources` and **`/settings`** live in `parkedNav` — a list **no surface
-renders**. The routes, files, icons and descriptions are all intact and reachable
-by URL; the only thing removed is the way in. Bringing one back is moving it
-between two arrays.
+renders**. The routes, files, icons and descriptions are intact and reachable by
+URL; the only thing removed is the way in.
 
 **Why a separate list rather than a `hidden` flag:** a flag needs every surface to
 remember to filter on it, and the failure mode of forgetting is a parked item
-silently reappearing in one place. With a separate list the surfaces render
-`primaryNav` and *cannot* render these without importing something new.
+silently reappearing in one place.
 
 **`allNav`** is the lookup list — visible plus parked. `PagePlaceholder` resolves
-against it, so parking a route does not start it throwing. Verified: all 13 routes
-return 200; a route whose href is in no list returns 500 with the right message.
+against it, so parking a route does not start it throwing.
 
-**Settings is parked and stays parked** (confirmed 2026-08-21): nothing to
-configure yet. It was also the reason the mobile **More sheet** could go — with
-four destinations there is no overflow, and an overflow button that opens nothing
-is worse than no button.
+**Settings is parked and stays parked** (confirmed 2026-08-21). It was also the
+reason the mobile **More sheet** could go.
 
 **Two parked routes are scoped to be absorbed rather than unparked.** Ask THRIVE's
-second rail names Resources and Career (§17), which are the subjects of `/resources`
-and `/career`. Whether those become sub-routes of `/ask`, stay standalone, or the
-names simply coincide is unsettled and belongs to whoever builds that page.
+second rail names Resources and Career (§18).
 
 ### A card links out only when its destination is built
 
 `isBuiltRoute(href)` asks `primaryNav`, and `SectionCard` renders its "View all"
 only when the answer is yes. **`primaryNav` membership IS the definition** of a
-real destination — the same list that decides what the rail and the bottom bar
-show — so moving a route out of `parkedNav` restores every card's link to it with
-no further edit.
+real destination, so moving a route out of `parkedNav` restores every card's link
+with no further edit.
 
-Decided in `SectionCard`, the one component that renders the affordance, rather
-than per card: four cards link out and three of them pointed at parked routes, so
-the alternative was four places to edit and four chances to forget one. Same
-reasoning as `parkedNav` being a separate list rather than a flag — make the
-failure impossible rather than something to remember.
+Decided in `SectionCard` rather than per card: four cards link out and three
+pointed at parked routes, so the alternative was four places to forget.
 
 **Which cards lost their link:** Tasks (`/assignments`), My Classes (`/classes`),
-Upcoming Events (`/events`). Today's classes keeps `/calendar`, which is primary.
+Upcoming Events (`/events`). Today's classes keeps `/calendar` — and that link now
+lands on a real page, which it did not when the decision was made.
 
-**`isKnownRoute` is the companion, and it exists to separate two answers that look
-identical.** A parked route and a mistyped one both fail `isBuiltRoute`, for
-completely different reasons, and hiding a link because somebody fat-fingered an
-href is the silent no-op this repo treats as its worst failure mode. So
+**`isKnownRoute` is the companion**, separating a parked route from a mistyped one.
 `SectionCard` warns in development on an href in neither list. A warning and not a
-throw: `PagePlaceholder` can throw because it IS the page, whereas taking Home
-down over a "View all" would be worse than the missing link.
+throw: taking Home down over a "View all" would be worse than the missing link.
 
 **`/classes` will not be built, and its card stays link-less indefinitely**
-(owner, 2026-08-21, settled — do not revisit). The card IS the feature; the page
-was never needed. The route and its `PagePlaceholder` stay because deleting them
-buys nothing and `allNav` still resolves.
+(owner, settled — do not revisit). The card IS the feature.
 
-**`/calendar` keeps its card link although its own body is still a note** (owner,
-2026-08-21, settled). It is in `primaryNav`, the rail already links there, and its
-real body is the next phase.
-
-**`/assignments` is parked and is the next real consumer of a 6b component.**
-The Tasks card's "View all" points at it, and it renders the same `TaskRow` — with
-no `reorder` prop, since it has no groups to move between. It owes that row a
-`role="list"` container; see §17.
+**`/assignments` is parked and is the next real consumer of a 6b component.** It
+renders the same `TaskRow` with no `reorder` prop, and **owes that row a
+`role="list"` container**.
 
 `pageTitle()` in `lib/title.ts` reproduces Next's `"%s · THRIVE"` template.
 
@@ -800,9 +886,9 @@ provider surface. Widen the surface, do not reach through it.
 
 ### Four properties, each pinned by a test
 
-1. **Every provider returns a `Promise`.** The entire point of the layer.
+1. **Every provider returns a `Promise`.**
 2. **Every provider returns copies.** *The copies are shallow*, as in the
-   prototype — see §17.
+   prototype — see §18.
 3. **Deterministic generation. Never `Math.random()`**, which desynchronises
    server from client. A test scans the whole directory.
 4. **Fixtures dated relative to now**, so a demo never looks stale.
@@ -814,10 +900,15 @@ because their dates are relative to "now" and module load may be hours earlier.
 
 **The id generators count independently of the seeds.** They work only because
 somebody numbered the request seed `req-000` by hand and set the resume counter to
-4. Seed a `req-001` without moving the counter and the student's first request
-silently shares its id. Commented at the generator, and pinned by a test.
+4. Commented at the generator, and pinned by a test.
 
-### Four §9 defects built correctly rather than reproduced
+### Five providers finally have a calendar consumer
+
+`buildScheduleData()` was the gating unported piece from Phase 2 to 7a. It reads
+**`getCourses`, `getAssignments`, `getEvents`, `getMyAppointments`, `getAdvisors`**
+in one `Promise.all` — see §14 for what it does with them.
+
+### Four MIGRATION §9 defects built correctly rather than reproduced
 
 | # | Defect | What this repo does |
 |---|---|---|
@@ -836,588 +927,569 @@ Advisors: **Amber Hanna** (Graduate Student Advisor, Rady 2S111) and **Nelitza
 Morales** (Career Coach, CMC / Zoom).
 
 **There is exactly one student, and Group Projects is the first thing that breaks
-that assumption** — see §17. Nothing in `mock/` models a second person, a group,
-or an assignee.
+that assumption** — see §18.
 
 ### The fixture's shape, measured
 
-Numbers worth knowing, because three design decisions rest on them: **10 tasks**
-(8 open, 2 done — 1 overdue, 2 due today, 5 upcoming), and **159 upcoming events,
-21 of them inside seven days**, generated 2–4 per day across a rolling horizon.
-That 21-against-4 is what forced the events card decision in §13.
+**10 tasks** (8 open, 2 done — 1 overdue, 2 due today, 5 upcoming), and **159
+upcoming events, 21 of them inside seven days**, generated 2–4 per day across a
+rolling horizon. That 21-against-4 is what forced the events card decision in §13.
 
-**The eight open tasks are why the collapse matters and why one gate check can
-run at all.** Four are shown collapsed, so `check:interaction` can tick the last
-of the eight, collapse the card, and undo into a row that is genuinely not
-rendered — the hard case for the arrival. A smaller fixture would report SKIP.
+**Event ids are `` `evt-${dayOffset}-${i}` `` — already `evt-`-prefixed**, which is
+the root of the key-space defect in §8. Verified at `mock/events.ts:287`.
 
-**No fixture task has an unparseable due date**, which is exactly why the crash in
-§7 survived to be found by reading rather than by using the app.
+**The eight open tasks are why the collapse matters and why one gate check can run
+at all.** Four are shown collapsed, so `check:interaction` can tick the last of the
+eight, collapse the card, and undo into a row that is genuinely not rendered.
+
+**No fixture task has an unparseable due date**, which is why the crash in §7
+survived to be found by reading rather than by using the app. **And no fixture item
+carries a label**, which is why the calendar key's labels dimension had to be
+exercised by seeding the store by hand (§14).
 
 ---
 
 ## 13. Home
 
-The one fully-built page, fully editable since 6b, and the only route that reads
-more than `getStudent()`.
-
-`+page.server.ts` awaits **six providers in one `Promise.all`** and calls
-`new Date()` once. Four cards in a **2×2 grid** at `lg`, one column below it.
+The dashboard, and the only editable surface. `+page.server.ts` awaits **six
+providers in one `Promise.all`** and calls `new Date()` once. Four cards in a
+**2×2 grid** at `lg`, one column below it.
 
 **What is deliberately not computed on the server:** the three stat counts. They
 have to see the student's persisted ticks, edits and ignores, which only exist in
-the browser — counting them server-side freezes them at the fixture's answer and
-lets the pills contradict the cards beneath them. What goes down is the classified
-rows and, on each event row, a `thisWeek` flag: the data to count, not the count.
+the browser. What goes down is the classified rows and, on each event row, a
+`thisWeek` flag: the data to count, not the count.
 
 **`+page.svelte` resolves the task rows once**, for both consumers. See §8.
 
 ### The fit-on-one-screen behaviour
 
-The problem: Home rendered fourteen task rows beside a card showing one class, so
-the tallest card decided the page height and two of the four cards were below the
-fold.
-
 - **Desktop: a FIXED height per card body, scrolling inside.** Fixed, not
   `max-height` — with a maximum, a short card still *grows* when expanded, moving
-  its grid row and shoving the cards below it down. Fixed means expanding can
-  only ever scroll, so the grid is immovable by construction.
-- **Mobile: no cap at all.** Cards stack and expand normally. A nested scroll
-  region inside a page that already scrolls eats the swipe meant for the page.
-- **The state does not persist.** An expanded card is a momentary intent, not a
-  preference.
+  its grid row. Fixed means expanding can only ever scroll.
+- **Mobile: no cap at all.** A nested scroll region inside a page that already
+  scrolls eats the swipe meant for the page.
+- **The state does not persist.** An expanded card is a momentary intent.
 - **`contain: paint`** on the card body — load-bearing, see BUGS.md.
 
-**Cap: `--thrive-card-body-cap: 18.75rem` (300px)**, the tightest value at which
-nothing overflowed at rest in 6a. Collapsed row COUNTS live in `$lib/cardLayout`
-because JavaScript slices with them: **4** task rows, **2** course cards, **4**
-class rows, and `VISIBLE_EVENTS = 4`.
-
-**The Tasks card now scrolls inside that cap, and the trade is recorded at the
-constant.** 6a measured 299px of collapsed content against the 300px cap — it fit
-exactly. A desktop task row is now **61–81px rather than 54px** and the collapsed
-body holds **424px**. That is arithmetic, not styling: a row carries 44px controls
-(WCAG 2.5.8; shrinking them trades a layout problem for an accessibility one) plus
-the 44px "Add a task" button, and no arrangement of those fits 300px.
-
-**`COLLAPSED_TASK_ROWS` stays at 4** (owner, 2026-08-21, settled): a ~124px inner
-scroll is barely noticeable, losing a quarter of the visible tasks is, and the
-grid not moving is what mattered.
-
-**That guarantee is untouched.** The height is fixed, so the overflow can only
-scroll and the grid cannot move — asserted twice, by `check:interaction`'s
-*editing did not move the grid* and by `check:layout` on every route and viewport.
-
-**It is also what makes the reveal machinery below safe.** Expanding a card to
-show a hidden row cannot move the grid, and nothing had to be added to guarantee
-it.
+**Cap: `--thrive-card-body-cap: 18.75rem` (300px)**. Collapsed row COUNTS live in
+`$lib/cardLayout`: **4** task rows, **2** course cards, **4** class rows,
+`VISIBLE_EVENTS = 4`. **`COLLAPSED_TASK_ROWS` stays at 4** (owner, settled).
 
 ### Tasks is flat when collapsed, grouped when expanded
 
-The one real design decision in 6a, and it came from measuring. The card carried
-~190px of fixed furniture — progress bar, three group headings, Done heading,
-section gaps — before its first row, three and a half rows' worth. At any cap that
-let the grid fit a laptop it showed one task.
+The one real design decision in 6a, and it came from measuring: the card carried
+~190px of fixed furniture before its first row. So the progress bar moved into the
+header band and the collapsed view shows a flat list of the next four things.
+Headings come back on expand.
 
-So the progress bar moved into the header band (outside the scroll area) and the
-collapsed view shows a flat list of the next four things with no headings. Nothing
-is lost: every row already states its own urgency in its labels. Headings come
-back on expand, where they earn their height.
-
-**6b inherited a consequence from that decision: reordering is offered only when
-the card is EXPANDED.** Collapsed, the rows are a flat slice spanning several
-groups, and sort keys are read *per group* — so "move this up" across a group
-boundary would persist a key and change nothing on screen. A control that appears
-to work and does not is the failure mode this repo cares most about, so the
-control is not offered. The Next app never had to answer this, because its card
-was always grouped.
-
-Everything else — tick, rename, priority, note, due chip — works in both states.
+**6b inherited a consequence: reordering is offered only when EXPANDED.**
+Collapsed, the rows are a flat slice spanning several groups, and sort keys are read
+*per group* — so "move this up" across a group boundary would persist a key and
+change nothing on screen.
 
 ### Task editing (6b)
-
-The persistence layer was already there from 3b. This phase was wiring, plus the
-things below.
 
 | Component | Role |
 |---|---|
 | `TaskRow` | The row. Checkbox, title-as-label, chips, due chip, 44px controls, two disclosure panels |
-| `UndoBar` | Fixed at the TOP of the list, not following the row. Deliberately **not** a live region |
-| `DueDateEditor` | The due chip as a button opening a native `<input type="date">` plus Today / Tomorrow / Next week |
+| `UndoBar` | Fixed at the TOP of the list. Deliberately **not** a live region |
+| `DueDateEditor` | The due chip as a button opening a native `<input type="date">` plus three shortcuts |
 | `PriorityPicker` | Three radios, not a select. Deliberately uncoloured by its own value |
 | `TaskNotes` | Draft local, committed on blur, on close, and on destroy — never per keystroke |
 | `AddTaskForm` | Collapsed to one button. Title the only required field |
 
 **A native date input rather than a hand-rolled calendar.** Keyboard-operable and
-screen-reader-labelled for free, and on a phone it raises the platform's own
-picker. The three shortcuts cover what a student actually wants without making
-them read a calendar to find tomorrow.
+screen-reader-labelled for free, and on a phone it raises the platform's own picker.
 
-**Three radios rather than a select**, because there are exactly three values: a
-dropdown hides two behind a click and costs a keystroke. Radios also give
-arrow-key movement and one tab stop for free. **Uncoloured by its own value** — the
-row's left edge and wash already carry priority, and `high` is not the same signal
-as overdue, which owns the coral.
+**Three radios rather than a select**, because there are exactly three values.
+**`AddTaskForm` keeps a native `<select>`** and that is not an inconsistency: on a
+row, priority is one of three values being *changed* in a strip where all three
+should be visible; in the form it is one of four fields being *filled*.
 
-**`AddTaskForm` keeps the Next source's native `<select>`** for priority, and that
-is not an inconsistency with the paragraph above. They answer different questions:
-on a row, priority is one of three values being *changed*, in a strip where all
-three should be visible; in the form it is one of four fields being *filled* in
-sequence, and a three-wide radio group would be wider than the field beside it.
+**Notes commit on blur, on close, and on destroy.** The third matters: ticking a
+task elsewhere regroups the row and can unmount the panel mid-sentence. Escape
+**closes without discarding** — the opposite of the title editor, because a title
+has an original to restore to and prose does not.
 
-**Notes commit on blur, on close, and on destroy.** The third is the one that
-matters: ticking a task elsewhere regroups this row and can unmount the panel
-mid-sentence, and without it the note would be gone with no action the student
-took. Escape here **closes without discarding** — deliberately the opposite of the
-title editor, because a title has an original to restore to and prose does not.
+**The title commits on blur too, which the Next source did not do.** That forced a
+guard: `blur` fires *before* `click`, so pressing Cancel would have committed the
+draft. Both halves are needed — a `pointerdown` flag for mouse, touch and
+**Safari** (where clicking a button does not focus it, leaving `relatedTarget`
+null), and a `relatedTarget` check for the keyboard.
 
-**The title commits on blur too, which the Next source did not do** (it committed
-only on Enter and Save). That forced a guard: `blur` fires *before* `click`, so
-pressing Cancel would have committed the draft and then restored a variable
-nothing reads. Both halves of the guard are needed — a `pointerdown` flag for
-mouse and touch, and for **Safari**, where clicking a button does not focus it and
-so leaves `relatedTarget` null; and a `relatedTarget` check for the keyboard, where
-Tab moves focus with no pointer event at all. Two paths abandon and only two:
-Escape and Cancel. Everything else commits, so "I closed it" is not a coin flip.
+**"Needs a date" accepts no drops**, enforced as a type:
+`DatedGroupKey = Exclude<GroupKey, 'unknown'>`.
 
-**"Needs a date" accepts no drops.** You cannot move a task into having no due
-date — `Task.dueDate` is required and `setTaskDue` only ever writes an instant, so
-there is nothing to write. Enforced as a **type**, `DatedGroupKey =
-Exclude<GroupKey, 'unknown'>`, so `dateForGroup` cannot be called with it and a
-future drop target has to say out loud that it is doing something impossible.
-Rows still leave that group and reorder within it.
+**No `justChanged` ring.** This app has ONE arrival treatment. A tick is answered
+by the row striking through, moving to Done, the undo strip, and the live sentence.
+The ring is spent on the **undo**.
 
-**The tick resolution bug is not reintroduced.** Home's rows carry a real `Task`
-object end to end and `taskToggle.toggle(task)` takes the object; nothing in this
-path parses an id. The question does not really arise here — every row has a
-writable source by construction — and the calendar's `tickItem` dispatch is
-untouched.
-
-**No `justChanged` ring.** The Next row outlined a ticked task for the whole
-six-second undo window. Dropped by decision: this app has ONE arrival treatment
-and a student learns it once. A tick is answered by the row striking through,
-moving to Done, the undo strip appearing at the top of the list, and the card's
-live sentence. The ring is spent on the **undo**, which is the move that needs
-finding again.
-
-**One live region, and the undo strip is not a second one.** Counts, undo and
-every move come through the card's single `aria-live` sentence; three regions
-would talk over each other on one action, which is what the events card had before
-it was cut to one. The sentence is cleared after 4s so the *same* move announced
-twice is announced the second time too — an unchanged live region says nothing,
-which would make a repeated keyboard reorder silent exactly when it is being used
-most.
-
-**A row restored to a date past this week is announced rather than silently
-skipped.** Done is not week-filtered, so a task due three weeks out can be ticked
-and unticked, and the week filter then removes it again. There is no row to arrive
-at, so the card says so instead.
-
-**Copy-to-quick-list is gated on `FEATURES.floatingTodo`** — see §10. The quick
-list is the only surface where a copied item is visible.
+**One live region, and the undo strip is not a second one.** The sentence is cleared
+after 4s so the *same* move announced twice is announced the second time too.
 
 ### The row's structure, and defect 3 twice over
 
 MIGRATION §9 defect 3 — "the worst thing in the app" — was every task title
-wrapping to roughly one character per line at 375px, making Home ~7,700px tall.
-It had **two** causes and 6b would have reintroduced the second.
+wrapping to roughly one character per line at 375px. It had **two** causes and 6b
+would have reintroduced the second.
 
-**Cause 1, fixed in 6a and kept:** a flex item's default `min-width: auto` refuses
-to shrink below its longest word, so a text child with no `min-w-0` pushes the row
-wider than its container and the title gets what is left.
+**Cause 1, fixed in 6a:** a flex item's default `min-width: auto` refuses to shrink
+below its longest word. **Cause 2, dormant because a read-only row had no
+controls:** several 44px buttons beside the title is ~220px against a 343px card,
+so the controls **wrap to their own line below `sm`**.
 
-**Cause 2, dormant because a read-only row had no controls:** several 44px buttons
-beside the title is ~220px against a card about 343px wide. So the controls **wrap
-to their own line below `sm`** and sit inline above it. The buttons stay 44px on
-every pointer type. The row is simply taller on a phone, which costs nothing —
-there is no height cap below `lg`.
+**And a third thing, exposed only by adding the due chip.** `flex-1` on a `min-w-0`
+title means the TITLE gives way, not the chips. Measured at 375px mid-build the
+title box was **90px**. The title now takes a line of its own.
 
-**And a third thing, inherited from 6a's markup and only exposed by adding the due
-chip.** 6a laid the title and its chips on one wrapping line with the title
-`flex-1 min-w-0`. That reads as "the chips wrap when they run out of room" and does
-the opposite: `flex-1` on a `min-w-0` item means the TITLE gives way. Measured at
-375px mid-build, the title box was **90px**, wrapping "Submit peer review" over
-three lines at six characters a line — defect 3, by another route. The title now
-takes a line of its own, with the chips and the date on one line beneath it (which
-is the Next source's arrangement, and worth ~27px a row).
+Measured after: **303px and one line at 375px, 339–385px at 1512px.**
 
-Measured after: **303px and one line at 375px, 339–385px and one line at 1512px.**
+**The row is a `<div>`, not a `<label>`.** It holds several controls and a label
+wrapping all of them would make pressing the note button tick the task off. The
+**title** is the checkbox's label instead.
 
-**The row is a `<div>`, not a `<label>`.** It holds several interactive controls
-and a label wrapping all of them would make pressing the note button tick the task
-off. The **title** is the checkbox's label instead, which is what makes the tick
-target the width of the row without `.thrive-checkbox` growing past its
-design-system size.
-
-**The control strip is right-anchored (`ms-auto`), and that is what makes the
-always-present controls pixel-stable.** Above `sm` it already was, via the `flex-1`
-content column — measured, Edit sits at x=761 with two controls or three. Below
-`sm` the strip wraps to its own line where it was LEFT-aligned, so removing the
-leading control slid the rest 49px left (x=86 → 37), and expanding a card did the
-same in reverse by inserting two reorder controls ahead of them. A pre-existing
-shift that gating copy-to-list merely exposed. The invariant now: **a conditional
+**The control strip is right-anchored (`ms-auto`).** The invariant: a conditional
 control appears and disappears at the strip's leading edge, and nothing already on
-screen moves.**
-
-Measured after: Edit at x=244 on a phone, identical with `floatingTodo` on and off.
-Row heights identical there too; on desktop one of four rows is 20px shorter with
-the control hidden, because the content column gains 46px and that row's chip line
-stops wrapping. Card bodies stay 300px, so the grid is immovable.
+screen moves.
 
 **The row renders `role="listitem"`, and every caller owes it a `role="list"`
-container.** That is the honest answer to a `draggable` div needing a role rather
-than the one that quiets the linter: these rows were anonymous divs inside a
-labelled section, and a list of tasks read as a run of text.
+container.**
 
 ### The stat pill popovers
 
-Each of the three pills opens a popover listing the actual items behind its
-number. Items are clickable and jump to the task or event on the page.
+Each pill opens a popover listing the actual items behind its number, clickable and
+jumping to the row.
 
-**Click, and only click.** Hover-to-open was built, gated on `(hover: hover)`,
-tried, and **rejected**: three pills sit in one row, so a cursor crossing that row
-opened and closed panels nobody asked for. The panel that appears where you are
-not looking is noise; the panel that vanishes as you reach for it is worse.
-Pressing the pill again closes it.
+**Click, and only click.** Hover-to-open was built, gated, tried, and **rejected**:
+three pills in one row meant a cursor crossing it opened and closed panels nobody
+asked for.
 
-**A count of zero is not a control.** No button, no `aria-expanded`, nothing to
-press — the pill renders as the plain chip it always was. `statTones.calm` already
-existed so "0 overdue" does not read as an alarm; this is the same idea applied to
-the interaction, and `aria-expanded="false"` on something that can never expand is
-simply untrue. It keeps `min-h-11` so a row of pills is never two heights.
+**A count of zero is not a control.** No button, no `aria-expanded`. It keeps
+`min-h-11` so a row of pills is never two heights.
 
-**The count and the list are one expression.** Each pill's number is
-`items.length` of the list it opens, so a pill saying 3 and opening a list of 2 is
-not expressible.
-
-**And 6b is what would have broken that from the other side.** The pills count
-`item.due.urgency`, which came off the *server's* descriptor. The moment a due date
-became editable, "1 overdue" would have survived moving that task to next week —
-the dashboard contradicting the list directly beneath it, which is the exact bug
-that moved the counting to the client in the first place. Fixed by resolving once
-in `+page.svelte` (§8). `check:interaction`'s *ticking every counted task takes its
-pill to zero* is still green, now via real ticking rather than a seeded
-`localStorage`.
+**The count and the list are one expression** — each pill's number is
+`items.length` of the list it opens.
 
 **A list, not a menu.** `role="menu"` brings a single tab stop and Tab-to-exit,
-which is right for a command menu and wrong for jump targets. Every item is an
-ordinary tab stop; Arrow, Home and End are a convenience on top.
+right for a command menu and wrong for jump targets.
 
-**Dismissal has one focus rule:** restore focus to the pill **if and only if**
-focus is currently inside the panel. That covers Escape, a pointer down outside,
-and focus leaving the widget. Choosing an item is the named exception — focus is
-about to land on the revealed row, so it must not be pulled back on the way. Focus
-follows the jump, not the dismissal.
+**Dismissal has one focus rule:** restore focus to the pill **if and only if** focus
+is currently inside the panel. Choosing an item is the named exception.
 
-`aria-controls` names an id that is absent while the popover is closed. **That
-deviation is accepted** (owner, 2026-08-21): the alternative is a permanently
-mounted panel and two permanently mounted document listeners per pill, which is
-exactly what the action lifetimes in §10 exist to avoid.
-
-**21 items is a long popover** and it scrolls at `max-h-60`. Decided: keep the
-honest number, revisit a cap with a "see all in /events" tail only if the list gets
-very long.
+**21 items is a long popover** and it scrolls at `max-h-60`.
 
 ### The reveal channel: the page owns the intent, the cards own their state
 
-Jumping to an item couples the popover to a card's collapse state, and the shape
-chosen for that coupling is the piece of design worth reading.
-
-- **`$lib/reveal.ts`** is pure and tested. `planReveal(ids, limit, targetId)` is
-  the one question a card asks: do I hold this row, and is it past my collapsed
-  slice. `found: false` is kept distinct from "found, and already visible".
+- **`$lib/reveal.ts`** is pure and tested. `planReveal(ids, limit, targetId)` is the
+  one question a card asks. `found: false` is kept distinct from "found, and already
+  visible".
 - **`$lib/reveal.svelte.ts`** carries the request. A popover calls
-  `reveal.request({ kind, id })` and knows nothing else. Each card reads the
-  channel, asks `planReveal` about its **own** list, and if the answer is "mine,
-  and hidden" sets its **own** `$state`. Nothing outside a card ever writes a
-  card's state, and `ShowMore` is untouched — this is a second way to open a card,
-  not a replacement for the first.
-
-**Rejected alternatives:** lifting all four cards' collapse into a page-level
-store (inverts ownership for four cards to serve one feature), prop-drilling the
-channel (three components in between have no interest in it), and a `<details>`
-disclosure (the show-more control lives in the footer band, outside the disclosure
-content).
+  `reveal.request({ kind, id })` and knows nothing else. Nothing outside a card ever
+  writes a card's state.
 
 **The channel lives in page CONTEXT, not at module scope.** That is what keeps
-"collapse resets on navigation" true because of where the channel lives rather
-than because something remembers to reset it. A module-level `$state` would
-survive a client-side navigation and quietly reopen a card on the way back. This
-is the one place the module-singleton pattern of §9 was rejected.
+"collapse resets on navigation" true because of where the channel lives rather than
+because something remembers to reset it. This is the one place the module-singleton
+pattern of §9 was rejected.
 
 **The nonce is load-bearing.** Two clicks on the same item are two requests, and
 with only a target in the slot the second write is `target === target` and Svelte
-makes it a no-op — precisely the click a student makes when the first one did not
-seem to work. It also lets each card be idempotent by remembering the last nonce
-it handled, so no card has to clear the slot on the others' behalf and effect
-ordering never decides who saw the request.
+makes it a no-op — precisely the click a student makes when the first did not seem
+to work.
 
-**Each card's effect reads its full list, never its collapse state.** The collapse
-states derive from the variable the effect writes, so reading one would make the
-write re-run the effect.
+**Each show-more control governs its OWN region.** Two controls claiming one region
+is a promise to a screen reader that neither keeps.
 
-**Each show-more control governs its OWN region.** The Tasks card has two — the
-open list's in the pinned footer, the done group's inside the body — and both used
-to declare `aria-controls="tasks-card-list"`, the whole list including the group
-neither of them expands. To a screen-reader user each then announces that it
-expands something it does not. `#tasks-open-list` renders only when there are open
-rows (so it is never an empty box taking a gap) and `#tasks-done-list` renders
-always, empty while collapsed, so the id its control names is never absent.
-
-It also cost two debugging rounds in the interaction gate, where "the control for
-the open list" had to be disambiguated by document order and taking the first one
-expanded Done instead — which looks exactly like the card refusing to open. Two
-assertions hold it now: no two controls claim the same region, and every claimed
-region resolves.
-
-**`planReveal` has a second caller now**, which is the argument for having made it
-a pure function rather than a method on the channel: `undoTick` asks it the same
-question directly, with no channel involved, because it already knows which row it
-wants.
+**`RevealKind` is a closed union — `'task' | 'event'` — on purpose.** Nothing in 7a
+or 7b needed a third, and it was checked rather than assumed: the calendar's "next
+up" line is a static sentence, not a jump, so no calendar surface asks the channel
+for anything. A third member would force an id-space decision, which is why the
+union is closed. **The calendar has added no arrival caller at all yet.**
 
 ### Arriving is one function, and it is the standard
 
-**`arriveAtRow` in `$lib/arrive` is how ANYTHING on Home moves a student to a
-row** (decided 2026-08-21). Never a hand-rolled `scrollIntoView`. Two arrival
-treatments on one page would be worse than either alone, because a student learns
-the cue once.
+**`arriveAtRow` in `$lib/arrive` is how ANYTHING moves a student to a row.** Never a
+hand-rolled `scrollIntoView`. Two arrival treatments on one page would be worse than
+either alone.
 
-Asking and doing are separate modules on purpose: **`$lib/arrive`** is "I know
-which row", **`$lib/reveal.svelte`** is "something else has to find it". A card
-answering a channel request does both — it expands itself, then arrives.
+Asking and doing are separate modules: **`$lib/arrive`** is "I know which row",
+**`$lib/reveal.svelte`** is "something else has to find it".
 
-**Two callers now:** a popover item, and 6b's undo. The calendar's "next up" is the
-third and lands with the calendar.
+**Two callers:** a popover item, and 6b's undo. The calendar was expected to be the
+third and **is not** — see the note above.
 
-**Not every focus move is an arrival**, and CONVENTIONS states both live
-counter-examples: navigation inside a widget (`StatPopover` between its items), and
-focus recovery onto a container after the row it was on stopped existing
-(`UpcomingEvents` after an ignore). Marking the second would tell a student they
-had been taken somewhere when they had in fact just lost their place.
+**Not every focus move is an arrival.** Two live counter-examples: navigation inside
+a widget (`StatPopover` between its items, and now `MiniCalendar`'s arrow-key grid
+movement), and focus recovery onto a container after the row it was on stopped
+existing (`UpcomingEvents` after an ignore).
+
+`MiniCalendar` is the clearest case for the distinction: it moves focus on every
+arrow press, and marking each one would turn a wayfinding cue into a cursor.
 
 #### Why the mark exists
 
 Focus moved and the row scrolled, which was correct and **completely invisible** —
-everything on Home is already on one page, so a student choosing "Submit peer
-review" saw nothing change and concluded the click had failed. The focus ring is
-not the answer: a pointer user does not get one.
+everything on Home is on one page. The focus ring is not the answer: a pointer user
+does not get one.
 
-So `arriveAtRow` focuses the row, scrolls it with `block: 'nearest'`, and marks it
-with **`.thrive-arrived`** — an indigo ring, solid for most of a 1200ms beat and
-then faded out.
+`arriveAtRow` focuses the row, scrolls it with `block: 'nearest'`, and marks it with
+**`.thrive-arrived`** — an indigo ring, solid for most of a 1200ms beat then faded.
 
-- **Indigo** because indigo is the reserved "this is where you are now" colour and
-  an arrival cue is that sentence exactly. Not coral: nothing has gone wrong. Not
-  yellow: it cannot carry a signal alone on cream.
-- **An outline**, for three reasons that are all about not fighting anything. It
-  cannot move the layout. It does not collide with what the rows already use — a
-  task row carries priority in a background wash and a left border, and an
-  animated background would either lose the cascade to `bg-urgent-soft` or paint
-  over the priority that wash exists to state. And it follows the element's own
-  `border-radius`, so one rule fits a task row at `radius-lg` and an event row at
-  `radius-xl` with nothing per-shape.
-- **The ring is a normal declaration and the animation only takes it away.** That
-  reads backwards until you see the global reduced-motion block, which forces
-  `animation-duration: 0.01ms !important` on everything — a mark *painted* by a
-  keyframe would appear and vanish within a hundredth of a millisecond. Declared,
-  plus `animation: none` under reduced motion, leaves the ring on and still
-  cleared on the beat by the timer.
-- **Exactly one row is ever marked.** Any previous mark is cleared first,
-  document-wide, so that holds across surfaces and not just within one.
-- **Arriving twice at the same row forces a reflow** between the class removal and
-  the re-add, or the browser never sees a change and the animation does not
-  restart.
-- **The mark is unconditional**, including for a row that needed no scrolling —
-  that is exactly the case where nothing moves and the cue is the only feedback
-  there is.
-
-Focus behaviour is unchanged and the mark is additive. The accessible answer and
-the visual one are different channels for different people.
+- **Indigo** because it is the reserved "you are here" colour.
+- **An outline**, because it cannot move the layout, does not collide with the row's
+  own priority wash, and follows the element's own `border-radius`.
+- **The ring is a normal declaration and the animation only takes it away**, because
+  the global reduced-motion block forces `animation-duration: 0.01ms !important` and
+  a mark *painted* by a keyframe would vanish instantly.
+- **Exactly one row is ever marked**, document-wide.
+- **Arriving twice at the same row forces a reflow** between removal and re-add.
+- **The mark is unconditional**, including for a row that needed no scrolling.
 
 #### The one-tick question, settled in 6b
 
-`arriveAtRow` awaits exactly **one** `tick()`. 6a flagged the undo as the first
-caller that might need two, since unticking moves a task between groups, and noted
-that an arrival landing early is indistinguishable from a successful arrival at a
-row that was already visible.
-
-**One tick is enough. But the flush count was the wrong question, and asking it
-that way would have produced the wrong fix.**
+`arriveAtRow` awaits exactly **one** `tick()`. **One tick is enough — but the flush
+count was the wrong question.**
 
 Svelte's deriveds are **pull-based**: reading one after a state write recomputes it
-*synchronously*, with no flush at all. So `undoTick` unticks, READS the resulting
-list, asks `planReveal` whether the restored row is past the collapsed slice,
-expands the card if it is, and only then calls `arriveAtRow` — whose single tick
-now has every change to flush. Three writes, one flush.
-
-The rule for any caller, and it is in CONVENTIONS in these terms:
+synchronously. So `undoTick` unticks, READS the resulting list, asks `planReveal`,
+expands the card if it must, and only then arrives.
 
 > **Make every state change the row's existence depends on BEFORE you call
 > `arriveAtRow`. Never leave one to an effect that has not run yet.**
 
-**Measured in a real browser, both ways.** With the expansion moved out of that
-handler and into an effect, the hard case — a restored row hidden behind "show
-more" — lands nowhere, focuses nothing, marks nothing, and logs **zero console
-warnings**, because the gate drives the production build where `arriveAtRow`'s
-dev-only warn is compiled out. Exactly the silent no-op the whole cue exists to
-prevent.
-
-**It fails loudly now, as was asked.** `check:interaction` asserts the hidden-row
-arrival, and that assertion is what goes red. The dev warn still cannot be seen by
-any gate, so the gate is the loud part.
-
-The `console.warn` itself stays: it names the id it could not find, behind
-`import.meta.env.DEV`, and it is a warning rather than a throw because a student
-must never see an exception over a wayfinding cue.
+**Measured both ways.** With the expansion in an effect instead, the hard case lands
+nowhere and logs **zero console warnings**, because the gate drives the production
+build where the dev-only warn is compiled out.
 
 ### Upcoming Events: collapsed is four, expanded is this week
 
-This card had no show-more at all, on the standing grounds that Home shows the
-next four and `/events` is the rest. **The popover overturned that, and the reason
-was measured rather than preferred:** the events pill counts events *this week* —
-21 against the fixture — while the card showed four *upcoming*, so seventeen of the
-items in that popover had no row on this page to jump to. A list of jumps that
-mostly cannot jump is worse than no list.
+The events pill counts events *this week* — 21 in the fixture — while the card showed
+four *upcoming*, so seventeen popover items had no row to jump to.
 
-The fix rests on both sets being **prefixes of the same list**. `getEvents()`
-returns upcoming events ascending by start and the ignore filter preserves order,
-so "the first four" and "everything within seven days" are both prefixes, and the
-union of two prefixes is the longer one. `expandedEventLimit(collapsedLimit,
-weekCount)` returns `max` of the two, and a test asserts the prefix property
-rather than trusting it.
+The fix rests on both sets being **prefixes of the same list**.
+`expandedEventLimit(collapsedLimit, weekCount)` returns `max` of the two, and a test
+asserts the prefix property. The `max` is not decoration: on a quiet week the week
+count is *shorter* than the collapsed slice.
 
-The `max` is not decoration: on a quiet week the week count is *shorter* than the
-collapsed slice, and expanding to it would remove rows the card already shows.
-Holding the floor at four means a quiet week has nothing to expand and the card
-behaves exactly as it did before any of this.
-
-**The pill and the card are now two views of one set**, which is the same property
-the client-side counting protects: they cannot disagree.
-
-The show-more sits in the card's footer band rather than its body, because this
-card scrolls at rest and a control inside the scroll area is unreachable exactly
-when it is wanted. It is passed to `SectionCard` **only when there is something to
-reveal** — the footer draws its own rule and padding, so an always-supplied
-snippet that renders nothing leaves an empty ruled strip.
-
-**Filter FIRST, then slice**, unchanged and still the behaviour: ignored events
-are removed before the slice, which is what makes the next event move up instead
-of leaving a gap.
-
-**No extra wording on the card about the narrowing** (owner, 2026-08-21): the
-show-more label carries it.
-
-### The card header band
-
-**A `min-h-11` floor** so the band cannot shrink when a card's "View all" is
-withheld — the link is a 44px touch target on mobile and would otherwise be the
-tallest thing in a band whose title and description are short. Measured, it is not
-the binding constraint on this fixture (the text block is 53px at 375px, the link
-44px), which is exactly why the floor is worth having: the property should hold
-because a rule says so, not because today's copy is long enough. No floor above
-`lg`, where the link is ~26px and a floor could only ever grow a card.
-
-**What the withheld link DID change, measured:** desktop is pixel-identical — all
-four bands 67/103px, page 1218px. On a phone the Tasks band is **22px shorter**,
-and the cause is horizontal rather than vertical: its description regains the width
-the link took and now sets on one line instead of two. Nothing moves sideways and
-nothing overlaps; the page is simply 22px shorter.
+**Filter FIRST, then slice** — ignored events are removed before the slice, which is
+what makes the next event move up instead of leaving a gap.
 
 ### Measured heights
 
-Header block **375px → 266px** during the 6a density pass. Document
-**1392px → 1238px** (6a) **→ 1218px** (6b, the read-only hint line went).
-
-**Home fits a 1218px viewport whole.** The fixed card cap absorbed everything the
-popovers, the arrival ring and all of 6b's editing added — the Tasks card scrolls
-inside its own body instead. It does not fit 1052px, and the decision
-(2026-08-21) is **do not cut card rows**: two task rows would make the card
-useless, and "show more" exists for exactly that.
-
-**The phone is 3281px**, up from 2949px before 6b, because a task row on a phone
-puts its controls on their own line. Accepted: there is no height cap below `lg`,
-so this is a longer scroll rather than a broken layout, and the alternative was
-sub-44px controls.
+Header block **375px → 266px** (6a density pass). Document **1392px → 1238px** (6a)
+**→ 1218px** (6b). **Home fits a 1218px viewport whole**, not 1052px, and the
+decision is **do not cut card rows**. **The phone is 3281px.**
 
 ### Strings
 
-**`$lib/messages` holds every user-facing string.** English only, no library, no
-locale switching — this is not i18n, it is what makes i18n possible later without
-a rewrite. Nested by surface, and **anything carrying a value is a function**, not
-a template assembled at the call site: `showMore(count)` lets a translation move
-the number, `{count} more` in markup bakes English word order in.
+**`$lib/messages` holds every user-facing string.** English only, no library. Nested
+by surface, and **anything carrying a value is a function**, not a template
+assembled at the call site.
 
-6b added a `taskEditing` group of ~45 entries, nearly all functions, because
-almost every string there names a specific task — a screen reader must hear "Edit
-Draft the case memo", not a row of buttons all called "Edit".
+6b added a `taskEditing` group of ~45 entries. 7a and 7b added a `calendar` group of
+~50, with the same property: `countPart(count, singular, plural)` hands a translation
+both word-forms so it can pluralise its own way, and `dayLabel(date, items, today)`
+decides what a day cell says and in what order rather than letting markup concatenate
+it.
 
-`stats.listLabel(count, label)` and `taskEditing.liveWithUndo(action, title, done,
-total)` are the two clearest cases for the rule. The second is a whole sentence
-carrying a clause, a count and an offer; assembling it at the call site would bake
-the order of all three into markup, and a translation gets to put them wherever
-that language puts them or drop the count from the middle entirely.
-
-Three entries are split in half — the timeline percentage, the course card's
-"Next:", and the units chip — because the value is styled differently from the
-words around it. All of them say so, and all name the limitation: the value comes
-first.
-
-**This is a standing rule, not a Home thing.** Every surface extracts its strings
-as it is built, or Mandarin stops being possible.
+**This is a standing rule, not a Home thing.** Every surface extracts its strings as
+it is built, or Mandarin stops being possible.
 
 ---
 
-## 14. The gates
+## 14. The calendar
+
+**The second built surface, and the largest.** `/calendar` — 13 files, ~2,011 lines.
+7a built the spine, 7b the other two views and the filter. 7c is item detail, the add
+form and the events section.
+
+### The load: one clock read, three values, and no merge
+
+`routes/calendar/+page.server.ts` awaits `buildScheduleData()` and `getTasks()` in
+one `Promise.all`, calls `new Date()` once, and returns `todayKey`, `nowMinutes` and
+`nowISO` off that single instant.
+
+**Tasks are fetched here and deliberately NOT merged here.** A task's due date can
+be moved by the student and stored only in `localStorage`; a student can add tasks
+the server has never seen; a quick-list to-do has no server row at all. Merging
+server-side would render a date the student has already changed.
+
+### `buildScheduleData` returns two shapes, and that is the whole design
+
+Five providers flattened into one `ScheduleData`:
+
+- **Dated rows** — assignments (`asg-`), events (`evt-`), appointments (`apt-`) —
+  each pinned to one `dayKey` with `timeLabel` and `sortMinutes` pre-computed.
+- **Classes as WEEKDAY RULES** — `dayOfWeek` + a wall-clock `startTime` + a
+  pre-rendered `timeLabel`, expanded onto whichever days a view is showing.
+
+**That split is why the month grid can page to any month with no round trip.**
+Pre-expanding classes would mean either choosing a horizon on the server and having
+the grid go blank past it, or shipping every meeting of the term to render one month.
+A wall-clock time carries no timezone, so expanding it is safe wherever it happens.
+
+An event with no distinct `end` becomes `allDay: true` with `timeLabel: "All day"`
+and `sortMinutes: 0` — a marker for the day rather than a slot on it.
+
+### The three rules that hold it together
+
+**1. ONE filter, applied once.** `filterSchedule` runs on the whole `ScheduleData`
+in `CalendarView` before anything renders, and the month grid, the week columns and
+the agenda all read that one result. **No view filters for itself.** The old failure
+— a dot on a day with no row beneath it — is structurally impossible rather than
+something to remember.
+
+The checkable consequence, and the one to verify in a browser after any change here:
+**switching view does not change what a day COUNTS.** The header figure, the
+`n of m done` fraction and the month dots are all derived from the filtered data
+independent of `prefs.view`. Measured across a month-to-week switch: 5 and 5.
+
+**2. ONE `selectedKey`.** Owned by `CalendarView`, read and written by every view,
+so switching view never loses the student's place. Selecting a day from an adjacent
+month pulls the view onto that month so the selection is never off-screen.
+
+**3. The clock is the server's.** `nowMinutes` arrives as a prop. Nothing in the
+subtree asks the browser what time it is — see §7 for why the sanctioned client read
+was declined.
+
+### The components
+
+| File | Role |
+|---|---|
+| `CalendarView` (401) | **The only stateful node.** Owns `selectedKey`, `monthKey`, `detail`. Merges, filters once, and renders the day panel as a **snippet** shared by month and week |
+| `MiniCalendar` (355) | The month grid. Up to 3 category dots per day plus `+n`, a roving tabindex, full grid keyboard navigation |
+| `KeyBar` (240) | The key AND the filter. Two dimensions that never merge — below |
+| `ItemRow` (209) | One item in the shape every view renders it. Three shapes: full, `compact`, and full-with-a-date |
+| `AgendaView` (140) | A flat grouped list over 30 days. **The only view that can carry undated to-dos** |
+| `CalendarHeader` (123) | The day's summary: big figure, breakdown, `n of m done`, "next up", the square strip |
+| `WeekView` (116) | Seven columns. Not rendered below `48rem` |
+| `SquareGrid` (103) | A day's items as squares. Re-exports `SquareCell` / `SquareGroup` from `calendarDay` |
+| `ViewSwitcher` (87) | month / week / agenda as a radiogroup, plus the **agenda-only** grouping select |
+| `DaySection` (65) | One titled group on the selected day |
+| `DayGroupToggle` (49) | Arrange the day by type (default) or time |
+
+### The pure layer behind it
+
+Everything that could be a decision rather than markup was extracted, because
+**Vitest runs in Node with no jsdom, so logic inside a `.svelte` file is logic no
+gate can see.**
+
+| Module | Holds |
+|---|---|
+| `schedule.ts` | The vocabulary. Category maps, the three category sets and their guards, grid arithmetic, `filterSchedule`/`isVisible`, grouping, `nextUpItem` |
+| `buildSchedule.ts` | `buildScheduleData`, `todayKey`, `nowMinutesAt` |
+| `calendarSources.ts` | `taskToItem`, `todoToItem`, `mergedSchedule` |
+| `calendarDay.ts` (7a) | The selected day: `sortDayItems`, `arrangeDay`, `squareGroupsFor`, `dayCountParts` |
+| `calendarViews.ts` (7b) | The views: `agendaRange`, `showsRowDate`, `undatedTodoItem`, `visibleUndatedTodos` |
+| `calendarPrefs.ts` | `normalisePrefs` + the persisted store |
+| `calendarItems.ts` | Custom events, labels, urgent — keyed by calendar item id |
+| `ignoredEvents.ts` | `eventIdOf`, `canIgnore`, the store — keyed on raw `Event.id` |
+| `tickItem.ts` | `tickItem`, `isTickable` — dispatching on the attached source row |
+
+**Each extracted function has a branch that has already been got wrong once:**
+
+- **The two-slice concatenation.** `schedule` and `personal` are two filtered slices
+  of an already-sorted day, and two sorted lists joined end to end are not sorted, so
+  every task landed after every class regardless of when it was due. `arrangeDay`
+  sorts again.
+- **The tickable denominator.** A section's fraction used to read `done /
+  items.length`, so a group holding one finished task and two classes rendered "1/3"
+  and implied three things could be ticked.
+- **"1 classes".** `class` is the only irregular plural in the category list.
+- **The attached source row on an undated to-do.** Built as an object literal in the
+  prototype's markup, which is exactly where a field gets dropped — and dropping
+  `quickItem` renders a checkbox that appears to tick and reverts on the next render.
+  `undatedTodoItem` is a named construction with a test asserting the MECHANISM via
+  `isTickable`.
+
+### Ticking dispatches on the attached source row, never on a parsed id
+
+`mergedSchedule` puts the resolved `Task` or `QuickItem` on each item and `tickItem`
+reads it. `isTickable` asks that same question — is a writable source attached — not
+whether `done` happens to be set, and never by slicing a prefix off an id.
+
+The id-parsing version missed every task the student added themselves (those live in
+`addedStore`, not the server's array) and every undated to-do in the agenda (whose
+synthetic id was never prefixed). Both failed identically and **silently**: the guard
+found nothing and returned, the checkbox appeared to tick, and the next render put it
+back.
+
+### `KeyBar`: two dimensions that do not merge
+
+```
+STREAMS   where a thing came from      fixed, legendOrder, known at build time
+LABELS    what the student called it   open-ended, appears as they use it
+```
+
+**One list of chips is the obvious simplification and it is the wrong answer.** A
+stream is a KIND OF THING that every student has; a label exists only because this
+student typed it. Mixed together, "Career" and somebody's "thesis" look like the same
+kind of switch.
+
+They are kept apart **structurally, not by styling**, so an edit cannot flatten them
+by accident: separate headings, separate `<ul>`s each with their own
+`aria-labelledby`, separate prefs fields (`hidden` / `hiddenLabels`), separate helpers
+(`toggleCategory` / `toggleLabel`), different accessible-name shapes ("Hide Class" vs
+"Hide items labelled thesis"), a dot on a stream and never on a label, and the labels
+section absent entirely when nothing is labelled. **Nothing iterates a merged array.**
+
+**`allLabels` runs on the UNFILTERED merge**, and that is load-bearing: from
+`filtered`, switching a label off would remove its own chip from the key and leave no
+way to switch it back on.
+
+**Off reads as off, not as absent** — a hidden stream keeps its chip, dimmed and
+struck through. `hide all` exists and so does the warning that follows it: an empty
+page the student caused and might not remember causing is the one case that owes an
+explanation.
+
+The three toggles are real checkboxes so keyboard and screen-reader behaviour come
+from the platform. They are `sr-only`, which means the app's global focus ring lands
+on a 1px clipped box — `has-[:focus-visible]` moves it out to the chip at the same
+2px primary outline and offset the base layer draws, so there is one focus treatment
+rather than two.
+
+### The week-to-agenda fallback, at 48rem
+
+Seven columns on a 375px screen gives each one about 50px, narrower than the word
+"Assignment". So below `md` the week grid does not render and the agenda answers.
+
+**The Next source never had this.** MIGRATION §4 and `WeekView.tsx`'s own comment
+both claim it; `CalendarView.tsx` renders the week at every width and `WeekView`
+papers over narrow screens with `overflow-x-auto` + `min-w-[42rem]`. See §3, shape
+three.
+
+**It is CSS** — two media-gated wrappers, for the reasons in §7. Below the
+breakpoint, week renders **exactly what agenda renders** (list, no day panel); the
+alternative, list plus day panel, is a shape no view has. And it **says so on
+screen**: the switcher still shows "week" selected, because that is the student's
+choice and it is honoured the moment the screen is wide enough, so the page owes a
+reason rather than appearing to have ignored the click.
+
+**48rem, not 40rem, and the difference was measured.** 40rem gave 71px columns —
+correctly clamped and still reading as three short stacks. 48rem gives 89px, with
+~75px of text per title, enough that whole words land on a line.
+
+| width | week columns | column | agenda | note | h-overflow |
+|---|---|---|---|---|---|
+| 1330px | 7 | 132px | — | no | 0px |
+| 900px | 7 | 108px | — | no | 0px |
+| 769px | 7 | 89px | — | no | 0px |
+| 768px | 7 | 89px | — | no | 0px |
+| 767px | 0 | — | 28 groups | yes | 0px |
+| 375px | 0 | — | 28 groups | yes | 0px |
+
+**There is no min-width and no horizontal scroll in `WeekView`.** The fallback is
+what guarantees the room, so a scrollbar would mean the fallback was doing nothing.
+**The knob is the breakpoint, never a min-width.**
+
+### The agenda is the only view that can carry undated to-dos
+
+Which is the whole reason it exists rather than being a nicer month grid. They have
+no day, so they are not in `ScheduleData` at all — they travel beside it as
+`MergedSchedule.undatedTodos` and get their own section, because pretending they are
+due today would be a lie the student did not tell.
+
+**`filterSchedule` cannot reach them, so `visibleUndatedTodos` applies the two
+dimensions that can, by the same rules.** `showDone` is obvious. **`urgentOnly` hides
+all of them**, because urgent is applied by `mergedSchedule`'s `annotate` over
+`data.dated` only, so an undated to-do can never carry the flag — and leaving them in
+meant switching urgent-only on emptied the whole page except that one section, which
+reads as a broken filter. **That is `filterSchedule`'s own recurring-classes rule
+finished, not a new one**, and nothing in `filterSchedule` changed.
+
+They render `allDay: false` with an empty time column, departing from the source's
+`allDay: true` — which made `ItemRow` label every one "all day", a claim about a day
+they do not have.
+
+### Agenda rows name their own date when the grouping is not by day
+
+Grouped by day the heading IS the date and repeating it is noise. Grouped by type or
+by course, a row's time alone does not say which of thirty days it falls on — and **a
+time without a date, in a list spanning a month, is the wrong half of the information
+rather than less of it.** The prototype rendered all three groupings identically.
+`showsRowDate` is the decision, in the pure layer. Kept on review (owner).
+
+The range is **anchored on TODAY, not on the selection**: the agenda answers "what is
+coming up", and an anchor that moved with the selection would answer a different
+question every time a student touched the month grid.
+
+### Two known-and-accepted gaps
+
+**The day's figure counts events that have no rows until 7c.** A day can read "5"
+above three rendered rows. Both alternatives are worse: filtering events out of the
+count and the dots breaks "one filter, applied once" and changes the grid twice, and
+folding events into a generic day group ships them without their register controls,
+blurb and relevance badge. Pinned by a test that states the reason. **Stands unless
+the owner says otherwise after seeing it.**
+
+**`check:layout` only ever visits `/calendar` in its DEFAULT view.** Empty
+`localStorage` means `normalisePrefs` returns `view: 'month'`, so week and agenda are
+unvisited by every gate — which matters most for the agenda, 13,764px tall on a phone.
+Covered by hand at eight widths in all three views. **Approved for 7c.**
+
+### What has no gate, and was verified by hand instead
+
+`check:interaction` stays scoped to Home (owner's instruction), and nothing in 7a or
+7b argued for extending it: both phases moved their decisions into the pure layer
+where the suite can see them. What is left is genuinely browser-only, and was driven
+against the production build:
+
+- **`MiniCalendar`'s keyboard grid.** 42 cells, one tab stop, arrows in all four
+  directions with focus and selection agreeing, Home/End six days apart,
+  PageDown/PageUp moving the month while focus survives the swap **and the document
+  does not scroll** — the Next version's shared `preventDefault()` sat after the
+  branch that returns, so paging also scrolled the page. Six ArrowUps pull the view
+  back a month; a trailing-cell click pulls it forward.
+- **The 48rem boundary**, the table above.
+- **The filter end to end.** Hiding a stream took the month dots 57 → 40, persisted,
+  survived a reload, and was restored by "show all". Urgent-only took 114 agenda rows
+  to 0 and removed the undated section too. Show-ignored read "(1)" and took 114 → 115.
+- **The labels dimension**, which needed a seeded `thrive:item-labels` because **no
+  fixture item carries a label**. Hiding "thesis" removed the row and left the chip.
+- **Ticking**, on the calendar and in the agenda's undated section: both wrote to
+  their stores and survived a reload.
+- **A chip by keyboard**, ring on the chip at `--thrive-primary`, Space toggling.
+
+No console warnings or errors at any width, in any view.
+
+---
+
+## 15. The gates
 
 | Command | What it proves |
 |---|---|
-| `npm test` | 451 tests. Pure logic and source scans. **Nothing renders.** |
+| `npm test` | 507 tests. Pure logic and source scans. **Nothing renders.** |
 | `npm run check` | Types agree. **Does NOT prove the page renders** |
 | `npm run build` | It compiles |
 | `python3 scripts/check-contrast.py` | 58 assertions: 42 pairs, 6 ceilings, 10 structural |
 | `npm run check:layout` | 12 routes × 3 viewports in a real browser |
-| `npm run check:interaction` | 60 assertions in a real browser: the popovers, task editing, and what the cards offer to link or copy to |
+| `npm run check:interaction` | 60 assertions in a real browser: the popovers and task editing |
+| the timezone sweep | The suite in seven zones, UTC+14 to UTC−11 |
 
-**Four properties every gate here has.** The first three were the original set;
-the fourth was added on 2026-08-21.
+**Four properties every gate here has.**
 
 1. **It measures the thing rather than a model of it.**
 2. **It reads its inputs from the source of truth.**
 3. **It has been verified to fail** on the bug it was written for.
 4. **It says what it does not cover.** A check that appears to cover something it
    cannot is worse than no check, because it converts an unknown into a false
-   known — the absent check leaves you cautious, the misleading one makes you
-   confident. Where a gate's reach stops short of what it seems to include, that
-   boundary belongs *inside* the gate, at the assertion, not in a doc three files
-   away.
+   known. Where a gate's reach stops short, that boundary belongs *inside* the gate,
+   at the assertion.
 
-**Property 2 has teeth, and 6b's follow-ons are why.** Two gates now parse a
-source file rather than restating it: `check-contrast.py` parses `app.css`, and
-`check-interaction.mjs` parses `features.ts` for `floatingTodo`. That second one
-was added *after* a version that inferred the flag from the page turned out to
-match the very control the flag gates — see below.
-
-**`check-contrast.py` parses `app.css`** rather than mirroring it. That weakness
-was load-bearing during the repalette: 43 assertions were checking green values
-while the app rendered navy, and it would have reported 43/43 throughout.
-`color-mix()` is deliberately not evaluated and the unresolved tokens are listed.
+**Property 2 has teeth.** Two gates parse a source file rather than restating it:
+`check-contrast.py` parses `app.css`, and `check-interaction.mjs` parses
+`features.ts` for `floatingTodo` — the second added *after* a version that inferred
+the flag from the page matched the very control the flag gates.
 
 **`check:layout` asserts the page cannot scroll further than it paints.** It does
 **not** use `documentElement.scrollHeight` — that is the property that reported
-1275px while nothing rendered below 1238px. It scrolls the page and reads where it
-landed.
+1275px while nothing rendered below 1238px.
 
 **`check:interaction` exists because the other five were all green on a version
-where pressing a pill did nothing at all.** Hover had already opened the panel, so
-the click found it open and closed it again. None of the other gates can press a
-button.
+where pressing a pill did nothing at all.** None of the others can press a button.
 
-It reads `--thrive-arrival-duration` from the running page rather than repeating
-it, and it knows no fixture ids — the task ids it needs are discovered by choosing
-the popover's own items and reading where focus landed, or by reading the rows on
-the page.
-
-**Verified to fail, eight ways**, each broken on purpose:
+**Verified to fail, ten ways**, each broken on purpose:
 
 | Broken | Result |
 |---|---|
@@ -1427,213 +1499,189 @@ the page.
 | The undo's expansion moved into an effect | **1 red, and NO console warning** |
 | The title field's `onblur` removed | 2 red |
 | A `dragend` put back on the row | 1 red (`derived_inert`) |
-| `{#if href}` restored, so every card links out | 2 red (4 of 4 cards linking out) |
-| The `floatingTodo` guard removed from copy-to-list | 1 red (4 copy controls, flag false) |
+| `{#if href}` restored, so every card links out | 2 red |
+| The `floatingTodo` guard removed from copy-to-list | 1 red |
+| **The ignore store's normaliser reinstated** (7a) | **7 red across two spec files** |
+| **`block` put back beside `line-clamp-3`** (7b) | measured 140px vs 60px — no gate, found by hand |
 
-**The fourth is the one worth the ink.** It is the failure 6a predicted for 6b, it
-produces no error and no visible difference from a successful arrival at a row that
-was already on screen, and nothing else in the repo can see it.
+**The ninth carries its own lesson, and it is about the shape of the test rather
+than the bug.** One direction of the new cross-surface ignore test *still passes*
+with the bug reinstated, because both sides then share the same mangling — write
+`"3-1"`, read `"3-1"`. **"Crosses two surfaces" is not the property that catches a
+key-space split; not sharing a transformation is.** The four assertions that pin the
+STORED KEY are what actually go red.
 
-**The sixth taught the gate a new limitation, now stated at the assertion.** Its
-closing *nothing threw or warned anywhere on the way* reads like a blanket
-guarantee over the page and is really a guarantee over **the gestures the script
-performs**. A `derived_inert` warning was live in the production build with all six
-gates green, simply because nothing dragged a row. So the gate drags one now, and
-the rule is: **when a feature adds a gesture, the gate has to make that gesture**,
-or its warning assertion silently narrows.
+**The tenth had no gate at all**, which is the honest entry in this table. An
+unclamped `line-clamp` is not an error: the text is all there, nothing throws, and
+it only looks wrong if you happen to be measuring row heights in a narrow column.
 
-**The eighth is the one that nearly did not work at all**, and it is the most
-useful thing in this section. Its first version inferred `floatingTodo` from the
-page by looking for a To-do launcher; the selector `/to-?do list$/i` matched the
-copy button's own accessible name, "Copy X to your to-do list". The check asked
-"is the gate open?" and answered by finding the thing the gate controls. **It
-passed with the guard in place and with the guard removed.** Only the
-verified-to-fail step revealed it. Hence the standing decision in §15, and hence
-property 2 above being about *sources* rather than about convenience.
+`check:interaction` reports **SKIP** rather than passing when the fixture cannot
+produce the case an assertion needs. It also states its blind spot: it drives the
+production build, so `arriveAtRow`'s dev-only warn is compiled out and invisible.
 
-It reports **SKIP** rather than passing when the fixture cannot produce the case an
-assertion needs, because silent degradation to a weaker assertion is how a gate
-stops meaning anything. It also states its other blind spot: it drives the
-production build, so `arriveAtRow`'s dev-only warn is compiled out and invisible
-to it.
+**Scope, revised twice.** 6a: "stay on the widget that broke". 6b proved editing
+needed it. **7a and 7b did not extend it, by instruction and by judgement** — both
+phases answered "what can only a browser prove?" by moving everything else into the
+pure layer, and then drove the remainder by hand. The general question — component
+tests via jsdom or `vitest-browser-svelte` — is still open.
 
-**Scope, revised.** The 6a decision was "stay on the widget that broke; extend
-when something proves it needs one". 6b proved it: editing is gated through the
-same script, which is where "the next thing that wants a rendered assertion"
-landed. The general question — component tests via jsdom or
-`vitest-browser-svelte` — is still open, and the answer so far is that driving the
-built page has caught three real bugs for a dependency the repo already had.
+**Anything behind `import.meta.env.DEV` has no gate by construction.**
 
-**Anything behind `import.meta.env.DEV` has no gate by construction.** That is
-usually the point, but it means the diagnostics — the code nobody exercises — are
-the least covered code in the repo. Verify those by hand when they land.
-
-Both browser gates **skip loudly and exit 0** when there is no chromium. A gate
-that cries wolf gets ignored.
+Both browser gates **skip loudly and exit 0** when there is no chromium.
 
 **`npm run check` is not a render.** `svelte-check` passed 0 errors on a component
-that threw `ReferenceError` on every request — a prop was in the type but not the
-destructuring, and an unknown identifier in a Svelte template is not a type error.
-
-**And `npm run check` is held at 0 warnings, not just 0 errors.** 6b produced five
-and all five were real questions: three `state_referenced_locally` on values that
-are seeded once **on purpose** (each now carries a `svelte-ignore` and a note
-saying why tracking them would overwrite what the student is typing), and two
-`a11y_no_static_element_interactions` on drag containers, answered with
-`role="list"` / `role="listitem"` because that is what those elements are.
+that threw `ReferenceError` on every request. **And it is held at 0 warnings.** 7a
+produced three and all three were real questions: one `a11y` complaint about a grid
+role on a non-interactive `<abbr>` (answered by moving the role onto a wrapping div,
+which is what that element actually is), and two `state_referenced_locally` on state
+seeded from a prop, answered with `untrack` — which says out loud that the prop is
+the initial value and not a source the state follows.
 
 ---
 
-## 15. Standing decisions
+## 16. Standing decisions
 
 - **The old repo is read-only.** Verified untouched after every phase.
-- **Django is not being written here**, and the port does not anticipate it beyond
-  the provider signatures — but two queued features now require it rather than
-  merely benefiting from it (§17).
+- **Django is not being written here** — but two queued features now require it
+  (§18).
 - **Measure layout in a real browser.** Never reason about pixels.
-- **Drive interaction in a real browser too.** Types, tests, contrast and layout
-  were all green on a dead button. Anything a person presses gets pressed by a
-  gate — and anything a person *gestures* gets gestured.
-- **A gate must be verified to fail** on the thing it guards, by breaking that
-  thing on purpose and watching it go red. This is not ceremony for a check you
-  are confident in: it is the only thing that distinguishes a passing check from
-  a check that cannot fail.
+- **Drive interaction in a real browser too.** Anything a person presses gets
+  pressed; anything a person *gestures* gets gestured.
+- **A gate must be verified to fail** on the thing it guards. This is the only thing
+  that distinguishes a passing check from a check that cannot fail.
 - **An assertion's expected value must not be derived from the thing under test.**
-  A gate that inferred a feature flag from the page matched the very control the
-  flag gates, and so passed with the guard removed. Parse the source of truth.
-- **Measure the counterfactual, not just the fix.** Confirming the good version
-  works says nothing about *why*. Breaking it on purpose is what showed that the
-  undo arrival depends on ordering rather than luck — without that step it would
-  have been recorded as "one tick was fine", which is true and useless.
+- **"Crosses two surfaces" does not make a test non-vacuous.** Not sharing a
+  transformation does. Count which assertions go red, do not trust the shape.
+- **Measure the counterfactual, not just the fix.**
 - **Say when a check cannot see what it looks like it checks**, at the assertion.
-- **A silent no-op is the worst failure mode this app has.** It is what made the
-  reveal read as a dead click, what an id-parsing row lookup did before `tickItem`
-  dispatched on the attached source row, what a hover-swallowed press looked like,
-  and what an undo arrival without its expansion does. Where a courtesy can
-  silently not happen, prefer it failing loudly — and where it currently cannot,
-  say so at the definition.
-- **A control with two ways in has more states than it has booleans.** If two
-  input methods can produce the same visible state, the state has to record which
-  one produced it — or the second method will undo the first.
-- **A correct implementation of a bad interaction is still bad.** The `openedBy`
-  work was real engineering spent making hover behave, and the right answer was
-  that hover should not have been there.
+- **A silent no-op is the worst failure mode this app has.** The reveal reading as a
+  dead click, an id-parsing row lookup, a hover-swallowed press, an undo arrival
+  without its expansion, a checkbox with nothing to write to, and **an unclamped
+  `line-clamp`** are all the same failure.
+- **A control with two ways in has more states than it has booleans.**
+- **A correct implementation of a bad interaction is still bad.**
 - **Delete an abstraction that loses its last caller**, unless a specific named
-  surface wants it. `hoverIntent` went the day hover did. `escapeKey` was kept
-  through Phase 4 with no caller against **two named surfaces** — and both arrived,
-  which is the vindication of naming them rather than hoping. `Toast` is the
-  counter-case and it is not an exception: it has no caller today, but its one
-  raiser returns on the same flag it is gated behind.
-- **Moving a student to a row goes through `arriveAtRow`.** One function, never a
-  hand-rolled `scrollIntoView`. And **write everything before you call it** — the
-  flush count is not the mechanism, the ordering is.
-- **Resolve persisted overrides once per page, not once per consumer.** Two views
-  of one list that can disagree is a bug waiting for the first edit.
-- **Feedback beats correctness.** A correct action that shows nothing reads as a
-  failure. "It works" and "it appears to work" are different acceptance criteria
-  and only one of them is the product.
-- **A control whose result is invisible is worse than no control**, and **a link
-  to a page that is not built is worse than no link.** Copy-to-list is gated on the
-  flag that owns its destination; a "View all" is withheld while its route is
-  parked. One rule: an action that appears to do nothing teaches the student that
-  the app is broken. Derive the condition from the thing that owns the
-  destination — `primaryNav`, or the feature flag — so building the destination
-  restores the affordance with no further edit.
-- **Making an invisible state visible means auditing every path it can now
-  reach.** 6a surfaced unparseable due dates; 6b found the RangeError that had been
-  unreachable behind them.
-- **A control's `aria-controls` must name the region it actually expands.** Two
-  controls claiming one region is a promise to a screen reader that neither keeps,
-  and it makes "the control for this list" ambiguous to anything scripting the page.
-- **Prefer a type to a rule someone has to remember.** "You cannot drop into Needs
-  a date" is `Exclude<GroupKey, 'unknown'>`, not a runtime guard and a comment.
-- **A discard control must out-race every save-on-focus-loss path.** `blur` fires
-  before `click`, so Cancel needs both a pointer flag and a `relatedTarget` check.
+  surface wants it. `hoverIntent` went the day hover did. `Toast` is the counter-case
+  and not an exception: its one raiser returns on the same flag.
+- **Moving a student to a row goes through `arriveAtRow`**, and **write everything
+  before you call it**.
+- **`RevealKind` is closed on purpose.** A third member forces an id-space decision,
+  so it is made deliberately or not at all.
+- **Resolve persisted overrides once per page**, and **apply the calendar's filter
+  once per page**. Two views of one list that can disagree is a bug waiting for the
+  first edit.
+- **Never resolve a row by parsing its id.** Attach the resolved source object at
+  merge time and dispatch on that.
+- **A normaliser that cannot distinguish its input cases is a defect, not a
+  helper.** `eventIdOf` cannot tell a raw event id from a calendar item id, so the
+  store normalises nothing and the one prefixed surface converts at its own boundary.
+- **Feedback beats correctness.** "It works" and "it appears to work" are different
+  acceptance criteria and only one of them is the product.
+- **A control whose result is invisible is worse than no control**, and **a link to a
+  page that is not built is worse than no link.** Derive the condition from the thing
+  that owns the destination so building it restores the affordance with no edit.
+- **If a fallback hides something the student explicitly chose, say so on screen.**
+- **Making an invisible state visible means auditing every path it can now reach.**
+- **A control's `aria-controls` must name the region it actually expands.**
+- **Prefer a type to a rule someone has to remember.**
+- **A discard control must out-race every save-on-focus-loss path.**
 - **Durations are either motion or dwell**, and they do not share tokens.
-- **CONTEXT is regenerated in full every handoff.** A same-session patch is a
-  sanctioned exception for a small delta, but it is an exception: the patches on
-  2026-08-21 left §13 claiming two different phone heights in two paragraphs, and
-  the regeneration is what caught it.
-- **`@lucide/svelte`, not `lucide-svelte`** (the latter is pinned to Svelte 3/4).
+- **A viewport question CSS can answer belongs in CSS.** The JS form is for cases
+  with no CSS equivalent — moving focus, not choosing a layout.
+- **Pick a breakpoint by measuring, not by naming a size**, and the knob is always
+  the breakpoint. "Fits" and "is legible" are different bars.
+- **A utility that works by setting `display` conflicts silently with every
+  `display` utility.** `line-clamp-*`, `truncate`, `sr-only`.
+- **Wait past the longest transition on an element before reading a computed
+  style.** `transition-colors` includes `outline-color`.
+- **A verification claim decays exactly like a comment does.** TESTING.md said the
+  suite was green in seven zones and it was not, because that line predated the test
+  that broke it. Re-run the sweep on any date-shaped change, not just on new
+  date-shaped code.
+- **Where the source and MIGRATION disagree, the source wins.** Where the source is
+  *wrong*, improve on it. Where the source contradicts **itself**, it is not a source
+  to follow at all.
+- **CONTEXT is regenerated in full every handoff** — with the owner able to defer it
+  across a run of phases, which is what happened for 7a and 7b. A same-session patch
+  is a sanctioned exception for a small delta.
+- **`@lucide/svelte`, not `lucide-svelte`.**
 - **`cn()` survives** for the `class`-override case only.
-- **Vitest in Node, no jsdom.** Matches the prototype, where rendering was
-  deliberately never tested.
-- **Probe before asserting.** Test suites are written against observed output from
-  a throwaway probe, not assumed behaviour. That includes a probe's own selectors
-  and its own input synthesis: three checks failed on correct code because
-  `ShowMore` also carries `aria-expanded`, and in 6b a synthetic `input` event left
-  a submit button disabled, which made "add a task" look broken when it was not.
-  **Suspect the probe before the product.**
+- **Vitest in Node, no jsdom.** Which is why logic gets extracted out of components.
+- **Probe before asserting.** **Suspect the probe before the product** — three checks
+  failed on correct code because `ShowMore` also carries `aria-expanded`, a synthetic
+  `input` event left a submit button disabled, and a computed style read at t=0
+  reported the wrong colour.
 - **`npm run check` is held at 0 warnings**, and a warning is answered rather than
-  suppressed — or suppressed with a note saying why the compiler is wrong here.
-- **Diff a port, do not review it.** Signatures grepped and compared; bodies
-  diffed comments-stripped.
-- **Any test asserting an absence needs a companion assertion that it can still
-  see a presence.**
-- **Keep a test's seam on the test's side of the wall** where possible. A
-  test-only export is permanent.
+  suppressed.
+- **Diff a port, do not review it.**
+- **Any test asserting an absence needs a companion assertion that it can still see a
+  presence.**
 - **Extract strings as you build**, not afterwards.
 - **No Claude/Anthropic attribution anywhere** — commits, PRs, file headers.
-  Verified clean across all 55 commits.
+  Verified clean across all 71 commits.
 
 ---
 
-## 16. Voice and copy
+## 17. Voice and copy
 
 Calm, plain, honest about what is simulated.
 
-- Say plainly when something is a prototype or is not wired up. A placeholder
-  that mimics a real answer teaches the student to trust something that is not
-  there — which is why `AssistantConversation` has no brain and says so, and why
+- Say plainly when something is a prototype or is not wired up. A placeholder that
+  mimics a real answer teaches the student to trust something that is not there —
+  which is why `AssistantConversation` has no brain and says so, and why
   `providers.ts` marks the request and resume flows **SIMULATED** in place.
-- **The Tasks card's read-only hint is gone**, along with the disabled checkboxes
-  it explained. Copy that exists to apologise for an unfinished feature has to be
-  deleted the moment the feature lands, or it becomes a lie.
+- **Copy that apologises for an unfinished feature has to be deleted the moment the
+  feature lands**, or it becomes a lie. The Tasks card's read-only hint is gone.
 - **Sometimes the honest answer is to say nothing.** A "View all" pointing at a
-  placeholder was replaced by no link at all rather than by a caption explaining
-  why — an explanation for an absence the student never noticed is worse than the
-  absence.
+  placeholder was replaced by no link rather than by a caption explaining why.
+- **But sometimes it is to say exactly what happened.** The week fallback tells the
+  student their screen is too narrow rather than silently showing a different view —
+  the difference from the case above is that here the student made a choice and the
+  page is not honouring it yet.
 - Empty states are an invitation to act, never "No data". Never a dashed outline.
 - "Overdue" alone, not "Overdue by 3 days" beside "3 days ago".
 - Counts and timers in mono and tabular, so a row does not reflow.
 - **If an action changes state the student cannot see, it needs a cue.** And if it
-  changes state that then *removes the row*, it needs a sentence — hence
-  "…is back on your list, but it is due past this week so it is not shown here."
+  changes state that then *removes the row*, it needs a sentence.
 - **Name the subject in an accessible label.** Five identical "Edit" buttons in a
-  list are five buttons a screen-reader user cannot tell apart.
+  list are five buttons a screen-reader user cannot tell apart. The calendar's chips
+  say what pressing them will DO — "Hide Class" — rather than what is currently true.
 - Comments explain **why**, not what.
 
 ---
 
-## 17. Open loose ends
+## 18. Open loose ends
 
 **Blocking before any multi-person demo**
 
-1. **The three mock stores are process-global.** §9 defect 1. Concurrent students
+1. **The three mock stores are process-global.** MIGRATION §9 defect 1. Concurrent students
    book over each other and see each other's data; everything resets on restart.
-   An `adapter-node` process has the same module-scope hazard the Next server had.
    **Django is the fix**, and two queued features (5 and 6) now depend on it.
 
 **Next up**
 
-2. **The calendar — this is next.** **15 components, the largest surface in the
-   app.** `CalendarView` is the only stateful node and owns `selectedKey`,
-   `monthKey` and `detail`; the other fourteen are month grid, week columns,
-   agenda, day sections, item rows, the item detail dialog, the add form, the key
-   bar, and the events section. `MIGRATION.md` §4 has the inventory.
+2. **7c — the calendar's last third.** `ItemDetail` (a dialog with every edit
+   control: label, urgent, delete), `AddItemForm` (three kinds routing to three
+   different stores), and `DayEventsSection` ("happening, register" — join / leave /
+   `.ics` / ignore, its own section because opting in is a different act from ticking
+   off).
 
-   **`buildScheduleData()` is still unported** and is the gating piece. It needs
-   five providers, all of which now exist. `lib/schedule.ts` — the calendar's
-   vocabulary, grid arithmetic, the one filter, grouping and `nextUpItem` — is
-   ported and tested, so the pure layer is largely waiting for it.
+   Four things queued to land with it:
+   - **`thrive:event-joins` is keyed on the calendar item id**, not the raw
+     `Event.id` (MIGRATION §9 defect 13). **It is the same bug as §8's, in a second store**,
+     and it is LOW only because its one consumer does not exist yet. 7c builds that
+     consumer, so the key-space choice gets made with `DayEventsSection` on screen
+     rather than in the abstract. The mechanism is settled; what 7c must decide is
+     whether the raw `Event.id` is right for joins too (it almost certainly is — a
+     join is a fact about an EVENT, not about a calendar row) and how to write a
+     cross-surface test that is non-vacuous in **both** directions.
+   - **`check:layout` extended to the week and agenda views** (owner: approved).
+   - **The day-figure gap closes on its own** once events have rows.
+   - **`ItemDetail` is the candidate third caller** for `escapeKey` and
+     `clickOutside`.
 
-   Three things are already queued to land here: the **`eventIdOf` key-space
-   defect**'s calendar half (item 12), the **"next up" arrival** (item 18), and
-   `nowMinutes()`, the first sanctioned client clock read to get a real consumer.
-
-3. **`/assignments`** — the same `TaskRow`, with no `reorder` prop, since it has no
-   groups to move between. It is the first outside caller of the row and **owes it
-   a `role="list"` container**; the row renders `role="listitem"`.
+3. **`/assignments`** — the same `TaskRow` with no `reorder` prop. First outside
+   caller of the row, and **owes it a `role="list"` container**.
 
 4. **Appointments.**
 
@@ -1642,109 +1690,98 @@ Calm, plain, honest about what is simulated.
 5. **Ask THRIVE as a full page.** **This replaces the earlier tabs-on-top idea** —
    do not build tabs.
 
-   The shape: **a SECOND left rail, beside the nav rail**, so two rails sit side by
-   side. It holds three sub-items — **Resources, Course Recommender, Career** —
-   plus a **chat window** and **saved chat history**.
+   The shape: **a SECOND left rail, beside the nav rail**, holding three sub-items —
+   **Resources, Course Recommender, Career** — plus a **chat window** and **saved
+   chat history**.
 
    Two things to settle before building:
-   - **Saved chat history cannot live in `localStorage`.** It is too large and too
-     long-lived, and it is the first persisted thing that is not a small override
-     keyed by id. It needs **Django or Shankar's service**. See §8.
+   - **Saved chat history cannot live in `localStorage`.** Too large, too long-lived,
+     and the first persisted thing that is not a small override keyed by id. Needs
+     **Django or Shankar's service**.
    - **Two rails and one `nav` landmark.** §10 keeps exactly one `nav` in the a11y
-     tree at a time; a second rail must not become a second competing landmark.
+     tree at a time.
 
-   Also unsettled: Resources and Career are the subjects of two PARKED routes
-   (§11). Whether they become sub-routes of `/ask`, stay standalone, or merely
-   share a name is open. And `FEATURES.floatingAssistant` still exists — a floating
-   assistant plus a page with chat and history is two homes for one conversation.
+   Also unsettled: Resources and Career are the subjects of two PARKED routes (§11).
+   And `FEATURES.floatingAssistant` still exists — a floating assistant plus a page
+   with chat and history is two homes for one conversation.
 
    Wired to **Shankar's RAG** later.
 
-6. **Group Projects — a future FIFTH nav item.** Group members, a project that
-   holds tasks and subtasks, and assigning a task to a person.
+6. **Group Projects — a future FIFTH nav item.** Group members, a project holding
+   tasks and subtasks, assigning a task to a person.
 
-   **This is the first feature that is not one student's private view**, and that
-   is the whole difficulty rather than a detail. Consequences to design for, not
-   discover:
-   - **It needs real accounts.** MIGRATION §9 defect 2 — no auth on any server
-     action — stops being a note and becomes a blocker.
-   - **It needs a shared database.** Every persistence property in §8 assumes one
-     person's overrides in their own browser.
-   - **The fixtures model one student** (§12). There is no second person, no group,
-     and no assignee anywhere in `mock/`.
-   - **The nav has four destinations by decision** (§11). A fifth is the first
-     addition since the trim, and the mobile bar holds four slots.
+   **The first feature that is not one student's private view**, and that is the whole
+   difficulty:
+   - **Real accounts.** MIGRATION §9 defect 2 — no auth on any server action — stops
+     being a note and becomes a blocker.
+   - **A shared database.** Every persistence property in §8 assumes one person's
+     overrides in their own browser.
+   - **The fixtures model one student** (§12).
+   - **The nav has four destinations by decision**, and the mobile bar has four slots.
 
-**From 6b and its follow-ons**
+**The real-phone list**
 
-7. **Nothing gates the drag on touch.** HTML5 drag does not fire there at all,
-   which is why the keyboard move buttons exist — but no gate asserts those buttons
-   are the only route on a phone, or that they are reachable there. **Flag again
-   when we test on a real phone** (owner, 2026-08-21).
+7. Two things wait on a session with an actual handset, because a simulated viewport
+   cannot answer either:
+   - **Touch drag on Home's task rows.** HTML5 drag does not fire on touch, which is
+     why the keyboard move buttons exist — but no gate asserts those buttons are the
+     only route on a phone or that they are reachable there.
+   - **The month grid at 375px.** The page is 1513px and passes the layout gate, but
+     the cells are ~44px wide — at the touch-target floor, in a 7×6 grid, each holding
+     a dot row. Nothing measurable is wrong; it has never been touched by a thumb.
 
 **Carried**
 
 8. **Provider copies are shallow.** `{ ...version }` shares nested arrays with the
    store. Pinned by a test that says why.
-9. **`npm test` renders nothing.** A component can render the wrong content with
-   correct types, correct classes and no page overflow. `check:interaction` now
-   covers the popovers and task editing on one page; it is still not a general
-   answer.
-10. **Home fits 1218px, not 1052px.** Accepted. Phone is 3281px.
+9. **`npm test` renders nothing.** `check:interaction` covers Home; it is still not a
+   general answer, and the calendar's browser-only behaviour is verified by hand.
+10. **Home fits 1218px, not 1052px.** Accepted. Phone is 3281px. **The calendar's
+    agenda is 13,764px on a phone**, which is a long list rather than a broken layout.
 11. **Three dead providers:** `getSyllabi`, `getResources`, `getCurrentResume`.
-    Note `getResources` gets a consumer if Ask THRIVE's Resources sub-item reuses
-    it.
-12. **The ignore store key-space defect** — Home and the calendar keyed it
-    differently. Home is fixed (raw `Event.id`, no prefix stripping); the calendar
-    half lands with the calendar.
-13. **`thrive:event-joins` is keyed on the calendar item id**, not the raw
-    `Event.id` (§9 defect 13). Home's "Count me in" is deliberately visual-only
-    rather than writing to a different key.
-14. **`requestTypeHelp` has no consumer** anywhere in the prototype.
-15. **Two product decisions parked pending real screens:** the missing year in
+12. **`requestTypeHelp` has no consumer** anywhere in the prototype.
+13. **Two product decisions parked pending real screens:** the missing year in
     `formatShortDate`, and `countdownPhrase` counting to "13 months".
-16. **`taskNotes` on `createOverrideStore`?** It duplicates the persistence logic.
-    6b used it heavily and did not need the refactor, which is mild evidence
-    against bothering.
-17. **`format.ts` still emits `"Invalid Date"` from `formatShortDate`**, and a
-    parseable-but-wrong date still gets through `describeDue`: V8 rolls
-    `"2026-02-30"` into March.
-18. **The calendar's "next up" uses `arriveAtRow` directly**, not the reveal
-    channel — it knows its own item, so there is nothing to ask. **Unless** it has
-    to reach a row inside a collapsed day group, which is the channel's shape
-    again. Decided: settle it when the calendar lands. Note 6b's rule applies
-    either way: write the expansion before arriving.
-19. **`matchesWide()` is still unported** — listed in CONVENTIONS as a sanctioned
-    client read for a surface that does not exist yet.
-20. **A task moved beyond seven days leaves Home's list.** Correct — Home is "what's
-    next" — and announced rather than silent. `/assignments` is where it lives
-    (owner, 2026-08-21: accepted, no change wanted).
+14. **`taskNotes` on `createOverrideStore`?** It duplicates the persistence logic. Two
+    more phases have not needed the refactor, which is mild evidence against it.
+15. **`format.ts` still emits `"Invalid Date"` from `formatShortDate`**, and a
+    parseable-but-wrong date still gets through `describeDue`: V8 rolls `"2026-02-30"`
+    into March.
+16. **`matchesWide()` is still unported**, and 7b deliberately did not become its
+    first consumer — see §7.
+17. **`calendarSources.nowMinutes()` has no consumer** and may never get one. See §7.
+18. **`CalendarView.detail` is declared and never written.** The one thing in the
+    calendar that anticipates a later phase, kept because it is one of the three
+    things that node owns and moving it in later would mean re-deciding where it
+    lives.
+19. **MIGRATION §9 defect 14 — `custom-custom-…` ids.** Cosmetic and internally
+    consistent; `deleteCustomEvent` clears the matching key. Noted, unscheduled.
+20. **A task moved beyond seven days leaves Home's list.** Correct, and announced
+    rather than silent. `/assignments` is where it lives (owner: accepted).
+21. **`prefs.view` can hold a stale `week` or `agenda`** from a hand-edited store.
+    Harmless — nothing but `ViewSwitcher` writes it, and that now exists.
 
-**Closed this session**
+**Closed in 7a and 7b**
 
-- **Phase 6b is done.** Ticking, undo, rename, priority, notes, due dates, reorder,
-  add.
-- **`arriveAtRow`'s single `tick()`** — answered, and the answer is about ordering,
-  not counting. Now gated.
-- **The done-group branch in `TasksCard`'s reveal effect** was built in 6a for 6b's
-  undo. It is exercised now.
-- **"Mount `Toast`?"** — mounted. It then lost its caller again when copy-to-list
-  was gated, which is expected and settled (owner): both return on the same flag.
-- **`escapeKey` and `clickOutside` each have a second caller.** `DueDateEditor`.
-- The `readOnlyHint` string and the disabled checkboxes are gone.
-- **The shared `aria-controls`** on the Tasks card's two show-more controls. Each
-  governs its own region now, and two assertions hold it.
-- **"View all" links landing on placeholders.** Withheld while a route is parked,
-  derived from `primaryNav`.
-- **Copy-to-list with nowhere to copy.** Gated on `FEATURES.floatingTodo`.
-- **`COLLAPSED_TASK_ROWS`** — stays at 4 (owner). Settled.
-- **`/calendar`'s card link** — stays (owner). Settled.
-- **`/classes`** — stays link-less indefinitely, page never needed (owner).
-  Settled, do not revisit.
+- **`buildScheduleData` is ported.** The gating piece since Phase 2.
+- **The ignore key-space defect is fixed, both halves.** Its defect-record test is
+  replaced by a real cross-surface one.
+- **MIGRATION §9 defect 10 — `SquareGrid`'s white ring halo** — built correctly with
+  an `outline` instead. Verified: 2px solid `rgb(76,91,212)`, no box-shadow.
+- **The 40rem week fallback**, which never existed in the source, is built at 48rem.
+- **A pre-existing timezone bug in `reveal.spec.ts`**, found by running the sweep.
+- **`line-clamp-3` silently unclamped** beside `block`.
+- **TESTING.md's coverage table** was three specs short and three counts stale. It
+  sums to 507 across 23 rows now, checked programmatically.
+- **The calendar's "next up" arrival** — settled as NOT an arrival. It is a static
+  line in the source, so there is no caller, and inventing one would have forced a
+  third `RevealKind`.
+- **Agenda rows naming their own date** — kept on review (owner).
+- **All nine of 7b's absence decisions** — approved (owner).
 
 ---
 
-## 18. Timeline
+## 19. Timeline
 
 Release 1 target was **end of August 2026**; a control group was planned for the
 **last week of August**. Both dates come from the prototype's `REPORT.md` and
@@ -1757,13 +1794,16 @@ Django lands first or the control group is one person at a time.
 
 **Two scoped features move Django from "later" to "on the critical path".** Ask
 THRIVE's saved chat history cannot live in `localStorage`, and Group Projects is
-shared between people by definition and needs real accounts as well as a shared
-database. Neither can be demoed on the mock layer at all, which is a different
-situation from the appointment and request flows — those work today and are merely
-process-global.
+shared between people by definition. Neither can be demoed on the mock layer at all,
+which is a different situation from the appointment and request flows — those work
+today and are merely process-global.
 
 The prototype's Release 1 scope was: (a) the student dashboard, (b) appointment
 scheduling with history/notes/summaries/topic tagging, (c) `/resources` as the
-Resource Navigator surface, (d) per-task time estimates. **(a) is now complete** —
-Home is real and editable, no longer "pending 6b". Three were never begun, and (c)
+Resource Navigator surface, (d) per-task time estimates.
+
+**(a) is complete.** Home is real and editable. **And the calendar — which was not
+in that scope at all — is now two thirds built and is the second-largest surface in
+the app**, which is worth noting when the dates are re-set: the rebuild's actual
+shape has diverged from the prototype's plan. (b) and (d) were never begun, and (c)
 may be absorbed into Ask THRIVE's second rail rather than built as `/resources`.

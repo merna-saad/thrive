@@ -4,6 +4,85 @@ Session log, newest first. What happened, what was decided, what is still open.
 
 ---
 
+## 2026-08-21 — session close: CONTEXT regenerated after two phases
+
+**HEAD:** `bac3fbf` · 15 commits this session, all pushed · 507 tests · six gates
+green · green in all seven timezones.
+
+No code. This entry records the doc close-out and what regenerating CONTEXT.md
+turned up.
+
+### CONTEXT.md was regenerated, overriding the deferral
+
+Deferred twice by the owner, with good reason — three calendar phases in flight, and
+a stale-and-flagged file beats a half-patched one. `/handoff` says always. I
+regenerated, and read all 1,769 lines first: **regenerating a file that size from
+partial knowledge would silently drop standing decisions from phases 1–6**, which is
+destructive rather than merely wrong.
+
+The deferral was the right call and the regeneration was still overdue, because those
+are different claims. **Stale is survivable; contradictory is not**, and the file had
+crossed from one to the other.
+
+### What the regeneration caught, which is the argument for the rule
+
+Nine things, and only two were counts:
+
+1. §5's phase table said the calendar was **"not started"**. It is two thirds built.
+2. The preamble said the calendar **"lands in a later phase"**.
+3. 451 tests / 20 spec files / 127 files / 55 commits — all stale.
+4. **§7 listed `nowMinutes()` as the calendar's sanctioned client clock read.** The
+   calendar declined it and reads the server's clock instead. A doc's claim about
+   the future had decayed into a false claim about the present.
+5. **§13 said the calendar's "next up" would be `arriveAtRow`'s third caller.** It
+   never became one — the line is static in the source, so there is nothing to jump
+   to, and inventing a jump would have forced a third `RevealKind`.
+6. **§8's key-space table said `ignoredEvents` is "normalised through
+   `eventIdOf()`".** That is now exactly backwards: the store normalises *nothing*,
+   which was the whole fix.
+7. §11 said two routes "render a heading". Two routes are now *built*.
+8. §12 did not mention that five providers finally have a consumer.
+9. Bare `§9 defect N` references, inherited, which now collide with CONTEXT's own §9
+   (React-isms) — qualified to `MIGRATION §9`.
+
+**Items 4, 5 and 6 are the ones worth the ink.** None is a count. Each is a
+*forward-looking claim that came true differently*, and a patch would have left all
+three sitting beside the correct text with nothing marking which was which.
+
+The file gained **a new §14 for the calendar** (it is the second-largest surface now
+and had no section), pushing gates → 15, standing decisions → 16, voice → 17, loose
+ends → 18, timeline → 19. Every cross-reference re-checked against the new numbering.
+
+### The other docs
+
+- **setup_info.md** — the stale 451, and **the timezone sweep is now documented**
+  there for the first time. It has caught two real failures and is part of the
+  definition of green; it had no entry in the "how to run things" doc, which is how
+  it went unrun against `reveal.spec.ts` for weeks.
+- **DEPENDENCIES.md** — untouched. No package changed in 7a or 7b (verified by
+  diffing `package.json` and the lockfile across the whole session).
+- **secret.md** — does not exist; `git check-ignore` confirms it is ignored anyway,
+  which is the point of having listed it before it exists.
+- **BUGS / FINDINGS / TESTING / CHANGELOG / CODEMAP / CONVENTIONS** — all appended
+  during the phases themselves; nothing further owed.
+
+### Loose ends for the next session
+
+Full list in CONTEXT §18. The four that decide what 7c looks like:
+
+1. **`thrive:event-joins`** — the same key-space bug as 7a's, in a second store, and
+   7c builds its only consumer. The mechanism is settled; what is open is whether the
+   raw `Event.id` is right for joins (almost certainly yes) and a cross-surface test
+   that is non-vacuous in **both** directions.
+2. **`check:layout` extended to week and agenda** (owner: approved).
+3. **The day-figure gap closes on its own** once events have rows.
+4. **`ItemDetail` is the candidate third caller** for `escapeKey` / `clickOutside`.
+
+Plus the real-phone list (touch drag, and the month grid's 44px cells), and
+`CalendarView.detail` still declared and unwritten.
+
+---
+
 ## 2026-08-21 — 7b follow-on: the week breakpoint moves to 48rem
 
 **507 tests · six gates green · green in all seven timezones.** One code change,
