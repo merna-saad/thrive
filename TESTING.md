@@ -1,6 +1,6 @@
 # TESTING
 
-**Last verified:** 2026-08-21 at `ae48473`. **389 tests, 18 files, all passing.**
+**Last verified:** 2026-08-21 at `d3621b9`. **389 tests, 18 files, all passing.**
 Verified green in all seven timezones of the sweep below.
 
 ```bash
@@ -15,6 +15,7 @@ Plus two gates that are tests in everything but name:
 ```bash
 python3 scripts/check-contrast.py    # 58 assertions: 42 pairs, 6 ceilings, 10 structural
 npm run check:layout                 # 12 routes x 3 viewports, in a real browser
+npm run check:interaction            # 37 assertions on the stat pill popovers
 ```
 
 `check-contrast.py` PARSES `app.css` rather than mirroring it, so a token edited
@@ -70,6 +71,53 @@ rather than being appended to the pure-logic ones.
 | `calendarItems.spec.ts` | 9 | Custom-event mapping, rejecting malformed and non-existent dates, label/urgent filtering |
 | `toast.spec.ts` | 6 | The single slot, its 3000ms clock, and that it persists nothing |
 | `reveal.spec.ts` | 16 | `planReveal` at the boundaries (last row of the slice vs first row past it; not-found kept distinct from found-and-visible; a zero limit); the reveal path run against the list `TasksCard` really builds, so an undated row pushing the overdue task past the cap is asserted rather than imagined; that no overdue or due-today task can be filtered out of the card's list; and `expandedEventLimit`'s prefix argument, including that a quiet week never loses rows |
+
+### The interaction gate
+
+`npm run check:interaction` · `scripts/check-interaction.mjs` · 37 assertions.
+
+**Why it exists.** The other five gates were ALL green on a version of the stat
+pill popovers where pressing a pill did nothing at all. Hover had already opened
+the panel, so the click found it open and closed it again. None of the other five
+can press a button.
+
+**What it covers.** Opening and closing; the pill's number matching the length of
+the list it opens; focus moving into the list; Arrow, Home and End; Escape and
+click-outside with focus returning to the pill; the reveal, including a card
+expanding to show a hidden row; the arrival mark appearing, being unique, and
+clearing itself; reduced motion; the inert zero-count pill; and the clamped panel
+at 375px.
+
+**And one absence.** `hovering a pill does NOT open its popover`. Hover was built,
+rejected and removed, and reintroducing it is the only route back to the original
+bug — so it is asserted rather than assumed. The check is non-vacuous: the gate
+first asserts the driving browser reports `(hover: hover)`, or "hover did nothing"
+would pass on a browser that cannot hover at all.
+
+**It reads its inputs from the source of truth.** The arrival dwell comes from
+`--thrive-arrival-duration` on the running page, not from a copy in the script, so
+retuning the token cannot leave the gate passing against the old value. Same
+principle as `check-contrast.py` parsing `app.css`.
+
+**It knows no fixture ids.** The task ids it ticks to force a zero count are
+discovered by choosing the popover's own items and reading where focus landed. A
+gate that hardcodes `tsk-001` starts failing the day the fixture is edited, which
+teaches everyone to ignore it.
+
+**Verified to fail**, three ways, by breaking each thing on purpose:
+
+| Break | Red |
+|---|---|
+| Hover reintroduced on the wrapper | 6, including "clicking a pill opens its popover" — the original bug, reproduced |
+| The arrival mark never applied | 4 |
+| The arrival mark never cleared | 2 |
+
+**It reports SKIP, not PASS,** for the "a hidden row makes its card expand" check
+when the fixture has no target past a collapsed slice. Degrading silently to a
+weaker assertion is how a gate stops meaning anything. Today's fixture proves it
+(8 → 25 rows), but a quieter one would not.
+
+**Skips loudly and exits 0** with no chromium, same as the layout gate.
 
 ### The layout gate
 
@@ -209,12 +257,13 @@ assertions over opening, keyboard navigation, all four dismissal paths, the
 reveal, and the clamped panel at 375px. Those assertions were a **throwaway
 probe**, run once, and they do not exist in the repo.
 
-So the question is now narrower than "should we add component tests". It is:
-**should the probe become `check:interaction`, beside `check:layout`?** It would
-need no new dependency (`playwright-core` is already here for the layout gate),
-it measures the thing rather than a model of it, and it has already been verified
-to fail on the bug it was written for — which is all three properties the other
-gates have. Recorded in HANDOFF as a decision, not made here.
+**It is now a gate.** `npm run check:interaction`, 37 assertions, decided and
+built the same day. No new dependency, and see its own section below.
+
+The gap it closes is narrow and worth stating precisely: **one widget on one
+page.** Nothing else in the app is pressed by anything. The general question —
+component tests via jsdom or `vitest-browser-svelte` — is still open, and 6b's
+editing is the next thing that genuinely wants a rendered assertion.
 
 ### Nothing exercises hydration for real
 

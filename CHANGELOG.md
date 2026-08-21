@@ -4,6 +4,49 @@ Dated session summaries, most recent first.
 
 ---
 
+## 2026-08-21 — click only, an arrival cue, and check:interaction
+
+**HEAD:** `d3621b9` · 3 commits, all pushed · **389 tests, 18 files, all green**
+· `svelte-check` 0/0 over 374 files · build clean · contrast **58/58** · layout
+**36/36** · interaction **37/37**.
+
+### What changed
+
+**Hover removed from the stat pill popovers. Click only.** Tried and rejected:
+three pills in one row meant a cursor crossing it opened and closed panels nobody
+asked for. `openedBy: 'pointer' | 'command' | null` existed only to reconcile the
+two ways in, so it collapsed back to `open`. `hoverIntent.ts` deleted with its
+only caller. `clickOutside` and `escapeKey` stay.
+
+**The jump is visible.** `arriveAtRow` marks the revealed row with an indigo inset
+ring, solid for most of 1200ms then faded. Indigo is the reserved "you are here"
+colour; an outline is the one treatment that cannot move the layout, does not
+contest the priority wash a task row already carries, and fits both row shapes
+from one rule. The ring is declared and the animation only removes it, so
+`prefers-reduced-motion` still gets a visible mark that still clears.
+
+**`npm run check:interaction`** — 37 assertions in a real browser, and the first
+gate in the repo that can press a button. Verified to fail three ways.
+
+**`designSystem.spec.ts` now scans `.ts`** as well as markup for the treatment
+vocabulary, because `.thrive-arrived` is applied from JavaScript.
+
+**`CONTEXT.md` regenerated in full** at `d3621b9`. Sections 5, 6, 7, 13, 14, 15
+and 17 all moved.
+
+### Known issues
+
+- `/swatch` does not show the popover or the arrival ring.
+- `check:interaction` covers one widget on one page. Component tests in general
+  are still an open question.
+
+### Next priorities
+
+1. Phase 6b — task editing.
+2. Then the calendar, which needs `buildScheduleData()` ported.
+
+---
+
 ## 2026-08-21 — the stat pill popovers, and a reveal channel
 
 **HEAD:** `ae48473` · 3 commits, all pushed · **389 tests, 18 files, all green**

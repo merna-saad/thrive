@@ -4,6 +4,76 @@ Reusable patterns and lessons. Things worth knowing again.
 
 ---
 
+## 2026-08-21 — a correct action that shows nothing reads as a failure
+
+### The bug was that it worked
+
+Choosing an item in a stat pill's popover moved focus to the row and scrolled it
+into view. Both correct, both what the spec asked for, and on a page where
+everything is already visible the whole gesture was **indistinguishable from
+nothing happening**. A student clicked "Submit peer review" and concluded the
+click had failed.
+
+The focus ring is not the answer. `:focus-visible` is exactly the thing that does
+not render for a pointer user, which is the user who just clicked.
+
+**Generalisable:** if an action changes state the student cannot see, the action
+is not finished. "It works" and "it appears to work" are different acceptance
+criteria, and only one of them is the product.
+
+### Picking a treatment by what it cannot fight
+
+The arrival mark had to work on a task row and an event row, which have different
+shapes, different radii, and — in the task row's case — a background wash and a
+left border already carrying priority. Working through what each option collided
+with is what chose it:
+
+- **A background tint** loses the cascade. `bg-urgent-soft` is a Tailwind utility
+  and utilities beat the components layer, so a normal declaration would not
+  paint. A keyframe *would* (the animation origin outranks normal author rules),
+  but only where motion is allowed — and it would paint over the priority the wash
+  exists to state.
+- **A border** changes the box and moves the layout.
+- **A box-shadow** is out by standing decision: this system is light-only, no
+  shadows.
+- **An outline** cannot affect layout, does not contest any property the rows
+  already use, and follows the element's own `border-radius` — so one rule fits
+  `radius-lg` and `radius-xl` with nothing per-shape.
+
+### The reduced-motion trap in a global reset
+
+`app.css` ends with the usual blanket `animation-duration: 0.01ms !important`. So
+a mark **painted by a keyframe** appears and vanishes within a hundredth of a
+millisecond under `prefers-reduced-motion` — visually never happening, with no
+error and nothing to see in a diff.
+
+**So the mark is the static declaration and the animation only takes it away.**
+Reads backwards; is the only arrangement where turning animation off leaves the
+cue on. Reduced motion then gets `animation: none`, which clears the animation
+NAME so the global `!important` duration has nothing to apply to, and a timer
+still removes it on the beat.
+
+Worth checking any other "flash to acknowledge" for the same inversion.
+
+### Re-adding a class in the same task is not a change
+
+Jumping twice to the same row has to show the cue twice. Removing the class and
+adding it back inside one task is not a mutation the browser ever observes, so the
+animation does not restart. Reading `offsetWidth` between the two forces a style
+recalculation, which is what makes the re-add real. Old trick, still the answer.
+
+### A dwell is not a transition
+
+The three motion tokens (120/160/260ms) are how fast a thing changes. How long a
+state persists is a different kind of number — the toast's 3000ms is the existing
+sibling. Sharing a token would have tied the fade's speed to the mark's lifetime,
+so the next person tuning one would silently retune the other.
+
+The duration is read from the stylesheet by both the component and the gate, so
+there is one copy of it and no drift.
+
+---
+
 ## 2026-08-21 — hover-plus-click is two states, and only a browser says so
 
 ### A hover-opened popover swallows its own click
@@ -18,15 +88,33 @@ had a second fault behind it: clicking to open and then moving the mouse closed
 it, because a pointer leaving cannot tell a hover it started from a click it did
 not.
 
-**The fix is to record WHY it is open, not just whether.** `openedBy: 'pointer' |
-'command' | null`. Hover opens only what is shut, hover closes only what hover
-opened, and a click on a hover-opened panel PINS it. Tabbing into one pins it
-too, or a mouse drifting away drags focus out of a list the student had just
-walked into with the keyboard.
+**The first fix was to record WHY it is open**, not just whether:
+`openedBy: 'pointer' | 'command' | null`. Hover opens only what is shut, hover
+closes only what hover opened, a click on a hover-opened panel pins it, and
+tabbing into one pins it too.
 
-**Generalisable:** any control with two ways in has more states than it has
-booleans. If two input methods can produce the same visible state, the state has
-to remember which one produced it, or the second method will undo the first.
+**The second fix, the next day, was to delete hover.** Three pills sit in one row,
+and in use a cursor crossing that row opened and closed panels the student never
+asked for. The state machine was correct and the interaction was still wrong. With
+one way in, `openedBy` had nothing left to distinguish and collapsed back to a
+boolean.
+
+Both are worth keeping written down, because they are two different lessons and
+the second does not retire the first:
+
+**Any control with two ways in has more states than it has booleans.** If two
+input methods can produce the same visible state, the state has to remember which
+one produced it, or the second method will undo the first.
+
+**A correct implementation of a bad interaction is still a bad interaction.** The
+`openedBy` work was real engineering spent making hover behave, and the right
+answer was that hover should not have been there. Worth asking earlier whether the
+second way in is wanted, before building the state that reconciles it.
+
+**And: an interaction that is removed needs an assertion that it stays removed.**
+Hover is the only route back to the swallowed-click bug, so `check:interaction`
+asserts that hovering a pill does NOT open it — with a companion assertion that
+the driving browser can hover at all, or the absence proves nothing.
 
 ### The gate that could not see it
 

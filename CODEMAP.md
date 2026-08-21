@@ -1,12 +1,12 @@
-<!-- built-at: ae48473 -->
+<!-- built-at: d3621b9 -->
 <!-- updated: 2026-08-21 -->
 
 # CODEMAP
 
 Navigation map for the THRIVE rebuild. Read this before opening files.
 
-**Built:** 2026-08-21, refreshed after the stat pill popovers.
-**Size:** 120 files under `frontend/src` — ~16,742 lines, 11,851 source / 4,891 test.
+**Built:** 2026-08-21, refreshed after the popovers went click-only.
+**Size:** 119 files under `frontend/src` — ~16,826 lines, 11,910 source / 4,916 test.
 
 > The `built-at` comment above is machine-read by the codemap staleness hook.
 > Keep it as the first line, in that exact `<!-- built-at: <hash> -->` form.
@@ -138,7 +138,7 @@ The one fully-built page. Read Phase 6a's entry in HANDOFF before changing it.
 | `tones.ts` | Every place a meaning becomes a colour. |
 | `programStrip.ts` | `abbreviateTerm`, `phaseStatusWord`. |
 | `ignoreUndo.svelte.ts` | Ignore + six-second undo. Keys on **raw `Event.id`**, never a stripped prefix. |
-| `reveal.svelte.ts` | **The reveal channel**, created by `+page.svelte` and passed down through context. Carries an intent, one slot at a time, with a nonce. Plus `focusRevealedRow`. |
+| `reveal.svelte.ts` | **The reveal channel**, created by `+page.svelte` and passed down through context. Carries an intent, one slot at a time, with a nonce. Plus `arriveAtRow` — focus, scroll, and the arrival mark. |
 
 ---
 
@@ -151,9 +151,10 @@ The one fully-built page. Read Phase 6a's entry in HANDOFF before changing it.
 `StatPill` has two shapes and one look: given `items` it is a **button owning a
 popover**, given none it is a plain chip. A zero count gets the chip, on purpose.
 
-`StatPopover` tracks **why** it is open (`'pointer' | 'command' | null`), not just
-whether. That is not defensive — with one boolean, pressing the pill did nothing
-at all. See FINDINGS.
+`StatPopover` opens on **click only**. It tracked *why* it was open
+(`'pointer' | 'command' | null`) while it also opened on hover, and it had to —
+with one boolean, pressing the pill did nothing at all. Hover was then rejected
+outright and that state went with it. See FINDINGS.
 
 `SectionCard` is the one to understand: three bands — header, capped body,
 pinned footer. The footer sits OUTSIDE the scroll area because the show-more
@@ -166,6 +167,7 @@ control must not scroll away with the content it controls.
 | Command | What it proves |
 |---|---|
 | `npm test` | 389 tests. Pure logic and source scans. Nothing renders. |
+| `npm run check:interaction` | 37 assertions on the popovers in a real browser. **The only gate that can press a button.** |
 | `npm run check` | Types agree. **Does NOT prove the page renders** — see BUGS.md. |
 | `npm run build` | It compiles. |
 | `python3 scripts/check-contrast.py` | 58 assertions. **Parses `app.css`**, so tokens cannot drift from their checks. |
@@ -205,7 +207,6 @@ Four properties and three key spaces: see `CONTEXT.md` §8.
 | `Avatar.svelte` | Image with an initials fallback. Hand-rolled; shadcn-svelte is later. |
 | `actions/escapeKey.ts` | Svelte action. Escape-to-dismiss, scoped to the element's lifetime. **Caller: `StatPopover`.** |
 | `actions/clickOutside.ts` | Its sibling. Capture-phase `pointerdown`, with an `alsoInside` list for the trigger that opened the thing. |
-| `actions/hoverIntent.ts` | **The one `(hover: hover)` gate.** Hover in/out, but only where a cursor exists. |
 
 ---
 
@@ -279,7 +280,13 @@ version failed silently for self-added tasks and undated to-dos.
 `evt-`-prefixed. This is a live defect; see `BUGS.md`.
 
 **A control with two ways in has more states than it has booleans.** `StatPopover`
-records which input opened it, because hover and click otherwise undo each other.
+had to record which input opened it while hover and click both existed, or they
+undid each other. Hover is gone and so is that state — but the lesson is why
+`check:interaction` asserts hover has NOT come back.
+
+**`.thrive-arrived` is applied from TypeScript, not markup.** It is the reason
+`designSystem.spec.ts` now scans `.ts` as well as `.svelte` for the treatment
+vocabulary.
 
 **`ShowMore` carries `aria-expanded` too.** Anything querying
 `button[aria-expanded="true"]` to find an open popover will match an expanded
@@ -301,6 +308,7 @@ npm test                   # vitest run — 389 tests
 
 python3 scripts/check-contrast.py    # 58 assertions: 42 pairs, 6 ceilings, 10 structural
 npm run check:layout                 # 12 routes x 3 viewports, in a real browser
+npm run check:interaction            # 37 assertions on the stat pill popovers
 ```
 
 If a page looks stale locally, something is holding the port:

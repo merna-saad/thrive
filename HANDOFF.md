@@ -4,6 +4,118 @@ Session log, newest first. What happened, what was decided, what is still open.
 
 ---
 
+## 2026-08-21 — click only, an arrival cue, and a gate that can press a button
+
+**HEAD:** `d3621b9` · 3 commits, all pushed · 389 tests green · all six gates green.
+
+Three pieces, all follow-ons from the popovers landing earlier the same day.
+
+### 1. Hover removed. Click only.
+
+Tried in use and rejected by the owner: three pills sit in one row, so a cursor
+crossing that row opened and closed panels nobody asked for.
+
+`openedBy: 'pointer' | 'command' | null` went with it. Every job that state did
+was about reconciling hover with click — which one opened it, whether a pointer
+leaving should close it, whether tabbing in should pin it — so with one way in
+there was nothing left to distinguish. It collapsed back to `open`, and three
+branches that could only take one value went rather than sitting there as
+decoration. Focus now moves into the list unconditionally on open, for the same
+reason: it was conditional because hover must never move the caret.
+
+**`hoverIntent.ts` deleted, not parked.** One caller, and nothing queued — the
+calendar, appointments, Ask THRIVE — needs a JS hover gate that Tailwind's
+`hover:` utilities do not already cover. Kept-in-case is how a lib grows things
+nobody can delete later. `clickOutside` and `escapeKey` both still have callers
+and stay. No user-facing string mentioned hovering.
+
+### 2. The jump is visible now
+
+The reveal moved focus and scrolled, which was correct and invisible: everything
+on Home is on one page, so a student choosing an item saw nothing change and
+assumed the click had failed. `focusRevealedRow` became `arriveAtRow`.
+
+**Indigo inset ring, solid for most of 1200ms then faded.** Indigo because it is
+the reserved "this is where you are now" colour and an arrival cue is that
+sentence. An outline because it cannot move the layout, does not contest the
+background wash or left border a task row already uses for priority, and follows
+each row's own radius — so one rule covers both row shapes.
+
+**The ring is a normal declaration and the animation only removes it.** That is
+backwards until you notice the global reduced-motion reset forces
+`animation-duration: 0.01ms !important`: a mark painted by a keyframe would be
+invisible under reduced motion. Declared plus `animation: none` there leaves the
+ring on, still cleared on the beat by the timer.
+
+Only one row is ever marked. A second jump to the same row forces a reflow between
+the class removal and the re-add, or the animation does not restart. The duration
+is a token read by both the component and the gate, so there is one copy of it.
+
+### 3. `check:interaction` is a gate
+
+37 assertions. The case for it was already written: the other five gates were all
+green on the version where pressing a pill did nothing.
+
+**Verified to fail, three ways**, by breaking each thing on purpose — hover
+reintroduced (6 red, including the original bug reproduced exactly), the arrival
+mark not applied (4 red), the mark never cleared (2 red). That is the third
+property every gate here is supposed to have and it is now demonstrated rather
+than claimed.
+
+It reads `--thrive-arrival-duration` from the running page rather than repeating
+it, and it knows no fixture ids — the task ids it ticks to force a zero count come
+from choosing the popover's own items and reading where focus landed. One check
+reports SKIP rather than passing when the fixture cannot produce a reveal target
+past a collapsed slice.
+
+### Decisions made
+
+- **Hover is gone for good**, and its absence is asserted rather than assumed,
+  because reintroducing it is the only route back to the swallowed-click bug.
+- **Delete an abstraction that loses its last caller** unless a specific named
+  surface wants it. `escapeKey` was rightly kept with no caller in Phase 4 — but
+  against two named surfaces, not against the general chance.
+- **A correct implementation of a bad interaction is still bad.** The `openedBy`
+  work was real engineering spent making hover behave; the answer was that hover
+  should not have been there.
+- **Durations are motion or dwell**, and they do not share tokens.
+- **`designSystem.spec.ts` now scans `.ts` too.** `.thrive-arrived` is the first
+  class applied from JavaScript, and a typo there is the exact silent nothing that
+  check exists to catch.
+- **The aria-controls deviation is accepted** (owner): the panel names an id that
+  is absent while closed. The alternative is a permanently mounted panel and two
+  permanently mounted document listeners per pill.
+- **No extra wording on the events card** (owner): the show-more label carries it.
+- **Keep the honest 21-item popover** (owner); revisit a cap only if it gets very
+  long.
+
+### What broke
+
+Nothing in the product. Three probe/gate authoring faults, all mine: a stray
+object-literal `=` for a `:`, one check name long enough to run into its own
+detail column, and — earlier the same day — the `aria-expanded` selector that
+matched `ShowMore`.
+
+### Loose ends carried forward
+
+- **`/swatch` does not show the popover or the arrival ring.** Two treatments
+  missing from the design system's own display page. Small; it is throwaway.
+- **`check:interaction` covers one widget on one page.** The general
+  component-test question is still open, and 6b's editing is the next thing that
+  wants a rendered assertion.
+- **The done-group branch in `TasksCard`'s reveal effect is still unreachable**
+  from Home — no pill counts a done task. 6b's undo wants it.
+- **`CONTEXT.md` regenerated in full** at `d3621b9`. No longer a loose end.
+
+### Still open from earlier phases
+
+Unchanged: §9 defect 1 (process-global mock stores, **BLOCKING** a multi-person
+demo), shallow provider copies, `buildScheduleData()` unported, three dead
+providers, `requestTypeHelp` with no consumer, the calendar half of the ignore
+key-space defect, Home fitting 1238px rather than 1052px.
+
+---
+
 ## 2026-08-21 — the stat pill popovers
 
 **HEAD:** `ae48473` · 3 commits, all pushed · 389 tests green.

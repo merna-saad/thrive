@@ -1,4 +1,4 @@
-<!-- updated-at: f8593b7 -->
+<!-- updated-at: d3621b9 -->
 
 # CONTEXT
 
@@ -60,8 +60,9 @@ thrive/
 ├── frontend/        the SvelteKit app
 ├── backend/         Django — not started, README only
 └── scripts/
-    ├── check-contrast.py    58 assertions over the palette and app.css
-    └── check-layout.mjs     12 routes x 3 viewports, in a real browser
+    ├── check-contrast.py       58 assertions over the palette and app.css
+    ├── check-layout.mjs        12 routes x 3 viewports, in a real browser
+    └── check-interaction.mjs   37 assertions on the stat pill popovers
 ```
 
 `MIGRATION.md` is also the **only surviving copy** of the prototype inventory —
@@ -112,14 +113,17 @@ fixtures on purpose, and the provider signatures are the only contract Django
 will have to honour.
 
 **No shadcn-svelte and no bits-ui yet.** Deferred deliberately; `MIGRATION.md`
-§4 lists the Radix primitives that will need equivalents.
+§4 lists the Radix primitives that will need equivalents. The stat pill popover
+is the first floating widget built by hand rather than deferred to one of them —
+see §13.
 
 **One dependency added since Phase 1: `playwright-core`** (2026-08-21), for the
-layout gate. There is no zero-dependency way to measure a rendered page, and the
-alternative was leaving a real invisible bug ungated. `@types/node` was rejected
-in Phase 5 because `import.meta.glob(..., { query: "?raw" })` did that job with
-nothing added — the rule is "do not add one where the platform already answers",
-not "never add one". See DEPENDENCIES.md.
+layout gate. It now carries the interaction gate as well, which is the whole
+argument for having added it rather than measuring by hand: the second gate cost
+nothing. `@types/node` was rejected in Phase 5 because
+`import.meta.glob(..., { query: "?raw" })` did that job with nothing added — the
+rule is "do not add one where the platform already answers", not "never add one".
+See DEPENDENCIES.md.
 
 ---
 
@@ -136,19 +140,19 @@ not "never add one". See DEPENDENCIES.md.
 | 5 | Data layer — 25 providers, fixtures, three stores | done |
 | — | Repalette to campus brand; tighten the two-face type rule | done |
 | — | Trim navigation to four destinations | done |
-| 6a | **Home — the page, four cards, fit-on-one-screen** | **done** |
-| **next** | **Stat pill popovers** (specified, §17) | not started |
-| then | **6b — task editing** | not started |
+| 6a | Home — the page, four cards, fit-on-one-screen | done |
+| — | **Stat pill popovers, the reveal channel, `check:interaction`** | **done** |
+| **next** | **6b — task editing** | not started |
 | then | The calendar (15 components, largest surface) | not started |
 | then | Appointments | not started |
 | then | The Ask THRIVE page | not started |
 | later | Floating widgets, behind `FEATURES` | not started |
 
-**373 tests, 17 spec files, all passing**, green in all seven timezones of the
-sweep. `svelte-check` clean over 368 files. Build clean. Contrast **58/58**.
-Layout **36/36**. 30 commits, all pushed.
+**389 tests, 18 spec files, all passing.** `svelte-check` clean over 374 files.
+Build clean. Contrast **58/58**. Layout **36/36**. Interaction **37/37**.
+38 commits, all pushed.
 
-**115 files under `frontend/src`** — ~15,453 lines, 10,802 source / 4,651 test.
+**119 files under `frontend/src`** — ~16,826 lines, 11,910 source / 4,916 test.
 
 ---
 
@@ -156,7 +160,8 @@ Layout **36/36**. 30 commits, all pushed.
 
 `frontend/src/app.css` is the single source of truth. **Never hardcode a colour,
 size, radius, or duration in a component.** `designSystem.spec.ts` fails the
-build on a hex or a font name in markup.
+build on a hex or a font name in markup — and, since 2026-08-21, on a
+`.thrive-*` class used from TypeScript that `app.css` does not define.
 
 Three layers: raw `--thrive-*` tokens → shadcn semantic vars remapped onto them →
 `@theme inline` exposing both as Tailwind utilities.
@@ -199,15 +204,17 @@ to an indicator and get away with it.
 | `watch` / `needs-help` | `#8f6220` / `#6a5fb0` | Status only |
 | `civic` / `later` | `#8a5f8f` / `#64748b` | Categorical only, never status |
 
+**`indigo` has two consumers now, and they are the same sentence.** "You are
+here" in the navigation, and `.thrive-arrived` — the ring on a row a stat pill's
+popover has just jumped to. An arrival cue *is* "this is where you are now", so
+this widened indigo's use without weakening its meaning. Anything else wanting
+indigo has to make that same argument.
+
 **`on-track` is the only reserved colour whose value has changed.** It moved off
 green on 08-15 because green had become "an action you can take" and a green chip
 beside a green button read as one signal. A blue chip beside a **navy** button is
 that same collision, so it moved again, to teal. 5.90:1 on card, 2.40:1 against
 navy — far enough apart to be a different statement rather than a lighter navy.
-
-**`indigo` was considered and kept.** It separates from navy on lightness (5.59
-vs 14.18) and saturation at once, and it never takes the same form — navy is a
-solid fill with white on it, indigo is a marker or a word.
 
 ### Surfaces, ink, lines
 
@@ -220,6 +227,13 @@ below 4.5:1 by a ceiling so words placed in it fail a check.
 carried by different tokens, and must never collapse.** Control boundaries owe
 3:1 under WCAG 1.4.11 because the boundary is the only thing marking where the
 control is. Only `.thrive-checkbox` and `--input` consume the 1.5px stroke.
+
+**There is now a third ring width, and it is deliberately not either of those.**
+`--thrive-arrival-ring: 2px` matches the focus ring in the base layer, because
+both draw a ring around something you have just arrived at and two ring weights
+would read as two kinds of thing. It is not the 1.5px control stroke: that one
+exists because a control's boundary is the only thing saying where the control
+is, and a row is not a control.
 
 ### Type: two faces, and the rule is tight now
 
@@ -249,6 +263,35 @@ Type scale 12/13/14/**16 body**/18/22/27/34/**40**, tracking on the top three
 steps only plus `.thrive-eyebrow`. Radii 4/6/8/10/**16**. Motion 120/160/260ms.
 Light-only, no shadows. Below `40rem` the **root** goes to 106.25%.
 
+### The component classes
+
+Eight, and each exists because Tailwind cannot express it at the call site:
+`.thrive-numeric`, `.thrive-eyebrow`, `.thrive-panel`, `.thrive-row`,
+`.thrive-checkbox`, `.thrive-strike`, `.thrive-card-body`, `.thrive-popover`,
+`.thrive-arrived`.
+
+- **`.thrive-popover`** carries only a WIDTH:
+  `min(--thrive-popover-width, 100vw - 2 * --thrive-popover-viewport-inset)`. The
+  clamp is what stops a pill near the right edge opening a panel off the screen.
+  Not a `max-width`, or three pills would open three different-width lists. Its
+  surface, hairline and radius are ordinary utilities.
+- **`.thrive-arrived`** is the arrival ring. See §13.
+
+### Durations: motion versus dwell
+
+Three motion tokens (120/160/260ms) are **transition lengths** — how fast a thing
+changes. `--thrive-arrival-duration: 1200ms` and the toast's 3000ms are
+**dwells** — how long a state persists. They are different kinds of number and
+must not share a token: reusing `--thrive-motion-slow` for the arrival mark would
+have tied the fade's speed to how long the mark lasts, and the next person to tune
+one would silently retune the other.
+
+`reveal.svelte.ts` READS `--thrive-arrival-duration` from the computed root style
+rather than repeating it, so the timer that removes the mark and the animation
+that fades it cannot drift apart — and 1200ms stays a design-system value rather
+than becoming a number in a TypeScript file. `check-interaction.mjs` reads the
+same token for the same reason.
+
 ### The one responsive token
 
 `--thrive-topbar-height` is **56px on mobile, 48px above `lg`**, overridden in a
@@ -263,7 +306,7 @@ resolving it once.
 Renders every token, both border weights, the brand values with their PMS
 numbers, the yellow constraint shown legible-on-navy beside decorative-on-cream,
 and the two-face rule as a table of worked pairs. Throwaway; delete before
-Release 1.
+Release 1. It does **not** yet show the popover or the arrival ring.
 
 ---
 
@@ -284,9 +327,9 @@ Full statement in `CONVENTIONS.md`. The short version:
   prop and re-runs the pure `describeDue` against it. The server still decides
   what "now" is; only the recomputation moved.
 - **`dayKeyOf(value: Date | string)`** is the only place a local day key is built.
-- **Two sanctioned client clock reads**, both documented at their definition:
-  `nowMinutes()` in `calendarSources.ts`, and `matchesWide()` in the
-  floating-panel geometry.
+- **The week window is a date question and is answered on the server.** Each
+  `EventRowData` carries a `thisWeek` boolean, not an ISO string the client
+  compares — see §13.
 
 **Nothing enforces this, and that is the point of writing it down.** In Next the
 `"use client"` boundary enforced it at compile time. SvelteKit has no such wall:
@@ -294,12 +337,23 @@ a component can `import { describeDue }` and call it with no `now`, and the
 default parameter is `new Date()`, so it compiles, renders something plausible,
 and is wrong in another timezone. **Review is the enforcement.**
 
-### The clock reads inside the data layer
+### The sanctioned client reads
 
-Three, all behind the provider boundary, which today means a server `load`:
-`getEvents()` filters on `Date.now()`; `mock/relative-dates.ts` runs when a
-provider is called, not at module load; `buildSlotsFor()` reads the clock for its
-past-slot check, which is what makes it only *conditionally* deterministic.
+One clock read: **`nowMinutes()`** in `calendarSources.ts` — minutes past
+midnight, for the calendar's "next up" line. Called from a handler or a memo,
+never during a server render, and only when the selected day *is* today.
+
+**`matchesWide()`** in the floating-panel geometry is listed as the second, and is
+**not ported yet** — the floating panels are a later phase.
+
+**A `matchMedia` read briefly existed and is gone.** `hoverIntent` read
+`(hover: hover)` for the popovers' hover opener; hover was removed from that
+interaction and the action was deleted with it. Hover-to-reveal in this app is
+CSS — Tailwind's `hover:` utilities, which compile to `@media (hover: hover)` with
+no JavaScript needing an opinion.
+
+Anything else reading the clock on the client is a bug until argued otherwise in
+review.
 
 ### `describeDue` has four states, not three
 
@@ -311,13 +365,17 @@ past-slot check, which is what makes it only *conditionally* deterministic.
 **`unknown` is deliberately NOT in `DueUrgency`** — "how urgent is it" has no
 answer for a date that does not exist.
 
-**Where an unknown row goes is now decided** (2026-08-21): its own group, **first
-in the list**, headed "Needs a date". Loud is correct, invisible is not — a
-deadline that silently does not exist is worse than one shouting for attention,
-and it is the only group a student can actually fix. It is not tinted `urgent`:
-that tone is reserved for real deadlines, and a missing date is a data problem.
-Being first also means it survives the collapse to four rows on a capped card,
-which is what makes it real rather than technically present.
+**Where an unknown row goes is decided** (2026-08-21): its own group, **first in
+the list**, headed "Needs a date". Loud is correct, invisible is not — a deadline
+that silently does not exist is worse than one shouting for attention, and it is
+the only group a student can actually fix. It is not tinted `urgent`: that tone is
+reserved for real deadlines, and a missing date is a data problem. Being first
+also means it survives the collapse to four rows on a capped card.
+
+That ordering has a second consequence, discovered while building the popovers:
+four undated rows fill the collapsed slice on their own and push the overdue task
+— the one the coral pill is counting — off screen. That is the realistic path
+through the reveal machinery in §13, and `reveal.spec.ts` pins it.
 
 ---
 
@@ -353,16 +411,22 @@ testable in Node with no jsdom.
 | Raw `Event.id` | `ignoredEvents.ts` | normalised through `eventIdOf()` |
 
 **Home only ever holds raw `Event.id`s** and passes them through unchanged.
-`eventIdOf()` is for calendar ITEM ids (`evt-evt-3-1`), a different key space
-Home never touches. Calling it there would be normalising something already
-normal — which is how a second normaliser gets added, and §9 defect 12 is what
-happens next.
+`eventIdOf()` is for calendar ITEM ids (`evt-evt-3-1`), a different key space Home
+never touches. Calling it there would be normalising something already normal —
+which is how a second normaliser gets added, and §9 defect 12 is what happens
+next. The reveal targets in §13 hold raw ids for the same reason, and
+`reveal.spec.ts` asserts they pass through untouched.
+
+### What is deliberately NOT persisted
+
+Card collapse state, and the reveal channel that can drive it. See §13 — the
+non-persistence is structural, not a `reset()` somebody remembers to call.
 
 ### `.svelte.ts` is not decoration
 
 Svelte only processes runes in `.svelte.js` / `.svelte.ts`. A plain `.ts` with
-`$state` is **silently inert**. Five files carry the suffix: `overrideStore`,
-`userEdits`, `taskNotes`, `toast`, `ignoreUndo`.
+`$state` is **silently inert**. Six files carry the suffix: `overrideStore`,
+`userEdits`, `taskNotes`, `toast`, `ignoreUndo`, `reveal`.
 
 ---
 
@@ -389,6 +453,9 @@ nobody reintroduces them thinking they were an oversight.
 `useIgnoreEvents` → `ignoreEvents`. One undo slot app-wide rather than one per
 calling component, which matches what `toast` already did deliberately.
 
+**The reveal channel is deliberately NOT a module singleton**, and it is the one
+place that pattern was rejected — see §13.
+
 ---
 
 ## 10. The shell
@@ -401,7 +468,8 @@ calling component, which matches what `toast` already did deliberately.
   match, which is what makes that a guarantee rather than an intention.
 - **The top bar is 48px above `lg`, 56px below.** The CONTROLS change size — 44px
   touch, 36px pointer — and the bar's height follows from them. WCAG 2.5.5 asks
-  44px of a touch target and 2.5.8 asks 24px of a pointer one.
+  44px of a touch target and 2.5.8 asks 24px of a pointer one. The stat pills
+  follow the same pair (`min-h-11 lg:min-h-9`), including the inert zero one.
 - **`--thrive-page-gutter-bottom`** is the page's bottom breathing room, used
   twice: on mobile added to the bottom nav's height (that bar is fixed *over* the
   page), and above `lg` it is the whole padding.
@@ -410,9 +478,29 @@ calling component, which matches what `toast` already did deliberately.
 - **Accessibility:** skip link, `main` landmark with `tabindex="-1"`, exactly one
   `nav` landmark in the a11y tree at a time, `aria-current="page"` on the active
   item.
-- **`escapeKey` is a Svelte action**, not a translated `useEffect`. **It currently
-  has no caller** — its only one was the More sheet. Kept deliberately: the
-  floating panels and the Ask THRIVE page will want it.
+
+### The three actions
+
+`frontend/src/lib/actions/` — Svelte actions rather than translated `useEffect`s.
+The shared shape is that **the listener's lifetime is the element's**: put one on
+something inside an `{#if open}` and it exists exactly when the thing it dismisses
+does, so there is no open state to keep a listener in step with.
+
+| Action | Role |
+|---|---|
+| `escapeKey` | Escape-to-dismiss. **Has a caller since 2026-08-21** — `StatPopover` |
+| `clickOutside` | Capture-phase `pointerdown`, with an `alsoInside` list |
+
+`clickOutside` takes `alsoInside` because a disclosure's own trigger is not inside
+its panel but *is* inside its widget. Without it, pressing the trigger to close
+fires the dismissal, the panel unmounts, and the trigger's own click reopens what
+was just dismissed — a button that visibly refuses to close.
+
+**`hoverIntent` existed and was deleted**, same day. It held the one
+`(hover: hover)` gate for the popovers' hover opener. When hover came out of that
+interaction it had no caller, and it was deleted rather than parked: nothing queued
+has a hover-reveal requirement that Tailwind's `hover:` utilities do not already
+cover. See §15.
 
 ### Feature flags
 
@@ -450,11 +538,11 @@ return 200; a route whose href is in no list returns 500 with the right message.
 **Settings is parked and stays parked** (confirmed 2026-08-21): nothing to
 configure yet. It was also the reason the mobile **More sheet** could go — with
 four destinations there is no overflow, and an overflow button that opens nothing
-is worse than no button. Its scrim, open state, `aria-expanded`/`aria-controls`
-wiring and focus-return went with it.
+is worse than no button.
 
-**`/ask`** exists as a `PagePlaceholder` route with its nav entry in place. The
-real page is §17.
+**`/events` is still parked and is still load-bearing in the copy.** Home's
+Upcoming Events card says the rest of the list is there, and its "View all" points
+at it. Unparking it is a separate decision from the one in §13.
 
 `pageTitle()` in `lib/title.ts` reproduces Next's `"%s · THRIVE"` template.
 
@@ -512,6 +600,13 @@ Fall 2026 · `programStart: 2026-08-03` · standing `onTrack`. `programStart` is
 Advisors: **Amber Hanna** (Graduate Student Advisor, Rady 2S111) and **Nelitza
 Morales** (Career Coach, CMC / Zoom).
 
+### The fixture's shape, measured
+
+Numbers worth knowing, because two design decisions rest on them: **10 tasks**
+(8 open, 2 done — 1 overdue, 2 due today, 5 upcoming), and **159 upcoming events,
+21 of them inside seven days**, generated 2–4 per day across a rolling horizon.
+That 21-against-4 is what forced the events card decision in §13.
+
 ---
 
 ## 13. Home
@@ -525,7 +620,7 @@ The one fully-built page, and the only route that reads more than `getStudent()`
 have to see the student's persisted ticks and ignores, which only exist in the
 browser — counting them server-side freezes them at the fixture's answer and lets
 the pills contradict the cards beneath them. What goes down is the classified rows
-and the raw event ids: the data to count, not the count.
+and, on each event row, a `thisWeek` flag: the data to count, not the count.
 
 ### The fit-on-one-screen behaviour
 
@@ -548,9 +643,10 @@ nothing overflows at rest. Collapsed row COUNTS live in `$lib/cardLayout` becaus
 JavaScript slices with them: **4** task rows, **2** course cards, **4** class
 rows, and `VISIBLE_EVENTS = 4`.
 
-**Upcoming Events scrolls at rest, on purpose.** Its four rows are load-bearing
-behaviour rather than layout: ignored events are filtered **first** and the slice
-happens **second**, so the next event moves up instead of leaving a gap.
+**That fixed height is what makes the reveal machinery below safe.** Expanding a
+card to show a hidden row cannot move the grid, and nothing had to be added to
+guarantee it. `check-interaction` asserts all four bodies are still one height
+after a reveal.
 
 ### Tasks is flat when collapsed, grouped when expanded
 
@@ -564,17 +660,166 @@ collapsed view shows a flat list of the next four things with no headings. Nothi
 is lost: every row already states its own urgency in its labels. Headings come
 back on expand, where they earn their height.
 
+### The stat pill popovers
+
+Each of the three pills opens a popover listing the actual items behind its
+number. Items are clickable and jump to the task or event on the page.
+
+**Click, and only click.** Hover-to-open was built, gated on `(hover: hover)`,
+tried, and **rejected**: three pills sit in one row, so a cursor crossing that row
+opened and closed panels nobody asked for. The panel that appears where you are
+not looking is noise; the panel that vanishes as you reach for it is worse.
+Pressing the pill again closes it.
+
+**A count of zero is not a control.** No button, no `aria-expanded`, nothing to
+press — the pill renders as the plain chip it always was. `statTones.calm` already
+existed so "0 overdue" does not read as an alarm; this is the same idea applied to
+the interaction, and `aria-expanded="false"` on something that can never expand is
+simply untrue. It keeps `min-h-11` so a row of pills is never two heights.
+
+**The count and the list are one expression.** Each pill's number is
+`items.length` of the list it opens, so a pill saying 3 and opening a list of 2 is
+not expressible — the same contradiction the client-side counting exists to
+prevent, one level down.
+
+**A list, not a menu.** `role="menu"` brings a single tab stop and Tab-to-exit,
+which is right for a command menu and wrong for jump targets. Every item is an
+ordinary tab stop; Arrow, Home and End are a convenience on top.
+
+**Dismissal has one focus rule:** restore focus to the pill **if and only if**
+focus is currently inside the panel. That covers Escape, a pointer down outside,
+and focus leaving the widget. Choosing an item is the named exception — focus is
+about to land on the revealed row, so it must not be pulled back on the way. Focus
+follows the jump, not the dismissal.
+
+`aria-controls` names an id that is absent while the popover is closed. **That
+deviation is accepted** (2026-08-21): the alternative is a permanently mounted
+panel and two permanently mounted document listeners per pill, which is exactly
+what the action lifetimes in §10 exist to avoid.
+
+### The reveal channel: the page owns the intent, the cards own their state
+
+Jumping to an item couples the popover to a card's collapse state, and the shape
+chosen for that coupling is the piece of design worth reading.
+
+- **`$lib/reveal.ts`** is pure and tested. `planReveal(ids, limit, targetId)` is
+  the one question a card asks: do I hold this row, and is it past my collapsed
+  slice. `found: false` is kept distinct from "found, and already visible".
+- **`$lib/reveal.svelte.ts`** carries the request. A popover calls
+  `reveal.request({ kind, id })` and knows nothing else. Each card reads the
+  channel, asks `planReveal` about its **own** list, and if the answer is "mine,
+  and hidden" sets its **own** `$state`. Nothing outside a card ever writes a
+  card's state, and `ShowMore` is untouched — this is a second way to open a card,
+  not a replacement for the first.
+
+**Rejected alternatives:** lifting all four cards' collapse into a page-level
+store (inverts ownership for four cards to serve one feature), prop-drilling the
+channel (three components in between have no interest in it), and a `<details>`
+disclosure (the show-more control lives in the footer band, outside the disclosure
+content).
+
+**The channel lives in page CONTEXT, not at module scope.** That is what keeps
+"collapse resets on navigation" true because of where the channel lives rather
+than because something remembers to reset it. A module-level `$state` would
+survive a client-side navigation and quietly reopen a card on the way back. This
+is the one place the module-singleton pattern of §9 was rejected.
+
+**The nonce is load-bearing.** Two clicks on the same item are two requests, and
+with only a target in the slot the second write is `target === target` and Svelte
+makes it a no-op — precisely the click a student makes when the first one did not
+seem to work. It also lets each card be idempotent by remembering the last nonce
+it handled, so no card has to clear the slot on the others' behalf and effect
+ordering never decides who saw the request.
+
+**Each card's effect reads its full list, never its collapse state.** The collapse
+states derive from the variable the effect writes, so reading one would make the
+write re-run the effect.
+
+### Arriving has to be visible
+
+Focus moved and the row scrolled into view, which is correct and **completely
+invisible** — everything on Home is already on one page, so a student choosing
+"Submit peer review" saw nothing change and concluded the click had failed. The
+focus ring is not the answer: a pointer user does not get one.
+
+So `arriveAtRow` focuses the row, scrolls it with `block: 'nearest'`, and marks it
+with **`.thrive-arrived`** — an indigo ring, solid for most of a 1200ms beat and
+then faded out.
+
+- **Indigo** because indigo is the reserved "this is where you are now" colour and
+  an arrival cue is that sentence exactly. Not coral: nothing has gone wrong. Not
+  yellow: it cannot carry a signal alone on cream.
+- **An outline**, for three reasons that are all about not fighting anything. It
+  cannot move the layout. It does not collide with what the rows already use — a
+  task row carries priority in a background wash and a left border, and an
+  animated background would either lose the cascade to `bg-urgent-soft` or paint
+  over the priority that wash exists to state. And it follows the element's own
+  `border-radius`, so one rule fits a task row at `radius-lg` and an event row at
+  `radius-xl` with nothing per-shape.
+- **The ring is a normal declaration and the animation only takes it away.** That
+  reads backwards until you see the global reduced-motion block, which forces
+  `animation-duration: 0.01ms !important` on everything — a mark *painted* by a
+  keyframe would appear and vanish within a hundredth of a millisecond. Declared,
+  plus `animation: none` under reduced motion, leaves the ring on and still
+  cleared on the beat by the timer.
+- **Exactly one row is ever marked.** Any previous mark is cleared first; two
+  rings would read as two selections, and this is not a selection.
+- **Jumping twice to the same row forces a reflow** between the class removal and
+  the re-add, or the browser never sees a change and the animation does not
+  restart.
+- **The mark is unconditional**, including for a row that needed no scrolling —
+  that is exactly the case where nothing moves and the cue is the only feedback
+  there is.
+
+Focus behaviour is unchanged and the mark is additive. The accessible answer and
+the visual one are different channels for different people.
+
+### Upcoming Events: collapsed is four, expanded is this week
+
+This card had no show-more at all, on the standing grounds that Home shows the
+next four and `/events` is the rest. **The popover overturned that, and the reason
+was measured rather than preferred:** the events pill counts events *this week* —
+21 against the fixture — while the card showed four *upcoming*, so seventeen of the
+items in that popover had no row on this page to jump to. A list of jumps that
+mostly cannot jump is worse than no list.
+
+The fix rests on both sets being **prefixes of the same list**. `getEvents()`
+returns upcoming events ascending by start and the ignore filter preserves order,
+so "the first four" and "everything within seven days" are both prefixes, and the
+union of two prefixes is the longer one. `expandedEventLimit(collapsedLimit,
+weekCount)` returns `max` of the two, and a test asserts the prefix property
+rather than trusting it.
+
+The `max` is not decoration: on a quiet week the week count is *shorter* than the
+collapsed slice, and expanding to it would remove rows the card already shows.
+Holding the floor at four means a quiet week has nothing to expand and the card
+behaves exactly as it did before any of this.
+
+**The pill and the card are now two views of one set**, which is the same property
+the client-side counting protects: they cannot disagree.
+
+The show-more sits in the card's footer band rather than its body, because this
+card scrolls at rest and a control inside the scroll area is unreachable exactly
+when it is wanted. It is passed to `SectionCard` **only when there is something to
+reveal** — the footer draws its own rule and padding, so an always-supplied
+snippet that renders nothing leaves an empty ruled strip.
+
+**Filter FIRST, then slice**, unchanged and still the behaviour: ignored events
+are removed before the slice, which is what makes the next event move up instead
+of leaving a gap.
+
 ### Measured heights
 
-Header block **375px → 266px** with nothing removed: strip and greeting merged
-into one panel, the date onto the greeting's line, the pills and chips into one
-wrapping row. Document **1392px → 1238px**.
+Header block **375px → 266px** during the 6a density pass. Document
+**1392px → 1238px**.
 
-**Home fits a 1238px viewport whole.** It does not fit 1052px, and it misses by
-186px. That gap is **not** density any more — the header is 194px with every piece
-of content in it. It is card rows, and the decision (2026-08-21) is **do not cut
-them**: two task rows would make the card useless, and "show more" exists for
-exactly that.
+**Home fits a 1238px viewport whole** and has not moved since — the fixed card cap
+absorbed everything the popovers added. It does not fit 1052px, and the decision
+(2026-08-21) is **do not cut card rows**: two task rows would make the card
+useless, and "show more" exists for exactly that.
+
+**The phone grew 2878px → 2949px** when the popovers landed: 44px touch targets on
+all three pills, plus the new footer band on Upcoming Events. Accepted.
 
 ### Strings
 
@@ -584,9 +829,15 @@ a rewrite. Nested by surface, and **anything carrying a value is a function**, n
 a template assembled at the call site: `showMore(count)` lets a translation move
 the number, `{count} more` in markup bakes English word order in.
 
-Two entries are split in half — the timeline percentage and the course card's
-"Next:" — because the value is styled differently from the words around it. Both
-say so, and both name the limitation: the value comes first.
+`stats.listLabel(count, label)` is the clearest case for the rule: the pill's own
+label is already a separate string, so a language that puts the count after the
+noun, or inflects the noun on the count, has one place to say so. Assembling it in
+markup would have baked English order into three components.
+
+Three entries are split in half — the timeline percentage, the course card's
+"Next:", and the units chip — because the value is styled differently from the
+words around it. All of them say so, and all name the limitation: the value comes
+first.
 
 **This is a standing rule, not a Home thing.** Every surface extracts its strings
 as it is built, or Mandarin stops being possible.
@@ -597,11 +848,16 @@ as it is built, or Mandarin stops being possible.
 
 | Command | What it proves |
 |---|---|
-| `npm test` | 373 tests. Pure logic and source scans. **Nothing renders.** |
+| `npm test` | 389 tests. Pure logic and source scans. **Nothing renders.** |
 | `npm run check` | Types agree. **Does NOT prove the page renders** |
 | `npm run build` | It compiles |
 | `python3 scripts/check-contrast.py` | 58 assertions: 42 pairs, 6 ceilings, 10 structural |
 | `npm run check:layout` | 12 routes × 3 viewports in a real browser |
+| `npm run check:interaction` | 37 assertions on the stat pill popovers, in a real browser |
+
+**Three properties every gate here has:** it measures the thing rather than a
+model of it; it reads its inputs from the source of truth; and it has been
+**verified to fail** on the bug it was written for.
 
 **`check-contrast.py` parses `app.css`** rather than mirroring it. That weakness
 was load-bearing during the repalette: 43 assertions were checking green values
@@ -610,13 +866,23 @@ while the app rendered navy, and it would have reported 43/43 throughout.
 
 **`check:layout` asserts the page cannot scroll further than it paints.** It does
 **not** use `documentElement.scrollHeight` — that is the property that reported
-1275px while nothing rendered below 1238px, so building on it would rebuild the
-blind spot. It scrolls the page and reads where it landed. It skips loudly and
-exits 0 when there is no browser, because a gate that cries wolf gets ignored.
+1275px while nothing rendered below 1238px. It scrolls the page and reads where it
+landed.
 
-**Three properties every gate here has:** it measures the thing rather than a
-model of it; it reads its inputs from the source of truth; and it has been
-**verified to fail** on the bug it was written for.
+**`check:interaction` exists because the other five were all green on a version
+where pressing a pill did nothing at all.** Hover had already opened the panel, so
+the click found it open and closed it again. None of the other gates can press a
+button. It reads `--thrive-arrival-duration` from the running page rather than
+repeating it, and it knows no fixture ids — the task ids it ticks to force a zero
+count are discovered by choosing the popover's own items and reading where focus
+landed. Verified to fail three ways: hover reintroduced (6 red, including the
+original bug), the arrival mark not applied (4 red), the mark never cleared
+(2 red). One check reports **SKIP** rather than passing when the fixture cannot
+produce a reveal target past a collapsed slice, because silent degradation to a
+weaker assertion is how a gate stops meaning anything.
+
+Both browser gates **skip loudly and exit 0** when there is no chromium. A gate
+that cries wolf gets ignored.
 
 **`npm run check` is not a render.** `svelte-check` passed 0 errors on a component
 that threw `ReferenceError` on every request — a prop was in the type but not the
@@ -629,14 +895,30 @@ destructuring, and an unknown identifier in a Svelte template is not a type erro
 - **The old repo is read-only.** Verified untouched after every phase.
 - **Django is not being written here**, and the port does not anticipate it beyond
   the provider signatures.
-- **Measure layout in a real browser.** Never reason about pixels. This earned
-  itself three times in one session — see FINDINGS.
+- **Measure layout in a real browser.** Never reason about pixels.
+- **Drive interaction in a real browser too.** Types, tests, contrast and layout
+  were all green on a dead button. Anything a person presses gets pressed by a
+  gate.
+- **A gate must be verified to fail** on the thing it guards, by breaking that
+  thing on purpose and watching it go red.
+- **A control with two ways in has more states than it has booleans.** If two
+  input methods can produce the same visible state, the state has to record which
+  one produced it — or the second method will undo the first. This is why
+  `openedBy` existed; when hover went, the extra state went with it rather than
+  being left as branches that can only take one value.
+- **Delete an abstraction that loses its last caller**, unless a specific named
+  surface wants it. `hoverIntent` went the day hover did. `escapeKey` was kept
+  through Phase 4 with no caller and that was the right call — but it was kept
+  against two named surfaces, not against the general chance that something might.
+- **Durations are either motion or dwell**, and they do not share tokens.
 - **`@lucide/svelte`, not `lucide-svelte`** (the latter is pinned to Svelte 3/4).
 - **`cn()` survives** for the `class`-override case only.
 - **Vitest in Node, no jsdom.** Matches the prototype, where rendering was
   deliberately never tested.
 - **Probe before asserting.** Test suites are written against observed output from
-  a throwaway probe, not assumed behaviour.
+  a throwaway probe, not assumed behaviour. That includes a probe's own selectors:
+  three checks failed on correct code because `ShowMore` also carries
+  `aria-expanded`, and the instinct was to change the product.
 - **Diff a port, do not review it.** Signatures grepped and compared; bodies
   diffed comments-stripped.
 - **Any test asserting an absence needs a companion assertion that it can still
@@ -645,7 +927,7 @@ destructuring, and an unknown identifier in a Svelte template is not a type erro
   test-only export is permanent.
 - **Extract strings as you build**, not afterwards.
 - **No Claude/Anthropic attribution anywhere** — commits, PRs, file headers.
-  Verified clean across all 30 commits.
+  Verified clean across all 38 commits.
 
 ---
 
@@ -662,31 +944,13 @@ Calm, plain, honest about what is simulated.
 - Empty states are an invitation to act, never "No data". Never a dashed outline.
 - "Overdue" alone, not "Overdue by 3 days" beside "3 days ago".
 - Counts and timers in mono and tabular, so a row does not reflow.
+- **Feedback beats correctness.** A jump that works and shows nothing reads as a
+  failure. If an action changes state the student cannot see, it needs a cue.
 - Comments explain **why**, not what.
 
 ---
 
 ## 17. Open loose ends
-
-**Queued and specified, not built — the stat pill popovers.**
-Clicking a stat pill opens a popover listing the actual items behind the number:
-the overdue tasks, the tasks due today, the events this week. **Click always
-works; hover also opens it on desktop.** The items are clickable and jump to the
-task or event — **so if the target row is hidden behind "show more", the card
-expands and scrolls to it.** That last requirement is the interesting one: it
-couples the popover to the collapse state, so `collapseList` and the cards' local
-`$state` need a way to be driven from outside. Worth designing before building.
-
-**Phase 6b — task editing:** ticking, undo, rename, priority, notes, due date
-editing, drag to reorder, add task. `TaskRow` is read-only with disabled
-checkboxes today. `homeGroups.ts` is the read-only half of the Next
-`useTaskBoard`; the rest of that hook is what 6b needs.
-
-**Then, in order:** the calendar (15 components, largest surface; needs
-`buildScheduleData()`, still unported), appointments, then the **Ask THRIVE
-page** — three tabs (chat, class recommender, job recommender), a chat window,
-and a **saved chat history rail on the LEFT beside the nav rail**, so two rails sit
-side by side. Wired to **Shankar's RAG** later.
 
 **Blocking before any multi-person demo**
 
@@ -695,30 +959,60 @@ side by side. Wired to **Shankar's RAG** later.
    An `adapter-node` process has the same module-scope hazard the Next server had.
    **Django is the fix.**
 
+**Next up**
+
+2. **Phase 6b — task editing:** ticking, undo, rename, priority, notes, due date
+   editing, drag to reorder, add task. `TaskRow` is read-only with disabled
+   checkboxes today and a footer line saying so; that line goes when 6b lands.
+   `homeGroups.ts` is the read-only half of the Next `useTaskBoard`; the rest of
+   that hook is what 6b needs. The done-group branch in `TasksCard`'s reveal
+   effect is unreachable from Home today — no pill counts a done task — and was
+   built because 6b's undo wants exactly that path.
+3. **Then, in order:** the calendar (15 components, largest surface; needs
+   `buildScheduleData()`, still unported), appointments, then the **Ask THRIVE
+   page** — three tabs (chat, class recommender, job recommender), a chat window,
+   and a **saved chat history rail on the LEFT beside the nav rail**, so two rails
+   sit side by side. Wired to **Shankar's RAG** later.
+
 **Carried**
 
-2. **Provider copies are shallow.** `{ ...version }` shares nested arrays with the
+4. **Provider copies are shallow.** `{ ...version }` shares nested arrays with the
    store. Pinned by a test that says why.
-3. **Nothing renders in the test suite.** A component can render the wrong content
-   with correct types, correct classes and no page overflow. 6b's editing is the
-   first thing that genuinely wants a rendered assertion.
-4. **Home fits 1238px, not 1052px.** Accepted.
-5. **`escapeKey` has no caller.** Kept for the floating panels and `/ask`.
-6. **Three dead providers:** `getSyllabi`, `getResources`, `getCurrentResume`.
-7. **`requestTypeHelp` has no consumer** anywhere in the prototype.
-8. **The ignore store key-space defect** — Home and the calendar keyed it
+5. **`npm test` renders nothing.** A component can render the wrong content with
+   correct types, correct classes and no page overflow. `check:interaction` closes
+   this for one widget on one page; it is not a general answer, and 6b's editing
+   is the next thing that genuinely wants a rendered assertion.
+6. **Home fits 1238px, not 1052px.** Accepted. Phone is 2949px.
+7. **Three dead providers:** `getSyllabi`, `getResources`, `getCurrentResume`.
+8. **`requestTypeHelp` has no consumer** anywhere in the prototype.
+9. **The ignore store key-space defect** — Home and the calendar keyed it
    differently. Home is fixed (raw `Event.id`, no prefix stripping); the calendar
    half lands with the calendar.
-9. **`thrive:event-joins` is keyed on the calendar item id**, not the raw
-   `Event.id` (§9 defect 13). Home's "Count me in" is deliberately visual-only
-   rather than writing to a different key.
-10. **Two product decisions parked pending real screens:** the missing year in
+10. **`thrive:event-joins` is keyed on the calendar item id**, not the raw
+    `Event.id` (§9 defect 13). Home's "Count me in" is deliberately visual-only
+    rather than writing to a different key.
+11. **Two product decisions parked pending real screens:** the missing year in
     `formatShortDate`, and `countdownPhrase` counting to "13 months".
-11. **`taskNotes` on `createOverrideStore`?** It duplicates the persistence logic.
-12. **Mount `Toast`?** Store is ported and tested; one import.
-13. **`format.ts` still emits `"Invalid Date"` from `formatShortDate`.**
-14. **A parseable-but-wrong date still gets through** `describeDue`: V8 rolls
+12. **`taskNotes` on `createOverrideStore`?** It duplicates the persistence logic.
+13. **Mount `Toast`?** Store is ported and tested; one import.
+14. **`format.ts` still emits `"Invalid Date"` from `formatShortDate`.**
+15. **A parseable-but-wrong date still gets through** `describeDue`: V8 rolls
     `"2026-02-30"` into March.
+16. **`/swatch` does not show the popover or the arrival ring.** It is the design
+    system's display page and two treatments are now missing from it. Small, and
+    it is throwaway anyway.
+17. **`matchesWide()` is still unported** — listed in CONVENTIONS as a sanctioned
+    client read for a surface that does not exist yet.
+18. **21 items is a long popover.** It scrolls at `max-h-60`. Decision
+    (2026-08-21): **keep the honest number**, revisit a cap with a "see all in
+    /events" tail only if the list gets very long.
+
+**Closed since the last regeneration**
+
+- `escapeKey` has a caller. It is `StatPopover`.
+- `CONTEXT.md` was stale at `f8593b7`. This regeneration is the fix.
+- The stat pill popovers were "queued, specified, not built". They are built.
+- "Should the browser probe become a gate?" — yes, it did.
 
 ---
 

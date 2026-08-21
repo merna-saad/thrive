@@ -28,7 +28,7 @@ self-hosting is a requirement, not a preference.
 |---|---|---|
 | `@sveltejs/kit` | `^2.63.0` | Framework. |
 | `svelte` | `^5.56.1` | Runes, forced on outside `node_modules`. |
-| `playwright-core` | `^1.62.1` | **Added 2026-08-21. The first dependency since Phase 1.** Drives a real browser for `npm run check:layout`. See the note below. |
+| `playwright-core` | `^1.62.1` | **Added 2026-08-21. The first dependency since Phase 1.** Drives a real browser for `npm run check:layout` and `npm run check:interaction`. See the note below. |
 | `@sveltejs/vite-plugin-svelte` | `^7.1.2` | Compiles `.svelte` and `.svelte.ts`. |
 | `@sveltejs/adapter-node` | `^5.5.4` | Runs as a plain Node process. No serverless assumptions. |
 | `vite` | `^8.0.16` | Build. |
@@ -105,12 +105,19 @@ nothing here is in a request path yet.
 
 Added 2026-08-21, and the only dependency added since the Phase 1 scaffold.
 
-**What it is for.** `scripts/check-layout.mjs` asserts that no route can be
-scrolled further than it paints. That needs a real layout engine: Vitest runs in
-Node with no jsdom here, and jsdom does no layout — every height it reports is
-zero. There is no zero-dependency way to measure a rendered page, and the
-alternative was leaving a real, invisible bug ungated (BUGS.md, the 37px of
-scrollable empty space).
+**What it is for.** Two gates now.
+
+`scripts/check-layout.mjs` asserts that no route can be scrolled further than it
+paints. That needs a real layout engine: Vitest runs in Node with no jsdom here,
+and jsdom does no layout — every height it reports is zero. There is no
+zero-dependency way to measure a rendered page, and the alternative was leaving a
+real, invisible bug ungated (BUGS.md, the 37px of scrollable empty space).
+
+`scripts/check-interaction.mjs` presses the stat pills. That needs real pointer
+events, real focus, real `matchMedia`, and a real animation clock — none of which
+jsdom has either. **It cost nothing to add**, which is the retrospective
+justification for the first gate having paid for the dependency: the second one
+was free, and it caught a dead button that five other gates called green.
 
 **Why `playwright-core` rather than `playwright`.** `playwright-core` ships no
 browser binaries, so `npm install` stays fast and nothing downloads ~150MB into
