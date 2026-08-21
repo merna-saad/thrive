@@ -11,12 +11,28 @@ read-only reference from here on — nothing in it should be edited again.
 
 ```
 thrive/
-├── MIGRATION.md    the map of the Next prototype, and the spec for the rebuild
 ├── README.md       this file
 ├── frontend/       the SvelteKit app
 ├── backend/        the Django API — not started
-└── scripts/        repo-wide checks that belong to neither side
+├── scripts/        repo-wide checks that belong to neither side
+│
+│   ── the docs ──
+├── CODEMAP.md      navigation map. Read before opening files.
+├── CONTEXT.md      the snapshot: what this is, where it has got to, every decision
+├── MIGRATION.md    the map of the Next prototype, and the spec for the rebuild
+├── CONVENTIONS.md  rules the tooling does not enforce, so review must
+├── HANDOFF.md      the diary: session log, newest first, plus open loose ends
+├── CHANGELOG.md    dated summaries, newest first
+├── FINDINGS.md     reusable patterns and lessons
+├── BUGS.md         defects found, fixed, and deliberately recorded-not-fixed
+├── DEPENDENCIES.md every package, and why it is here
+├── TESTING.md      coverage and gaps
+└── setup_info.md   environment, versions, and the gotchas that cost time
 ```
+
+**Start with `CODEMAP.md`, then `CONTEXT.md`.** Between them they answer most
+questions without opening a source file. `CONTEXT.md` is regenerated in full
+every session; everything else is appended to.
 
 ### `MIGRATION.md`
 
