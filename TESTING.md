@@ -1,6 +1,6 @@
 # TESTING
 
-**Last verified:** 2026-08-22 at `0dcca16`. **324 tests, 12 files, all passing.**
+**Last verified:** 2026-08-21 at `f8593b7`. **373 tests, 17 files, all passing.**
 Verified green in all seven timezones of the sweep below.
 
 ```bash
@@ -10,11 +10,16 @@ npm run test:unit  # watch
 npm run check      # svelte-check
 ```
 
-Plus the palette gate, which is a test in everything but name:
+Plus two gates that are tests in everything but name:
 
 ```bash
-python3 scripts/check-contrast.py    # 43 assertions, 3 of them ceilings
+python3 scripts/check-contrast.py    # 58 assertions: 42 pairs, 6 ceilings, 10 structural
+npm run check:layout                 # 12 routes x 3 viewports, in a real browser
 ```
+
+`check-contrast.py` PARSES `app.css` rather than mirroring it, so a token edited
+there is checked there. `check:layout` needs a browser and skips loudly (exit 0)
+when it cannot find one — see the note below.
 
 ---
 
@@ -48,6 +53,11 @@ rather than being appended to the pure-logic ones.
 | Spec | Tests | Covers |
 |---|---|---|
 | `providers.spec.ts` | 47 | The four provider properties (Promise-returning, copies-not-references, deterministic generation, fixtures relative to now), the public surface of `$lib/data` including what must **not** leak, and every store behaviour: booking claims, double-book throws, cancel releases only its own slot, `submitRequest` idempotence, unknown ids returning null |
+| `collapse.spec.ts` | 13 | The fit-on-one-screen rule at its boundaries: exactly-at-the-limit produces no control, one-over holds back one, a zero limit means show-none (the done group), a negative limit clamps rather than slicing from the end, and `visible` is never the caller's array |
+| `homeGroups.spec.ts` | 12 | Home's grouping: the four groups in order with `unknown` first, "this week" held to a week, done pulled out, a student's override outranking the fixture BOTH ways, and an unparseable date landing in its own group rather than vanishing |
+| `taskView.spec.ts` | 14 | `rowPriorityOf` (deadline outranks stated priority; done strips the tint), `taskLabels` (two-label cap, course code over source word, Done replaces rather than joins), and the tone maps — including that `standingTone` never lands on `primary` |
+| `programStrip.spec.ts` | 5 | `abbreviateTerm` on all four seasons, an unexpected shape passed through unchanged, and every phase status having a spoken form |
+| `designSystem.spec.ts` | 4 | The two rules nothing else enforces: no hardcoded colour in a component, no component naming a font, every `.thrive-*` class in the known vocabulary |
 | `format.spec.ts` | 89 | `describeDue` across all four branches with every field asserted; the boundaries rather than the middles (day 0/−1, 1/2, 6/7, exact midnight, ±1s across a rollover); `calendarDaysBetween` and `countdownPhrase` through their public surfaces; both DST transitions; month, year and leap-day spans; both countdown thresholds from both directions; every other exported helper |
 | `calendarStores.spec.ts` | 35 | Calendar prefs store, quick list, labels/urgent/custom events, ignored events, `tickItem` writing back through the attached row, and **the three key spaces staying separate** |
 | `schedule.spec.ts` | 27 | Grid arithmetic, `isVisible`/`filterSchedule`, `nextUpItem`, `groupAgenda`, `groupDayItems`, `weekGrid`, and the collapsed `dayKeyOf` agreeing across both signatures |
@@ -59,6 +69,39 @@ rather than being appended to the pure-logic ones.
 | `calendarPrefs.spec.ts` | 11 | Defaults and migration. Has caught four separate new-field omissions in its life |
 | `calendarItems.spec.ts` | 9 | Custom-event mapping, rejecting malformed and non-existent dates, label/urgent filtering |
 | `toast.spec.ts` | 6 | The single slot, its 3000ms clock, and that it persists nothing |
+
+### The layout gate
+
+`npm run check:layout` drives the built page in a real browser and asserts, for
+every route at three viewports, that the furthest the page can scroll is no
+further than the lowest thing it paints.
+
+**Why it is not a Vitest test.** It needs a real layout engine. Vitest runs in
+Node with no jsdom here by standing decision, and jsdom would not help: it does
+no layout and reports every height as zero. A gate built on a model inherits the
+model's blind spots, which is precisely how this bug survived —
+`documentElement.scrollHeight` reported 1275px while nothing rendered below
+1238px, so any assertion built on it would have been green on a broken page.
+
+**It does not use `scrollHeight`.** It scrolls the page and reads where it landed.
+
+**It skips rather than fails when there is no browser.** `playwright-core` ships
+none. A gate that fails for reasons unrelated to the code gets ignored, and an
+ignored gate is worse than no gate because it looks like coverage. It also finds
+a cached chromium from a different playwright version by hand.
+
+**Verified to fail on the bug it was written for** before being trusted:
+commenting out `contain: paint` gives `/ desktop  renders 1238  scrolls to 1275
+FAIL  37px of empty scroll` and exit 1.
+
+### What is still not tested
+
+**Rendering.** No component is mounted anywhere in the suite. The design-system
+guards and the layout gate scan source and drive a browser respectively; between
+them there is a real gap — a component can render the wrong content with correct
+types, correct classes, and no page-level overflow. Phase 6b's editing behaviour
+is the first thing that will genuinely want a rendered assertion, and it is worth
+deciding then whether jsdom or Playwright covers it.
 
 ### Testing the provider layer
 

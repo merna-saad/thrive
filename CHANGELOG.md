@@ -4,6 +4,79 @@ Dated session summaries, most recent first.
 
 ---
 
+## 2026-08-21 — Phase 6a, Home; the navy repalette; the nav trim
+
+**HEAD:** `f8593b7` · 10 commits, all pushed · **373 tests, 17 files, all green**
+· `svelte-check` 0 errors over 368 files · build clean · contrast **58/58** ·
+layout **36/36**.
+
+> Date note: the previous entry and several `app.css` comments are stamped
+> 2026-08-22, a day ahead of the real date. Commit hashes are the reliable
+> ordering; the dates in this repo are ±1 day.
+
+### What changed
+
+**Design system — repaletted to the campus brand.** Primary moved from forest
+green to **UC San Diego navy `#182b49`** (PMS 2767) with **UC San Diego Yellow
+`#ffcd00`** (PMS 116) as an accent, both official values from
+`brand.ucsd.edu/visual-brand/color`. Gold `#c69214` was measured at 2.79:1 and
+rejected. Yellow is 1.50:1 on card, so it is decoration on light surfaces and a
+real graphic only against navy (9.45:1) — enforced by three new ceilings rather
+than a comment. One reserved colour changed value: `on-track` blue → teal
+`#14706b`, because a blue status chip beside a navy button repeats the collision
+that moved it off green in the first place.
+
+**The two-face type rule, tightened** to "DM Sans for words, JetBrains Mono for
+numbers only", expressed as `.thrive-numeric` and `.thrive-eyebrow`. Mono had
+spread to eyebrows, switchers, chips and tags — a face used for a third of the
+interface is not an accent.
+
+**The contrast gate now parses `app.css`** instead of mirroring it by hand. That
+weakness was load-bearing: 43 assertions were checking the green palette while
+the app rendered navy.
+
+**Navigation trimmed to four**: Home, Calendar, Appointments, Ask THRIVE. The
+other seven plus Settings moved to a `parkedNav` list no surface renders. `/ask`
+added as a placeholder route. The mobile More sheet was removed entirely.
+
+**Phase 6a — Home is built.** `+page.server.ts` awaits six providers in one
+`Promise.all` and calls `new Date()` once; every date is classified server-side.
+Four cards in a 2×2 grid, ten new UI primitives, nine Home components, a
+`messages.ts` module holding every user-facing string.
+
+**The fit-on-one-screen behaviour.** Card bodies take a fixed height on desktop
+and scroll inside, so expanding moves nothing; on mobile the cap comes off and
+cards push down. Cap derived by driving a real browser, not by arithmetic.
+
+**Two density passes.** Home's header block went 375px → 266px with nothing
+removed (strip and greeting merged into one panel, the date onto the greeting's
+line, pills and chips into one row). The top bar went 56px → 48px above `lg` via
+a media override on `--thrive-topbar-height`, with controls stepping 44px touch →
+36px pointer.
+
+**Undated tasks are visible.** An unparseable due date now gets its own group,
+first, headed "Needs a date".
+
+### PRs merged
+
+None. All 10 commits went direct to `main`, solo, no review gate.
+
+### Known issues
+
+- **Home fits a 1238px viewport, not 1052px.** The remaining 186px is card rows,
+  not density. Decided: do NOT cut rows; "show more" exists for that.
+- The three mock stores are still process-global (§9 defect 1, BLOCKING).
+- Provider copies are still shallow.
+- Upcoming Events scrolls at rest by design (`VISIBLE_EVENTS = 4`).
+
+### Next priorities
+
+Stat pill popovers, then **Phase 6b: task editing** (ticking, undo, rename,
+priority, notes, due date, drag to reorder, add task), then the calendar,
+appointments, and the Ask THRIVE page.
+
+---
+
 ## 2026-08-22 — Phase 5, the data layer
 
 **HEAD:** `0dcca16` · 4 commits, all pushed · **324 tests (277 pre-existing,

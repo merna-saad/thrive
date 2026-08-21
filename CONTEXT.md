@@ -1,4 +1,4 @@
-<!-- updated-at: 0893dd2 -->
+<!-- updated-at: f8593b7 -->
 
 # CONTEXT
 
@@ -32,6 +32,13 @@ tree has been left exactly as found and verified untouched after every phase.
 Everything worth knowing about it is inventoried in `MIGRATION.md` (see §3), so
 in practice you read that rather than the old tree.
 
+### A note on dates in this repo
+
+Several entries and `app.css` comments are stamped **2026-08-22**, a day ahead of
+the real date, from a mis-stamp during the repalette. **Commit hashes are the
+reliable ordering.** Dates here are ±1 day; do not use them to reason about
+sequence.
+
 ---
 
 ## 2. Repo layout
@@ -53,7 +60,8 @@ thrive/
 ├── frontend/        the SvelteKit app
 ├── backend/         Django — not started, README only
 └── scripts/
-    └── check-contrast.py    43 WCAG assertions over the palette
+    ├── check-contrast.py    58 assertions over the palette and app.css
+    └── check-layout.mjs     12 routes x 3 viewports, in a real browser
 ```
 
 `MIGRATION.md` is also the **only surviving copy** of the prototype inventory —
@@ -80,15 +88,12 @@ Every phase of the port works from it.
 
 **Three counts in the original brief were wrong and MIGRATION.md corrects
 them:** 25 providers (not 21), 83 tests (not 61), and `todayKey()` lives in
-`buildSchedule.ts` (not `format.ts`). `CODEMAP.md` in the old repo undercounts
-providers the same way, which is probably where "21" came from.
+`buildSchedule.ts` (not `format.ts`).
 
 **Standing rule: where MIGRATION.md and the prototype source disagree, the
-source wins, and it gets reported.** Exercised in Phase 5: §2 described
-`buildSlotsFor`'s availability as deterministic, and it is not — see §12. A
-correction note now sits inline in §2. The doc was written from the same source
-three commits earlier by someone with the same intentions, and it still drifted;
-that is the argument for the rule, not an argument against the doc.
+source wins, and it gets reported.** Exercised twice so far — §2 overstated
+`buildSlotsFor`'s determinism, and §2 omitted that provider copies are shallow.
+§2 now carries a correction note.
 
 ---
 
@@ -107,14 +112,14 @@ fixtures on purpose, and the provider signatures are the only contract Django
 will have to honour.
 
 **No shadcn-svelte and no bits-ui yet.** Deferred deliberately; `MIGRATION.md`
-§4 lists the Radix primitives that will need equivalents and notes that only two
-of the nine vendored shadcn files in the prototype were ever reachable.
+§4 lists the Radix primitives that will need equivalents.
 
-**No dependency has been added since Phase 1.** Phase 5 wanted `@types/node` for
-one test that reads source text; that was rejected in favour of Vite's
-`import.meta.glob(..., { query: "?raw" })`, which is typed already. Adding a
-dependency to satisfy a convenience is the wrong trade in a repo whose point is
-to stay portable.
+**One dependency added since Phase 1: `playwright-core`** (2026-08-21), for the
+layout gate. There is no zero-dependency way to measure a rendered page, and the
+alternative was leaving a real invisible bug ungated. `@types/node` was rejected
+in Phase 5 because `import.meta.glob(..., { query: "?raw" })` did that job with
+nothing added — the rule is "do not add one where the platform already answers",
+not "never add one". See DEPENDENCIES.md.
 
 ---
 
@@ -123,111 +128,142 @@ to stay portable.
 | Phase | What | State |
 |---|---|---|
 | — | Inventory the prototype → `MIGRATION.md` | done |
-| — | Create the repo | done |
 | 1 | Scaffold + design system | done |
 | 2 | Pure logic + its 83 tests | done |
-| 3a | Test suite for `format.ts` | done |
-| 3a-fix | Input guards on `describeDue` / `formatClockTime` | done |
+| 3a / 3a-fix | `format.ts` suite; input guards on `describeDue` | done |
 | 3b | Browser persistence layer → Svelte 5 runes | done |
 | 4 | App shell, navigation, root layout | done |
-| 5 | **Data layer — 25 providers, fixtures, three stores** | **done** |
-| **next** | **`buildScheduleData()`, then route `load` functions and view models** | **unblocked** |
-| later | Shared primitives (`Button`, `Card`, `Tag`, …) | not started |
-| later | Home dashboard, calendar, task surfaces | not started |
+| 5 | Data layer — 25 providers, fixtures, three stores | done |
+| — | Repalette to campus brand; tighten the two-face type rule | done |
+| — | Trim navigation to four destinations | done |
+| 6a | **Home — the page, four cards, fit-on-one-screen** | **done** |
+| **next** | **Stat pill popovers** (specified, §17) | not started |
+| then | **6b — task editing** | not started |
+| then | The calendar (15 components, largest surface) | not started |
+| then | Appointments | not started |
+| then | The Ask THRIVE page | not started |
 | later | Floating widgets, behind `FEATURES` | not started |
 
-**324 tests, 12 spec files, all passing.** `svelte-check` clean over 318 files.
-Build clean. Contrast gate 43/43. 19 commits, all pushed.
+**373 tests, 17 spec files, all passing**, green in all seven timezones of the
+sweep. `svelte-check` clean over 368 files. Build clean. Contrast **58/58**.
+Layout **36/36**. 30 commits, all pushed.
 
-Roughly 11,611 lines under `frontend/src` — 7,551 source, 4,060 test.
-
-**The data layer is ahead of the UI by design, and that has a cost:** 25
-providers exist and no route reads more than `getStudent()`. The only evidence
-any of it works is the test suite. Nothing has been seen on a screen.
+**115 files under `frontend/src`** — ~15,453 lines, 10,802 source / 4,651 test.
 
 ---
 
 ## 6. The design system
 
 `frontend/src/app.css` is the single source of truth. **Never hardcode a colour,
-size, radius, or duration in a component.** This is the repo's standing rule and
-it has held through five phases.
+size, radius, or duration in a component.** `designSystem.spec.ts` fails the
+build on a hex or a font name in markup.
 
-Three layers, all ported: raw `--thrive-*` tokens → shadcn semantic vars
-remapped onto them → `@theme inline` exposing both as Tailwind utilities.
-Layer 2 stays even though shadcn is deferred, because the `@layer base` `body`
-rule resolves through `--background` / `--foreground`.
+Three layers: raw `--thrive-*` tokens → shadcn semantic vars remapped onto them →
+`@theme inline` exposing both as Tailwind utilities.
 
-**Direction: soft cream, hairline, mono-accent** (adopted 2026-08-15, a
-deliberate reversal of the 08-12 bordered direction). Structure comes from
-whitespace, type hierarchy, and a row that fills on hover — not borders.
+**Direction: soft cream, hairline, Rady navy with a yellow accent.**
 
-### The three rules that matter most
+### The palette is the campus brand
 
-1. **A 1px decorative hairline and a 1.5px control boundary are different
-   things, carried by different tokens, and must never collapse.** Hairlines
-   mean nothing — if removing one makes a layout ambiguous, the layout is wrong.
-   Control boundaries (checkbox, radio, input, select) owe 3:1 under WCAG 1.4.11
-   because the boundary is the only thing marking where the control is. Getting
-   this wrong is silent: the page looks fine and the guarantee is gone.
-   - `border-line` → the hairline, `#e6e3dc`, 1.22:1
-   - `border-line-strong` → the control-boundary **colour only**; the 1.5px
-     width comes from `--thrive-control-stroke` and the alias does not bring it
-   - only `.thrive-checkbox` and `--input` consume the 1.5px stroke
-2. **Weight is not in the type scale.** Set it at the call site or you get 400.
-   Only 400/500/700 load, so `font-semibold` (600) synthesises — **never use
-   it**. Verified 0 occurrences.
-3. **Light-only, no shadows.** A white card on cream with a hairline is the
-   entire elevation system. `dark:` is pinned to `.dark` which nothing applies.
+Official values from `brand.ucsd.edu/visual-brand/color`, not approximations:
 
-### Reserved colours — meaning enforced by convention
+| Token | Value | Notes |
+|---|---|---|
+| `primary` | `#182b49` | **UC San Diego Navy, PMS 2767.** 14.18:1 on card |
+| `primary-hover` / `-active` | `#22395e` / `#101d33` | Hover **lifts**, active **presses** — inverted from the green's ramp, because darkening navy twice heads to black |
+| `yellow` | `#ffcd00` | **UC San Diego Yellow, PMS 116.** Accent only |
+| `primary-soft` | `#e9edf3` | Partial-progress fill |
+| `primary-fill` | `#9dbcdb` | Light fill, 1.97:1 — **cannot hold its own edge, stays ringed** |
+
+**Yellow is constrained by measurement, not taste.** 1.50:1 on card, 1.43:1 on
+cream, 1.31:1 on sunken. WCAG 1.4.11 asks 3:1 of a graphic that carries meaning,
+so on every light surface here yellow is **decoration** and cannot be the only
+thing saying something — the same standing as a hairline. Its one legible home is
+against navy at 9.45:1, which is the campus pairing anyway. Enforced by three
+**ceilings** in the contrast gate: if it ever clears 3:1 someone will promote it
+to an indicator and get away with it.
+
+**Yellow is not a locator.** "You are here" stays `indigo`. Two colours meaning
+"here" is how a reservation dies.
+
+**Gold `#c69214` (PMS 1245) was measured and rejected** at 2.79:1. `watch`
+(`#8f6220`, 5.34:1) already covers a legible warm accent.
+
+### Reserved colours
 
 | Token | Value | Reserved for |
 |---|---|---|
 | `indigo` | `#4c5bd4` | **"You are here" and nothing else** |
 | `urgent` | `#b8462f` | Overdue and genuinely urgent only |
-| `on-track` / `watch` / `needs-help` | `#3d6fb0` / `#8f6220` / `#6a5fb0` | Status only |
+| `on-track` | `#14706b` | Status only. **Teal** — see below |
+| `watch` / `needs-help` | `#8f6220` / `#6a5fb0` | Status only |
 | `civic` / `later` | `#8a5f8f` / `#64748b` | Categorical only, never status |
 
-Action accent is forest green `#3f6b4f` (6.13:1 on white — safe for text *and*
-fills). Surfaces: `bg` `#faf9f5` cream, `surface` `#fff`, `sunken` `#f1efea`
-(which is also the row hover fill and the de-emphasis fill). Ink: `ink`
-`#17181c`, `body` `#3a3b42`, `muted` `#6b6c72`, `faint` `#85868c` — **only the
-first three may carry text.**
+**`on-track` is the only reserved colour whose value has changed.** It moved off
+green on 08-15 because green had become "an action you can take" and a green chip
+beside a green button read as one signal. A blue chip beside a **navy** button is
+that same collision, so it moved again, to teal. 5.90:1 on card, 2.40:1 against
+navy — far enough apart to be a different statement rather than a lighter navy.
 
-Soft tints are all `color-mix(in oklab, base N%, white)` so they cannot drift
-from their base hue.
+**`indigo` was considered and kept.** It separates from navy on lightness (5.59
+vs 14.18) and saturation at once, and it never takes the same form — navy is a
+solid fill with white on it, indigo is a marker or a word.
 
-Type scale 12/13/14/**16 body**/18/22/27/34/**40** as `text-3xs`…`text-3xl`,
-tracking on the top three steps only. Radii 4/6/8/10/**16**. Motion
-120/160/260ms, `ease-standard` decelerates and never overshoots, `ease-pop` is
-the single sanctioned overshoot and only for the checkbox tick. Below `40rem`
-the **root** goes to 106.25%, scaling type, spacing and the shell's rem heights
-together — one rule, delete it to revert.
+### Surfaces, ink, lines
 
-### Dropped as dead
+Surfaces `bg #faf9f5` cream / `surface #fff` / `sunken #f1efea` (also the row
+hover fill). Ink `ink #17181c`, `body #3a3b42`, `muted #6b6c72`,
+`faint #85868c` — **only the first three may carry text**, and `faint` is held
+below 4.5:1 by a ceiling so words placed in it fail a check.
 
-`--thrive-shadow-card`, `--thrive-shadow-lifted`, and
-`.thrive-priority-label` — all three had **zero** call sites in the prototype
-despite a CSS comment claiming six. Commented in place in `app.css` with the
-reason.
+**A 1px decorative hairline and a 1.5px control boundary are different things,
+carried by different tokens, and must never collapse.** Control boundaries owe
+3:1 under WCAG 1.4.11 because the boundary is the only thing marking where the
+control is. Only `.thrive-checkbox` and `--input` consume the 1.5px stroke.
 
-### The palette's regression test
+### Type: two faces, and the rule is tight now
 
-`scripts/check-contrast.py` — 43 assertions, no dependencies, must be updated in
-the same commit as any token change. **Three are ceilings**, asserting `faint`
-stays *below* 4.5:1, so putting words in a decorative colour fails a check
-rather than quietly shipping. Currently **43/43**.
+**DM Sans for everything. JetBrains Mono for NUMBERS ONLY.**
 
-### Fonts
+The old rule ended "…and any label that is a system value", and almost any label
+can be argued into that, so mono spread to eyebrows, view switchers, chips,
+stream names and tags. A face used for a third of the interface is not an accent,
+it is a second body font.
 
-Self-hosted through `@fontsource`, latin subset, `font-display: swap`, weights
-pinned: DM Sans 400/500/700, JetBrains Mono 400/500. **No Google Fonts link.**
-Mono marks machine truth — numerals, counts, IDs, compact dates, eyebrows.
-**Prose never goes in mono.**
+- **Mono keeps:** clock times, counts, unit totals, percentages, fractions, IDs —
+  values a person *scans or compares*, where digits lining up is the point.
+- **Mono loses:** anything made of words. A date in prose is words and takes DM
+  Sans; the time inside it is a value and stays mono.
+- **The test:** would you ever want this to line up in a column with the thing
+  above it? Column → mono. Sentence → sans.
 
-`/swatch` renders every token, type step, border weight and both faces on one
-page. Throwaway; delete before Release 1.
+Expressed as two classes so a component asks for a **treatment**, not a font:
+`.thrive-numeric` (mono + tabular figures together) and `.thrive-eyebrow` (size,
+case, tracking, weight for a small label). A component that writes `font-mono`
+fails `designSystem.spec.ts`.
+
+**Weight is not in the type scale.** Set it at the call site or you get 400. Only
+400/500/700 load, so `font-semibold` (600) synthesises — never use it.
+
+Type scale 12/13/14/**16 body**/18/22/27/34/**40**, tracking on the top three
+steps only plus `.thrive-eyebrow`. Radii 4/6/8/10/**16**. Motion 120/160/260ms.
+Light-only, no shadows. Below `40rem` the **root** goes to 106.25%.
+
+### The one responsive token
+
+`--thrive-topbar-height` is **56px on mobile, 48px above `lg`**, overridden in a
+media query on the raw token rather than by a class. `SideRail` draws its brand
+band at `h-topbar`, so the rail's edge and the bar's edge continue one line — one
+token means they cannot fall out of step at the breakpoint. `@theme inline` is
+what makes it work: the utility inlines the `var()` expression instead of
+resolving it once.
+
+### `/swatch`
+
+Renders every token, both border weights, the brand values with their PMS
+numbers, the yellow constraint shown legible-on-navy beside decorative-on-cream,
+and the two-face rule as a table of worked pairs. Throwaway; delete before
+Release 1.
 
 ---
 
@@ -238,119 +274,75 @@ the server inside `load` functions; components receive pre-formatted strings.
 
 Full statement in `CONVENTIONS.md`. The short version:
 
-- Read the clock in a `load` function, pass down a `DueDescriptor` or a
-  `*View` model, never an ISO string a component has to interpret.
+- Read the clock in a `load` function. **Once.** `+page.server.ts` for Home calls
+  `new Date()` a single time and every classification measures against it — two
+  calls are two answers, and a task classified against 11:59:59 while the next
+  line reads 12:00:00 is somehow both today and overdue.
 - **`describeDue(iso, now)` stays pure and keeps its `now` parameter.** That
-  parameter is not a convenience or a test seam — it is what makes the narrowed
-  exception possible.
+  parameter is what makes the narrowed exception possible.
 - **The narrowed exception:** anything the student can edit gets `nowISO` as a
   prop and re-runs the pure `describeDue` against it. The server still decides
-  what "now" is; only the recomputation moved. The client never calls
-  `new Date()` to ask what day it is.
-- **Two sanctioned client clock reads, both documented at their definition:**
+  what "now" is; only the recomputation moved.
+- **`dayKeyOf(value: Date | string)`** is the only place a local day key is built.
+- **Two sanctioned client clock reads**, both documented at their definition:
   `nowMinutes()` in `calendarSources.ts`, and `matchesWide()` in the
-  floating-panel geometry (a `matchMedia` read, same hydration shape).
-- **`dayKeyOf(value: Date | string)`** is the only place a local day key is
-  built. Never `toISOString().slice(0,10)`, which shifts an evening item onto
-  the next day anywhere behind UTC.
+  floating-panel geometry.
 
-**Nothing enforces this any more, and that is the point of writing it down.** In
-Next, the `"use client"` boundary enforced it at compile time — a server-only
-module could not be imported into a client component and the build failed.
-SvelteKit has no such wall. A component can `import { describeDue }` and call it
-with no `now`; the default parameter is `new Date()`, so it compiles, runs,
-renders something plausible, and is wrong in a way no test and no type catches.
-**Review is the enforcement.** `CONVENTIONS.md` lists what to grep a diff for.
+**Nothing enforces this, and that is the point of writing it down.** In Next the
+`"use client"` boundary enforced it at compile time. SvelteKit has no such wall:
+a component can `import { describeDue }` and call it with no `now`, and the
+default parameter is `new Date()`, so it compiles, renders something plausible,
+and is wrong in another timezone. **Review is the enforcement.**
 
 ### The clock reads inside the data layer
 
-Three, all deliberate, all behind the provider boundary — which today means they
-happen in a server `load`, exactly where the rule wants them:
-
-- **`getEvents()`** filters on `Date.now()` to drop finished events. Kept behind
-  the boundary on purpose. When Django lands this becomes a query and the filter
-  moves into the database — still server-side, still one answer to "what time is
-  it".
-- **`mock/relative-dates.ts`** is the clock every fixture reads, and it runs
-  **when a provider is called**, not at module load. That is what stops a long
-  dev session showing a demo where everything is overdue.
-- **`buildSlotsFor()`** reads the clock to mark a slot that has already passed
-  as unbookable. This is the one that makes it only *conditionally*
-  deterministic — see §12.
+Three, all behind the provider boundary, which today means a server `load`:
+`getEvents()` filters on `Date.now()`; `mock/relative-dates.ts` runs when a
+provider is called, not at module load; `buildSlotsFor()` reads the clock for its
+past-slot check, which is what makes it only *conditionally* deterministic.
 
 ### `describeDue` has four states, not three
 
-Changed in Phase 3a-fix. `DueDescriptor` is a **discriminated union**:
+`DueDescriptor` is a **discriminated union**: `overdue | today | upcoming` plus
+`unknown` for a date that will not parse, which carries `days: null` rather than
+`NaN`. **`NaN` is a `number` to the type system** and flows silently into
+`a.days - b.days`; `null` does not typecheck there, so a caller must narrow.
 
-```ts
-export type DueUrgency = "overdue" | "today" | "upcoming";   // real deadlines
-export interface KnownDueDescriptor   { urgency: DueUrgency; days: number; … }
-export interface UnknownDueDescriptor { urgency: "unknown";  days: null;   … }
-```
+**`unknown` is deliberately NOT in `DueUrgency`** — "how urgent is it" has no
+answer for a date that does not exist.
 
-An unparseable date returns `{ urgency: "unknown", label: "No date",
-countdown: "", days: null, fullLabel: "Due date unavailable" }`.
-
-`days: null` rather than `NaN` is the load-bearing part: **`NaN` is a `number`
-to the type system**, so it flows silently into `a.days - b.days` and
-`days <= WEEK`; `null` does not typecheck there, so a caller must narrow first.
-
-`"unknown"` is deliberately **not** in `DueUrgency` — "how urgent is it" has no
-answer for a date that does not exist, and folding it in would make every
-`Record<DueUrgency, TagTone>` map owe a colour to a non-status.
-
-**Known consequence:** a row with `urgency: "unknown"` matches no group in a
-surface that groups by `overdue | today | upcoming`. That is accepted because
-the union makes it a *compile error* rather than a silent drop — whoever ports
-`taskBoard.ts` cannot build without deciding where it goes. **Open decision.**
+**Where an unknown row goes is now decided** (2026-08-21): its own group, **first
+in the list**, headed "Needs a date". Loud is correct, invisible is not — a
+deadline that silently does not exist is worse than one shouting for attention,
+and it is the only group a student can actually fix. It is not tinted `urgent`:
+that tone is reserved for real deadlines, and a missing date is a data problem.
+Being first also means it survives the collapse to four rows on a capped card,
+which is what makes it real rather than technically present.
 
 ---
 
 ## 8. The persistence layer
 
 `frontend/src/lib/overrideStore.svelte.ts` is the one mechanism. 14
-`localStorage` keys sit on it, plus `taskNotes` (its own store) and `toast`
-(not persisted).
+`localStorage` keys sit on it, plus `taskNotes` and `toast`.
 
-**This is browser state, and it is a different thing from the three server-side
-mock stores in §12.** Same word, opposite properties: this one is per-student
-and survives a restart; those are shared by everyone and do not.
+**This is browser state, and a different thing from the three server-side mock
+stores in §12.** Same word, opposite properties: this one is per-student and
+survives a restart; those are shared by everyone and do not.
 
 ### Four properties that must survive
 
 1. **Overrides keyed by id, never the whole truth.** `undefined` means "never
    touched, use the source value". A bare set of done-ids cannot express *"I
-   unticked something that ships as done"* — it would silently re-tick on
-   reload.
-2. **Empty on the server, real after mount.** Nothing here may be read during
-   server rendering.
-3. **Corrupt input cannot take the page down.** Reject anything that is not a
-   non-array object; `JSON.parse` and writes both in `try/catch`.
-4. **A write matching the source value forgets the override** rather than
-   storing it. The store only ever holds genuine divergence.
+   unticked something that ships as done"*.
+2. **Empty on the server, real after mount.**
+3. **Corrupt input cannot take the page down.**
+4. **A write matching the source value forgets the override.**
 
-All four are pinned by tests in `overrideStore.spec.ts` and `userEdits.spec.ts`.
-
-### Hydration: strategy A, an explicit call
-
-`hydrateStores()` is called from the root `+layout.svelte` inside `$effect`, and
-**nowhere else**. `$effect` runs after mount and only in the browser, so server
-and first client render both see no overrides and the student's edits land on the
-render after. Same brief un-personalised flash the prototype has.
-
-Rejected: a `browser` guard (already true during first client render, so it
-would populate mid-render and diverge from SSR markup) and a lazy read (same
-defect, implicitly).
-
-**Storage presence, not `$app/environment`, decides browser-vs-server.** No
-`localStorage` *is* the server — and it keeps the whole layer testable in the
-Node environment the suite already uses, with no jsdom.
-
-`hydrateTaskNotes()` is a second call because notes are not an override store
-and so are not in the registry.
-
-**This is the seam for "hide until loaded" later.** A surface that wants to wait
-reads a flag derived from that one call. Do not add a second hydration path.
+All four pinned by tests. **Hydration is one explicit `hydrateStores()`** in the
+root `+layout.svelte` inside `$effect`, and nowhere else. Storage presence, not
+`$app/environment`, decides browser-vs-server — which keeps the whole layer
+testable in Node with no jsdom.
 
 ### Three key spaces, never merge them
 
@@ -360,18 +352,17 @@ reads a flag derived from that one call. Do not add a second hydration path.
 | Calendar item id | `calendarItems.ts` | `asg-12`, `apt-3`, `task-7`, `todo-x` |
 | Raw `Event.id` | `ignoredEvents.ts` | normalised through `eventIdOf()` |
 
-Calendar item id is what lets a student flag an *assignment* urgent or label a
-*booked appointment* — rows they do not own and which have nowhere on the server
-to record it. Merging any two is the exact shape of a bug the ignore store was
-already refactored to avoid. Pinned by a test.
+**Home only ever holds raw `Event.id`s** and passes them through unchanged.
+`eventIdOf()` is for calendar ITEM ids (`evt-evt-3-1`), a different key space
+Home never touches. Calling it there would be normalising something already
+normal — which is how a second normaliser gets added, and §9 defect 12 is what
+happens next.
 
 ### `.svelte.ts` is not decoration
 
-Svelte only processes runes in `.svelte.js` / `.svelte.ts`. A plain `.ts` file
-containing `$state` is **silently inert** — the worst failure mode available.
-Four files carry the suffix: `overrideStore`, `userEdits`, `taskNotes`, `toast`.
-Everything else declares no runes and stays `.ts`, reading reactive state from
-those modules, which works from anywhere.
+Svelte only processes runes in `.svelte.js` / `.svelte.ts`. A plain `.ts` with
+`$state` is **silently inert**. Five files carry the suffix: `overrideStore`,
+`userEdits`, `taskNotes`, `toast`, `ignoreUndo`.
 
 ---
 
@@ -382,19 +373,21 @@ nobody reintroduces them thinking they were an oversight.
 
 | Dropped | Why it existed in React |
 |---|---|
-| `useCalendarPrefs`'s `useMemo` | `normalisePrefs` built a fresh object from a stable snapshot, so every render busted every downstream memo — including the schedule filter over 42 grid cells |
-| The frozen shared `EMPTY` | `getServerSnapshot()` had to return the *same object* across renders |
-| `useMergedSchedule`'s 9-dependency `useMemo` | Hooks cannot know their own dependencies; the array drifts from the body. Now a plain function the caller wraps in `$derived` |
-| `useCallback` on `isDone` / `resolve` | Referential stability so callers could memoize on them |
-| `useEffect` timer cleanup | Clearing a timer on unmount. A module singleton has no unmount |
-| The `use*` prefix on every reader | Signalled "hook: call-order rules, render-phase only". None applies |
-| `useFloatingGeometry`'s ref-passed-into-a-hook | A React Compiler render-phase rule. `bind:this` removes it |
-| `useState` + `useRef` for the More sheet | Now `$state` + `bind:this` + an `escapeKey` action |
+| `useCalendarPrefs`'s `useMemo` | A fresh object per render busted every downstream memo |
+| The frozen shared `EMPTY` | `getServerSnapshot()` had to return the *same object* |
+| `useMergedSchedule`'s 9-dependency `useMemo` | Hooks cannot know their own dependencies |
+| `useCallback` on `isDone` / `resolve` | Referential stability for memoizing callers |
+| `useEffect` timer cleanup | A module singleton has no unmount |
+| The `use*` prefix on every reader | Signalled call-order rules that do not apply |
+| `useFloatingGeometry`'s ref-into-a-hook | A React Compiler render-phase rule; `bind:this` removes it |
+| `useState` + `useRef` for the More sheet | Moot — the sheet is gone (§11) |
 
 **One collapse was requested and made:** `localDayKey(iso)` folded into
-`dayKeyOf(value: Date | string)`. Both built the same `YYYY-MM-DD` from the same
-local parts and differed only in what they accepted; two functions computing one
-string is how they eventually disagree about a timezone edge.
+`dayKeyOf(value: Date | string)`.
+
+**Hooks that became module singletons:** `useTaskToggle` → `taskToggle`,
+`useIgnoreEvents` → `ignoreEvents`. One undo slot app-wide rather than one per
+calling component, which matches what `toast` already did deliberately.
 
 ---
 
@@ -403,332 +396,333 @@ string is how they eventually disagree about a timezone edge.
 `frontend/src/lib/components/shell/` — `AppShell`, `SideRail`, `TopBar`,
 `BottomNav`.
 
-- **`nav.ts` is the single list** driving the desktop rail, the mobile bar, and
-  every stub page. Add a route there, not in three places. `PagePlaceholder`
-  looks its own `href` up in those lists and **throws** when there is no match,
-  which is what makes it a guarantee rather than an intention. Verified: an
-  unknown href returns 500 with that message.
-- **Icons are component references held as values.** Rendered as
-  `{@const Icon = item.icon}` then `<Icon />` — chosen once, used in all three
-  nav surfaces. Not `<svelte:component>`, deprecated in Svelte 5.
-- `SectionHeading`'s polymorphic `as` prop is `<svelte:element this={as}>`,
-  kept to `h2 | h3` so it cannot quietly leave the document outline.
-- **`RailLink` / `BarLink` became snippets**, not components — they existed in
-  the prototype only because two lists must not drift.
-- **Accessibility:** skip link, `main` landmark with `tabindex="-1"`, exactly
-  one `nav` landmark in the a11y tree at a time (the other is `display:none`),
-  `aria-current="page"` on the active item, `aria-expanded`/`aria-controls` on
-  More, and focus returning to the More trigger on **both** Escape and a scrim
-  tap. The prototype only returned focus on Escape.
-- **`escapeKey` is a Svelte action**, not a translated `useEffect`. Attaching
-  the listener to the element makes its lifetime the element's, so it exists
-  exactly while the thing it dismisses does — no open-state re-check, no
-  dependency array.
+- **`nav.ts` is the single source** for the rail and the bottom bar.
+  `PagePlaceholder` looks its own `href` up and **throws** when there is no
+  match, which is what makes that a guarantee rather than an intention.
+- **The top bar is 48px above `lg`, 56px below.** The CONTROLS change size — 44px
+  touch, 36px pointer — and the bar's height follows from them. WCAG 2.5.5 asks
+  44px of a touch target and 2.5.8 asks 24px of a pointer one.
+- **`--thrive-page-gutter-bottom`** is the page's bottom breathing room, used
+  twice: on mobile added to the bottom nav's height (that bar is fixed *over* the
+  page), and above `lg` it is the whole padding.
+- **Icons are component references held as values**, rendered via
+  `{@const Icon = item.icon}`. Not `<svelte:component>`, deprecated in Svelte 5.
+- **Accessibility:** skip link, `main` landmark with `tabindex="-1"`, exactly one
+  `nav` landmark in the a11y tree at a time, `aria-current="page"` on the active
+  item.
+- **`escapeKey` is a Svelte action**, not a translated `useEffect`. **It currently
+  has no caller** — its only one was the More sheet. Kept deliberately: the
+  floating panels and the Ask THRIVE page will want it.
 
 ### Feature flags
 
-`frontend/src/lib/features.ts` — `FEATURES.floatingTodo` and
-`FEATURES.floatingAssistant`, both `false`. Mount points exist in `AppShell`,
-gated. Comment reads: *hidden for now to simplify the UI, flip to true to bring
-back.* Their internals are a later phase.
+`FEATURES.floatingTodo` and `FEATURES.floatingAssistant`, both `false`. Mount
+points exist in `AppShell`, gated. **Left untouched when `/ask` became a route** —
+two Ask THRIVE surfaces is a later decision, not an accident to create now.
 
 ---
 
-## 11. Routes
+## 11. Routes and navigation
 
-13 routes. `/` and `/calendar` render a heading; the other 11 are
-`PagePlaceholder`, plus `/swatch`.
+13 routes. **Four are in the navigation:** Home, Calendar, Appointments, Ask
+THRIVE — in that order.
 
-`/`, `/calendar`, `/classes`, `/syllabi`, `/assignments`, `/degree`, `/events`,
-`/career`, `/appointments`, `/resources`, `/settings`, `/swatch`.
+Nine of the previous eleven destinations were placeholders, and a nav that is
+four-fifths stubs reads as broken rather than unfinished.
 
-`/assignments` and `/appointments` were stubbed although not on the Phase 4
-list: both are nav destinations and `/assignments` is one of the four **fixed**
-slots in the mobile bar, so leaving them out would have put a 404 behind a
-permanent tab.
+### Parked, not deleted
 
-`/degree` and `/career` get the placeholder body only. Both are *partial* in the
-prototype — degree renders a real `ProgramTimeline`, career a link card with
-live counts. **Both were blocked on providers; as of Phase 5 they are not.**
+`/classes`, `/syllabi`, `/assignments`, `/degree`, `/events`, `/career`,
+`/resources` and **`/settings`** live in `parkedNav` — a list **no surface
+renders**. The routes, files, icons and descriptions are all intact and reachable
+by URL; the only thing removed is the way in. Bringing one back is moving it
+between two arrays.
 
-`+layout.server.ts` is the only route file that reads a provider. It calls
-`getStudent()` and nothing else. When Phase 5 replaced the stub with the real
-provider, **this file changed one import path and nothing else** — which is the
-provider boundary doing the job it exists for, and the same non-event the switch
-to Django should be.
+**Why a separate list rather than a `hidden` flag:** a flag needs every surface to
+remember to filter on it, and the failure mode of forgetting is a parked item
+silently reappearing in one place. With a separate list the surfaces render
+`primaryNav` and *cannot* render these without importing something new.
 
-**Titles** go through `pageTitle()` in `lib/title.ts`, reproducing Next's
-`"%s · THRIVE"` template, which has no declarative SvelteKit equivalent.
-`themeColor` `#faf9f5` and `colorScheme: light` are meta tags in `app.html`.
+**`allNav`** is the lookup list — visible plus parked. `PagePlaceholder` resolves
+against it, so parking a route does not start it throwing. Verified: all 13 routes
+return 200; a route whose href is in no list returns 500 with the right message.
+
+**Settings is parked and stays parked** (confirmed 2026-08-21): nothing to
+configure yet. It was also the reason the mobile **More sheet** could go — with
+four destinations there is no overflow, and an overflow button that opens nothing
+is worse than no button. Its scrim, open state, `aria-expanded`/`aria-controls`
+wiring and focus-return went with it.
+
+**`/ask`** exists as a `PagePlaceholder` route with its nav entry in place. The
+real page is §17.
+
+`pageTitle()` in `lib/title.ts` reproduces Next's `"%s · THRIVE"` template.
 
 ---
 
 ## 12. The data layer
 
-`frontend/src/lib/data/` — 19 files, ~3,551 lines, landed in Phase 5. **This is
-the seam.** Read `CODEMAP.md`'s data-layer section for the file map; this section
-is the why.
+`frontend/src/lib/data/` — 19 files, ~3,551 lines. **This is the seam.**
 
-### What it is, and what it deliberately is not
-
-**It was built against the same mock fixtures the Next app uses.** There is no
-HTTP client, no API layer, and no Django integration anywhere in it. Django
-replaces the provider *bodies* much later; the signatures are the contract and
-they do not move.
-
-This needed saying because the Phase 4 handoff said Phase 5 was "the 25
-providers **against Django**", which was wrong — Django does not exist and is
-not being written here. Building to that line would have meant inventing a
-contract against a backend nobody has designed, with every guess load-bearing by
-the time it was discovered.
+**Built against the same mock fixtures the Next app uses.** No HTTP client, no
+API layer, no Django integration. Django replaces the provider *bodies* later;
+the signatures are the contract and do not move.
 
 ### The public surface
 
-`data/index.ts` re-exports exactly three modules and nothing else:
+`data/index.ts` re-exports exactly three modules: `types`, `providers` (25
+functions + `SlotUnavailableError`), and `labels`. **`mock/` and `latency` are
+private** — a component that needs something from either has found a gap in the
+provider surface. Widen the surface, do not reach through it.
 
-| Module | Contents |
-|---|---|
-| `types` | Every domain type. One file, on purpose. Dates are ISO **strings**, never `Date` |
-| `providers` | **25 functions + `SlotUnavailableError`** |
-| `labels` | `requestTypeLabel`, `requestTypeHelp` — labels for a closed union, not mock data |
+### Four properties, each pinned by a test
 
-**`mock/` and `latency.ts` are private.** Everything under `mock/` is what Django
-deletes. A component that needs something from either has found a gap in the
-provider surface — **widen the surface, do not reach through it.**
-
-**Import from `$lib/data`, never deeper.** The prototype violated this exactly
-once and it is fixed here, not carried (see below).
-
-### The 25 providers
-
-Grouped as `MIGRATION.md` §2 groups them: 5 pure fixture reads, 4 reads with
-shaping, 7 store-backed reads, 2 composite reads, 7 mutations. Signatures were
-verified **identical to the prototype by mechanical diff**, not by eye.
-
-Four properties hold across all of them, and each is pinned by a test:
-
-1. **Every provider returns a `Promise`.** This is the entire point of the layer.
-   Callers already `await`, so replacing a body with a Django call touches no
-   caller.
-2. **Every provider returns copies, never a stored object.** A caller holding a
-   result must not see it change underneath them. *The copies are shallow*, as
-   they were in the prototype — see the open item below.
-3. **Generation is deterministic. Never `Math.random()`,** which would hand back
-   a different calendar on every render and desynchronise server from client.
-   Slot availability and the events calendar are hashed. A test scans the whole
-   directory to keep it that way.
-4. **Fixtures are dated relative to now,** so a demo never looks stale.
-
-Three providers are **dead code, ported anyway**: `getSyllabi()`,
-`getResources()` and `getCurrentResume()` are called from no route. The first two
-back stub routes; the third is superseded by
-`getResumeVersions().find(isCurrent)`.
+1. **Every provider returns a `Promise`.** The entire point of the layer.
+2. **Every provider returns copies.** *The copies are shallow*, as in the
+   prototype — see §17.
+3. **Deterministic generation. Never `Math.random()`**, which desynchronises
+   server from client. A test scans the whole directory.
+4. **Fixtures dated relative to now**, so a demo never looks stale.
 
 ### The three module-level stores
 
-`mock/appointments.ts`, `mock/requests.ts`, `mock/resume.ts`. Plain `const`
-objects at module scope.
-
-| Store | Seeding | Id generator |
-|---|---|---|
-| appointments + claimed slots | starts **empty** | `apt-001` |
-| requests + `tssConnected` | lazy `seedOnce` — one approved `req-000` | `req-001` |
-| resume versions | lazy — three versions, `res-003` current | `res-004` (`nextId` starts at **4**) |
-
-**Seeding is lazy on purpose.** The dates are relative to "now" and module load
-may be hours earlier.
+`mock/appointments.ts`, `mock/requests.ts`, `mock/resume.ts`. Lazy seeding,
+because their dates are relative to "now" and module load may be hours earlier.
 
 **The id generators count independently of the seeds.** They work only because
-somebody numbered the request seed `req-000` and set the resume counter to 4 by
-hand, and nothing enforces it. Seed a `req-001` without moving the counter and
-the student's first request silently shares its id, after which `submitRequest`
-flips whichever record `find()` reaches first — no error, no log. That hazard is
-now commented **at the generator** rather than only in a migration doc (a hazard
-documented somewhere else is documented nowhere), and a test pins `req-001` so it
-fails the moment someone adds a seed.
-
-### `buildSlotsFor` is only conditionally deterministic
-
-`MIGRATION.md` §2 called both its ids and its availability deterministic. **The
-ids are, and so is the `isTaken` hash. Availability is not:** the field is
-`available: !inThePast && !isTaken(...)`, and `inThePast` reads the clock. So the
-output is fully determined by `advisorId` **only at a fixed instant** — today's
-slots drop out one by one as the day passes, and the whole five-day window shifts
-at midnight. Freeze the clock to assert on it. §2 now carries a correction note.
-
-### The 120ms latency is not decoration
-
-`data/latency.ts`. Every provider resolves through `resolveAfterDelay`, and the
-delay exists so that **a route which forgot its loading state looks wrong in
-development instead of only in production**. With an instantly-resolving promise
-that mistake is invisible until it ships.
-
-`setMockLatencyMs(0)` removes it — one number, one place. Tests set 0. The
-compounding matters: `getProgramTimeline`, `getRequestPrefill`,
-`bookAppointment`, `createRequest`, `submitRequest` and `generateNewVersion`
-await other providers internally, so their real latency is a multiple.
-
-It goes away when the real network supplies the delay.
+somebody numbered the request seed `req-000` by hand and set the resume counter to
+4. Seed a `req-001` without moving the counter and the student's first request
+silently shares its id. Commented at the generator, and pinned by a test.
 
 ### Four §9 defects built correctly rather than reproduced
 
-| # | Prototype defect | What this repo does |
+| # | Defect | What this repo does |
 |---|---|---|
-| **8** | `cancelAppointment` released a slot by scanning for the first claimed slot whose `start` matched | **`Appointment.slotId`**, set at booking, deleted at cancellation. One exact delete |
-| **11** | `degree/requests/page.tsx:8` imported a label map from `lib/data/mock/requests` — the only import in the tree reaching past the boundary | Both maps moved to `data/labels.ts`, on the public side |
-| **15** | `getStudent`, `getDegreeProgress`, `getAdvisors`, `getResources` returned fixtures **by reference** while the file's own comment promised otherwise | All 25 return copies. The contract is uniform rather than lucky |
-| **9** | `DegreeProgress.expectedCompletion` hardcoded `"Spring 2027"` while `buildProgramTimeline` derived **Fall 2027** for the same student | Field dropped from the type and the fixture. Read `ProgramTimeline.expectedFinishTerm` |
-
-**On defect 8 specifically:** the old scan was correct with one advisor per
-service and distinct times — which is exactly what the fixtures give it, so
-nothing ever revealed it. It frees the wrong slot the moment an advisor publishes
-two simultaneous slots. `slotId` was chosen over a side map in the store because
-it is the shape the Django model has anyway; verified nothing in the tree
-constructs an `Appointment`, so no existing test broke.
-
-**On defect 9:** a stored field duplicating a derived one is a bug with a delay
-on it. It cannot be kept in step and it stays quiet until someone renders it.
+| 8 | `cancelAppointment` released by matching start time | `Appointment.slotId`; one exact delete |
+| 11 | A page imported a label map from `lib/data/mock/requests` | Both maps in `data/labels.ts`, public side |
+| 15 | Four providers returned fixtures by reference | All 25 return copies |
+| 9 | `expectedCompletion` hardcoded vs a derived finish term | Field dropped; read `expectedFinishTerm` |
 
 ### The fixture student
 
 `mock/student.ts`. Merna · MSBA · **17 month** track · goal "Data Scientist" ·
-Fall 2026 · `programStart: 2026-08-03` · standing `onTrack`.
+Fall 2026 · `programStart: 2026-08-03` · standing `onTrack`. `programStart` is a
+**start** date; the finish term and the percentage are both derived.
 
-`programStart` is a **start** date. The finish term and the progress percentage
-are both *derived* from it plus `track` by `buildProgramTimeline`; neither is
-stored anywhere, and switching track moves both with no other edit.
-
-The advisors: **Amber Hanna** (Graduate Student Advisor, Rady 2S111) and
-**Nelitza Morales** (Career Coach, CMC / Zoom).
-
-### Testing it
-
-`providers.spec.ts`, 47 tests. It asserts **properties, not fixture contents** —
-the fixtures are demo data with a known expiry date, so asserting on them would
-be writing tests that expire with them.
-
-- **Isolation comes from the test side.** `vi.resetModules()` + `await import()`
-  per test. A `resetStores()` export would have been more convenient and would
-  have put a test-only function in the production surface, where it would still
-  be sitting long after Django made the stores irrelevant.
-- **Freeze `Date` only** — `vi.useFakeTimers({ toFake: ["Date"] })`. Faking all
-  timers deadlocks every provider, because they resolve through `setTimeout`.
-- **Green in all seven timezones** of the `TESTING.md` sweep, UTC+14 to UTC−11.
-  This phase is entirely date-shaped, so the sweep was not optional.
+Advisors: **Amber Hanna** (Graduate Student Advisor, Rady 2S111) and **Nelitza
+Morales** (Career Coach, CMC / Zoom).
 
 ---
 
-## 13. Standing decisions
+## 13. Home
+
+The one fully-built page, and the only route that reads more than `getStudent()`.
+
+`+page.server.ts` awaits **six providers in one `Promise.all`** and calls
+`new Date()` once. Four cards in a **2×2 grid** at `lg`, one column below it.
+
+**What is deliberately not computed on the server:** the three stat counts. They
+have to see the student's persisted ticks and ignores, which only exist in the
+browser — counting them server-side freezes them at the fixture's answer and lets
+the pills contradict the cards beneath them. What goes down is the classified rows
+and the raw event ids: the data to count, not the count.
+
+### The fit-on-one-screen behaviour
+
+The problem: Home rendered fourteen task rows beside a card showing one class, so
+the tallest card decided the page height and two of the four cards were below the
+fold.
+
+- **Desktop: a FIXED height per card body, scrolling inside.** Fixed, not
+  `max-height` — with a maximum, a short card still *grows* when expanded, moving
+  its grid row and shoving the cards below it down. Fixed means expanding can
+  only ever scroll, so the grid is immovable by construction.
+- **Mobile: no cap at all.** Cards stack and expand normally. A nested scroll
+  region inside a page that already scrolls eats the swipe meant for the page.
+- **The state does not persist.** An expanded card is a momentary intent, not a
+  preference.
+- **`contain: paint`** on the card body — load-bearing, see BUGS.md.
+
+**Cap: `--thrive-card-body-cap: 18.75rem` (300px)**, the tightest value at which
+nothing overflows at rest. Collapsed row COUNTS live in `$lib/cardLayout` because
+JavaScript slices with them: **4** task rows, **2** course cards, **4** class
+rows, and `VISIBLE_EVENTS = 4`.
+
+**Upcoming Events scrolls at rest, on purpose.** Its four rows are load-bearing
+behaviour rather than layout: ignored events are filtered **first** and the slice
+happens **second**, so the next event moves up instead of leaving a gap.
+
+### Tasks is flat when collapsed, grouped when expanded
+
+The one real design decision in 6a, and it came from measuring. The card carried
+~190px of fixed furniture — progress bar, three group headings, Done heading,
+section gaps — before its first row, three and a half rows' worth. At any cap that
+let the grid fit a laptop it showed one task.
+
+So the progress bar moved into the header band (outside the scroll area) and the
+collapsed view shows a flat list of the next four things with no headings. Nothing
+is lost: every row already states its own urgency in its labels. Headings come
+back on expand, where they earn their height.
+
+### Measured heights
+
+Header block **375px → 266px** with nothing removed: strip and greeting merged
+into one panel, the date onto the greeting's line, the pills and chips into one
+wrapping row. Document **1392px → 1238px**.
+
+**Home fits a 1238px viewport whole.** It does not fit 1052px, and it misses by
+186px. That gap is **not** density any more — the header is 194px with every piece
+of content in it. It is card rows, and the decision (2026-08-21) is **do not cut
+them**: two task rows would make the card useless, and "show more" exists for
+exactly that.
+
+### Strings
+
+**`$lib/messages` holds every user-facing string.** English only, no library, no
+locale switching — this is not i18n, it is what makes i18n possible later without
+a rewrite. Nested by surface, and **anything carrying a value is a function**, not
+a template assembled at the call site: `showMore(count)` lets a translation move
+the number, `{count} more` in markup bakes English word order in.
+
+Two entries are split in half — the timeline percentage and the course card's
+"Next:" — because the value is styled differently from the words around it. Both
+say so, and both name the limitation: the value comes first.
+
+**This is a standing rule, not a Home thing.** Every surface extracts its strings
+as it is built, or Mandarin stops being possible.
+
+---
+
+## 14. The gates
+
+| Command | What it proves |
+|---|---|
+| `npm test` | 373 tests. Pure logic and source scans. **Nothing renders.** |
+| `npm run check` | Types agree. **Does NOT prove the page renders** |
+| `npm run build` | It compiles |
+| `python3 scripts/check-contrast.py` | 58 assertions: 42 pairs, 6 ceilings, 10 structural |
+| `npm run check:layout` | 12 routes × 3 viewports in a real browser |
+
+**`check-contrast.py` parses `app.css`** rather than mirroring it. That weakness
+was load-bearing during the repalette: 43 assertions were checking green values
+while the app rendered navy, and it would have reported 43/43 throughout.
+`color-mix()` is deliberately not evaluated and the unresolved tokens are listed.
+
+**`check:layout` asserts the page cannot scroll further than it paints.** It does
+**not** use `documentElement.scrollHeight` — that is the property that reported
+1275px while nothing rendered below 1238px, so building on it would rebuild the
+blind spot. It scrolls the page and reads where it landed. It skips loudly and
+exits 0 when there is no browser, because a gate that cries wolf gets ignored.
+
+**Three properties every gate here has:** it measures the thing rather than a
+model of it; it reads its inputs from the source of truth; and it has been
+**verified to fail** on the bug it was written for.
+
+**`npm run check` is not a render.** `svelte-check` passed 0 errors on a component
+that threw `ReferenceError` on every request — a prop was in the type but not the
+destructuring, and an unknown identifier in a Svelte template is not a type error.
+
+---
+
+## 15. Standing decisions
 
 - **The old repo is read-only.** Verified untouched after every phase.
-- **Django is not being written here, and the port does not anticipate it beyond
-  the provider signatures.** No speculative HTTP client, no invented endpoints.
-- **`@lucide/svelte`, not `lucide-svelte`.** The latter is the legacy package
-  pinned to Svelte 3/4 at v1.0.1; the former peers `svelte: ^5` and tracks the
-  same version line as the prototype's `lucide-react@^1.31.0`.
-- **`cn()` survives** for the `class`-override case only. Svelte 5 handles
-  conditional classes natively but not `tailwind-merge`'s conflict resolution.
-- **Vitest `usages:unit`** — Node environment, no jsdom. Matches the
-  prototype, where all 83 tests were pure logic and rendering was deliberately
-  never tested.
-- **`AppShell` stays its own component** rather than inlined into
-  `+layout.svelte`, so the layout is about data and lifecycle and the shell is
-  about structure.
-- **Probe before asserting.** Test suites are written against observed output
-  from a throwaway probe, not assumed behaviour. It caught real things twice —
-  V8 rejecting a bad month but *rolling* a bad day, and the ignore store's
-  key-space split.
-- **Document defects as tests rather than fixing them out of scope.** Each is
-  named as a defect record with the reason it was not fixed.
-- **Diff a port, do not review it.** A 2,000-line port is the size where reading
-  the diff stops working. Signatures get grepped and compared; bodies get diffed
-  **comments-stripped**, so "did I change something I did not mean to" is a
-  five-line answer instead of a judgement call. Eight of thirteen Phase 5
-  fixture files came out **byte-identical**, which is a stronger claim than any
-  amount of "looks right".
+- **Django is not being written here**, and the port does not anticipate it beyond
+  the provider signatures.
+- **Measure layout in a real browser.** Never reason about pixels. This earned
+  itself three times in one session — see FINDINGS.
+- **`@lucide/svelte`, not `lucide-svelte`** (the latter is pinned to Svelte 3/4).
+- **`cn()` survives** for the `class`-override case only.
+- **Vitest in Node, no jsdom.** Matches the prototype, where rendering was
+  deliberately never tested.
+- **Probe before asserting.** Test suites are written against observed output from
+  a throwaway probe, not assumed behaviour.
+- **Diff a port, do not review it.** Signatures grepped and compared; bodies
+  diffed comments-stripped.
 - **Any test asserting an absence needs a companion assertion that it can still
-  see a presence.** The `Math.random()` scan asserts the stripped corpus still
-  contains both hash functions, so it cannot pass vacuously.
+  see a presence.**
 - **Keep a test's seam on the test's side of the wall** where possible. A
-  test-only export is permanent and outlives its reason.
+  test-only export is permanent.
+- **Extract strings as you build**, not afterwards.
 - **No Claude/Anthropic attribution anywhere** — commits, PRs, file headers.
-  Verified clean across all 19 commits.
+  Verified clean across all 30 commits.
 
 ---
 
-## 14. Voice and copy
+## 16. Voice and copy
 
-Calm, plain, honest about what is simulated. The prototype's own rules, carried
-over:
+Calm, plain, honest about what is simulated.
 
 - Say plainly when something is a prototype or is not wired up. A placeholder
-  that mimics a real answer teaches the student to trust a thing that is not
-  there — which is why `AssistantConversation` has no brain and says so. The
-  same honesty is why `providers.ts` marks the request and resume flows
-  **SIMULATED** in place: `submitRequest` flips a status in memory and stops,
-  nothing reaches TSS, and no human is notified.
-- Empty states are an invitation to act, never "No data". Never a dashed
-  outline.
+  that mimics a real answer teaches the student to trust something that is not
+  there — which is why `AssistantConversation` has no brain and says so, and why
+  `providers.ts` marks the request and resume flows **SIMULATED** in place.
+- Home's Tasks card carries a line saying ticking arrives next, so a disabled
+  checkbox reads as unfinished rather than broken. It goes when 6b lands.
+- Empty states are an invitation to act, never "No data". Never a dashed outline.
 - "Overdue" alone, not "Overdue by 3 days" beside "3 days ago".
-- Counts and timers in mono and tabular, so a row does not reflow as "in 3
-  days" becomes "in 10 days".
-- Comments explain **why**, not what. The prototype's density is the house
-  style and this port matches it.
+- Counts and timers in mono and tabular, so a row does not reflow.
+- Comments explain **why**, not what.
 
 ---
 
-## 15. Open loose ends
+## 17. Open loose ends
 
-Carried into the next session. The live list is at the bottom of `HANDOFF.md`.
+**Queued and specified, not built — the stat pill popovers.**
+Clicking a stat pill opens a popover listing the actual items behind the number:
+the overdue tasks, the tasks due today, the events this week. **Click always
+works; hover also opens it on desktop.** The items are clickable and jump to the
+task or event — **so if the target row is hidden behind "show more", the card
+expands and scrolls to it.** That last requirement is the interesting one: it
+couples the popover to the collapse state, so `collapseList` and the cards' local
+`$state` need a way to be driven from outside. Worth designing before building.
 
-**Blocking**
+**Phase 6b — task editing:** ticking, undo, rename, priority, notes, due date
+editing, drag to reorder, add task. `TaskRow` is read-only with disabled
+checkboxes today. `homeGroups.ts` is the read-only half of the Next
+`useTaskBoard`; the rest of that hook is what 6b needs.
 
-1. **The three mock stores are process-global.** `MIGRATION.md` §9 defect 1,
-   graded **BLOCKING**, inherited intact and unfixable at this layer — an
-   `adapter-node` process has the same module-scope hazard the Next server had.
-   Concurrent students book over each other and see each other's requests and
-   resume versions; everything resets on restart or hot reload. **Django is the
-   fix. Do not put this in front of more than one person before then.**
+**Then, in order:** the calendar (15 components, largest surface; needs
+`buildScheduleData()`, still unported), appointments, then the **Ask THRIVE
+page** — three tabs (chat, class recommender, job recommender), a chat window,
+and a **saved chat history rail on the LEFT beside the nav rail**, so two rails sit
+side by side. Wired to **Shankar's RAG** later.
 
-**From the data layer**
+**Blocking before any multi-person demo**
 
-2. **Provider copies are shallow.** `{ ...version }` shares `skills`, `courses`
-   and `experience` with the store, so `returned.skills.push(...)` mutates it.
-   Faithful to the prototype, pinned by a test that says why. Deepening it is a
-   behaviour change beyond a port — an open call, not an oversight.
-3. **Nothing renders the data layer.** 25 providers, and the only consumer is
-   `getStudent()` in the root layout.
-4. **`requestTypeHelp` has no consumer** anywhere in the prototype — verified by
-   grep. Ported because the type picker it belongs under is a later phase.
-   Delete it if that picker never lands.
-5. **`buildScheduleData()` is unported and now unblocked.** It reads five
-   providers — `getCourses`, `getAssignments`, `getEvents`, `getMyAppointments`,
-   `getAdvisors` — and all five exist. This is the obvious next task. It belongs
-   in a server `load`, not a component.
+1. **The three mock stores are process-global.** §9 defect 1. Concurrent students
+   book over each other and see each other's data; everything resets on restart.
+   An `adapter-node` process has the same module-scope hazard the Next server had.
+   **Django is the fix.**
 
-**Carried from earlier phases**
+**Carried**
 
-6. **The ignore store key-space defect** — Home and the calendar key it
-   differently, so ignoring on one surface does not affect the other. Needs a
-   decision on the canonical key; affects already-stored data.
-7. **Where an `urgency: "unknown"` row goes** in a grouped list.
-8. **Two product decisions parked pending real screens:** the missing year in
-   `formatShortDate` / `fullLabel`, and `countdownPhrase` counting to "13
-   months" with no year branch.
-9. **`taskNotes` on `createOverrideStore`?** It duplicates the persistence
-   logic, and the hardening it needed is exactly the drift that argues for
-   collapsing it.
-10. **Home's placeholder copy** — deliberately not `PagePlaceholder`.
-11. **Mount `Toast`?** Store is ported and tested; one import.
-12. **`useIgnoreUndo.ts`** not ported.
-13. **`format.ts` still emits `"Invalid Date"` from `formatShortDate`** — the
-    last unguarded function in the module.
+2. **Provider copies are shallow.** `{ ...version }` shares nested arrays with the
+   store. Pinned by a test that says why.
+3. **Nothing renders in the test suite.** A component can render the wrong content
+   with correct types, correct classes and no page overflow. 6b's editing is the
+   first thing that genuinely wants a rendered assertion.
+4. **Home fits 1238px, not 1052px.** Accepted.
+5. **`escapeKey` has no caller.** Kept for the floating panels and `/ask`.
+6. **Three dead providers:** `getSyllabi`, `getResources`, `getCurrentResume`.
+7. **`requestTypeHelp` has no consumer** anywhere in the prototype.
+8. **The ignore store key-space defect** — Home and the calendar keyed it
+   differently. Home is fixed (raw `Event.id`, no prefix stripping); the calendar
+   half lands with the calendar.
+9. **`thrive:event-joins` is keyed on the calendar item id**, not the raw
+   `Event.id` (§9 defect 13). Home's "Count me in" is deliberately visual-only
+   rather than writing to a different key.
+10. **Two product decisions parked pending real screens:** the missing year in
+    `formatShortDate`, and `countdownPhrase` counting to "13 months".
+11. **`taskNotes` on `createOverrideStore`?** It duplicates the persistence logic.
+12. **Mount `Toast`?** Store is ported and tested; one import.
+13. **`format.ts` still emits `"Invalid Date"` from `formatShortDate`.**
 14. **A parseable-but-wrong date still gets through** `describeDue`: V8 rolls
-    `"2026-02-30"` into March. Catching it needs a round-trip check.
+    `"2026-02-30"` into March.
 
 ---
 
-## 16. Timeline
+## 18. Timeline
 
 Release 1 target was **end of August 2026**; a control group was planned for the
 **last week of August**. Both dates come from the prototype's `REPORT.md` and
@@ -741,5 +735,5 @@ Django lands first or the control group is one person at a time.
 
 The prototype's Release 1 scope was: (a) the student dashboard, (b) appointment
 scheduling with history/notes/summaries/topic tagging, (c) `/resources` as the
-Resource Navigator surface, (d) per-task time estimates. Of those, only (a) was
-partial; three were never begun.
+Resource Navigator surface, (d) per-task time estimates. **(a) is now built** —
+Home is real, read-only pending 6b. Three were never begun.

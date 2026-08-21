@@ -1,12 +1,12 @@
-<!-- built-at: 0dcca16 -->
-<!-- updated: 2026-08-22 -->
+<!-- built-at: f8593b7 -->
+<!-- updated: 2026-08-21 -->
 
 # CODEMAP
 
 Navigation map for the THRIVE rebuild. Read this before opening files.
 
-**Built:** 2026-08-22, refreshed after Phase 5 (the data layer).
-**Size:** 77 files under `frontend/src` — ~11,611 lines, 7,551 source / 4,060 test.
+**Built:** 2026-08-21, refreshed after Phase 6a (Home).
+**Size:** 115 files under `frontend/src` — ~15,453 lines, 10,802 source / 4,651 test.
 
 > The `built-at` comment above is machine-read by the codemap staleness hook.
 > Keep it as the first line, in that exact `<!-- built-at: <hash> -->` form.
@@ -105,6 +105,61 @@ move.
 3. **Nothing here is random.** Slot availability and the events calendar are
    hashed, not sampled — `Math.random()` would desynchronise server from client.
    A test scans the whole directory to keep it that way.
+
+---
+
+## Home — `frontend/src/routes/+page.server.ts` + `lib/components/home/`
+
+The one fully-built page. Read Phase 6a's entry in HANDOFF before changing it.
+
+| File | Role |
+|---|---|
+| `routes/+page.server.ts` | **Six providers in one `Promise.all`, and the only `new Date()` on this page.** Every date is classified and formatted here. |
+| `home/HomeHeader.svelte` | One panel holding the strip and the greeting. Exists to save a panel's padding and a stack gap. |
+| `home/ProgramTimelineCompact.svelte` | The program strip. Bare, not a panel. |
+| `home/GreetingPanel.svelte` | Greeting, standing sentence, and ONE row of pills + chips. |
+| `home/TaskStatPills.svelte` | The three counts. **Reads the stores**, so the counts see the student's own ticks and ignores. |
+| `home/TasksCard.svelte` | **Flat when collapsed, grouped when expanded.** The one real design decision in 6a — see its doc comment. |
+| `home/TaskRow.svelte` | One task. Read-only until 6b. Carries the `min-w-0` that fixes the 375px title collapse. |
+| `home/TodaysClasses.svelte` · `MyClasses.svelte` · `CourseCard.svelte` | Today's meetings; the course list; one course. |
+| `home/UpcomingEvents.svelte` · `EventRow.svelte` | **Filters ignored FIRST, then slices to four.** The order is the behaviour. |
+
+### The pure layer behind it
+
+| File | Role |
+|---|---|
+| `messages.ts` | **Every user-facing string.** Values are functions, not templates. Extract into this as each surface is built. |
+| `homeView.ts` | View models. Every date field is already a formatted string. |
+| `homeGroups.ts` | Grouping and counting. `unknown` is a real group, FIRST. Read-only half of the Next `useTaskBoard`. |
+| `collapse.ts` | The fit-on-one-screen rule as arithmetic, shared by four cards. |
+| `cardLayout.ts` | The collapsed row COUNTS. The height cap is CSS — see `app.css`. |
+| `taskView.ts` | `rowPriorityOf`, `taskLabels`. Deadline outranks stated priority. |
+| `tones.ts` | Every place a meaning becomes a colour. |
+| `programStrip.ts` | `abbreviateTerm`, `phaseStatusWord`. |
+| `ignoreUndo.svelte.ts` | Ignore + six-second undo. Keys on **raw `Event.id`**, never a stripped prefix. |
+
+---
+
+## The shared primitives — `lib/components/ui/`
+
+`Tag` · `Button` · `ProgressBar` · `EmptyState` · `SectionCard` · `ShowMore` ·
+`StatPill` · `StatusBadge` · `DueChip` · `IgnoreButton` · `IgnoreUndoBar`
+
+`SectionCard` is the one to understand: three bands — header, capped body,
+pinned footer. The footer sits OUTSIDE the scroll area because the show-more
+control must not scroll away with the content it controls.
+
+---
+
+## The gates
+
+| Command | What it proves |
+|---|---|
+| `npm test` | 373 tests. Pure logic and source scans. Nothing renders. |
+| `npm run check` | Types agree. **Does NOT prove the page renders** — see BUGS.md. |
+| `npm run build` | It compiles. |
+| `python3 scripts/check-contrast.py` | 58 assertions. **Parses `app.css`**, so tokens cannot drift from their checks. |
+| `npm run check:layout` | 12 routes x 3 viewports in a real browser: the page cannot scroll further than it paints. Skips if no browser. |
 
 ---
 

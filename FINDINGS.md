@@ -4,6 +4,124 @@ Reusable patterns and lessons. Things worth knowing again.
 
 ---
 
+## 2026-08-21 — measuring layout, and the properties of a good gate
+
+### Measure the page, do not reason about it
+
+Every layout number this session came off `getBoundingClientRect` in a real
+browser. Three separate times, arithmetic would have produced a wrong answer:
+
+- **`flex-1` silently defeated a `height`.** The card cap was set to 248px and
+  the body rendered 423px, because `flex: 1 1 0%` in a flex column beats
+  `height`. No error, no warning, and the cap "worked" in the sense that the CSS
+  was present and valid.
+- **A predicted 24px saving measured 8px.** That 16px gap is the only reason the
+  phantom scroll below was ever found.
+- **A 500px estimate of the header block was actually 375px.** Estimating in the
+  right direction is not the same as estimating usefully.
+
+**The habit:** build first, then drive the built page, then set the number. Not
+the other way round, and never from a mental model of the box model.
+
+### `scrollHeight` is an unreliable narrator
+
+`documentElement.scrollHeight` reported 1275px while every element in the
+document rendered at or above 1238px and `body.scrollHeight` agreed at 1238.
+
+The ground truth for "can this be scrolled" is to try:
+
+```js
+window.scrollTo(0, 1e6);
+const maxScroll = window.scrollY;   // 37 -> yes, and by how much
+```
+
+Everything downstream of the wrong number was wrong: the "shortest viewport
+where Home fits" was 1275px for a whole phase, and no amount of header
+compression was going to move it, because 37px of it was not content.
+
+**When a height does not add up, stop and find the discrepancy.** It is a bug
+roughly as often as it is a rounding error.
+
+### A fixed-height scroll container needs `contain: paint`
+
+A card with `height` + `overflow-y: auto` whose content overflows can leak its
+scrollable overflow out to the document, giving the page dead space at the bottom
+that nothing renders into. `contain: paint` stops it. `overflow: hidden`,
+`overflow: clip` and `overflow-x: hidden` were all measured and all left it in
+place.
+
+It is also just *true* of a scroll container, so it is a declaration rather than
+a workaround — and it costs nothing visually, because `overflow-y: auto` already
+clips at the box edge on both axes.
+
+### Three properties of a gate worth having
+
+The session added one gate and leaned on two existing ones. What separated the
+useful from the decorative:
+
+1. **It measures the thing, not a model of the thing.** `check-layout.mjs` drives
+   a browser because jsdom does no layout and reports every height as zero. A
+   gate built on a model inherits the model's blind spots — which is exactly how
+   `documentElement.scrollHeight` would have written a green test for a broken
+   page.
+2. **It reads its inputs from the source of truth.** `check-contrast.py` used to
+   mirror the palette by hand, and during the repalette it was checking green
+   values against a navy app and reporting 43/43. It parses `app.css` now.
+3. **Prove it fails.** Every gate added this session was verified against the bug
+   it was written for: commenting out `contain: paint` gives
+   `renders 1238, scrolls to 1275, FAIL 37px of empty scroll` and exit 1.
+   An untested gate is a comment with a run time.
+
+### A gate that cannot run should skip loudly, not fail
+
+`check-layout.mjs` needs a browser and `playwright-core` ships none. It exits 0
+with `check-layout: SKIPPED` and the install command when it cannot find one.
+A gate that fails for reasons unrelated to the code gets ignored, and an ignored
+gate is worse than no gate because it looks like coverage.
+
+It also hunts for a cached chromium from a *different* playwright version, since
+skipping on the one machine where the check matters would defeat the point.
+
+### `npm run check` is not a render
+
+`svelte-check` passed, 0 errors, on a component that threw
+`ReferenceError: meta is not defined` on every request. The prop was added to the
+`$props()` TYPE but not to the destructuring pattern, and an unknown identifier
+in a Svelte template is not a type error.
+
+**A typecheck proves the types agree. It does not prove the page renders.** Serve
+the route. This cost a build-and-serve cycle to find and would have shipped
+otherwise.
+
+### Extract strings on the way past, not afterwards
+
+`messages.ts` was written before the components that use it, and the discipline
+held for nine components with no retrofit. Two things made it work:
+
+- **Anything carrying a value is a function**, not a template assembled at the
+  call site. `showMore(count)` lets a translation move the number; `{count} more`
+  in markup bakes English word order in.
+- **Where a value is styled differently from the words around it**, the split is
+  exposed as two message entries with the limitation written down, rather than
+  hidden as string concatenation in the component. Two places needed it: the
+  timeline's percentage and the course card's "Next:".
+
+### Furniture competes with content for a cap
+
+Home's Tasks card carried ~190px of fixed furniture — a progress bar, three group
+headings, a Done heading, section gaps — before its first task row. Under a
+height cap, that furniture was spending three and a half rows' worth of the
+budget, and no cap that let the grid fit a laptop could show more than one task.
+
+Moving the progress bar into the card's header band (outside the scroll area) and
+dropping group headings while collapsed took the overhead to one heading. Same
+information, four rows visible instead of one.
+
+**Under a cap, ask what the furniture costs in rows.** The answer is often "more
+than the thing it labels".
+
+---
+
 ## 2026-08-22 — porting a provider boundary
 
 ### Diff the port, do not review it

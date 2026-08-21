@@ -126,3 +126,50 @@ repo. The only credential in play is the GitHub SSH key already on the machine.
 Django backend needing them. `secret.md` does not exist and has not been needed;
 if it ever is, add it to `.gitignore` and verify with
 `git check-ignore secret.md` **before** the first commit that could contain it.
+
+---
+
+## The layout gate needs a browser (added 2026-08-21)
+
+`npm run check:layout` drives a real Chromium to assert no route can be scrolled
+further than it paints. It is the only part of the toolchain with an environment
+requirement beyond Node.
+
+```bash
+cd frontend
+npm run build          # the gate measures the BUILD, not the dev server
+npm run check:layout
+```
+
+**`playwright-core` ships no browser.** On this machine the gate uses a Chromium
+already in `~/Library/Caches/ms-playwright/` from an earlier Playwright install —
+it tries `chromium.launch()` first and falls back to hunting a
+`chrome-headless-shell` in that cache, because the cached revision was installed
+by a different Playwright version than the one in `package.json`.
+
+**If no browser is found it SKIPS and exits 0**, printing the install command:
+
+```bash
+npx playwright install chromium
+```
+
+That is deliberate. A gate that fails for a reason unrelated to the code gets
+ignored, and an ignored gate is worse than no gate because it looks like
+coverage. It is not part of `npm test` and not part of `npm run build`, so a
+machine without a browser is never blocked.
+
+**It manages its own server.** The script spawns `node build/index.js` on port
+4399, waits for it, measures, and kills it. Nothing to start by hand — but it
+does require `npm run build` to have run, and it fails with a clear message if
+`frontend/build/index.js` is missing.
+
+### The full gate set
+
+```bash
+cd frontend
+npm test                              # 373 tests, Node, no jsdom
+npm run check                         # svelte-check
+npm run build                         # vite build, adapter-node
+npm run check:layout                  # 12 routes x 3 viewports, real browser
+cd .. && python3 scripts/check-contrast.py   # 58 assertions, no dependencies
+```

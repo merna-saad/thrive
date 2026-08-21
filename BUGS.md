@@ -7,6 +7,100 @@ Note on links: this repo has no PRs — all commits go direct to `main`
 
 ---
 
+## 2026-08-21 — found and fixed during the repalette and Phase 6a
+
+### 37px of scrollable empty space at the bottom of Home
+
+**FIXED** · `074486d` · was **MEDIUM**, and invisible
+
+Home could not fit any viewport shorter than 1275px however tightly the header
+was packed. 37px of that was not content:
+
+```
+every element renders at or above  1238px
+body.scrollHeight                  1238px
+window.scrollTo(0, 1e6)            moved 37px    <- the page really does scroll
+documentElement.scrollHeight       1275px        <- and this agreed with nothing
+```
+
+A card with a fixed height and overflowing content — Upcoming Events, which
+scrolls at rest by design — was leaking its scrollable overflow out to the
+document.
+
+**Fix:** `contain: paint` on `.thrive-card-body`. Measured rather than guessed:
+`overflow: hidden`, `overflow: clip` and `overflow-x: hidden` all left the 37px
+in place.
+
+**How it was found:** by accident. A predicted 24px saving from shortening the
+top bar measured 8px, and chasing the missing 16px turned this up. Nothing was
+watching for it.
+
+**Now gated:** `scripts/check-layout.mjs` asserts across 12 routes × 3 viewports
+that the page cannot scroll further than it paints, and it was verified to fail
+on this exact bug before being trusted. `check-contrast.py` carries a
+browser-free backstop asserting the containment is still declared.
+
+**The pattern:** a document that scrolls past its own content is always a bug.
+It is dead space, it makes "does this fit on one screen" unanswerable, and it is
+invisible in a screenshot.
+
+### A task with an unparseable due date vanished from Home
+
+**FIXED** · `f8593b7` · was **MEDIUM**
+
+`useTaskBoard` grouped by `due.urgency === group.key` over `overdue | today |
+upcoming`. The fourth urgency state added by the Phase 3a-fix guards,
+`"unknown"`, matches none of them — so a task whose due date would not parse was
+filtered out of every group and rendered nowhere. No error, no log, no gap on
+screen.
+
+Inherited from the Next tree, where the fixtures contain no unparseable date,
+which is why nobody noticed.
+
+**Fix, in two steps.** Phase 6a returned those rows explicitly in an
+`unclassified` array so the information was at least reachable, and recorded that
+where they belong was an open question. This commit answers it: `unknown` is a
+real group, FIRST in the order, headed "Needs a date".
+
+**The pattern:** a filter over a closed union silently drops anything the union
+grew. `describeDue` gained a fourth state in Phase 3a-fix and this consumer was
+never revisited. When a union grows, grep its consumers — the compiler will not
+tell you, because `filter` on a non-matching value is legal.
+
+### `flex-1` silently defeated the card height cap
+
+**FIXED** · `ebeb895` · was **LOW**, caught before shipping
+
+`.thrive-card-body` set `height: var(--thrive-card-body-cap)` at desktop, and the
+element also carried `flex-1` inside a flex column. `flex: 1 1 0%` wins, so the
+body grew to its content and the cap did nothing: 423px measured against a 248px
+cap.
+
+Valid CSS, no warning, and the cap was visibly "there" in the file.
+
+**Fix:** drop `flex-1`. Found by measuring the built page, not by reading.
+
+### `svelte-check` passed on a component that threw on every request
+
+**FIXED** · `ebeb895` · was **LOW**, caught before shipping
+
+`SectionCard` gained a `meta` snippet prop. It was added to the `$props()` type
+annotation but not to the destructuring pattern, so the template referenced an
+undeclared identifier. `npm run check` reported 0 errors over 367 files; the
+route returned 500 with `ReferenceError: meta is not defined`.
+
+**The pattern:** an unknown identifier in a Svelte template is not a type error.
+A typecheck proves the types agree, not that the page renders. Serve the route.
+
+---
+
+## Still open, inherited deliberately
+
+*(unchanged from the previous entry — the three process-global mock stores,
+BLOCKING; and the shallow provider copies)*
+
+---
+
 ## 2026-08-22 — fixed during the Phase 5 port
 
 Four defects from `MIGRATION.md` §9 that were **built correctly rather than

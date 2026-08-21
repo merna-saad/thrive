@@ -4,6 +4,94 @@ Session log, newest first. What happened, what was decided, what is still open.
 
 ---
 
+## 2026-08-21 — Phase 6a: Home, plus the repalette and the nav trim
+
+**HEAD:** `f8593b7` · 10 commits, all pushed · 373 tests green.
+
+> Date note: the previous entry and several `app.css` comments are stamped
+> 2026-08-22, a day ahead of the real date. Commit hashes are the ordering that
+> can be trusted.
+
+### What was done
+
+Three pieces of work in one session, in this order: the navy repalette and the
+type rule (`8c283d6`, `922b8bb`, `41e891a`), the nav trim (`2fdefbb`), and
+Phase 6a Home (`022b269`, `6bac960`, `ebeb895`), followed by two density passes
+(`36395f0`, `074486d`) and a decisions-and-gates commit (`f8593b7`).
+
+**Measured everything that was a pixel.** Drove the built page in the machine's
+Playwright chromium at every step rather than reasoning about heights. That is
+now the standing method for layout work, and it earned itself three times over
+this session — see FINDINGS.
+
+### Decisions made (this session's questions, answered)
+
+- **Yellow is decoration on light surfaces**, a real graphic only on navy. Not an
+  active indicator: "you are here" stays indigo, because two colours meaning
+  "here" is how a reservation dies.
+- **Gold `#c69214` rejected** at 2.79:1. `watch` already covers a legible warm
+  accent.
+- **`on-track` → teal.** The only reserved colour whose value changed.
+- **Parked routes live in a separate list, not behind a flag.** A flag needs
+  every surface to remember to filter; a separate list makes rendering a parked
+  item structurally impossible.
+- **Settings is parked.** Confirmed by the owner this session: nothing to
+  configure yet.
+- **`escapeKey` is kept** despite having no caller — the floating panels and the
+  Ask THRIVE page will want it. Confirmed this session.
+- **Tasks' collapsed view is flat; grouped on expand.** Asked and approved. The
+  card carried ~190px of furniture before its first row, and at any cap that let
+  the grid fit a laptop it showed one task.
+- **Do NOT cut card rows to reach a 1052px viewport.** Confirmed by the owner:
+  two task rows would make the card useless, and "show more" exists for exactly
+  that. 1238px is the accepted result.
+- **An `urgency: "unknown"` row gets its own group at the TOP.** Confirmed this
+  session, and built. Loud is correct, invisible is not.
+- **`contain: paint` stays** whether or not the phantom scroll is headless-only.
+- **`playwright-core` added as a devDependency** — the first dependency since
+  Phase 1. There is no zero-dependency way to measure real layout, and the
+  alternative was leaving the bug ungated.
+
+### Loose ends carried forward
+
+**Queued, specified, NOT built — the stat pill popovers.** Clicking a stat pill
+opens a popover listing the actual items behind the number: the overdue tasks,
+the tasks due today, the events this week. Click always opens it; hover also
+opens it on desktop. The items in the popover are clickable and jump to the task
+or the event — **which means if the target row is hidden behind "show more", the
+card has to expand and scroll to it**. That last part is the interesting
+requirement: it couples the popover to the collapse state, so `collapseList` and
+the cards' local `$state` need a way to be driven from outside. Worth designing
+before building.
+
+**Phase 6b is task editing:** ticking, undo, rename, priority, notes, due date
+editing, drag to reorder, add task. `TaskRow` renders read-only with disabled
+checkboxes today and a footer line saying so; that line goes when 6b lands.
+`homeGroups.ts` is the read-only half of the Next app's `useTaskBoard` — the rest
+of that hook is what 6b needs.
+
+**Then, in order:** the calendar (15 components, the largest surface), then
+appointments, then the **Ask THRIVE page** — three tabs (chat, class recommender,
+job recommender), a chat window, and a saved chat history rail on the LEFT beside
+the nav rail, so two rails sit side by side. Wired to Shankar's RAG later. `/ask`
+exists as a placeholder route with the nav entry already in place.
+
+**Strings keep being extracted** into `$lib/messages` as each surface is built.
+That is the standing rule now, not a one-off for Home: Mandarin stays possible
+only if no surface ships with inline copy.
+
+### Still open from earlier phases
+
+- §9 defect 1, the process-global mock stores. **BLOCKING** before any
+  multi-person demo. Django is the fix.
+- Provider copies are shallow; nested arrays are shared with the store.
+- `buildScheduleData()` still unported — the calendar needs it.
+- Three dead providers (`getSyllabi`, `getResources`, `getCurrentResume`).
+- `requestTypeHelp` has no consumer.
+- Home fits 1238px, not 1052px. Accepted.
+
+---
+
 ## 2026-08-22 — Phase 5, the data layer
 
 **HEAD:** `0dcca16` · 4 commits, all pushed · 324 tests green.

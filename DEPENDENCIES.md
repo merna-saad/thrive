@@ -2,7 +2,7 @@
 
 What is installed in `frontend/`, and why each thing is here.
 
-**Last verified:** 2026-08-21 at `b0f7c3b`.
+**Last verified:** 2026-08-21 at `f8593b7`.
 
 ---
 
@@ -28,6 +28,7 @@ self-hosting is a requirement, not a preference.
 |---|---|---|
 | `@sveltejs/kit` | `^2.63.0` | Framework. |
 | `svelte` | `^5.56.1` | Runes, forced on outside `node_modules`. |
+| `playwright-core` | `^1.62.1` | **Added 2026-08-21. The first dependency since Phase 1.** Drives a real browser for `npm run check:layout`. See the note below. |
 | `@sveltejs/vite-plugin-svelte` | `^7.1.2` | Compiles `.svelte` and `.svelte.ts`. |
 | `@sveltejs/adapter-node` | `^5.5.4` | Runs as a plain Node process. No serverless assumptions. |
 | `vite` | `^8.0.16` | Build. |
@@ -97,3 +98,32 @@ No `requirements.txt`, and none needed. Run it with the system `python3`.
 `npm audit` reports issues after the `@fontsource` and `@lucide/svelte`
 installs. **Not chased this session.** Worth a look before anything is deployed;
 nothing here is in a request path yet.
+
+---
+
+## `playwright-core`, and why the no-new-dependency streak ended
+
+Added 2026-08-21, and the only dependency added since the Phase 1 scaffold.
+
+**What it is for.** `scripts/check-layout.mjs` asserts that no route can be
+scrolled further than it paints. That needs a real layout engine: Vitest runs in
+Node with no jsdom here, and jsdom does no layout — every height it reports is
+zero. There is no zero-dependency way to measure a rendered page, and the
+alternative was leaving a real, invisible bug ungated (BUGS.md, the 37px of
+scrollable empty space).
+
+**Why `playwright-core` rather than `playwright`.** `playwright-core` ships no
+browser binaries, so `npm install` stays fast and nothing downloads ~150MB into
+the repo. The gate finds a browser at run time or skips.
+
+**Why the earlier refusal still stands.** `@types/node` was rejected in Phase 5
+for a test that read source text, because `import.meta.glob(..., { query:
+"?raw" })` did the same job with nothing added. The test here is different in
+kind: no amount of cleverness measures layout without a layout engine. The rule
+was never "never add a dependency" — it is "do not add one where the platform
+already answers".
+
+**What it costs if it is absent.** Nothing breaks. The gate prints
+`check-layout: SKIPPED` with the install command and exits 0, so a machine or CI
+runner without a browser is not blocked. It is not in `npm test` and not in
+`npm run build`.
