@@ -285,6 +285,47 @@ CEILINGS = [
 ]
 
 
+# --- structural assertions --------------------------------------------------
+#
+# Not contrast, but the same job: things components depend on that nothing else
+# checks. The Svelte-side guard in src/lib/designSystem.spec.ts enforces that no
+# component names a font directly and that every `.thrive-*` class it uses is in
+# the known vocabulary -- but it cannot read app.css, because Vite's CSS pipeline
+# processes the file before `?raw` sees it and the glob comes back empty.
+# Probed and confirmed, not assumed. So the "does app.css actually define it"
+# half lands here, in the one checker that already parses this file.
+
+# (pattern, description)
+REQUIRED_CSS = [
+    (r"\.thrive-numeric\s*\{", "`.thrive-numeric` is declared"),
+    (r"\.thrive-eyebrow\s*\{", "`.thrive-eyebrow` is declared"),
+    (
+        r"\.thrive-numeric\s*\{[^}]*var\(--font-mono\)",
+        "`.thrive-numeric` uses the mono face",
+    ),
+    (
+        r"\.thrive-numeric\s*\{[^}]*tabular-nums",
+        "`.thrive-numeric` sets tabular figures",
+    ),
+    (
+        r"\.thrive-eyebrow\s*\{[^}]*var\(--font-sans\)",
+        "`.thrive-eyebrow` uses the sans face",
+    ),
+]
+
+
+def check_structure(source: str) -> int:
+    print()
+    print("type treatments")
+    print("-" * 68)
+    failures = 0
+    for pattern, description in REQUIRED_CSS:
+        passed = re.search(pattern, source) is not None
+        failures += not passed
+        print(f"{description:<55}{'PASS' if passed else 'FAIL':>13}")
+    return failures
+
+
 def main() -> int:
     print(f"reading tokens from {CSS_PATH.relative_to(CSS_PATH.parents[2])}")
     print()
@@ -311,7 +352,9 @@ def main() -> int:
             f"{'PASS' if passed else 'FAIL'}"
         )
 
-    total = len(CHECKS) + len(CEILINGS)
+    failures += check_structure(re.sub(r"/\*.*?\*/", "", CSS_PATH.read_text(), flags=re.DOTALL))
+
+    total = len(CHECKS) + len(CEILINGS) + len(REQUIRED_CSS)
     print("-" * 68)
     print(f"{total - failures}/{total} pass")
 

@@ -18,9 +18,7 @@
 
 <div class="space-y-3">
 	<header>
-		<p class="font-mono text-3xs tracking-wider text-muted-ink uppercase">
-			home · your day at a glance
-		</p>
+		<p class="thrive-eyebrow">home · your day at a glance</p>
 		<!-- font-bold at the call site. The Next h1 here is the greeting inside the
 		     panel, at weight 400 -- one of the twelve in defect 4. -->
 		<h1 class="mt-1 text-3xl font-bold text-ink">THRIVE</h1>

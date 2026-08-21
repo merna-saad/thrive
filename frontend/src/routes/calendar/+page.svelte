@@ -15,7 +15,7 @@
 
 <div class="space-y-3">
 	<header class="mx-auto w-full max-w-5xl">
-		<p class="font-mono text-3xs tracking-wider text-muted-ink uppercase">calendar · fall 2026</p>
+		<p class="thrive-eyebrow">calendar · fall 2026</p>
 		<h1 class="mt-1 text-3xl font-bold text-ink">Everything, one page</h1>
 		<p class="mt-1.5 max-w-prose text-sm text-body">
 			Classes, deadlines, tasks, appointments, your own to-dos, and what you could sign up for.
