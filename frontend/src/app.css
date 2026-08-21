@@ -109,6 +109,14 @@
   --thrive-control-line: var(--thrive-faint);
   --thrive-control-stroke: 1.5px;
 
+  /* The checkbox's box, as a token rather than as 17px in two places.
+     `.thrive-checkbox` sets its own width and height from this, and any row that
+     renders a SPACER where a checkbox would go reaches for the same value --
+     `calendar/ItemRow` does, so a list of classes and tickable tasks aligns in
+     one column instead of two ragged ones. Two literals would drift the moment
+     the control was resized, and the drift is a 1px misalignment nobody files. */
+  --thrive-checkbox-size: 17px;
+
   /* Action accent. UC SAN DIEGO NAVY, replacing the forest green (2026-08-22).
      Official brand value, PMS 2767, from brand.ucsd.edu/visual-brand/color.
      Not an approximation.
@@ -626,6 +634,9 @@
   --spacing-topbar: var(--thrive-topbar-height);
   --spacing-bottomnav: var(--thrive-bottomnav-height);
   --spacing-page-bottom: var(--thrive-page-gutter-bottom);
+  /* So a row can write `size-checkbox` for the spacer that stands in for one,
+     instead of repeating the literal. See the token in layer 1. */
+  --spacing-checkbox: var(--thrive-checkbox-size);
 
   /* Fonts */
   --font-sans: var(--font-sans);
@@ -992,8 +1003,8 @@
   .thrive-checkbox {
     appearance: none;
     flex-shrink: 0;
-    width: 17px;
-    height: 17px;
+    width: var(--thrive-checkbox-size);
+    height: var(--thrive-checkbox-size);
     border: var(--thrive-control-stroke) solid var(--thrive-control-line);
     border-radius: 5px;
     background-color: var(--thrive-surface);

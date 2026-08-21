@@ -1,35 +1,55 @@
 <script lang="ts">
+	import CalendarView from '$lib/components/calendar/CalendarView.svelte';
+	import { messages } from '$lib/messages';
 	import { pageTitle } from '$lib/title';
+	import type { PageData } from './$types';
 
 	/**
-	 * The calendar's page header, ported verbatim. The view itself -- three
-	 * modes, two filter dimensions, fifteen components -- is a later phase.
+	 * The Calendar page.
 	 *
-	 * This h1 is the ONE page title in the Next app that already carries
-	 * `font-bold`. MIGRATION.md section 9 defect 4: the other twelve render at
-	 * 400. Every heading in this port sets its weight at the call site.
+	 * A header and one component. Everything else -- the month grid, the selected
+	 * day, the day's sections -- hangs off `CalendarView`, which is the only
+	 * stateful node on the page.
+	 *
+	 * ## Why the page is this thin
+	 *
+	 * The state that matters here is `selectedKey`, and every view reads and writes
+	 * it. Hoisting it to the page would put it above the only consumer and buy
+	 * nothing; splitting it between page and view would let a month grid and a day
+	 * panel disagree about which day is selected. So it lives in exactly one place
+	 * and the page is a header plus a mount point.
+	 *
+	 * Note what is NOT here: no reveal channel. Home needs one because its stat
+	 * pills have to ask a card it cannot see into to open a collapsed row. The
+	 * calendar has no collapsed rows and nothing asking about them -- and if the
+	 * "next up" line ever becomes a jump, that is `arriveAtRow` on a row this
+	 * subtree already owns, not a channel. See CONVENTIONS.md on asking versus
+	 * doing.
+	 *
+	 * ## This h1 already had its weight
+	 *
+	 * It is the ONE page title in the Next app carrying `font-bold` -- MIGRATION.md
+	 * section 9 defect 4: the other twelve render at 400. Every heading in this
+	 * port sets its weight at the call site.
 	 */
+	let { data }: { data: PageData } = $props();
+
+	const copy = messages.calendar;
 </script>
 
-<svelte:head><title>{pageTitle('Calendar')}</title></svelte:head>
+<svelte:head><title>{pageTitle(copy.documentTitle)}</title></svelte:head>
 
 <div class="space-y-3">
 	<header class="mx-auto w-full max-w-5xl">
-		<p class="thrive-eyebrow">calendar · fall 2026</p>
-		<h1 class="mt-1 text-3xl font-bold text-ink">Everything, one page</h1>
-		<p class="mt-1.5 max-w-prose text-sm text-body">
-			Classes, deadlines, tasks, appointments, your own to-dos, and what you could sign up for.
-			Filter it, group it, add to it.
-		</p>
+		<p class="thrive-eyebrow">{copy.eyebrow}</p>
+		<h1 class="mt-1 text-3xl font-bold text-ink">{copy.title}</h1>
+		<p class="mt-1.5 max-w-prose text-sm text-body">{copy.intro}</p>
 	</header>
 
-	<div class="mx-auto w-full max-w-5xl">
-		<div data-tone="sunken" class="thrive-panel px-4 py-8 text-center">
-			<p class="text-base text-ink">The calendar lands in a later phase.</p>
-			<p class="mx-auto mt-1 max-w-md text-xs text-muted-ink">
-				Its pure layer is already ported and under test: the grid arithmetic, the one filter,
-				the grouping, and the merge that folds your own rows onto the server's.
-			</p>
-		</div>
-	</div>
+	<CalendarView
+		data={data.data}
+		tasks={data.tasks}
+		todayKey={data.todayKey}
+		nowMinutes={data.nowMinutes}
+	/>
 </div>

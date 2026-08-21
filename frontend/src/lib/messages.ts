@@ -310,6 +310,113 @@ export const messages = {
 		added: (title: string) => `${title} added.`
 	},
 
+	/**
+	 * The calendar. Phase 7a covers the page, the month grid and the selected day;
+	 * the filter bar, the other two views, editing and events land in 7b and 7c.
+	 *
+	 * Two things here are worth naming because they are easy to get wrong on a
+	 * retrofit:
+	 *
+	 * 1. **The counts line is one function, not a loop over a template.** A day
+	 *    reads "4 classes · 3 tasks · 2 clubs", and assembling that at the call
+	 *    site would bake both the pluralisation and the separator into markup. It
+	 *    takes already-labelled pairs and returns the whole line.
+	 * 2. **`dayFigureLabel` exists because the big number has no words beside it.**
+	 *    A `3xl` "12" reads as a heading to a screen reader and as nothing at all
+	 *    to a student who cannot see the breakdown next to it.
+	 */
+	calendar: {
+		documentTitle: 'Calendar',
+		eyebrow: 'calendar · fall 2026',
+		title: 'Everything, one page',
+		intro:
+			'Classes, deadlines, tasks, appointments, your own to-dos, and what you could sign up for. Filter it, group it, add to it.',
+
+		/* --- The month grid ------------------------------------------------- */
+		grid: {
+			label: 'Calendar',
+			today: 'Today',
+			previousMonth: 'Previous month',
+			nextMonth: 'Next month',
+			/** Weekday column initials, Sunday first. Paired with the names below. */
+			weekdayInitials: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+			weekdayNames: [
+				'Sunday',
+				'Monday',
+				'Tuesday',
+				'Wednesday',
+				'Thursday',
+				'Friday',
+				'Saturday'
+			],
+			/**
+			 * A day cell's whole accessible name. The date arrives already
+			 * formatted; this decides what else is said and in what order.
+			 */
+			dayLabel: (date: string, items: string, today: boolean) =>
+				today ? `${date}, ${items}, today` : `${date}, ${items}`,
+			noItems: 'no items',
+			itemCount: (count: number) => (count === 1 ? '1 item' : `${count} items`),
+			/** The "+n" when a day has more categories than there are dots for. */
+			overflow: (count: number) => `+${count}`
+		},
+
+		/* --- The selected day's header -------------------------------------- */
+		header: {
+			headingId: 'calendar-day-heading',
+			todayChip: 'today',
+			/** Names the bare figure, which otherwise reads as a heading. */
+			dayFigureLabel: (count: number) =>
+				count === 1 ? '1 item on this day' : `${count} items on this day`,
+			nothing: 'nothing scheduled',
+			/** "4 classes · 3 tasks". Pairs come in already pluralised. */
+			countsLine: (parts: string[]) => parts.join(' · '),
+			/** One "4 classes" pair. The irregular plural is the category's own. */
+			countPart: (count: number, singular: string, plural: string) =>
+				count === 1 ? `1 ${singular}` : `${count} ${plural}`,
+			doneOfTickable: (done: number, tickable: number) => `${done} of ${tickable} done`,
+			nextUpLabel: 'next up:',
+			/** The square strip, named as a whole. */
+			squaresLabel: 'What is left on this day',
+			/** One square. State is a word, so colour is never the only channel. */
+			squareLabel: (title: string, state: string) => `${title}: ${state}`,
+			squareDone: 'done',
+			squareNext: 'next up',
+			squareNotDone: 'not done',
+			/**
+			 * The one live region on the page, read on every day change.
+			 *
+			 * Says what changed and how much is in it, because a student moving
+			 * through the grid with arrow keys never sees the panel below repaint.
+			 */
+			announcement: (heading: string, schedule: number, personal: number) =>
+				`${heading}. ${schedule} on your schedule, ${personal} on your list.`
+		},
+
+		/* --- The day's sections --------------------------------------------- */
+		day: {
+			headingId: 'day-items',
+			eyebrow: 'your day',
+			empty: 'Nothing scheduled this day. A good day to get ahead.',
+			/** Arrange-by control. Words, so this is not a numeric treatment. */
+			groupByLabel: 'Arrange the day by',
+			groupByPrefix: 'by',
+			groupByType: 'type',
+			groupByTime: 'time',
+			/** The single group the "time" arrangement produces. */
+			chronological: 'Everything, in order'
+		},
+
+		/* --- One row -------------------------------------------------------- */
+		row: {
+			allDay: 'all day',
+			urgent: 'urgent',
+			/** The checkbox says what pressing it will do, not what is true now. */
+			toggle: (title: string, done: boolean) =>
+				done ? `Mark ${title} not done` : `Mark ${title} done`
+		}
+	},
+
 	/** Event origin tags. One per EventType. */
 	eventTypes: {
 		career: 'Career',
