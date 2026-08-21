@@ -1090,6 +1090,368 @@ try {
 
 	await edit.close();
 
+	// ═══ Phase 7c: the calendar's editing surfaces ═════════════════════════
+	/*
+	 * Three things here that no other gate in this repo can see, and one that no
+	 * gate anywhere could:
+	 *
+	 *  1. **The day figure agrees with the rows beneath it.** For two phases the
+	 *     header counted a day's events while nothing rendered them, so a day read
+	 *     "12" above ten rows. That gap closed when `DayEventsSection` landed, and
+	 *     "closed" is a claim about LAYOUT -- it is a count of DOM nodes against a
+	 *     rendered number, which needs a browser by definition. This is the check
+	 *     that keeps it closed.
+	 *  2. **The dialog is a real dialog.** Focus in, focus trapped, focus returned.
+	 *     `role="dialog"` and `aria-modal="true"` are attributes anyone can type;
+	 *     what they promise is behaviour, and the Next source made three of those
+	 *     promises without keeping them. `svelte-check` cannot tell the difference
+	 *     and neither can 553 unit tests -- there is no `document.activeElement` in
+	 *     a Node process.
+	 *  3. **Delete asks first.** A confirmation step is only a confirmation if the
+	 *     first press does nothing, which is a statement about two presses.
+	 */
+	const cal = await browser.newPage({ viewport: DESKTOP });
+	cal.on('pageerror', (error) => pageErrors.push(`calendar: ${error}`));
+	cal.on('console', (msg) => noisy(msg) && pageErrors.push(`calendar: ${msg.text()}`));
+	await cal.goto(BASE + '/calendar', { waitUntil: 'networkidle' });
+	await cal.waitForTimeout(SETTLE);
+
+	/** The day's figure, and every row rendered under it. Runs in the browser. */
+	function readDay() {
+		const header = document.querySelector('section[aria-labelledby="calendar-day-heading"]');
+		/* The big number, read off the figure rather than recomputed. Its sr-only
+		   twin follows it in the same paragraph, hence the leading-digits match. */
+		const figure = Number(
+			header?.querySelector('p')?.textContent.trim().match(/^\d+/)?.[0] ?? -1
+		);
+
+		/* `> ul > li` and not a descendant match: the wrapper `#day-items` section
+		   also starts with "day-", and it contains every group. */
+		const dayRows = document.querySelectorAll('section[aria-labelledby^="day-"] > ul > li').length;
+		const eventRows = document.querySelectorAll(
+			'section[aria-labelledby="calendar-happening"] > ul > li'
+		).length;
+
+		return { figure, dayRows, eventRows, rows: dayRows + eventRows };
+	}
+
+	/*
+	 * Every day in the month that has anything on it, not a sampled one.
+	 *
+	 * The mismatch this guards against is per-category -- it appeared on days with
+	 * EVENTS and nowhere else -- so a check that happened to land on a Tuesday of
+	 * classes would have passed throughout the two phases the gap was open.
+	 */
+	const busyDays = await cal.evaluate(() =>
+		[...document.querySelectorAll('button[data-day]')]
+			.filter((cell) => !/no items/.test(cell.getAttribute('aria-label') ?? ''))
+			.map((cell) => cell.dataset.day)
+	);
+
+	/**
+	 * Select a day, paging the grid forward if the selection has left it behind.
+	 *
+	 * Choosing a day in an adjacent month pulls the view onto THAT month, which is
+	 * correct behaviour and means the next day in an ascending walk may no longer
+	 * be drawn. The grid spans six weeks, so one page forward is always enough.
+	 */
+	async function selectDay(day) {
+		if (!(await cal.$(`button[data-day="${day}"]`))) {
+			await cal.click('button[aria-label="Next month"]');
+			await cal.waitForTimeout(60);
+		}
+		await cal.click(`button[data-day="${day}"]`);
+		await cal.waitForTimeout(60);
+	}
+
+	const mismatches = [];
+	/* Non-vacuous: at least one day must actually render an events section, or the
+	   check above could not have caught the gap it exists for. Collected in the
+	   same walk, because walking twice would page the grid twice. */
+	const daysWithEvents = [];
+
+	for (const day of busyDays) {
+		await selectDay(day);
+		const seen = await cal.evaluate(readDay);
+		if (seen.figure !== seen.rows) mismatches.push(`${day}: ${seen.figure} vs ${seen.rows}`);
+		if (seen.eventRows > 0) daysWithEvents.push({ day, ...seen });
+	}
+
+	check(
+		'every day figure equals the rows rendered beneath it',
+		busyDays.length > 0 && mismatches.length === 0,
+		busyDays.length === 0
+			? 'no day in this month has any items — the check proved nothing'
+			: `${busyDays.length} days checked${mismatches.length ? `: ${mismatches.join(', ')}` : ''}`
+	);
+
+	check(
+		'at least one of them rendered an events section',
+		daysWithEvents.length > 0,
+		daysWithEvents.length > 0
+			? `${daysWithEvents.length} days, e.g. ${daysWithEvents[0].day} = ${daysWithEvents[0].dayRows} + ${daysWithEvents[0].eventRows}`
+			: 'the figure/rows check could not have caught the 7a gap'
+	);
+
+	// ── The detail dialog ──────────────────────────────────────────────────
+	/*
+	 * Back to a known day, from a known month.
+	 *
+	 * The walk above left the grid on whichever month the last busy day belonged
+	 * to. "Today" puts both the month and the selection back where they started,
+	 * so the day chosen next is reachable by the same one-page rule.
+	 */
+	await cal.click('button:has-text("Today")');
+	await cal.waitForTimeout(SETTLE);
+
+	const eventDay = daysWithEvents[0]?.day ?? busyDays[0];
+	if (eventDay) await selectDay(eventDay);
+	await cal.waitForTimeout(SETTLE);
+
+	const opened = await cal.evaluate(async () => {
+		const trigger = document.querySelector('button[aria-label^="Details for "]');
+		if (!trigger) return null;
+		trigger.setAttribute('data-opener', '');
+		trigger.click();
+		await new Promise((r) => setTimeout(r, 120));
+
+		const dialog = document.querySelector('[role="dialog"]');
+		return {
+			open: dialog !== null,
+			modal: dialog?.getAttribute('aria-modal') ?? '',
+			labelled: Boolean(document.getElementById(dialog?.getAttribute('aria-labelledby') ?? '')),
+			focusInside: dialog?.contains(document.activeElement) === true,
+			onClose: document.activeElement?.hasAttribute('data-dialog-close') === true
+		};
+	});
+
+	if (!opened) {
+		unproven('the details control opens a dialog', 'no row on this day offers one');
+	} else {
+		check('the details control opens a dialog', opened.open === true);
+		check('it is announced as modal and named by its title', opened.modal === 'true' && opened.labelled);
+		check('opening moves focus into the dialog', opened.focusInside === true);
+		check(
+			'focus lands on close, not in the label field',
+			opened.onClose === true,
+			'the common case is reading; stealing focus into an input makes Escape feel like a cancel'
+		);
+
+		/*
+		 * Tab all the way round and out the other side.
+		 *
+		 * Twelve presses is more than the dialog has stops, so an untrapped one
+		 * walks out into the page behind the scrim -- which is the whole failure.
+		 * The trap wraps instead, so focus is still inside after any number.
+		 */
+		for (let i = 0; i < 12; i += 1) await cal.keyboard.press('Tab');
+		check(
+			'Tab is trapped inside the dialog',
+			await cal.evaluate(
+				() => document.querySelector('[role="dialog"]')?.contains(document.activeElement) === true
+			),
+			'12 presses, more stops than the dialog has'
+		);
+
+		await cal.keyboard.press('Shift+Tab');
+		await cal.keyboard.press('Shift+Tab');
+		check(
+			'Shift+Tab is trapped too',
+			await cal.evaluate(
+				() => document.querySelector('[role="dialog"]')?.contains(document.activeElement) === true
+			)
+		);
+
+		await cal.keyboard.press('Escape');
+		await cal.waitForTimeout(SETTLE);
+		const afterEscape = await cal.evaluate(() => ({
+			open: document.querySelector('[role="dialog"]') !== null,
+			onOpener: document.activeElement?.hasAttribute('data-opener') === true
+		}));
+		check('Escape closes the dialog', afterEscape.open === false);
+		check(
+			'closing returns focus to the control that opened it',
+			afterEscape.onOpener === true,
+			'a student who pressed details on row nine lands back on row nine'
+		);
+
+		/* An outside press is the other dismissal, and it goes through a
+		   capture-phase listener so nothing downstream can swallow it. */
+		await cal.evaluate(() => document.querySelector('[data-opener]')?.click());
+		await cal.waitForTimeout(SETTLE);
+		await cal.mouse.click(4, 4);
+		await cal.waitForTimeout(SETTLE);
+		check(
+			'a press outside closes it as well',
+			(await cal.evaluate(() => document.querySelector('[role="dialog"]'))) === null
+		);
+	}
+
+	// ── Adding, and the two-step delete ────────────────────────────────────
+	/*
+	 * The add form's routing is proved in `calendarAdd.spec.ts`, one store at a
+	 * time. What is left for a browser is that the form can be driven at all and
+	 * that the row it produces really appears on the day — and a custom event is
+	 * also the only kind of row that can be deleted, so this is the fixture the
+	 * confirmation step needs.
+	 */
+	const TITLE = 'Gate-added event';
+	const added = await cal.evaluate(async (title) => {
+		[...document.querySelectorAll('button')]
+			.find((b) => /Add to this day/i.test(b.textContent))
+			?.click();
+		await new Promise((r) => setTimeout(r, 100));
+
+		const kind = document.querySelector('input[name="add-kind"][value="event"]');
+		if (!kind) return { built: false };
+		kind.click();
+
+		const field = document.getElementById('add-item-title');
+		field.focus();
+		field.value = title;
+		field.dispatchEvent(new Event('input', { bubbles: true }));
+		await new Promise((r) => setTimeout(r, 60));
+
+		const submit = document.querySelector('form button[type="submit"]');
+		const submitLabel = submit?.textContent.trim() ?? '';
+		submit?.click();
+		await new Promise((r) => setTimeout(r, 200));
+
+		const rows = [...document.querySelectorAll('section[aria-labelledby^="day-"] > ul > li')];
+		return {
+			built: true,
+			submitLabel,
+			landed: rows.some((li) => li.textContent.includes(title)),
+			formClosed: document.getElementById('add-item-title') === null
+		};
+	}, TITLE);
+
+	if (!added.built) {
+		unproven('the add form puts a new row on the day', 'the kind radios did not render');
+	} else {
+		check(
+			'the submit button names the kind it will file under',
+			/event/i.test(added.submitLabel),
+			added.submitLabel
+		);
+		check('the add form puts a new row on the day', added.landed === true, TITLE);
+		check('a successful add closes the form', added.formClosed === true);
+
+		/* And the figure moved with it, which is the same agreement re-asserted
+		   after a write rather than only on first paint. */
+		const afterAdd = await cal.evaluate(readDay);
+		check(
+			'the figure still agrees after adding',
+			afterAdd.figure === afterAdd.rows,
+			`${afterAdd.figure} vs ${afterAdd.rows}`
+		);
+
+		const firstPress = await cal.evaluate(async (title) => {
+			const row = [...document.querySelectorAll('section[aria-labelledby^="day-"] > ul > li')].find(
+				(li) => li.textContent.includes(title)
+			);
+			row?.querySelector('button[aria-label^="Details for "]')?.click();
+			await new Promise((r) => setTimeout(r, 120));
+
+			const dialog = document.querySelector('[role="dialog"]');
+			[...(dialog?.querySelectorAll('button') ?? [])]
+				.find((b) => b.textContent.trim() === 'Delete')
+				?.click();
+			await new Promise((r) => setTimeout(r, 120));
+
+			const live = document.querySelector('[role="dialog"]');
+			return {
+				stillOpen: live !== null,
+				stillOnDay: [...document.querySelectorAll('section[aria-labelledby^="day-"] > ul > li')].some(
+					(li) => li.textContent.includes(title)
+				),
+				asks: /cannot be undone/i.test(live?.textContent ?? ''),
+				focusIsKeep: document.activeElement?.textContent.trim() === 'Keep it'
+			};
+		}, TITLE);
+
+		check(
+			'one press of Delete deletes nothing',
+			firstPress.stillOnDay === true && firstPress.stillOpen === true,
+			'a confirmation is only a confirmation if the first press is inert'
+		);
+		check('it asks, naming what it would destroy', firstPress.asks === true);
+		check(
+			'focus goes to the safe control, not the destructive one',
+			firstPress.focusIsKeep === true,
+			'so Enter agrees with the pointer, and a double-tap cannot delete'
+		);
+
+		const second = await cal.evaluate(async (title) => {
+			const dialog = document.querySelector('[role="dialog"]');
+			[...(dialog?.querySelectorAll('button') ?? [])]
+				.find((b) => b.textContent.trim() === 'Delete for good')
+				?.click();
+			await new Promise((r) => setTimeout(r, 200));
+
+			return {
+				closed: document.querySelector('[role="dialog"]') === null,
+				gone: ![...document.querySelectorAll('section[aria-labelledby^="day-"] > ul > li')].some(
+					(li) => li.textContent.includes(title)
+				)
+			};
+		}, TITLE);
+
+		check('confirming deletes the row', second.gone === true);
+		check('and closes the dialog behind it', second.closed === true);
+	}
+
+	// ── Joining an event ───────────────────────────────────────────────────
+	/*
+	 * The store key is pinned in `calendarEvents.spec.ts`. What is left for a
+	 * browser is that the control writes at all, and that the heading's fraction
+	 * follows it -- a count that does not move is how "count me in" quietly
+	 * becomes decorative, which is precisely what Home's version is today.
+	 */
+	if (daysWithEvents.length > 0) {
+		await selectDay(daysWithEvents[0].day);
+		await cal.waitForTimeout(SETTLE);
+
+		const joined = await cal.evaluate(async () => {
+			const section = document.querySelector('section[aria-labelledby="calendar-happening"]');
+			const countOf = () =>
+				section?.querySelector('.thrive-numeric')?.textContent.trim() ?? '';
+			const before = countOf();
+
+			[...section.querySelectorAll('button')]
+				.find((b) => /Count me in/i.test(b.textContent))
+				?.click();
+			await new Promise((r) => setTimeout(r, 150));
+
+			return {
+				before,
+				after: countOf(),
+				states: /You’re in/.test(section.textContent),
+				offersExit: [...section.querySelectorAll('button')].some((b) =>
+					/Remove from my list/i.test(b.textContent)
+				),
+				says: /Nobody was notified/i.test(section.textContent)
+			};
+		});
+
+		check('joining states the fact', joined.states === true);
+		check(
+			'and offers a visible way out',
+			joined.offersExit === true,
+			'a control whose off-switch is invisible is one students are afraid to press'
+		);
+		check(
+			'the joined fraction follows the button',
+			joined.after !== joined.before,
+			`${joined.before} -> ${joined.after}`
+		);
+		check('a joined row says nothing was sent anywhere', joined.says === true);
+	} else {
+		unproven('joining an event', 'no day in this month renders an events section');
+	}
+
+	await cal.close();
+
 	// ── Reduced motion: still marked, still cleared ────────────────────────
 	/*
 	 * The global reduced-motion block forces `animation-duration: 0.01ms` on
