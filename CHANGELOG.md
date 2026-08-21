@@ -4,6 +4,37 @@ Dated session summaries, most recent first.
 
 ---
 
+## 2026-08-21 — 7c follow-ons: Home's join, the dots, and the doc pass
+
+**HEAD:** `e743232` · 6 commits · 558 tests · six gates green · green in all seven
+timezones. `check:interaction` 84 → 92.
+
+### What changed
+
+- **Home's "count me in" is live**, inert since 6a because the join key space was
+  unsettled. 7c settled it; this wires it. The register copy moved to
+  `messages.common.events` now that two live surfaces share it.
+- **The join round trip is gated**: join on the calendar, navigate to Home, the same
+  event says so.
+- **The month grid's dots**: 6px → 8px via a new `--thrive-cal-dot`, and five status
+  tokens gained chroma at fixed lightness. **Size did more than colour.**
+- **CONTEXT.md regenerated in full** after three calendar phases of drift.
+- **No personal names in any doc** — CONVENTIONS rule 8. Eight replaced with roles.
+- **README rewritten** for a cold arrival, around a guide to the eleven docs.
+
+### Known issues
+
+- **Teal and amber cannot be made more vivid** without moving lightness, which the
+  contrast floor forbids. Recorded so it is not rediscovered.
+- **Home's "Add to calendar" is still inert** — now the only one left.
+- The agenda has no add form, and that is settled rather than pending.
+
+### Next priorities
+
+`/assignments`, then Appointments. The real-phone pass now has a second reason.
+
+---
+
 ## 2026-08-21 — Phase 7c: the calendar's editing surfaces
 
 **HEAD:** `5b636f6` · 8 commits · 558 tests (was 507) · six gates green · green in

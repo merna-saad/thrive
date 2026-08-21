@@ -4,6 +4,114 @@ Session log, newest first. What happened, what was decided, what is still open.
 
 ---
 
+## 2026-08-21 — 7c follow-ons: Home's join, the dots, and the doc pass
+
+**HEAD:** `e743232` · 6 commits · 558 tests · six gates green · green in all seven
+timezones. `check:interaction` **84 → 92**.
+
+Four answers acted on, in the order that avoided doing the same work twice — code
+first, then CONTEXT, so the regeneration described the final tree.
+
+### 1. The agenda keeps no add form — settled, no code
+
+Owner's answer, and it is now written into CONTEXT §14 as a decision rather than an
+omission: the agenda spans thirty days, so there is no day for a new item to land
+on, and both other views offer one. Do not revisit without a proposal for what day
+an agenda-level add would add to.
+
+### 2. Home's "count me in" is live
+
+Inert since 6a with a comment beside it saying exactly why — the join store was
+keyed on the calendar item id, so a write from Home would have landed under a key
+the calendar never reads. 7c settled that. It is now real, in the calendar's exact
+shape, and **the register vocabulary moved to `messages.common.events`**: two live
+surfaces rendering the identical words for the identical act should not be two
+strings for a translator to keep in step.
+
+**The gate gained 8 assertions, and the pair is the point.** Join on the calendar,
+navigate to Home, and the same event says so — nothing in between but a page load
+and `localStorage`. And Home's own control writes the RAW id, checked against the
+row's own DOM id, which arrives by a different route (`revealRowId()` builds one,
+the click handler passes `event.id` to the store).
+
+Wiring Home without that check would have reassembled the exact conditions of the
+7a defect: two surfaces, one store, each self-consistent, nothing looking at both.
+
+**"Add to calendar" beside it is still inert** — not blocked on anything now that
+`$lib/ics` is ported, simply not what this was for. It is now the only dead
+affordance left in the app. CONTEXT §18 loose end 20.
+
+### 3. The month grid's dots — and size beat colour
+
+Reported plainly because it is the useful part: **6px → 8px did more than five
+retuned colour tokens did.** 1.8× the area is 1.8× as much of any colour to see.
+
+The colour work, in oklch holding lightness so contrast could not move:
+
+| token | before | after | chroma |
+|---|---|---|---|
+| on-track | `#14706b` | `#00716c` | 1.07× |
+| watch | `#8f6220` | `#946000` | 1.15× |
+| needs-help | `#6a5fb0` | `#7851c2` | 1.37× |
+| civic | `#8a5f8f` | `#994ea3` | 1.69× |
+| later | `#64748b` | `#4c74ad` | 2.46× |
+
+**Teal and amber were already at the sRGB gamut boundary for their lightness.**
+1.07× and 1.15× is all there is, and the only way to more is to move lightness,
+which the contrast floor forbids. That is a real limit, not a tuning failure, and
+it is CONTEXT §18 loose end 21 so nobody spends an afternoon rediscovering it.
+
+**The collision fixed:** `later` and `muted` were dE 0.039 apart — half the next
+pair — and carried FOUR of the eleven categories between them. `muted` cannot move
+(it is all secondary text); `later` can, and nothing about "later" requires grey.
+Worst pair on the grid 0.039 → 0.078.
+
+**The collision avoided, which is the more transferable half:** raising violet's
+chroma along its own hue walked it INTO indigo, the reserved "you are here" — dE
+0.047, worse than the worst pair before the pass — and both appear on the month
+grid at once. Re-centring the hue 288 → 296 in the corridor between indigo and plum
+bought 1.37× the chroma for nothing: separation from both neighbours marginally
+BETTER. **Check a saturation change against every reserved colour, not just the one
+you are separating from.**
+
+Contrast 58/58, unchanged, no threshold touched. Dot geometry measured at six
+widths: no clipping, no reflow, no horizontal overflow, 5px of slack at 375px.
+
+### 4. CONTEXT.md regenerated in full
+
+All 1,809 lines read first. Six things it caught beyond the counts are listed in the
+commit message; the three worth repeating here are that §8's key-space table had
+joins in the wrong space, §10 still named `ItemDetail` as a *candidate* third caller
+for the two actions, and §10 said the toast had no caller when it has three.
+
+### 5. Two doc jobs that arrived mid-session
+
+**No personal names in any doc**, now CONVENTIONS rule 8. Eight occurrences across
+three files, all replaced with roles. Fixture data is out of scope and unchanged.
+The one that needed rewriting rather than substituting was the advisor entry — it
+named two people, and what it was documenting is that one is in-person-only and one
+has a remote mode.
+
+**The README rewritten for someone arriving cold.** Its main job is the guide to the
+eleven docs, ordered by what a newcomer needs first. It also gained a backend
+section (the 25-provider seam, Promises so signatures survive, dates formatted
+server-side) and the six gates with what each catches.
+
+**Four claims in the old README were wrong**, all in one paragraph: 43 assertions
+(58), three ceilings (six), "hex values are hardcoded to mirror `:root`" (it parses
+`app.css` — the exact opposite, and the reason the chroma pass needed no gate edit),
+and a docstring path that had already been corrected.
+
+### Still open
+
+1. **Home's "Add to calendar"** — one small mapper away, `Event` carries everything
+   `IcsEvent` needs.
+2. **The real-phone list**, now with one more reason: 8px dots were chosen against a
+   measurement and should be confirmed against a thumb.
+3. `/assignments`, then Appointments.
+
+---
+
 ## 2026-08-21 — Phase 7c: the calendar's editing surfaces. The calendar is done.
 
 **HEAD:** `5b636f6` · 8 commits · **558 tests** (was 507) · six gates green ·

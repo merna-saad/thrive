@@ -1,7 +1,8 @@
 # Conventions
 
 Rules this codebase holds by agreement rather than by tooling. Each one exists
-because breaking it produced a real bug that was hard to see.
+because breaking it produced a real bug that was hard to see — except the last,
+which is about what goes into the documentation rather than into the code.
 
 ---
 
@@ -510,3 +511,28 @@ the trigger occupied and holds focus, so neither a double-tap nor an Enter can
 destroy anything. A confirm button rendered where the trigger was reintroduces the
 accident the step exists to prevent. And Escape peels one layer: with the question
 up it cancels the question, not the dialog.
+
+---
+
+## No personal names in documentation
+
+**No doc in this project names a person.** Not a teammate, not faculty, not staff,
+not a student. Refer to the role instead: "the backend work", "the faculty lead",
+"a teammate", "the owner".
+
+This applies to every `.md` at the repo root and to any new one. It does **not**
+apply to fixture data — `mock/student.ts` and `mock/appointments.ts` carry the names
+the app renders, and those are data rather than documentation.
+
+**Removing a name must not remove information.** If a sentence stops making sense
+without it, rewrite the sentence. The advisor entry in CONTEXT §12 is the worked
+example: it named two people, and what it was actually documenting is that one is
+in-person-only and the other has a remote mode — which is the distinction the
+booking panel's mode filter exists for. It now says that, and points at the fixture
+file.
+
+An address is not a mention. The repo slug and the clone URL stay, because there is
+otherwise no way to find the repo.
+
+What to look for in a diff: any capitalised pair that is not a place, a product or a
+technical term. `grep -rniE "prof\.|@ucsd\.edu"` catches the obvious cases.

@@ -1,11 +1,11 @@
-<!-- built-at: 5b636f6 -->
+<!-- built-at: 4a05fdb -->
 <!-- updated: 2026-08-21 -->
 
 # CODEMAP
 
 Navigation map for the THRIVE rebuild. Read this before opening files.
 
-**Built:** 2026-08-21, refreshed after Phase 7c.
+**Built:** 2026-08-21, refreshed after Phase 7c and its two follow-ons.
 **Size:** 157 files under `frontend/src` — ~25,614 lines, 18,435 source / 7,179 test.
 
 > The `built-at` comment above is machine-read by the codemap staleness hook.
@@ -19,7 +19,7 @@ Navigation map for the THRIVE rebuild. Read this before opening files.
 |---|---|
 | `CONTEXT.md` | The snapshot. What this is, where the port has got to, every standing decision. |
 | `MIGRATION.md` | The spec. The frozen Next prototype, inventoried in nine sections. |
-| `CONVENTIONS.md` | Seven rules the tooling does not enforce. Review is the enforcement. |
+| `CONVENTIONS.md` | Eight rules the tooling does not enforce. Review is the enforcement. |
 | `HANDOFF.md` | The diary. What happened last session and what is still open. |
 
 ---
@@ -248,7 +248,7 @@ control must not scroll away with the content it controls.
 | Command | What it proves |
 |---|---|
 | `npm test` | 558 tests. Pure logic and source scans. Nothing renders. |
-| `npm run check:interaction` | 84 assertions in a real browser: the popovers, 6b's editing, **and 7c's calendar** — the day figure against its rows, the dialog's focus contract, the two-step delete, joining. **The only gate that can press a button**, and it found two real bugs the day it was widened. Fails on a console warning too — but it drives the PRODUCTION build, so it cannot see `arriveAtRow`'s dev-only warn. |
+| `npm run check:interaction` | 92 assertions in a real browser: the popovers, 6b's editing, **and 7c's calendar** — the day figure against its rows, the dialog's focus contract, the two-step delete, and the join round trip from the calendar to Home. **The only gate that can press a button**, and it found two real bugs the day it was widened. Fails on a console warning too — but it drives the PRODUCTION build, so it cannot see `arriveAtRow`'s dev-only warn. |
 | `npm run check` | Types agree. **Does NOT prove the page renders** — see BUGS.md. |
 | `npm run build` | It compiles. |
 | `python3 scripts/check-contrast.py` | 58 assertions. **Parses `app.css`**, so tokens cannot drift from their checks. |
@@ -286,7 +286,7 @@ Four properties and three key spaces: see `CONTEXT.md` §8.
 | `PagePlaceholder.svelte` | Body for unbuilt routes. **Throws** on an href absent from `nav.ts`. |
 | `SectionHeading.svelte` | Mono eyebrow + bold title + mono count. `as` → `<svelte:element>`. Ported, no call sites yet. |
 | `Avatar.svelte` | Image with an initials fallback. Hand-rolled; shadcn-svelte is later. |
-| `actions/escapeKey.ts` | Svelte action. Escape-to-dismiss, scoped to the element's lifetime. **Caller: `StatPopover`.** |
+| `actions/escapeKey.ts` | Svelte action. Escape-to-dismiss, scoped to the element's lifetime. **Callers: `StatPopover`, `DueDateEditor`, `ItemDetail`.** |
 | `actions/clickOutside.ts` | Its sibling. Capture-phase `pointerdown`, with an `alsoInside` list for the trigger that opened the thing. **Callers: `StatPopover`, `DueDateEditor`, `ItemDetail`.** |
 | `actions/focusTrap.ts` | The third. Move focus in, keep it in, put it back — one action because they are one contract. Queries the focusable set LIVE on every Tab, since a dialog's controls can change while it is up. **Caller: `ItemDetail`.** |
 
@@ -448,7 +448,7 @@ npm test                   # vitest run — 558 tests
 
 python3 scripts/check-contrast.py    # 58 assertions: 42 pairs, 6 ceilings, 10 structural
 npm run check:layout                 # 14 targets x 3 viewports, in a real browser
-npm run check:interaction            # 84 assertions: the popovers, task editing, the calendar
+npm run check:interaction            # 92 assertions: the popovers, task editing, the calendar
 ```
 
 If a page looks stale locally, something is holding the port:
