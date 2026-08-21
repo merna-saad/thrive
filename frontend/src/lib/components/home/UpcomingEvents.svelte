@@ -7,7 +7,7 @@
 	import { clearIgnoredEvents } from '$lib/ignoredEvents';
 	import { ignoreEvents } from '$lib/ignoreUndo.svelte';
 	import { expandedEventLimit, planReveal } from '$lib/reveal';
-	import { focusRevealedRow, getRevealChannel } from '$lib/reveal.svelte';
+	import { arriveAtRow, getRevealChannel } from '$lib/reveal.svelte';
 	import { showToast } from '$lib/toast.svelte';
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 	import IgnoreUndoBar from '$lib/components/ui/IgnoreUndoBar.svelte';
@@ -107,7 +107,7 @@
 
 		handledNonce = request.nonce;
 		if (plan.expand) expanded = true;
-		void focusRevealedRow(request.target);
+		void arriveAtRow(request.target);
 	});
 
 	function onIgnore(entry: EventRowData) {

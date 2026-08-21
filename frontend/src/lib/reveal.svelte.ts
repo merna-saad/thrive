@@ -86,15 +86,79 @@ export function getRevealChannel(): RevealChannel {
 	return channel;
 }
 
+/** The class `app.css` draws the arrival ring from. */
+const ARRIVED = 'thrive-arrived';
+
 /**
- * Move focus to a revealed row, and bring it into view.
+ * How long a row stays marked, taken from the stylesheet.
+ *
+ * Read rather than repeated, so the timer that removes the class and the
+ * animation that fades it cannot drift apart -- and so the duration stays a
+ * design-system value rather than becoming a number in a TypeScript file.
+ *
+ * The fallback only fires if the token is missing or unparseable, which in
+ * practice means the stylesheet did not load. Marking for a second in that case
+ * is better than not marking at all: the alternative is a feature that silently
+ * stops existing.
+ */
+function arrivalMs(): number {
+	const raw = getComputedStyle(document.documentElement)
+		.getPropertyValue('--thrive-arrival-duration')
+		.trim();
+
+	const value = parseFloat(raw);
+	if (Number.isFinite(value) && value > 0) {
+		return raw.endsWith('ms') ? value : value * 1000;
+	}
+	return 1000;
+}
+
+let clearMark: ReturnType<typeof setTimeout> | undefined;
+
+/**
+ * Mark a row as just-arrived-at, and unmark it a beat later.
+ *
+ * ## Why a mark at all
+ *
+ * The jump used to be focus plus a scroll, and on a page where everything is
+ * already visible that is indistinguishable from nothing happening. A student
+ * chose an item and concluded the click had failed. Focus is the right ACCESSIBLE
+ * answer and it stays; this is the additive visual one, for the pointer user who
+ * never sees a focus ring.
+ *
+ * ## Exactly one row at a time
+ *
+ * Any previous mark is cleared before this one is applied, and the pending timer
+ * with it. Two rows both wearing the ring would read as two selections, and the
+ * ring is not a selection -- it is an answer to the last question asked.
+ *
+ * ## Why the reflow
+ *
+ * Jumping twice to the SAME row has to show the cue twice. Removing the class and
+ * adding it again inside one task is not a change the browser ever sees, so the
+ * animation would not restart. Reading `offsetWidth` between the two forces the
+ * style to be recomputed, which is what makes the re-add a real transition.
+ */
+function markArrival(row: HTMLElement): void {
+	for (const previous of document.querySelectorAll(`.${ARRIVED}`)) {
+		previous.classList.remove(ARRIVED);
+	}
+	clearTimeout(clearMark);
+
+	row.classList.remove(ARRIVED);
+	void row.offsetWidth;
+	row.classList.add(ARRIVED);
+
+	clearMark = setTimeout(() => row.classList.remove(ARRIVED), arrivalMs());
+}
+
+/**
+ * Arrive at a revealed row: focus it, bring it into view, and say so.
  *
  * FOCUS, not scroll. Scrolling alone leaves a keyboard user exactly where they
  * were with the page moved underneath them, which is worse than not jumping at
  * all -- they have to hunt for what the click did. The row carries
- * `tabindex="-1"` so it can take focus without joining the tab order, and it
- * keeps its focus ring: the ring is the whole point, since it is the only thing
- * saying "here is the thing you asked for".
+ * `tabindex="-1"` so it can take focus without joining the tab order.
  *
  * `await tick()` because the caller has usually just expanded a card, and the
  * row does not exist in the DOM until Svelte has flushed that.
@@ -102,9 +166,11 @@ export function getRevealChannel(): RevealChannel {
  * `preventScroll` then an explicit `scrollIntoView({ block: 'nearest' })`: one
  * deliberate scroll instead of the browser's default centring followed by a
  * second correction. `nearest` is what keeps the movement inside the card's own
- * scroll container on desktop rather than jumping the page.
+ * scroll container on desktop rather than jumping the page -- and it is also why
+ * the mark is unconditional. A row that needed no scrolling gets no movement at
+ * all, so the cue is the only thing that distinguishes a jump from a dead click.
  */
-export async function focusRevealedRow(target: RevealTarget): Promise<void> {
+export async function arriveAtRow(target: RevealTarget): Promise<void> {
 	await tick();
 
 	const row = document.getElementById(revealRowId(target));
@@ -112,4 +178,5 @@ export async function focusRevealedRow(target: RevealTarget): Promise<void> {
 
 	row.focus({ preventScroll: true });
 	row.scrollIntoView({ block: 'nearest' });
+	markArrival(row);
 }

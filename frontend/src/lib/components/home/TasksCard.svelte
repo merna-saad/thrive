@@ -6,7 +6,7 @@
 	import { collapseList } from '$lib/collapse';
 	import { buildHomeGroups, nonEmptyGroups } from '$lib/homeGroups';
 	import { planReveal } from '$lib/reveal';
-	import { focusRevealedRow, getRevealChannel } from '$lib/reveal.svelte';
+	import { arriveAtRow, getRevealChannel } from '$lib/reveal.svelte';
 	import { taskDoneOverrides } from '$lib/userEdits.svelte';
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 	import ProgressBar from '$lib/components/ui/ProgressBar.svelte';
@@ -132,7 +132,7 @@
 		if (openPlan.found) {
 			handledNonce = request.nonce;
 			if (openPlan.expand) openExpanded = true;
-			void focusRevealedRow(request.target);
+			void arriveAtRow(request.target);
 			return;
 		}
 
@@ -145,7 +145,7 @@
 		if (donePlan.found) {
 			handledNonce = request.nonce;
 			if (donePlan.expand) doneExpanded = true;
-			void focusRevealedRow(request.target);
+			void arriveAtRow(request.target);
 		}
 	});
 </script>

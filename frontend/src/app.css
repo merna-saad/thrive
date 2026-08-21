@@ -325,6 +325,34 @@
   --thrive-popover-width: 17rem;
   --thrive-popover-viewport-inset: 1rem;
 
+  /* The arrival mark. See `.thrive-arrived`.
+
+     HOW LONG A ROW SAYS "HERE IT IS". Long enough that an eye arriving from the
+     popover it was just reading catches it, short enough that it is plainly a
+     cue and not a selection. 1200ms holds solid for most of that and then fades,
+     which is why it is one duration rather than a hold plus a fade.
+
+     Deliberately NOT one of the three motion tokens. 120/160/260ms are
+     TRANSITION lengths -- how fast a thing changes -- and this is a DWELL, how
+     long a state persists. The nearest existing sibling is the toast's 3000ms,
+     which is the same kind of number and also not a motion token. Reusing
+     `--thrive-motion-slow` here would have tied the fade's speed to how long the
+     mark lasts, and the next person to tune one would silently retune the other.
+
+     Read by `reveal.svelte.ts`, which clears the class on this beat, so the
+     stylesheet and the timer cannot disagree. */
+  --thrive-arrival-duration: 1200ms;
+
+  /* 2px, matching the focus ring in the base layer, because both are rings drawn
+     around something you have just arrived at and two ring weights would read as
+     two different kinds of thing.
+
+     This is NOT the 1.5px control stroke. That one exists because a control's
+     boundary is the only thing saying where the control is, and it owes 3:1 under
+     WCAG 1.4.11. This is a transient cue on a row that is not a control. The two
+     must not collapse into each other -- see the note on --thrive-control-stroke. */
+  --thrive-arrival-ring: 2px;
+
   /* Typography stack. Both faces are self-hosted via @fontsource above; these
      two variables are what the Next app's next/font call produced, kept under
      the same names so the --font-sans / --font-mono chains below are unchanged.
@@ -790,6 +818,74 @@
       var(--thrive-popover-width),
       calc(100vw - 2 * var(--thrive-popover-viewport-inset))
     );
+  }
+
+  /* ── The arrival mark ───────────────────────────────────────────────────
+     "Here it is." Put on a row that a stat pill's popover has just jumped to,
+     and taken off again one beat later by `reveal.svelte.ts`.
+
+     THE PROBLEM: the jump moved focus and scrolled the row into view, which is
+     correct and completely invisible. Everything is on one page, so a student
+     choosing "Submit peer review" saw nothing change and concluded the click had
+     failed. The focus ring is not the answer -- a pointer user does not get one.
+
+     INDIGO, because indigo is the reserved "this is where you are now" colour
+     and an arrival cue is that sentence exactly. Not urgent coral: this is
+     wayfinding, and nothing has gone wrong. Not yellow: at 1.43:1 on cream it
+     cannot carry a signal by itself, and this signal has to survive on its own
+     for about a second.
+
+     AN OUTLINE, for three reasons that are all about not fighting anything:
+
+       - It cannot move the layout. No border box to grow, no element inserted,
+         no neighbour displaced, so the grid is as immovable as it was.
+       - It does not collide with what the rows already use. A task row carries
+         its priority in a background wash and a left border; an event row is a
+         panel with its own edge. An animated background here would either lose
+         the cascade to `bg-urgent-soft` or paint over the priority that wash is
+         there to state.
+       - It follows the element's own `border-radius`, so one rule fits a task
+         row at `radius-lg` and an event row at `radius-xl` with nothing per-shape.
+
+     Inset by its own width, so it draws just inside the row rather than outside
+     it -- which keeps it clear of the focus ring's `outline-offset: 2px` on the
+     rare occasion both are visible, and stops it overlapping the neighbouring
+     row on a tight list.
+
+     THE MARK IS THE STATIC DECLARATION; THE ANIMATION ONLY TAKES IT AWAY. That
+     is the wrong way round until you read the reduced-motion block at the foot of
+     this file: it forces `animation-duration: 0.01ms !important` on everything, so
+     a mark PAINTED by a keyframe would appear and vanish within a hundredth of a
+     millisecond. Declaring the ring normally and using the animation for the fade
+     means turning the animation off leaves the ring on -- still visibly marked,
+     still cleared on the beat by the timer, which is what
+     prefers-reduced-motion should get. */
+  .thrive-arrived {
+    outline: var(--thrive-arrival-ring) solid var(--thrive-indigo);
+    outline-offset: calc(-1 * var(--thrive-arrival-ring));
+    animation: thrive-arrive var(--thrive-arrival-duration) var(--thrive-ease-standard)
+      forwards;
+  }
+
+  /* Solid for most of the beat, then out. Holding first is what makes it read as
+     an answer to a question rather than as a flash. */
+  @keyframes thrive-arrive {
+    0%,
+    60% {
+      outline-color: var(--thrive-indigo);
+    }
+    100% {
+      outline-color: transparent;
+    }
+  }
+
+  /* `animation: none` rather than a shorter duration: it clears the NAME, so the
+     global `animation-duration: 0.01ms !important` below has nothing to apply to
+     and the ring simply stays until the timer removes the class. */
+  @media (prefers-reduced-motion: reduce) {
+    .thrive-arrived {
+      animation: none;
+    }
   }
 
   /* ── The dashboard card body ────────────────────────────────────────────

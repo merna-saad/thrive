@@ -31,6 +31,25 @@ const MARKUP = import.meta.glob<string>(["../**/*.svelte", "!../routes/swatch/**
   eager: true,
 });
 
+/*
+ * TypeScript that applies a design-system class.
+ *
+ * `reveal.svelte.ts` adds `.thrive-arrived` to a row from JavaScript, which put a
+ * treatment name outside the markup glob for the first time. A typo there is the
+ * exact silent failure the vocabulary check exists to catch -- the class simply
+ * does nothing and the row is never marked -- so the check has to be able to see
+ * it.
+ *
+ * Scanned only for the vocabulary rule, not for hex or fonts: a `.ts` legitimately
+ * holds neither, and `tones.ts` is a file of class strings that would make the
+ * colour rule ambiguous rather than useful.
+ */
+const SCRIPTS = import.meta.glob<string>(["../**/*.ts", "!../**/*.spec.ts"], {
+  query: "?raw",
+  import: "default",
+  eager: true,
+});
+
 const FILES = Object.keys(MARKUP);
 
 describe("the design system's unenforced rules", () => {
@@ -97,13 +116,17 @@ describe("the design system's unenforced rules", () => {
       // The stat pill popover's width clamp. Width only: its surface, hairline
       // and radius are utilities at the call site.
       "thrive-popover",
+      // The arrival ring on a row a stat popover jumped to. Applied from
+      // TypeScript, which is why SCRIPTS is scanned as well as MARKUP.
+      "thrive-arrived",
     ];
 
     const used = new Set<string>();
-    for (const source of Object.values(MARKUP)) {
+    for (const source of [...Object.values(MARKUP), ...Object.values(SCRIPTS)]) {
       // The lookbehind excludes custom-property references: `AppShell` reads
-      // `var(--thrive-bottomnav-height)` for the shell's rem heights, which is
-      // a token being used correctly, not a class name.
+      // `var(--thrive-bottomnav-height)` for the shell's rem heights, and
+      // `reveal.svelte.ts` reads `--thrive-arrival-duration`. Both are tokens
+      // being used correctly, not class names.
       for (const match of source.matchAll(/(?<![-\w])thrive-[a-z-]+/g)) {
         used.add(match[0]);
       }
@@ -114,6 +137,8 @@ describe("the design system's unenforced rules", () => {
     expect(used.has("thrive-eyebrow")).toBe(true);
     expect(used.has("thrive-numeric")).toBe(true);
     expect(used.has("thrive-panel")).toBe(true);
+    // And the script glob really matched: this one exists only in a `.ts`.
+    expect(used.has("thrive-arrived")).toBe(true);
 
     expect([...used].filter((name) => !DEFINED.includes(name)).sort()).toEqual([]);
   });
