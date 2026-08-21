@@ -2,8 +2,106 @@
 
 Defects found and fixed, and the patterns behind them. Newest first.
 
-Note on links: this repo has no PRs — all 13 commits went direct to `main`
+Note on links: this repo has no PRs — all commits go direct to `main`
 (solo, no review gate yet). Commit hashes stand in.
+
+---
+
+## 2026-08-22 — fixed during the Phase 5 port
+
+Four defects from `MIGRATION.md` §9 that were **built correctly rather than
+ported**. None of these was a bug in this repo; each is a bug in the Next
+prototype that a faithful port would have inherited.
+
+### `cancelAppointment` released a slot by matching start time
+
+**FIXED** · `955fc93` · was **LOW**, would have become **HIGH**
+
+`providers.ts:252-260` in the Next tree iterated `claimedSlotIds` and released
+the first slot whose `start` equalled the appointment's, because the appointment
+carried no reference back to the slot it claimed.
+
+Correct with one advisor per service and distinct times — which is exactly what
+the fixtures give it, so nothing ever revealed it. **Wrong the moment an advisor
+publishes two simultaneous slots**, where it frees whichever the set iteration
+reached first. The student cancels one appointment and someone else's slot opens
+up.
+
+**Fix:** `Appointment.slotId`, set at booking, deleted at cancellation. One
+exact delete, and it drops the rebuild of the advisor's entire slot list that the
+scan needed.
+
+**The pattern:** this is the same shape as "never resolve a row by parsing its
+id" — reconstructing a relationship from a value that merely *correlates* with
+it. `start` is not an identity. Store the reference.
+
+### The provider boundary was violated in exactly one place
+
+**FIXED** · `d26f4e6` · was **LOW**, a build break later
+
+`app/degree/requests/page.tsx:8` did
+`import { requestTypeLabel } from "@/lib/data/mock/requests"` — the only import
+in the whole tree reaching past `@/lib/data` into a mock module. Confirmed by
+grep, not taken on faith: the three other `lib/data/mock` matches are comments.
+
+It would have broken the build the day the mock modules were deleted for Django,
+which is the one day nobody wants a surprise.
+
+**Fix:** both label maps moved to `data/labels.ts`, on the public side. They were
+never mock data — they are labels for a closed union in `types.ts`, correct no
+matter what is behind the providers.
+
+### Four providers returned fixtures by reference
+
+**FIXED** · `955fc93` · was **LOW**
+
+`getStudent`, `getDegreeProgress`, `getAdvisors` and `getResources` returned
+module-level fixtures directly, while the file's own comment two functions above
+said a caller "should never see it change underneath them". The store-backed
+providers all copied.
+
+No live bug — nothing mutated them. But "no live bug" is a property of today's
+callers, not a contract, and the next caller does not read the comment.
+
+**Fix:** all 25 return copies. Still shallow, as they were — the nested-array
+hole is pinned by a test rather than silently closed.
+
+### `DegreeProgress.expectedCompletion` was a second, stale answer
+
+**FIXED** · `327f7af` · was **LOW**
+
+Declared on the type, hardcoded `"Spring 2027"` in the fixture, while
+`buildProgramTimeline` derived **Fall 2027** for the same student. Two answers to
+one question, and the only reason nothing contradicted on screen was that the
+field rendered nowhere.
+
+**Fix:** dropped from the type and the fixture. The finish term is derived —
+`ProgramTimeline.expectedFinishTerm`.
+
+**The pattern:** a stored field that duplicates a derived one is a bug with a
+delay on it. It cannot be kept in step, and it stays quiet until someone renders
+it.
+
+---
+
+## Still open, inherited deliberately
+
+### The three mock stores are process-global — **BLOCKING**
+
+`MIGRATION.md` §9 defect 1, unchanged by this port and unfixable at this layer.
+Module-scope objects shared by every visitor to the `adapter-node` process:
+concurrent students book over each other and see each other's requests and
+resume versions, and everything resets on restart or hot reload.
+
+Django is the fix. Each store says so at its definition. **Do not put this in
+front of more than one person before then.**
+
+### Provider copies are shallow
+
+`{ ...version }` shares `version.skills`, `version.courses` and
+`version.experience` with the store, so `returned.skills.push(...)` mutates it.
+Faithful to the Next source. Pinned by a test in `providers.spec.ts` that fails
+if someone deep-copies on purpose, and says why.
 
 ---
 

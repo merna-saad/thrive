@@ -4,6 +4,59 @@ Dated session summaries, most recent first.
 
 ---
 
+## 2026-08-22 — Phase 5, the data layer
+
+**HEAD:** `0dcca16` · 4 commits, all pushed · **324 tests (277 pre-existing,
+unmodified), 12 files, all green** · `svelte-check` 0 errors · build clean ·
+contrast 43/43.
+
+### What changed
+
+- **All 25 providers** ported to `frontend/src/lib/data/providers.ts` with
+  signatures verified identical to the Next source by mechanical diff, plus
+  `SlotUnavailableError`. **Against the same mock fixtures**, not against
+  Django — no HTTP client, no API layer, nothing invented against a backend
+  that does not exist yet.
+- **13 fixture modules** under `data/mock/`. Eight are byte-identical to the
+  source; the other five differ only in comments, except `degree.ts`.
+- **The three module-level stores** with their lazy seeding, their id
+  generators, and the id-collision hazard now documented at the generator
+  rather than in a migration doc.
+- **`data/latency.ts`** — the 120ms delay behind `setMockLatencyMs`, which can
+  be set to 0. Kept, not deleted: it exists so a route that forgot its loading
+  state looks wrong in development instead of only in production.
+- **`data/labels.ts`** — `requestTypeLabel` / `requestTypeHelp` moved onto the
+  public side of the boundary.
+- **`stubProviders.ts` deleted.** The root `+layout.server.ts` changed one
+  import path and nothing else.
+- **`providers.spec.ts`** — 47 tests.
+
+### Four §9 defects fixed rather than reproduced
+
+| # | Defect | Fix |
+|---|---|---|
+| 8 | `cancelAppointment` released a slot by matching start time | `Appointment.slotId`; the release is one exact delete |
+| 11 | `degree/requests/page.tsx` imported a label map from `lib/data/mock/requests` | Both maps moved to `data/labels.ts` |
+| 15 | Four providers returned fixtures by reference | All 25 return copies |
+| 9 | `DegreeProgress.expectedCompletion` hardcoded "Spring 2027" vs a derived Fall 2027 | Field dropped from the type and the fixture |
+
+### Known issues
+
+- **§9 defect 1 (BLOCKING) is inherited intact.** The stores are process-global.
+  Django is the fix; an `adapter-node` process has the same hazard.
+- **Copies are shallow.** Pushing onto a returned version's nested `skills`
+  array still reaches the store. Pinned by a test that says so.
+- **§2 overstates `buildSlotsFor` determinism.** Availability folds in a clock
+  read. Documented at the function.
+- **`requestTypeHelp` has no consumer** anywhere in the Next tree.
+
+### Next priorities
+
+`buildScheduleData()` — the five providers it needs now exist. Then the route
+`load` functions and the view models.
+
+---
+
 ## 2026-08-21 — repo created, SvelteKit port through Phase 4
 
 ### What changed

@@ -4,6 +4,69 @@ Session log, newest first. What happened, what was decided, what is still open.
 
 ---
 
+## 2026-08-22 — Phase 5, the data layer
+
+**HEAD:** `0dcca16` · 4 commits, all pushed · 324 tests green.
+
+### The handoff correction that mattered
+
+The previous entry said Phase 5 was "the 25 providers **against Django**". That
+was wrong and was corrected before any code was written. Django does not exist
+and is not being written here. This phase ports the providers against **the same
+mock fixtures the Next app uses**. Django replaces the provider bodies much
+later. No HTTP client, no API layer, no backend integration was written.
+
+Anyone reading the old line and building an API client would have invented a
+contract against a backend nobody has designed, and every guess would have been
+load-bearing by the time it was discovered.
+
+### What was done
+
+Four commits, one per layer: fixtures + clock, the three stores, providers +
+boundary, tests.
+
+**Verified by mechanical diff, not by eye.** All 25 signatures diffed identical
+against the Next source. The provider bodies were diffed comments-stripped, and
+the only differences are the five intended ones. Eight of thirteen fixture
+modules are byte-identical; the rest differ only in comments except `degree.ts`.
+The old repo was confirmed untouched afterwards.
+
+**Green in seven timezones**, UTC+14 to UTC−11, per the sweep TESTING.md
+documents. This phase is entirely date-shaped, so the sweep was not optional.
+
+### Decisions made
+
+- **`Appointment` gains `slotId`.** Needed to release the right slot by id.
+  Chosen over a side map in the store because it is the shape the Django model
+  has anyway. Verified nothing in the tree constructs an `Appointment`, so no
+  existing test broke.
+- **`expectedCompletion` dropped** from the type and the fixture. It was a
+  second, stale answer to a question the timeline already derives.
+- **Copies stay shallow.** Faithful to the source. The nested-array hole is
+  pinned by a test rather than quietly deep-copied, because deepening it is a
+  behaviour change beyond a port.
+- **No `resetStores()` export.** Test isolation via `vi.resetModules()` instead,
+  to keep a test-only function out of the production surface.
+- **`mock/` and `latency.ts` stay private.** Only `types`, `providers` and
+  `labels` are public.
+
+### Still open
+
+- **§9 defect 1 — the process-global stores. BLOCKING.** Unchanged and
+  unfixable at this layer. Django is the fix. Anything resembling a multi-user
+  demo before then will have students booking over each other.
+- **`buildScheduleData()` is still unported.** It was blocked on the five
+  providers; they exist now. This is the obvious next task.
+- **Shallow copies.** Documented, tested, not fixed.
+- **`requestTypeHelp` has no consumer** in the Next tree — ported anyway, since
+  the type picker it belongs under is a later phase. Delete it if that picker
+  never lands.
+- **Nothing renders any of this yet.** 25 providers and no route reads more than
+  `getStudent()`. The data layer is ahead of the UI by design, but it means the
+  only evidence it works is the test suite.
+
+---
+
 ## 2026-08-21 — repo created, port through Phase 4
 
 **HEAD:** `b0f7c3b` · **13 commits, all pushed** · first session in this repo.

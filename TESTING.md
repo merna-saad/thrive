@@ -1,6 +1,7 @@
 # TESTING
 
-**Last verified:** 2026-08-21 at `b0f7c3b`. **277 tests, 11 files, all passing.**
+**Last verified:** 2026-08-22 at `0dcca16`. **324 tests, 12 files, all passing.**
+Verified green in all seven timezones of the sweep below.
 
 ```bash
 cd frontend
@@ -46,6 +47,7 @@ rather than being appended to the pure-logic ones.
 
 | Spec | Tests | Covers |
 |---|---|---|
+| `providers.spec.ts` | 47 | The four provider properties (Promise-returning, copies-not-references, deterministic generation, fixtures relative to now), the public surface of `$lib/data` including what must **not** leak, and every store behaviour: booking claims, double-book throws, cancel releases only its own slot, `submitRequest` idempotence, unknown ids returning null |
 | `format.spec.ts` | 89 | `describeDue` across all four branches with every field asserted; the boundaries rather than the middles (day 0/−1, 1/2, 6/7, exact midnight, ±1s across a rollover); `calendarDaysBetween` and `countdownPhrase` through their public surfaces; both DST transitions; month, year and leap-day spans; both countdown thresholds from both directions; every other exported helper |
 | `calendarStores.spec.ts` | 35 | Calendar prefs store, quick list, labels/urgent/custom events, ignored events, `tickItem` writing back through the attached row, and **the three key spaces staying separate** |
 | `schedule.spec.ts` | 27 | Grid arithmetic, `isVisible`/`filterSchedule`, `nextUpItem`, `groupAgenda`, `groupDayItems`, `weekGrid`, and the collapsed `dayKeyOf` agreeing across both signatures |
@@ -57,6 +59,34 @@ rather than being appended to the pure-logic ones.
 | `calendarPrefs.spec.ts` | 11 | Defaults and migration. Has caught four separate new-field omissions in its life |
 | `calendarItems.spec.ts` | 9 | Custom-event mapping, rejecting malformed and non-existent dates, label/urgent filtering |
 | `toast.spec.ts` | 6 | The single slot, its 3000ms clock, and that it persists nothing |
+
+### Testing the provider layer
+
+**Properties, not fixture contents.** The fixtures are demo data and will be
+deleted when Django lands, so asserting on them would be writing tests with a
+known expiry date. `providers.spec.ts` asserts the four things that have to
+survive the swap, and the store behaviours that have gone wrong before.
+
+**Isolation comes from the test side.** The three stores are module-scope
+objects, so under one registry a test that books an appointment changes what the
+next test sees and the suite starts passing on file order. Each test calls
+`vi.resetModules()` and re-imports. A `resetStores()` export would have been
+more convenient and would have put a test-only function in the production
+surface, where it would still be sitting long after Django made the stores
+irrelevant.
+
+**Freeze `Date` only.** `vi.useFakeTimers({ toFake: ["Date"] })` — because
+`resolveAfterDelay` needs a real `setTimeout` to resolve. Faking all timers
+deadlocks every provider call. Latency goes to 0 through `setMockLatencyMs`,
+which is the whole reason that knob exists.
+
+**One test asserts on source text.** The `Math.random()` scan reads the data
+directory through `import.meta.glob(..., { query: "?raw" })` — not `node:fs`,
+because this repo has no `@types/node` and `npm run check` is a gate. It strips
+comments first: both hash functions carry a comment naming `Math.random()` as
+the thing they avoid, and a guard that forced those comments out would be
+deleting the explanation to satisfy the check. It also asserts the stripped
+corpus still contains both hash functions, so it cannot pass vacuously.
 
 ### What the suite is actually good at
 

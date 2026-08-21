@@ -4,6 +4,121 @@ Reusable patterns and lessons. Things worth knowing again.
 
 ---
 
+## 2026-08-22 — porting a provider boundary
+
+### Diff the port, do not review it
+
+A 2,000-line port is exactly the size where reading the diff stops working: too
+big to hold, too repetitive to stay alert through. Two mechanical checks found
+more confidence than an hour of reading would have:
+
+```bash
+# 1. Signatures identical?
+grep -oE "export (async )?function [a-zA-Z]+\([^)]*\)[^{]*" providers.ts
+
+# 2. What actually changed, ignoring every reflowed comment?
+python3 strip-comments.py old.ts > a; python3 strip-comments.py new.ts > b; diff a b
+```
+
+The second is the useful one. Comments were rewritten heavily and formatting
+differs; stripping both to bare code turned "did I change anything I did not mean
+to" from a judgement call into a five-line diff that could be checked against the
+list of intended changes. Eight of thirteen fixture files came out
+**byte-identical**, which is a stronger statement than any amount of "looks
+right".
+
+**Do this before claiming a port is faithful.** "I was careful" is not evidence.
+
+### The migration doc is a lead, the source is the answer
+
+`MIGRATION.md` §2 described `buildSlotsFor` as having "deterministic ids and
+deterministic availability". The ids are. Availability is
+`!inThePast && !isTaken(...)` — and `inThePast` reads the clock, so the whole
+window shifts at midnight and today's slots drop out one at a time.
+
+Had I trusted the doc, the determinism test would have asserted something false
+and then been "fixed" by loosening it until it passed. Reading the source first
+meant the test freezes the clock and asserts the real property.
+
+The doc was written from the same source three commits earlier by someone with
+the same intentions. It still drifted. **Where a doc and the code disagree, the
+code wins, and the doc gets corrected in the same session.**
+
+### A test-only export is permanent
+
+The three stores are module-scope, so tests need isolation. The convenient fix is
+`export function resetStores()`. The cost is a function in the production surface
+that only tests call — and it does not leave when the reason for it does. It
+would still be exported long after Django made the stores irrelevant, and by then
+nobody would remember whether the app relied on it.
+
+`vi.resetModules()` + `await import()` per test costs a helper in the spec file
+and nothing in the shipped module.
+
+**The general form:** when a test needs a seam, first ask whether the seam can
+live entirely on the test's side of the wall.
+
+### Fake only the clock you need
+
+`vi.useFakeTimers()` deadlocks every provider in this layer: they resolve through
+`setTimeout`, so faking all timers means nothing ever resolves and every test
+times out with no useful message.
+
+```ts
+vi.useFakeTimers({ toFake: ["Date"] });  // setTimeout stays real
+```
+
+**Anywhere a delay is part of the mechanism, fake `Date` and leave the timers
+alone.**
+
+### A source-scanning test must prove it is not vacuous
+
+A test asserting "no `Math.random()` in this directory" caught two files
+immediately — both of them **comments** naming `Math.random()` as the thing the
+hash functions exist to avoid. The obvious fixes are both wrong: deleting the
+comments removes the best explanation in the file, and dropping the test removes
+the guard.
+
+Strip comments, then scan. But a comment-stripper is exactly the kind of code
+that can silently return nothing and turn the test permanently green:
+
+```ts
+expect(corpus).toContain("function isTaken");   // the strip did not eat the code
+expect(offenders).toEqual([]);                  // and there is no Math.random
+```
+
+**Any test that asserts an absence needs a companion assertion that it can still
+see a presence.** Otherwise it stops being a test and nobody notices.
+
+### `import.meta.glob` beats `node:fs` in a Vite repo
+
+Reading source files with `node:fs` passed under Vitest and failed
+`svelte-check` — no `@types/node` in this project, and the typecheck is a gate.
+`import.meta.glob(["./**/*.ts", "!./**/*.spec.ts"], { query: "?raw", import:
+"default", eager: true })` needs no new dependency, is typed already, and is
+relative to the spec file rather than to `process.cwd()`.
+
+**Adding `@types/node` to satisfy one test would have been the wrong trade** — a
+dependency for a convenience, in a repo whose whole point is to stay portable to
+a Django-backed future.
+
+### Comment the hazard at the hazard
+
+The id generators (`nextRequestId`, `nextVersionId`) count independently of what
+the seed functions inserted. They work only because someone numbered the seed
+`req-000` and set the resume counter to 4 by hand. Nothing enforces it.
+
+That was recorded in a migration doc. A migration doc is read once. The note now
+sits on the generator, and it spells out the failure: seed a `req-001` and the
+student's first request silently shares its id, after which `submitRequest` flips
+whichever record `find()` reaches first. No error, no log.
+
+**A hazard documented somewhere else is a hazard documented nowhere.** The test
+that pins `req-001` is the other half — it fails the moment someone adds a seed
+without moving the counter.
+
+---
+
 ## 2026-08-21 — porting a React app to Svelte 5
 
 ### Probe before asserting. Every time.

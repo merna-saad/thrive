@@ -1,12 +1,12 @@
-<!-- built-at: b0f7c3b -->
-<!-- updated: 2026-08-21 -->
+<!-- built-at: 0dcca16 -->
+<!-- updated: 2026-08-22 -->
 
 # CODEMAP
 
 Navigation map for the THRIVE rebuild. Read this before opening files.
 
-**Built:** 2026-08-21, first full build.
-**Size:** 61 files under `frontend/src` — ~8,575 lines, 5,357 source / 3,218 test.
+**Built:** 2026-08-22, refreshed after Phase 5 (the data layer).
+**Size:** 77 files under `frontend/src` — ~11,611 lines, 7,551 source / 4,060 test.
 
 > The `built-at` comment above is machine-read by the codemap staleness hook.
 > Keep it as the first line, in that exact `<!-- built-at: <hash> -->` form.
@@ -54,12 +54,10 @@ No framework surface. All of it ported in Phase 2 and under test.
 
 | File | Role |
 |---|---|
-| `data/types.ts` | Every domain type. One file, on purpose. Dates are ISO **strings**, never `Date`. |
-| `data/index.ts` | Public entry. Import from `$lib/data`, never deeper. Types only until Phase 5. |
-| `data/stubProviders.ts` | **TEMPORARY.** One hardcoded student. Deleted in Phase 5. |
+| `data/` | **The provider boundary.** Its own section below. Import from `$lib/data`, never deeper. |
 | `format.ts` | Server-side formatting. `describeDue()` is the important one — returns a 4-state discriminated union. |
 | `schedule.ts` | **The calendar's vocabulary.** Category maps, the three category sets and their guards, grid arithmetic, `filterSchedule`/`isVisible` (the one filter), grouping, `nextUpItem`. Read this first for anything calendar-shaped. |
-| `buildSchedule.ts` | `todayKey()` only. `buildScheduleData()` needs providers. |
+| `buildSchedule.ts` | `todayKey()` only. `buildScheduleData()` is still unported — it needs five providers, which now exist. |
 | `calendarSources.ts` | `taskToItem`, `todoToItem`, `mergedSchedule()`, `nowMinutes()`. |
 | `calendarItems.ts` | Custom events, labels, urgent. Keyed by **calendar item id**. |
 | `calendarPrefs.ts` | `normalisePrefs` + the persisted store. |
@@ -70,6 +68,43 @@ No framework surface. All of it ported in Phase 2 and under test.
 | `features.ts` | `FEATURES` — both floating widgets off. |
 | `title.ts` | `pageTitle()` — Next's `"%s · THRIVE"` template. |
 | `utils.ts` | `cn()`. Survives for the `class`-override case only. |
+
+---
+
+## The data layer — `frontend/src/lib/data/`
+
+**This is the seam.** 3,551 lines. Ported in Phase 5 against the same mock
+fixtures the Next app uses — there is no HTTP client and no Django here. Django
+replaces the provider *bodies* later; the signatures are the contract and do not
+move.
+
+| File | Role |
+|---|---|
+| `index.ts` | **The only public entry.** Re-exports `types`, `providers`, `labels` and nothing else. |
+| `types.ts` | Every domain type. One file, on purpose. Dates are ISO **strings**, never `Date`. |
+| `providers.ts` | **The 25 functions + `SlotUnavailableError`.** Every one returns a Promise. Every one returns copies. |
+| `labels.ts` | `requestTypeLabel`, `requestTypeHelp`. Public because they are labels for a closed union, not mock data. |
+| `latency.ts` | `resolveAfterDelay` + `setMockLatencyMs`. **Private.** The 120ms exists to surface missing loading states. |
+| `mock/relative-dates.ts` | **The clock every fixture reads.** `at`, `onDay`, `upcomingWeekday`, `startOfToday`, `SUN`–`SAT`. |
+| `mock/appointments.ts` | Advisors, `buildSlotsFor`, and **store 1** (appointments + claimed slots). |
+| `mock/requests.ts` | **Store 2.** Lazy `seedOnce` — one approved `req-000`. |
+| `mock/resume.ts` | Skills, resume courses, experience, and **store 3**. Lazy seed, `nextId` starts at 4. |
+| `mock/program.ts` | `buildProgramTimeline` — pure, fully parameterised including `now`. The finish line is derived. |
+| `mock/{student,courses,assignments,tasks,events,syllabi,degree,resources}.ts` | Pure fixtures. Byte-identical to the Next source except `degree.ts`. |
+
+### Three things to know before touching it
+
+1. **`mock/` and `latency.ts` are not exported from `index.ts`.** A component
+   that needs something from either has found a gap in the provider surface.
+   Widen the surface; do not reach through it. The Next tree violated this
+   exactly once (MIGRATION.md §9 defect 11) and it is fixed here, not carried.
+2. **The three stores are module-scope objects**, shared by every visitor and
+   wiped on restart. MIGRATION.md §9 defect 1, graded **BLOCKING**. Inherited
+   deliberately; Django is the fix. Tests get isolation via `vi.resetModules()`,
+   not via a production reset hook.
+3. **Nothing here is random.** Slot availability and the events calendar are
+   hashed, not sampled — `Math.random()` would desynchronise server from client.
+   A test scans the whole directory to keep it that way.
 
 ---
 

@@ -199,7 +199,15 @@ appointments store starts empty so `apt-001` is free.
 and **deterministic** availability (`isTaken()` hashes
 `advisorId.length * 7 + dayIndex * 3 + timeIndex * 5`, taken when `% 4 === 0`).
 The comment is explicit that `Math.random()` here would desynchronise server
-from client. `bookingDays()` skips weekends and publishes
+from client.
+
+> **Correction, 2026-08-22 (Phase 5).** "Deterministic availability" above is
+> wrong as written. The ids and `isTaken()` are pure, but the field is
+> `available: !inThePast && !isTaken(...)`, and `inThePast` reads `Date.now()`.
+> So the output is fully determined by `advisorId` only *at a fixed instant*:
+> today's slots drop out one by one as the day passes, and the whole five-day
+> window shifts at midnight. Verified against the source, which wins. The port
+> documents this at the function and freezes the clock to test it. `bookingDays()` skips weekends and publishes
 `BOOKING_WINDOW_DAYS = 5` business days. `SLOT_MINUTES = 30`.
 
 ### `src/lib/data/mock/relative-dates.ts` — the clock every fixture reads
