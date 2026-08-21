@@ -10,14 +10,22 @@
 	 * Read-only, and derived end to end: nothing here is stored. `percentComplete`
 	 * and `expectedFinishTerm` are computed by `buildProgramTimeline` from the
 	 * student's start date and track, so switching track moves both with no edit.
+	 *
+	 * ## Bare, not a panel
+	 *
+	 * This used to carry `.thrive-panel px-3 py-2.5` and sit as its own box above
+	 * the greeting. It is now a band inside `HomeHeader`'s single panel, because
+	 * two stacked boxes cost a set of panel padding and a stack gap -- 32px of
+	 * measured height for a boundary that was not saying anything. It keeps its
+	 * `<section>` and its `aria-labelledby`: the landmark was never the panel.
 	 */
 	let { timeline }: { timeline: ProgramTimeline } = $props();
 
 	const current = $derived(timeline.phases.find((phase) => phase.id === timeline.currentPhaseId));
 </script>
 
-<section aria-labelledby="program-strip-heading" class="thrive-panel px-3 py-2.5">
-	<div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+<section aria-labelledby="program-strip-heading">
+	<div class="flex flex-wrap items-baseline justify-between gap-x-3">
 		<!-- A <p>, not an <h2>. This strip renders above the page's <h1>, so a
 		     heading here would put the document out of order for anyone navigating
 		     by headings. `aria-labelledby` names the section from it either way --
@@ -50,7 +58,7 @@
 	     a meaningful graphic has to clear -- the row of pips is the only place the
 	     strip shows progress, so it cannot be a hint. Required and optional
 	     upcoming phases are told apart by stroke colour, not by a dash. -->
-	<ol class="mt-2 flex items-start gap-1">
+	<ol class="mt-1 flex items-start gap-1">
 		{#each timeline.phases as phase (phase.id)}
 			<li
 				aria-current={phase.status === 'current' ? 'step' : undefined}
@@ -59,7 +67,7 @@
 				<span
 					aria-hidden="true"
 					class={cn(
-						'block h-2.5 rounded-pill border',
+						'block h-2 rounded-pill border',
 						phase.status === 'complete' && 'border-line-strong bg-primary',
 						phase.status === 'current' && 'border-primary bg-primary-fill',
 						phase.status === 'upcoming' && !phase.optional && 'border-line-strong bg-surface',
@@ -78,7 +86,7 @@
 				<span
 					aria-hidden="true"
 					class={cn(
-						'mt-1 block truncate text-center text-3xs',
+						'block truncate text-center text-3xs',
 						phase.status === 'current' ? 'text-ink' : 'text-muted-ink'
 					)}
 				>
