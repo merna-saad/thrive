@@ -1,10 +1,13 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 
+	import AddItemForm from '$lib/components/calendar/AddItemForm.svelte';
 	import AgendaView from '$lib/components/calendar/AgendaView.svelte';
 	import CalendarHeader from '$lib/components/calendar/CalendarHeader.svelte';
+	import DayEventsSection from '$lib/components/calendar/DayEventsSection.svelte';
 	import DayGroupToggle from '$lib/components/calendar/DayGroupToggle.svelte';
 	import DaySection from '$lib/components/calendar/DaySection.svelte';
+	import ItemDetail from '$lib/components/calendar/ItemDetail.svelte';
 	import KeyBar from '$lib/components/calendar/KeyBar.svelte';
 	import MiniCalendar from '$lib/components/calendar/MiniCalendar.svelte';
 	import ViewSwitcher from '$lib/components/calendar/ViewSwitcher.svelte';
@@ -18,6 +21,7 @@
 	import { cn } from '$lib/utils';
 	import {
 		allLabels,
+		eventItemsForDay,
 		filterSchedule,
 		fromDayKey,
 		itemsForDay,
@@ -52,23 +56,19 @@
 	 *     in this subtree asks the browser what time it is -- see the note in
 	 *     `+page.server.ts` for why the sanctioned client read was declined.
 	 *
-	 * ## Phase 7a is the spine
+	 * ## Complete as of 7c
 	 *
-	 * Month view, the selected day, and that day's non-event items. `ViewSwitcher`,
-	 * `WeekView`, `AgendaView`, `KeyBar`, `ItemDetail`, `AddItemForm` and
-	 * `DayEventsSection` are 7b and 7c. Nothing is stubbed: `detail` below is real
-	 * state with no writer yet, and it is the only thing here that anticipates
-	 * anything.
+	 * 7a built the spine (month grid, the selected day, its non-event items), 7b
+	 * added the other two views and the filter bar, and 7c adds the three editing
+	 * surfaces: `ItemDetail`, `AddItemForm` and `DayEventsSection`. `detail` was
+	 * declared in 7a and written by nothing; this is what writes it.
 	 *
-	 * ## `prefs` is read but not yet steerable
+	 * ## The day figure and the rows beneath it now agree
 	 *
-	 * `filterSchedule` already honours every dimension in `CalendarPrefs`, and
-	 * `DayGroupToggle` already writes `dayGroupBy`. The rest -- hidden categories,
-	 * hidden labels, urgent-only, show-ignored -- has no control until `KeyBar`
-	 * lands in 7b, so those read at their defaults. Wiring the filter now rather
-	 * than later is deliberate: it is the one place the filter may be applied, and
-	 * adding it at the same time as the control that drives it is how a second
-	 * application appears somewhere else.
+	 * `CalendarHeader`'s figure counts EVERYTHING on the day, events included. For
+	 * two phases that meant a day could read "12" above ten rows, because nothing
+	 * rendered the events. Mounting `DayEventsSection` closes that: every category
+	 * the figure counts has a section under it, all fed from the same `filtered`.
 	 */
 	let {
 		data,
@@ -99,12 +99,16 @@
 	let selectedKey = $state(untrack(() => todayKey));
 	let monthKey = $state(untrack(() => `${todayKey.slice(0, 7)}-01`));
 	/**
-	 * The item whose detail dialog is open.
+	 * The item whose detail dialog is open. Null when there is none.
 	 *
-	 * Declared now and never written: `ItemDetail` is 7c, and `ItemRow` is not
-	 * given an `onOpen` handler, so nothing can set it. Kept because it is one of
-	 * the three pieces of state this node owns and moving it in later would mean
-	 * re-deciding where it lives.
+	 * A SNAPSHOT of the row, not a subscription to it, and the dialog is written
+	 * to know that: the two things it can change -- the label and the urgent flag
+	 * -- are read live from their stores rather than off this object. See the note
+	 * in `ItemDetail`.
+	 *
+	 * One slot, so opening a second dialog replaces the first. There is no way to
+	 * open two, and stacking modals over a page this dense would leave a student
+	 * with two Escape presses to guess at.
 	 */
 	let detail = $state<ScheduleItem | null>(null);
 
@@ -188,12 +192,14 @@
 	const schedule = $derived(scheduleItemsForDay(filtered, selectedKey));
 	const personal = $derived(personalItemsForDay(filtered, selectedKey));
 	/*
-	 * `eventItemsForDay` is deliberately NOT called here. The day's events are in
-	 * `dayItems` -- they count toward the header's figure and they dot the month
-	 * grid -- but nothing this phase renders them as rows, so computing the slice
-	 * and discarding it would read as a section someone forgot to mount. It
-	 * arrives with `DayEventsSection` in 7c.
+	 * The third slice, and the one that closes the day-figure gap.
+	 *
+	 * `dayItems` has always contained these -- they count toward the header's
+	 * figure and they dot the month grid -- and from 7c they have a section of
+	 * their own beneath it. Same `filtered` as the other two, so an ignored event
+	 * hidden from the grid is hidden from here by the same decision, made once.
 	 */
+	const events = $derived(eventItemsForDay(filtered, selectedKey));
 
 	const isToday = $derived(selectedKey === todayKey);
 
@@ -241,12 +247,13 @@
 	 * populated in the same tick announces unreliably, and two regions talk over
 	 * each other.
 	 *
-	 * It counts the schedule and the list only. The Next version also said "N to
-	 * register for", and repeating that here would announce a number with nothing
-	 * on the page behind it until 7c builds the events section.
+	 * All three sections, as of 7c. The events count was held back for two phases
+	 * because announcing "2 to register for" above a page with no register controls
+	 * on it is a promise the page does not keep; the section exists now, so the
+	 * sentence is true again.
 	 */
 	const announcement = $derived(
-		copy.header.announcement(heading, schedule.length, personal.length)
+		copy.header.announcement(heading, schedule.length, personal.length, events.length)
 	);
 
 	function select(dayKey: string) {
@@ -265,6 +272,16 @@
 	 * undated to-do. See CONVENTIONS.md.
 	 */
 	const onTick = (item: ScheduleItem, done: boolean) => tickItem(item, done);
+
+	/**
+	 * Open the dialog on a row.
+	 *
+	 * The whole writer for `detail`. Handed to every row in every view except the
+	 * week column, which has no room for the control and whose job is shape rather
+	 * than action -- selecting the day there drops the student into the day panel,
+	 * where the same row has both.
+	 */
+	const onOpen = (item: ScheduleItem) => (detail = item);
 </script>
 
 <!--
@@ -309,10 +326,19 @@
 							title={group.heading}
 							items={group.items}
 							{onTick}
+							{onOpen}
 						/>
 					{/each}
 				{/if}
 			</section>
+
+			<!-- Adding sits BETWEEN the day and the events, and that order is the
+			     argument: everything above is the student's own day, everything below
+			     is what someone else is putting on. The add form belongs to the first
+			     of those. -->
+			<AddItemForm dayKey={selectedKey} />
+
+			<DayEventsSection items={events} />
 		</div>
 	{/key}
 {/snippet}
@@ -326,6 +352,7 @@
 		mode={prefs.groupBy}
 		undatedTodos={visibleTodos}
 		{onTick}
+		{onOpen}
 	/>
 {/snippet}
 
@@ -397,5 +424,22 @@
 			size="comfortable"
 		/>
 		{@render dayPanel()}
+	{/if}
+
+	<!--
+		The dialog, mounted OUTSIDE the view branches.
+
+		Here rather than inside `dayPanel`, for two reasons. The agenda has no day
+		panel and its rows can open one too. And `dayPanel` is keyed on
+		`selectedKey`, so a dialog inside it would be torn down and rebuilt the
+		instant the student changed day — which is a thing they can do while it is
+		open, from a keyboard, since the month grid is still behind the scrim.
+
+		No portal and no `<svelte:boundary>`. The scrim is `position: fixed`, so it
+		escapes every ancestor's box without needing to escape the tree; the shell
+		sets no transform or filter, which are the only things that would trap it.
+	-->
+	{#if detail}
+		<ItemDetail item={detail} onClose={() => (detail = null)} />
 	{/if}
 </div>
