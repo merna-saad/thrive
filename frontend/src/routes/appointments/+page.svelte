@@ -30,12 +30,7 @@
 		<p class="mt-1.5 max-w-prose text-sm text-body">{copy.intro}</p>
 	</header>
 
-	<BookingArea
-		services={data.services}
-		data={data.data}
-		todayKey={data.todayKey}
-		windowEnd={data.windowEnd}
-	/>
+	<BookingArea services={data.services} data={data.data} todayKey={data.todayKey} />
 
 	<section aria-labelledby={copy.list.headingId} class="space-y-3">
 		<div class="flex flex-wrap items-baseline justify-between gap-3">

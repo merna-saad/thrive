@@ -7,7 +7,6 @@
 	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
 	import MapPin from '@lucide/svelte/icons/map-pin';
 	import Video from '@lucide/svelte/icons/video';
-	import X from '@lucide/svelte/icons/x';
 
 	import {
 		REASON_MAX,
@@ -19,37 +18,56 @@
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 	import { downloadIcs, icsFromAppointment } from '$lib/ics';
 	import { messages } from '$lib/messages';
-	import { fromDayKey } from '$lib/schedule';
 	import { cn } from '$lib/utils';
 
 	/**
-	 * The booking form, and the confirmation it becomes.
+	 * Steps 3 and 4: choose a time, say what it is about, confirm.
 	 *
-	 * ## There is no day picker in here any more
+	 * ## One form, one column, step 4 stacked under step 3
+	 *
+	 * The request needs the chosen slot id and the reason together, so they live in
+	 * a single `<form>`. Two forms would have meant carrying the slot id in a hidden
+	 * field of the second one — the same coupling with an extra copy of the value.
+	 *
+	 * The day picker sits immediately to the LEFT of this, outside the form, so the
+	 * path is day → time → reason → confirm: one step right, then straight down.
+	 *
+	 * **Three arrangements were measured and the middle one was rejected.** The
+	 * original put the day picker in the RIGHT column and the times in the left:
+	 * 1320px of travel at 1512px wide, three horizontal direction changes, and a
+	 * 538px LEFTWARD jump between choosing a day and choosing a time. Laying the
+	 * four steps out as three side-by-side columns fixed the direction changes but
+	 * made the total slightly LONGER — 1362px — because three columns sweep the full
+	 * page width. Stacking step 4 under step 3 keeps the order monotonic and brings
+	 * it to 1118px; the phone figure went 2239px → 1250px.
+	 *
+	 * `check:interaction` now asserts the ordering AND the total, so this cannot
+	 * quietly rot back.
+	 *
+	 * ## There is no day picker in here, and never was
 	 *
 	 * The Next version owned a `dayKey` of its own and mirrored an external
-	 * selection into it with React's adjust-during-render idiom -- a `seenExternal`
+	 * selection into it with React's adjust-during-render idiom — a `seenExternal`
 	 * shadow, a comparison, and two setState calls during the render pass
-	 * (MIGRATION.md section 8.5, which asks whether that becomes a `$derived` or an
+	 * (MIGRATION.md §8.5, which asks whether that becomes a `$derived` or an
 	 * `$effect`).
 	 *
-	 * Neither. The month calendar is now the ONLY day picker on the page, so the
-	 * day is not this component's state at all -- it is a prop. And the side
-	 * effect the idiom existed to perform, clearing the chosen slot when the day
-	 * moves, is not needed either: `selectedSlot` is derived by looking the chosen
-	 * id up in THIS day's slots, so a day change drops the stale choice on its own.
-	 * The whole mechanism dissolves rather than porting.
+	 * Neither. The day picker is a sibling, so the day is not this component's
+	 * state at all — it is a prop. And the side effect the idiom existed to
+	 * perform, clearing the chosen slot when the day moves, is not needed either:
+	 * `selectedSlot` is derived by looking the chosen id up in THIS day's slots, so
+	 * a day change drops the stale choice on its own. The whole mechanism dissolves
+	 * rather than porting.
 	 *
 	 * ## Why a form rather than a click handler
 	 *
 	 * See `+page.server.ts`. Briefly: `load` re-runs after the action, which is
-	 * what makes a fresh booking appear in the pane beside this one and in the list
-	 * below it with nothing to keep in sync by hand.
+	 * what makes a fresh booking appear in "Your day" and in the list below it with
+	 * nothing to keep in sync by hand.
 	 *
-	 * `use:enhance` keeps the result LOCAL rather than calling `applyAction`, so
-	 * the confirmation and the error are this component's state and "Done" can
-	 * simply clear them. Routing them through `form` would mean a page-level value
-	 * that outlives the panel and has to be dismissed by some other means.
+	 * `use:enhance` keeps the result LOCAL rather than calling `applyAction`, so the
+	 * confirmation and the error are this component's state and "Done" can simply
+	 * clear them.
 	 *
 	 * ## A taken slot is a state, not an edge case
 	 *
@@ -61,11 +79,21 @@
 	let {
 		service,
 		dayKey,
+		dayLabel,
 		onClose
 	}: {
 		service: ServiceView;
-		/** The day the calendar is pointing at, or null before anything is chosen. */
+		/** The day chosen in step 2, or null before anything is chosen. */
 		dayKey: string | null;
+		/**
+		 * That day in words, e.g. "Mon, Aug 24".
+		 *
+		 * A PROP now, not formatted here. The day list already carries every day's
+		 * finished labels from the server, so the panel takes one rather than
+		 * re-deriving it — which also takes this page off CONVENTIONS' list of
+		 * accepted client-side date formats.
+		 */
+		dayLabel: string;
 		onClose: () => void;
 	} = $props();
 
@@ -79,11 +107,12 @@
 	];
 
 	/**
-	 * One stroke for every choice in this panel.
+	 * One stroke for every choice in this flow.
 	 *
 	 * Meeting types and times are the same kind of decision, so they are the same
 	 * kind of control: a bordered box that darkens its edge when chosen rather than
-	 * only tinting, which is what keeps the state legible in grayscale.
+	 * only tinting, which keeps the state legible in grayscale. The day rows in
+	 * `DayPicker` use the same language, so all three steps look like one thing.
 	 */
 	const CHOICE_BASE = [
 		'rounded-md border text-2xs',
@@ -119,20 +148,6 @@
 		daySlots.find((slot) => slot.id === chosenId && slot.available) ?? null
 	);
 
-	/**
-	 * The day, in words. A client-side format of a day key, and the documented
-	 * exception -- see the note in `MyDayPane`.
-	 */
-	const dayLabel = $derived(
-		dayKey
-			? fromDayKey(dayKey).toLocaleDateString('en-US', {
-					weekday: 'short',
-					month: 'short',
-					day: 'numeric'
-				})
-			: ''
-	);
-
 	function addToCalendar(appointment: AppointmentView) {
 		downloadIcs(`thrive-${appointment.id}`, [
 			icsFromAppointment(
@@ -144,11 +159,11 @@
 </script>
 
 {#if confirmed}
-	<section aria-labelledby={confirmCopy.headingId} class="thrive-panel p-3">
+	<section aria-labelledby={confirmCopy.headingId} class="min-w-0">
 		<div class="flex items-start gap-2.5">
 			<!-- Teal is `on-track`, which already means "this is fine" everywhere else
-			     in THRIVE. Reused here rather than invented, and it is a confirmation
-			     rather than the availability marking that had to avoid green. -->
+			     in THRIVE. Reused rather than invented, and it is a confirmation rather
+			     than an availability mark, so the no-green rule does not reach it. -->
 			<span
 				class="grid size-9 shrink-0 place-items-center rounded-pill border border-on-track bg-on-track-soft"
 			>
@@ -156,9 +171,9 @@
 			</span>
 
 			<div class="min-w-0">
-				<h2 id={confirmCopy.headingId} class="text-lg font-medium text-ink">
+				<h3 id={confirmCopy.headingId} class="text-lg font-medium text-ink">
 					{confirmCopy.heading}
-				</h2>
+				</h3>
 
 				<p class="mt-0.5 text-sm text-body">
 					{confirmCopy.line(
@@ -203,67 +218,60 @@
 		</div>
 	</section>
 {:else}
-	<section aria-labelledby={copy.headingId} class="thrive-panel p-3">
-		<div class="flex items-start justify-between gap-2.5">
-			<div class="min-w-0">
-				<h2 id={copy.headingId} class="text-lg font-medium text-ink">
-					{copy.heading(service.serviceLabel)}
-				</h2>
-				<p class="mt-0.5 text-xs text-muted-ink">{copy.subheading(service.advisor.name)}</p>
-			</div>
+	<form
+		method="POST"
+		action="?/book"
+		class="flex min-w-0 flex-col gap-4"
+		use:enhance={() => {
+			pending = true;
+			error = null;
 
-			<Button onclick={onClose} aria-label={copy.close} class="size-9 px-0">
-				<X aria-hidden="true" class="size-4" />
-			</Button>
-		</div>
+			return async ({ result }) => {
+				pending = false;
 
-		<form
-			method="POST"
-			action="?/book"
-			use:enhance={() => {
-				pending = true;
-				error = null;
+				if (result.type === 'success') {
+					confirmed =
+						(result.data as { booked?: AppointmentView } | undefined)?.booked ?? null;
+					// Re-reads the server: the slot this took is now unavailable, the
+					// day list's count drops, and the list below gains a row.
+					await invalidateAll();
+					return;
+				}
 
-				return async ({ result }) => {
-					pending = false;
-
-					if (result.type === 'success') {
-						confirmed =
-							(result.data as { booked?: AppointmentView } | undefined)?.booked ?? null;
-						// Re-reads the server: the slot this took is now unavailable, the
-						// pane beside this one gains a row, and the list below gains one.
-						await invalidateAll();
-						return;
-					}
-
-					if (result.type === 'failure') {
-						error = String((result.data as { error?: string } | undefined)?.error ?? '');
-						// Drop the choice. The list is about to be re-rendered from fresh
-						// data and pressing the same dead slot again should not be possible.
-						chosenId = null;
-						await invalidateAll();
-						return;
-					}
-
-					/*
-					 * Anything else -- a redirect, or a real error like the 403 a
-					 * missing `ORIGIN` produced the first time this ran. It MUST say
-					 * something: leaving this branch silent made the confirm button
-					 * visibly do nothing, which is indistinguishable from a broken
-					 * page. See `messages.appointments.errors.unexpected`.
-					 */
-					error = messages.appointments.errors.unexpected;
+				if (result.type === 'failure') {
+					error = String((result.data as { error?: string } | undefined)?.error ?? '');
+					// Drop the choice. The list is about to re-render from fresh data and
+					// pressing the same dead slot again should not be possible.
 					chosenId = null;
-				};
-			}}
-		>
-			<!-- The submitted choice. A hidden field rather than a fetch body, so the
-			     form is the whole request and the action needs no client to call it. -->
-			<input type="hidden" name="slotId" value={selectedSlot?.id ?? ''} />
+					await invalidateAll();
+					return;
+				}
+
+				/*
+				 * Anything else — a redirect, or a real error like the 403 a missing
+				 * `ORIGIN` produced the first time this ran. It MUST say something:
+				 * leaving this branch silent made the confirm button visibly do nothing,
+				 * which is indistinguishable from a broken page.
+				 */
+				error = messages.appointments.errors.unexpected;
+				chosenId = null;
+			};
+		}}
+	>
+		<!-- The submitted choice. A hidden field rather than a fetch body, so the
+		     form is the whole request and the action needs no client to call it. -->
+		<input type="hidden" name="slotId" value={selectedSlot?.id ?? ''} />
+
+		<!-- ── Step 3: the time ──────────────────────────────────────────────── -->
+		<div class="min-w-0">
+			<p class="thrive-eyebrow mb-1.5">
+				<span class="thrive-numeric">3</span>
+				· {messages.appointments.steps.time}
+			</p>
 
 			<!-- Meeting type. Each slot is published as one mode or the other, so this
 			     NARROWS the list rather than changing a chosen time. -->
-			<fieldset class="mt-3">
+			<fieldset>
 				<legend class={FIELD_LABEL}>{copy.modeLegend}</legend>
 				<div class="flex flex-wrap gap-1.5">
 					{#each MODE_FILTERS as filter (filter.value)}
@@ -275,11 +283,7 @@
 								mode = filter.value;
 								chosenId = null;
 							}}
-							class={cn(
-								CHOICE_BASE,
-								'h-9 px-2.5',
-								active ? CHOICE_ACTIVE : CHOICE_RESTING
-							)}
+							class={cn(CHOICE_BASE, 'h-9 px-2.5', active ? CHOICE_ACTIVE : CHOICE_RESTING)}
 						>
 							{filter.label}
 						</button>
@@ -313,11 +317,9 @@
 									CHOICE_BASE,
 									'inline-flex h-9 items-center gap-1.5 px-2.5',
 									'disabled:cursor-not-allowed disabled:line-through disabled:opacity-50',
-									// The chosen time is the one commitment on this panel, so it
-									// goes solid rather than tinted.
-									active
-										? 'border-line-strong bg-primary text-on-primary'
-										: CHOICE_RESTING
+									// The chosen time is a commitment, so it goes solid — the same
+									// treatment the chosen day gets one column to the left.
+									active ? 'border-line-strong bg-primary text-on-primary' : CHOICE_RESTING
 								)}
 							>
 								{#if slot.mode === 'zoom'}
@@ -337,22 +339,28 @@
 					</div>
 				{/if}
 			</fieldset>
+		</div>
 
-			<div class="mt-3">
-				<label for="booking-reason" class={FIELD_LABEL}>{copy.reasonLabel}</label>
-				<textarea
-					id="booking-reason"
-					name="reason"
-					bind:value={reason}
-					maxlength={REASON_MAX}
-					rows="3"
-					placeholder={copy.reasonPlaceholder}
-					class="w-full resize-y rounded-md border-[1.5px] border-line-strong bg-surface px-2.5 py-1.5 text-sm text-body placeholder:text-muted-ink"
-				></textarea>
-				<p class="thrive-numeric mt-1 text-right text-3xs text-muted-ink">
-					{copy.reasonCount(reason.length, REASON_MAX)}
-				</p>
-			</div>
+		<!-- ── Step 4: what it is about, and the commitment ──────────────────── -->
+		<div class="min-w-0">
+			<p class="thrive-eyebrow mb-1.5">
+				<span class="thrive-numeric">4</span>
+				· {messages.appointments.steps.about}
+			</p>
+
+			<label for="booking-reason" class={FIELD_LABEL}>{copy.reasonLabel}</label>
+			<textarea
+				id="booking-reason"
+				name="reason"
+				bind:value={reason}
+				maxlength={REASON_MAX}
+				rows="3"
+				placeholder={copy.reasonPlaceholder}
+				class="w-full resize-y rounded-md border-[1.5px] border-line-strong bg-surface px-2.5 py-1.5 text-sm text-body placeholder:text-muted-ink"
+			></textarea>
+			<p class="thrive-numeric mt-1 text-right text-3xs text-muted-ink">
+				{copy.reasonCount(reason.length, REASON_MAX)}
+			</p>
 
 			{#if error}
 				<p
@@ -377,6 +385,6 @@
 						: copy.pickTime}
 				</p>
 			</div>
-		</form>
-	</section>
+		</div>
+	</form>
 {/if}

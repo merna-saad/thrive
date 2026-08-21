@@ -3,6 +3,7 @@ import { fail } from "@sveltejs/kit";
 import {
 	REASON_MAX,
 	toAppointmentView,
+	toBookingDayViews,
 	type AppointmentView,
 	type ServiceView,
 	type SlotView,
@@ -11,6 +12,7 @@ import {
 	availabilityByDay,
 	bookingWindowEnd,
 	openCountInWindow,
+	publishedByDay,
 } from "$lib/availability";
 import { buildScheduleData } from "$lib/buildSchedule";
 import {
@@ -21,9 +23,9 @@ import {
 	getSlots,
 	SlotUnavailableError,
 } from "$lib/data";
-import { formatTime } from "$lib/format";
+import { formatTime, formatWeekdayDate } from "$lib/format";
 import { messages } from "$lib/messages";
-import { dayKeyOf } from "$lib/schedule";
+import { addDays, dayKeyOf, fromDayKey } from "$lib/schedule";
 import type { Actions, PageServerLoad } from "./$types";
 
 /**
@@ -31,11 +33,11 @@ import type { Actions, PageServerLoad } from "./$types";
  *
  * ## One clock read
  *
- * `new Date()` is called ONCE and two things come off it: the day key the grid
- * rings as today, and the end of the booking window derived from it. The
- * calendar page calls `todayKey()` and gets a second internal read; this page
- * passes the instant it already has to `dayKeyOf` instead, which is the same
- * string from one read rather than two microseconds apart.
+ * `new Date()` is called ONCE and three things come off it: the day the list
+ * calls today, tomorrow, and the end of the booking window. The calendar page
+ * calls `todayKey()` and gets a second internal read; this page passes the
+ * instant it already has to `dayKeyOf` instead, which is the same string from
+ * one read rather than two microseconds apart.
  *
  * There is deliberately no `nowISO` here. Nothing on this page is editable in
  * the sense CONVENTIONS' narrowed exception covers -- a booking is created and
@@ -61,13 +63,25 @@ export const load: PageServerLoad = async () => {
 	const todayKey = dayKeyOf(now);
 	const windowEnd = bookingWindowEnd(todayKey);
 
+	/*
+	 * Tomorrow, for the day list's relative label, derived from the SAME instant.
+	 * `addDays` walks local parts, so this is one calendar day later even across a
+	 * DST boundary -- which an elapsed-milliseconds addition would not be.
+	 */
+	const tomorrowKey = addDays(todayKey, 1);
+
+	/** The window's last day, in words, for the note under the day list. */
+	const windowEndLabel = formatWeekdayDate(
+		fromDayKey(windowEnd).toISOString(),
+	);
+
 	const services: ServiceView[] = advisors.map((advisor, index) => {
 		const slots: SlotView[] = slotsByAdvisor[index].map((slot) => ({
 			id: slot.id,
 			advisorId: slot.advisorId,
 			// `dayKeyOf`, never `toISOString().slice(0, 10)`: a 4pm slot would land
-			// on the following day anywhere behind UTC, and the grid would mark a
-			// day the times list had nothing for.
+			// on the following day anywhere behind UTC, and the day list would offer
+			// a day the times column had nothing for.
 			dayKey: dayKeyOf(slot.start),
 			timeLabel: formatTime(slot.start),
 			mode: slot.mode,
@@ -77,12 +91,37 @@ export const load: PageServerLoad = async () => {
 		}));
 
 		const openByDay = availabilityByDay(slots);
+		/*
+		 * Both maps, because the day list has to tell "fully booked" apart from
+		 * "not a day this advisor works". Open counts alone cannot: both are zero,
+		 * and calling a Saturday fully booked would be a lie.
+		 */
+		const published = publishedByDay(slots);
 
 		return {
 			advisor,
 			serviceLabel: messages.appointments.serviceLabel[advisor.service],
 			slots,
 			openByDay,
+			/*
+			 * The day list, formatted here. Four of its six fields per row are
+			 * locale-formatted dates and the fifth is relative to today, so building
+			 * them on the server is what leaves `DayPicker` with no opinion about the
+			 * calendar at all.
+			 *
+			 * Note what the bounded list buys: the month grid this replaces had to
+			 * format two things on the CLIENT, because a grid that pages anywhere has
+			 * no finite set of months a `load` could pre-render. There is now no
+			 * client-side date formatting on this page.
+			 */
+			days: toBookingDayViews(
+				openByDay,
+				published,
+				todayKey,
+				windowEnd,
+				tomorrowKey,
+			),
+			windowEndLabel,
 			/*
 			 * Counted inside the WINDOW, not across everything published. The
 			 * fixture deliberately publishes a little past the window's end so it
@@ -103,12 +142,12 @@ export const load: PageServerLoad = async () => {
 		services,
 		appointments: appointmentViews,
 		/**
-		 * The student's own schedule, for the pane beside the calendar. Classes
-		 * arrive as weekday RULES, which is what lets "Your day" answer for any day
-		 * the grid can reach without another round trip.
+		 * The student's own schedule, for the "Your day" strip. Classes arrive as
+		 * weekday RULES, which is what lets it answer for any day in the window
+		 * without another round trip.
 		 */
 		data,
-		/** The day the grid rings and the pane may chip as today. */
+		/** The day the list marks "Today" and the strip may chip as today. */
 		todayKey,
 		/** Last bookable day, inclusive. The product rule, applied once. */
 		windowEnd,

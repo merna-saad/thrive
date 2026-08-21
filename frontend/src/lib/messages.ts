@@ -389,26 +389,7 @@ export const messages = {
 			noItems: 'no items',
 			itemCount: (count: number) => (count === 1 ? '1 item' : `${count} items`),
 			/** The "+n" when a day has more categories than there are dots for. */
-			overflow: (count: number) => `+${count}`,
-
-			/*
-			 * Booking mode -- the `/appointments` call site. Same grid, a different
-			 * question, so `dayLabel` above is reused and only the middle clause
-			 * changes: "what is on this day" becomes "can this day be booked".
-			 */
-			timesOpen: (count: number) => (count === 1 ? '1 time open' : `${count} times open`),
-			nothingOpen: 'nothing open',
-			/*
-			 * The two ends of the window are DIFFERENT sentences, and conflating them
-			 * was a real bug: the six leading cells of a month grid belong to the
-			 * previous month, so a grid opened on the current month announced days in
-			 * the recent past as "too far ahead to book". They look identical on
-			 * screen -- both are grey and both refuse the click -- so the accessible
-			 * name is the only place the difference can be told, which makes it the
-			 * only place it can be got wrong unnoticed.
-			 */
-			beyondWindow: 'too far ahead to book',
-			alreadyPast: 'already past'
+			overflow: (count: number) => `+${count}`
 		},
 
 		/* --- The selected day's header -------------------------------------- */
@@ -633,8 +614,17 @@ export const messages = {
 		 * Names the window, because the calendar's grey days otherwise look like a
 		 * bug rather than a rule.
 		 */
+		/**
+		 * Four steps, named in the order the page lays them out.
+		 *
+		 * The old intro said "pick a day with open times, then a time", which
+		 * described the interface rather than orienting the student -- and it
+		 * described an interface whose day picker was on the far side of the page
+		 * from its times. The numbered steps on screen do the orienting now, so this
+		 * says what the page is FOR and how far ahead it reaches.
+		 */
 		intro:
-			'Academic advising and career coaching. Pick a day with open times, then a time. Booking runs a month ahead.',
+			'Academic advising and career coaching, bookable a month ahead. Choose who, then a day, then a time.',
 
 		/** The two services. Keyed by `Advisor.service`. */
 		serviceLabel: {
@@ -658,16 +648,65 @@ export const messages = {
 			bookWith: (name: string) => ` with ${name}`
 		},
 
-		calendar: {
-			headingId: 'booking-calendar',
-			title: 'Pick a day',
+		/**
+		 * The four steps, named and numbered.
+		 *
+		 * "Nothing tells them where to start" was the first complaint about the old
+		 * arrangement, and a numbered step is the cheapest possible answer to it.
+		 * The numbers are values, so they take the numeric face.
+		 */
+		steps: {
+			who: 'Choose who you are meeting',
+			day: 'Choose a day',
+			time: 'Choose a time',
+			about: 'Say what it is about'
+		},
+
+		/** The day list. NO legend — every row says its own state. */
+		days: {
+			headingId: 'booking-days',
+			/** Relative words win where they apply; past that, the date is clearer. */
+			today: 'Today',
+			tomorrow: 'Tomorrow',
 			/**
-			 * The key for the mark. Says what the dot MEANS in words, so the grid
-			 * never rests on hue -- and names the two reasons a day is closed,
-			 * because they look identical and a student would otherwise assume the
-			 * advisor is simply never free.
+			 * The count, as words on the row.
+			 *
+			 * This replaces a dot plus a number, which was two encodings for one
+			 * fact and needed a sentence underneath the grid to decode. "4 times"
+			 * decodes itself.
 			 */
-			key: 'A dot and a number mark the days with open times. Grey days are full, or past the month you can book in.'
+			openTimes: (count: number) => (count === 1 ? '1 time' : `${count} times`),
+			/**
+			 * The word after the figure, so the figure can take the numeric face.
+			 * Same split as the service card's count, and for the same reason: a
+			 * component should never have to slice a number back out of a finished
+			 * phrase.
+			 */
+			openTimesSuffix: (count: number) => (count === 1 ? 'time' : 'times'),
+			/**
+			 * A working day whose slots are all taken.
+			 *
+			 * The ONE refusal this list draws, and it is drawn because it is the only
+			 * one a student could otherwise mistake for something else. A past day and
+			 * a day beyond the window are not listed at all — they are not options,
+			 * and the list's bounds say so without a word.
+			 */
+			fullyBooked: 'Fully booked',
+			/**
+			 * The list's bounds, stated once at the bottom.
+			 *
+			 * This is what makes the two undrawn refusals legible: the list starts
+			 * today because you cannot book the past, and it ends here because
+			 * booking runs a month ahead. Naming the last date means a student never
+			 * has to wonder whether the list is short because the advisor is busy.
+			 */
+			windowNote: (lastDay: string) =>
+				`Booking runs one month ahead. ${lastDay} is the last day you can book.`,
+			/** No working days at all inside the window. */
+			empty: 'No open days in the next month.',
+			/** Spoken name for a row, so the counts are not read as bare numbers. */
+			dayLabel: (weekday: string, date: string, state: string) =>
+				`${weekday} ${date}, ${state}`
 		},
 
 		panel: {
@@ -683,7 +722,15 @@ export const messages = {
 			modeZoom: 'Zoom',
 
 			timesLegend: 'Available times',
-			/** Names the day being committed to, since the panel is where you commit. */
+			/**
+			 * Still names the day, but for a different reason now.
+			 *
+			 * When the day picker sat across the page this was orientation — "which
+			 * day are these?". Now the chosen day is the nearest thing to the left, so
+			 * this is confirmation rather than navigation. Kept because the times
+			 * column is what a student stares at while deciding, and a column of bare
+			 * clock times with no date above it is a column that could be any day.
+			 */
 			timesFor: (day: string) => `on ${day}`,
 			/** Two dead ends, and they are not the same dead end. */
 			noTimesForFilter: 'Nothing open that day with this meeting type. Try Any, or another day.',
