@@ -1,4 +1,4 @@
-<!-- updated-at: bac3fbf -->
+<!-- updated-at: 4a05fdb -->
 
 # CONTEXT
 
@@ -8,12 +8,10 @@ without asking anyone.
 **Regenerated in full every handoff.** Never patch it — a partial edit leaves
 stale claims sitting beside fresh ones with no way to tell them apart.
 
-This regeneration was **deferred across two phases on purpose** (owner, twice),
-because three calendar phases were in flight and a stale-and-flagged file beats a
-half-patched one. It therefore covers 7a and 7b together, and the deferral is
-itself the evidence for the rule: before this pass the file still said the calendar
-"lands in a later phase" while two thirds of it was built and pushed. Stale is
-survivable; contradictory is not.
+The previous regeneration was **deferred across two phases** and covered 7a and 7b
+together. This one covers **7c and its two follow-ons**, and was done at the
+owner's instruction on the same reasoning: three calendar phases of drift is
+exactly the accumulated case the rule exists for.
 
 ---
 
@@ -70,8 +68,8 @@ thrive/
 ├── backend/         Django — not started, README only
 └── scripts/
     ├── check-contrast.py       58 assertions over the palette and app.css
-    ├── check-layout.mjs        12 routes x 3 viewports, in a real browser
-    └── check-interaction.mjs   60 assertions: the popovers and task editing
+    ├── check-layout.mjs        14 targets x 3 viewports, in a real browser
+    └── check-interaction.mjs   92 assertions: the popovers, task editing, the calendar
 ```
 
 `MIGRATION.md` is also the **only surviving copy** of the prototype inventory —
@@ -118,10 +116,24 @@ AM" with nothing saying which day (§14).
 > the mistake** (owner, 2026-08-21). Recorded as a rule because it will come up
 > again, and because "the source wins" read alone points the other way.
 
-**Shape three, new in 7b: sometimes the source contradicts ITSELF, and there is no
-behaviour to defer to.** MIGRATION §4 and `WeekView.tsx`'s own doc comment both
-say week view is not rendered below `40rem` and the parent falls back to the
-agenda. `CalendarView.tsx` renders it at every width, and `WeekView` handles narrow
+**7c found three more of shape two, all in the components it ported**, and they
+are worth naming because they are all the same kind of mistake — a control that
+appears to work:
+
+- `AddItemForm.tsx` stored a custom event's label and urgent flag BOTH on the
+  event and in the annotation stores, and `mergedSchedule` resolves
+  `override ?? item.urgent`. Clearing the flag wrote `undefined` and fell straight
+  back to the copy on the event, so **un-marking urgent did nothing**.
+- `ItemDetail.tsx` rendered its urgent checkbox from the row it was handed, which
+  is a snapshot and never changes, so the box did not move until the dialog was
+  reopened.
+- `ItemDetail.tsx` fired `deleteCustomEvent` on **one click** of a button labelled
+  "delete", for a thing with no undo anywhere in the system.
+
+**Shape three: sometimes the source contradicts ITSELF, and there is no behaviour
+to defer to.** MIGRATION §4 and `WeekView.tsx`'s own doc comment both say week
+view is not rendered below `40rem` and the parent falls back to the agenda.
+`CalendarView.tsx` renders it at every width, and `WeekView` handles narrow
 screens with `overflow-x-auto` + `min-w-[42rem]` — a horizontal scroll, which is
 the exact thing that comment calls the wrong answer.
 
@@ -152,21 +164,23 @@ chat history and Group Projects' shared data. See §18.
 **No shadcn-svelte and no bits-ui yet.** Deferred deliberately; `MIGRATION.md`
 §4 lists the Radix primitives that will need equivalents. The stat pill popover
 and the due-date editor are both hand-built floating widgets rather than deferred
-to one of them — see §13. The calendar added one more hand-built control and one
-deliberately native one: the key bar's chips are labelled checkboxes, and the
-agenda's grouping control is a plain `<select>` (§14).
+to one of them — see §13. The calendar added three more hand-built controls and
+one deliberately native one: the key bar's chips are labelled checkboxes, the add
+form's kind picker is a labelled radio group, **`ItemDetail` is a hand-built modal
+dialog** (§14), and the agenda's grouping control is a plain `<select>`.
 
 **One dependency added since Phase 1: `playwright-core`** (2026-08-21), for the
-layout gate. It has since paid for itself several times over: the same dependency
-carries the interaction gate and every by-hand browser pass, and between them they
-have caught a dead button five other gates called green, a `derived_inert` warning
-live in the production build, the undo arrival's silent no-op, and 7b's unclamped
-`line-clamp`. `@types/node` was rejected in Phase 5 because
+layout gate. It has since paid for itself repeatedly: the same dependency carries
+the interaction gate and every by-hand browser pass, and between them they have
+caught a dead button five other gates called green, a `derived_inert` warning live
+in the production build, the undo arrival's silent no-op, 7b's unclamped
+`line-clamp`, and **7c's TypeError on every dialog close with focus in a field**.
+`@types/node` was rejected in Phase 5 because
 `import.meta.glob(..., { query: "?raw" })` did that job with nothing added — the
 rule is "do not add one where the platform already answers", not "never add one".
 See DEPENDENCIES.md.
 
-**No dependency changed in 7a or 7b.**
+**No dependency changed in 7a, 7b or 7c.**
 
 ---
 
@@ -187,22 +201,23 @@ See DEPENDENCIES.md.
 | — | Stat pill popovers, the reveal channel, the arrival cue, `check:interaction` | done |
 | 6b | Task editing — tick, undo, rename, priority, notes, due date, reorder, add | done |
 | — | Honest affordances: no link to a parked route, no copy with nowhere to copy | done |
-| **7a** | **Calendar spine — `buildScheduleData`, month grid, selected day, day sections** | **done** |
-| **7b** | **Calendar views + filter — switcher, week, agenda, key bar** | **done** |
-| **next** | **7c — item detail, add form, the events section** | not started |
-| then | `/assignments` — the same `TaskRow`, no groups | not started |
+| 7a | Calendar spine — `buildScheduleData`, month grid, selected day, day sections | done |
+| 7b | Calendar views + filter — switcher, week, agenda, key bar | done |
+| **7c** | **Calendar editing — item detail, add form, the events section** | **done** |
+| — | **Home's "count me in" wired; the month grid's dots given chroma and 2px** | **done** |
+| **next** | `/assignments` — the same `TaskRow`, no groups | not started |
 | then | Appointments | not started |
 | then | **Ask THRIVE — a full page: second left rail, chat, saved history** | scoped, not built |
 | later | **Group Projects — a fifth nav item, and the first shared surface** | scoped, not built |
 | later | Floating widgets, behind `FEATURES` | not started |
 
-**507 tests, 23 spec files, all passing**, and green in **all seven timezones** of
-the sweep. `svelte-check` clean over 411 files. Build clean. Contrast **58/58**.
-Layout **36/36**. Interaction **60/60**. 71 commits, all pushed.
+**558 tests, 26 spec files, all passing**, and green in **all seven timezones** of
+the sweep. `svelte-check` clean over 425 files, 0 warnings. Build clean. Contrast
+**58/58**. Layout **42/42**. Interaction **92/92**. 83 commits, all pushed.
 
-**147 files under `frontend/src`** — ~22,933 lines, 16,625 source / 6,308 test.
+**157 files under `frontend/src`** — ~25,614 lines, 18,435 source / 7,179 test.
 
-**Two routes are now built:** `/` and `/calendar`.
+**Two routes are built:** `/` and `/calendar`. **The calendar is complete.**
 
 ---
 
@@ -242,7 +257,7 @@ to an indicator and get away with it.
 "here" is how a reservation dies.
 
 **Gold `#c69214` (PMS 1245) was measured and rejected** at 2.79:1. `watch`
-(`#8f6220`, 5.34:1) already covers a legible warm accent.
+already covers a legible warm accent.
 
 ### Reserved colours
 
@@ -250,11 +265,11 @@ to an indicator and get away with it.
 |---|---|---|
 | `indigo` | `#4c5bd4` | **"You are here" and nothing else** |
 | `urgent` | `#b8462f` | Overdue and genuinely urgent only |
-| `on-track` | `#14706b` | Status only. **Teal** — see below |
-| `watch` / `needs-help` | `#8f6220` / `#6a5fb0` | Status only |
-| `civic` / `later` | `#8a5f8f` / `#64748b` | Categorical only, never status |
+| `on-track` | `#00716c` | Status only. **Teal** — see below |
+| `watch` / `needs-help` | `#946000` / `#7851c2` | Status only |
+| `civic` / `later` | `#994ea3` / `#4c74ad` | Categorical only, never status |
 
-**`indigo` has three consumers now, and they are all the same sentence.** "You are
+**`indigo` has three consumers, and they are all the same sentence.** "You are
 here" in the navigation, `.thrive-arrived` (the ring on a row something has just
 moved the student to), and the calendar's two markers: today's date in a week
 column, and the "next up" item — named in the header's line and outlined in the
@@ -271,11 +286,60 @@ there rests on colour alone. **Coral is deliberately absent from that map** — 
 month grid dotted coral on every assignment day would drain "overdue" of meaning,
 so assignments take amber, which already means "due soon" on a `DueChip`.
 
-**`on-track` is the only reserved colour whose value has changed.** It moved off
+**`on-track` is the only reserved colour whose MEANING has changed.** It moved off
 green on 08-15 because green had become "an action you can take" and a green chip
 beside a green button read as one signal. A blue chip beside a **navy** button is
-that same collision, so it moved again, to teal. 5.90:1 on card, 2.40:1 against
-navy — far enough apart to be a different statement rather than a lighter navy.
+that same collision, so it moved again, to teal.
+
+### The chroma pass (2026-08-21) — saturation held at fixed lightness
+
+Five status hues gained chroma and **not** lightness, because the month grid's
+dots read muted and muddy and they are the only thing on that grid carrying stream
+identity.
+
+**The constraint that shaped it:** each of these is used as TEXT somewhere as well
+as as a fill (see `tones.ts`), so each must clear 4.5:1 on card. Vibrance could not
+come from lightening them. Each was converted to oklch, its chroma raised at its
+own L and H, and capped below the gamut maximum where the maximum was garish.
+
+| Token | Before | After | Chroma | Card | Cream | Sunken |
+|---|---|---|---|---|---|---|
+| `on-track` | `#14706b` | `#00716c` | 0.0803 → 0.0856 (1.07×) | 5.90 → 5.87 | 5.60 → 5.57 | 5.13 → 5.11 |
+| `watch` | `#8f6220` | `#946000` | 0.0988 → 0.1137 (1.15×) | 5.34 → 5.34 | 5.06 → 5.07 | 4.64 → 4.65 |
+| `needs-help` | `#6a5fb0` | `#7851c2` | 0.1240 → 0.1697 (1.37×) | 5.42 → 5.59 | 5.14 → 5.31 | 4.71 → 4.87 |
+| `civic` | `#8a5f8f` | `#994ea3` | 0.0884 → 0.1497 (1.69×) | 5.10 → 5.29 | 4.85 → 5.02 | 4.44 → 4.60 |
+| `later` | `#64748b` | `#4c74ad` | 0.0407 → 0.1001 (2.46×) | 4.76 → 4.76 | 4.52 → 4.52 | 4.14 → 4.15 |
+
+Every ratio moved by at most 0.19 and none moved down past its floor. **Contrast
+stayed 58/58 with no threshold touched.**
+
+**What it bought, honestly: very little for teal and amber.** Both were already at
+the sRGB gamut boundary for their lightness, so "push chroma, hold luminance" gave
+them 1.07× and 1.15×. That is a real limit rather than a tuning failure — the only
+way to make those two more vivid is to move lightness, which the contrast floor
+forbids. **The size change below did more than the colour did.**
+
+**The collision it fixed.** `later` and `muted` were the two least distinguishable
+dots by a wide margin — OKLab dE **0.039**, about half the next-closest pair — and
+between them they carried FOUR of the eleven categories (to-do and San Diego on
+`later`, custom and UCSD on `muted`). `muted` cannot move: it is the colour of all
+secondary text and must stay neutral. `later` can, and nothing about "later"
+requires grey, so it now reads blue. **dE 0.039 → 0.094, and the worst pair on the
+whole grid went 0.039 → 0.078.**
+
+**The collision it avoided, which is the more useful lesson.** Violet is boxed in
+between indigo at H 273 — RESERVED — and civic plum at H 323, and **both indigo and
+the Rady dot appear on the month grid at once**. `needs-help` sat at H 288, nearer
+indigo, and was already only dE 0.072 from it, so raising chroma along its own hue
+walked it *into* the reserved colour (dE 0.047 at C 0.175 — worse than the worst
+pair before the pass). Re-centring the hue at **296** buys 1.37× the chroma for
+nothing: separation from indigo 0.0723 → 0.0727 and from civic 0.0744 → 0.0777,
+both marginally better. **It is the one hue that moved, and the shift is what paid
+for the saturation.**
+
+> **Raising chroma moves a colour toward its neighbours in hue as well as away from
+> grey.** Check a saturation change against every RESERVED colour, not just against
+> the ones it is meant to separate from.
 
 ### Surfaces, ink, lines
 
@@ -284,6 +348,10 @@ hover fill, and the fill of every editor panel a row opens). Ink `ink #17181c`,
 `body #3a3b42`, `muted #6b6c72`, `faint #85868c` — **only the first three may
 carry text**, and `faint` is held below 4.5:1 by a ceiling so words placed in it
 fail a check.
+
+**`muted` and `ink` were deliberately NOT touched by the chroma pass.** `muted` is
+the colour of every piece of secondary text in the app and `ink` is every heading;
+tinting either would tint the whole interface to make two dots better.
 
 **A 1px decorative hairline and a 1.5px control boundary are different things,
 carried by different tokens, and must never collapse.** Control boundaries owe
@@ -321,10 +389,11 @@ fails `designSystem.spec.ts`.
 **The calendar was the rule's largest single test, and it is the biggest visual
 difference from the prototype.** The Next calendar set the day figure, the
 breakdown line, the whole "next up" sentence, every category tag, the view
-switcher, the key bar's chips, the weekday initials and the agenda's group headings
-in mono. Here only the values are: the day figure, the `n of m done` fraction, the
-clock times, the day numbers, the `+n` overflow, and the group counts. Everything
-made of words is DM Sans.
+switcher, the key bar's chips, the weekday initials, the agenda's group headings
+**and every label in the detail dialog and the add form** in mono. Here only the
+values are: the day figure, the `n of m done` fraction, the clock times, the day
+numbers, the `+n` overflow, the group counts, and the add form's time input.
+Everything made of words is DM Sans.
 
 **Weight is not in the type scale.** Set it at the call site or you get 400. Only
 400/500/700 load, so `font-semibold` (600) synthesises — never use it.
@@ -340,10 +409,10 @@ Nine, and each exists because Tailwind cannot express it at the call site:
 `.thrive-checkbox`, `.thrive-strike`, `.thrive-card-body`, `.thrive-popover`,
 `.thrive-arrived`.
 
-**Still nine after 7a and 7b**, which is worth noting: two phases and thirteen new
-components added no new treatments. The calendar's panels are `.thrive-panel`, its
-rows are `.thrive-row`, its strike-through is `.thrive-strike`, and its key-bar
-chips are ordinary utilities.
+**Still nine after 7a, 7b and 7c**, which is worth noting: three phases and
+seventeen new components added no new treatments. **`ItemDetail` in particular did
+not earn a `.thrive-dialog`** — its scrim is `fixed inset-0 bg-ink/20` and its
+panel is a `.thrive-panel` with a max-height, all of which Tailwind expresses.
 
 - **`.thrive-popover`** carries only a WIDTH:
   `min(--thrive-popover-width, 100vw - 2 * --thrive-popover-viewport-inset)`. The
@@ -357,17 +426,28 @@ chips are ordinary utilities.
   change a design-system size, the row makes its **title** the checkbox's
   `<label>`, so the tick target is the width of the row.
 
-### One token added in 7a: `--thrive-checkbox-size`
+### Two size tokens, and why each is a token
 
-17px, and it replaced that number written in two places. `.thrive-checkbox` sizes
-itself from it, and any row rendering a **spacer** where a checkbox would go
-reaches for the same value via `size-checkbox` — the calendar's `ItemRow` does,
-which is what makes a list of classes and tickable tasks align in one column
-instead of two ragged ones. The Next version hardcoded `size-[17px]` there: a
-literal that agrees with the stylesheet only until somebody resizes the control.
+**`--thrive-checkbox-size: 17px`** (7a) replaced that number written in two
+places. `.thrive-checkbox` sizes itself from it, and any row rendering a **spacer**
+where a checkbox would go reaches for the same value via `size-checkbox` — the
+calendar's `ItemRow` does, which is what makes a list of classes and tickable tasks
+align in one column instead of two ragged ones. The Next version hardcoded
+`size-[17px]` there: a literal that agrees with the stylesheet only until somebody
+resizes the control.
 
-Measured after: the time column lands at a single x across tickable and untickable
-rows.
+**`--thrive-cal-dot: 8px`** (7c follow-on), up from a hardcoded `size-1.5`. Same
+argument in a sharper form: the dot and the row that reserves its height have to
+agree, because the row's height is what stops the grid reflowing between a day with
+dots and a day without. A `size-2` paired with a hand-picked `h-1.5` clips
+**silently**.
+
+**8px was measured, not chosen.** Three dots plus two 2px gaps is 28px; the "+n"
+overflow case is two dots and a count in 36px; the narrowest cell the grid draws is
+38px at a 320px viewport. No clipping, no reflow and no horizontal overflow at any
+of six widths, with 5px of slack at the 375px this app actually supports. **It is
+1.8× the area of the 6px dot, and that is most of the legibility the whole dots
+pass bought — more than the saturation did.**
 
 ### Durations: motion versus dwell
 
@@ -427,9 +507,10 @@ numbers, the yellow constraint shown legible-on-navy beside decorative-on-cream,
 and the two-face rule as a table of worked pairs. Throwaway; delete before
 Release 1.
 
-**It does not show the popover, the arrival ring, or anything the calendar added,
-and that is a decision** (owner, 2026-08-21): it is slated for deletion, so it is
-not worth the time.
+**It does not show the popover, the arrival ring, the dialog, or anything the
+calendar added, and that is a decision** (owner, 2026-08-21): it is slated for
+deletion, so it is not worth the time. Note it therefore did **not** need updating
+for the chroma pass — it reads the tokens.
 
 ---
 
@@ -464,13 +545,10 @@ and is wrong in another timezone. **Review is the enforcement.**
 
 ### The sanctioned client reads — and the calendar DECLINED one
 
-The list is unchanged, but its first entry now has a consumer that chose not to be
-one, and the reasoning generalises.
-
 1. **`nowMinutes()`** in `calendarSources.ts` — minutes past midnight. **Still
-   has no caller.** It was written for the calendar's "next up" line and the
-   calendar reads the server's clock instead, via `nowMinutesAt(now)` in
-   `buildSchedule.ts`.
+   has no caller**, through three calendar phases. It was written for the "next up"
+   line and the calendar reads the server's clock instead, via `nowMinutesAt(now)`
+   in `buildSchedule.ts`.
 
    **Why it was declined.** In Next, `CalendarView` was a `"use client"` component,
    so its memo could only ever run in a browser. The Svelte component renders on
@@ -488,6 +566,14 @@ one, and the reasoning generalises.
    Opening the note panel is an explicit request to write, so focus lands in the
    field, but only where a keyboard will not cover the screen.
 
+**7c added a fourth, and it is a clock read of a different kind.** `downloadIcs`
+in `$lib/ics` reads `new Date()` for the `.ics` file's `DTSTAMP` — "when this file
+was made". It is inside a click handler, it can never run on the server (there is
+no `document` there, so a server call throws rather than producing a wrong file),
+and **the pure builder takes the instant as an argument** precisely so the whole
+thing stays testable without faking a global. The Next version read the clock
+inside `buildIcs`, which is what made it neither.
+
 **Read (3) against the deleted one, because they look identical and are not.**
 `hoverIntent` read `(hover: hover)` to gate hover-to-*reveal*, which is CSS —
 Tailwind's `hover:` utilities compile to that media query with no JavaScript
@@ -495,8 +581,9 @@ needing an opinion. `TaskNotes` decides whether to move **focus**, and there is 
 CSS form of that to prefer. That is the whole test: *could CSS have done this?*
 
 **A `Date.now()` used as an id nonce is not a clock read** in the sense this rule
-is about. `quickList.ts` and `taskBoard.ts`'s `mintTaskId` both use one; neither
-is ever parsed back into a day. A nonce is not a date.
+is about. `quickList.ts`, `taskBoard.ts`'s `mintTaskId` and `calendarAdd.ts`'s
+`own-${Date.now()}` all use one; none is ever parsed back into a day. A nonce is
+not a date.
 
 ### A viewport question that CSS can answer belongs in CSS
 
@@ -527,9 +614,10 @@ key already built from local parts.
 | The calendar's day heading | The day is chosen in the browser |
 | The agenda's group headings | The range is walked client-side |
 | `taskToItem` / `todoToItem`'s `timeLabel` | Their source rows are `localStorage`-only |
-| **`MiniCalendar`'s month label and each day cell's accessible date** (7a) | The grid pages to ANY month with no round trip — the whole point of keeping classes as weekday rules — so there is no finite set of months a `load` could pre-format |
-| **`WeekView`'s weekday abbreviations** (7b) | Same: the week is chosen client-side |
-| **The agenda's per-row date** (7b) | Same: the thirty-day range is walked client-side |
+| `MiniCalendar`'s month label and each day cell's accessible date (7a) | The grid pages to ANY month with no round trip — the whole point of keeping classes as weekday rules — so there is no finite set of months a `load` could pre-format |
+| `WeekView`'s weekday abbreviations (7b) | Same: the week is chosen client-side |
+| The agenda's per-row date (7b) | Same: the thirty-day range is walked client-side |
+| `customEventToItem`'s `timeLabel` | A custom event is `localStorage`-only, and it stores a wall clock rather than an instant |
 
 ### `describeDue` has four states, not three
 
@@ -578,6 +666,10 @@ claimed the suite was green in all seven zones and it was not, because that line
 was written before that test was. **A verification claim decays exactly like a
 comment does.**
 
+**7c's date-shaped additions were swept and are green.** `calendarAdd.spec.ts`
+asserts local parts rather than ISO strings for exactly this reason — comparing an
+ISO string would pin the runner's timezone instead of the behaviour.
+
 ---
 
 ## 8. The persistence layer
@@ -623,37 +715,57 @@ above it went on counting the server's stale `due.urgency`.
 
 **The calendar's form of the same rule is "one filter, applied once"** — see §14.
 
-### Three key spaces, never merge them — and the HIGH defect that is now closed
+### Three key spaces, never merge them — and BOTH defects are now closed
 
 | Space | Module | Keyed on |
 |---|---|---|
-| Task id | `userEdits.svelte.ts` | the task's own id |
+| Task id | `userEdits.svelte.ts` (6 of its 7 stores) | the task's own id |
 | Calendar item id | `calendarItems.ts` | `asg-12`, `apt-3`, `task-7`, `todo-x`, `custom-…`, `evt-evt-3-1` |
-| Raw `Event.id` | `ignoredEvents.ts` | `evt-3-1` — **stored verbatim** |
+| Raw `Event.id` | `ignoredEvents.ts` **and `thrive:event-joins`** | `evt-3-1` — **stored verbatim** |
 
-**The ignore store's two surfaces did not share a key space, and this was graded
-HIGH.** Fixed in 7a.
+**Still three spaces, not four.** The test for whether a new store needs a new one
+is: *is this a fact about the EVENT, or about the ROW?* A join and an ignore are
+facts about an event. A label and an urgent flag are facts about a row — which is
+what lets a student flag an assignment or label a booked appointment, neither of
+which they own and neither of which has an event behind it at all.
 
-`eventIdOf` strips exactly one leading `evt-`. Given a calendar item id
-(`evt-evt-3-1`) that recovers the raw id. Given a RAW id — which begins with `evt-`
-too — it *mangles* it to `3-1`. And **the store was normalising its own
-arguments**, so Home's write to `evt-3-1` landed under `3-1` while the calendar's
-landed under `evt-3-1`. Each surface self-consistent, neither able to see the
-other: ignoring an event on Home left it showing on the calendar and the reverse.
+**Defect one, fixed in 7a: the ignore store.** `eventIdOf` strips exactly one
+leading `evt-`. Given a calendar item id (`evt-evt-3-1`) that recovers the raw id.
+Given a RAW id — which begins with `evt-` too — it *mangles* it to `3-1`. And **the
+store was normalising its own arguments**, so Home's write to `evt-3-1` landed
+under `3-1` while the calendar's landed under `evt-3-1`. Each surface
+self-consistent, neither able to see the other.
 
 **The fix is that the store normalises NOTHING it is handed.** It keys on precisely
 the string given, and the one surface holding a prefixed id — the calendar — calls
 `eventIdOf` once at its own boundary. `filterSchedule` was always in the raw space,
-so **Home was the broken side**, and no Home component changed: every call site
-there already passed `event.id` raw.
+so **Home was the broken side**, and no Home component changed.
 
-`eventIdOf`'s doc comment used to claim "passing a raw id through twice is safe".
-That false sentence is why the bug was written twice, and it is gone.
+**Defect two, fixed in 7c: `thrive:event-joins`.** MIGRATION §9 defect 13 — the
+same bug, in a second store, and invisible because the store had exactly one
+consumer, and one consumer is self-consistent under any key space at all.
 
-**Old keys are inert, not migrated** (owner). An event ignored on Home before the
-fix reappears once. Absence means "never touched" in this store, so a stale key is
-harmless rather than corrupt, and a migration shim whose only input is a browser
-nobody can inspect is worse than the one-time reappearance.
+7c built that consumer and decided it with the consumer on screen:
+
+- **One `DayEventsSection` row offers "count me in" and "ignore" side by side.**
+  Under the old shape that component holds two ids for one event and has to
+  remember which control takes which — not a rhyme with the 7a defect, the same
+  arrangement.
+- **Home already held the other id, and said so in a comment.** `EventRow`'s "count
+  me in" had been inert since 6a *because this key space was unsettled*.
+- **Nothing argued the other way.**
+
+`calendarEvents.ts` is now the calendar's one boundary: `dayEventRows` calls
+`eventIdOf` once and hands the raw id back with each row, for **both** stores.
+
+**`eventIdOf`'s doc comment used to claim "passing a raw id through twice is
+safe".** That false sentence is why the bug was written twice, and it is gone.
+
+**Old keys are inert, not migrated** (owner, both times). An event ignored or
+joined before the fix is asked about once more. Absence means "never touched" in
+both stores, so a stale key is harmless rather than corrupt, and a migration shim
+whose only input is a browser nobody can inspect is worse than the one-time
+reappearance.
 
 **The double prefix itself is deliberate and stays.** Every calendar item id names
 its stream, and events are the one stream whose source ids share that prefix.
@@ -661,16 +773,40 @@ Dropping it would make the space non-uniform — `asg-12`, `apt-3`, `task-7`, th
 bare `evt-3-1` — and the label and urgent stores are keyed on that space.
 
 **Student-created task ids are prefixed `own-`** so they cannot collide with a
-fixture's. `removeAddedTask` clears the five sibling overrides too.
+fixture's. `removeAddedTask` clears the five sibling overrides too, and
+`deleteCustomEvent` does the same for a custom event's label and urgent.
+
+### How to test a key space, because the obvious way does not work
+
+**Pin the STORED KEY. Never round-trip.**
+
+A store that mangles on write and mangles identically on read is perfectly
+self-consistent about a key nothing else uses. That is what 7a's bug was, and two
+round-trip tests passed the whole time it was broken.
+
+So a key-space test must not share a transformation with the code:
+
+- read the string straight out of the fake `localStorage` and compare it to a
+  hard-coded literal, **or**
+- write through one surface's real path and read through the other's, with the
+  reading side's id hard-coded rather than derived.
+
+Then break it on purpose and count the reds. `calendarEvents.spec.ts` goes **7 red**
+with `eventId = item.id` reinstated.
+
+**And a unit test still cannot prove the two SURFACES share it**, because it
+renders neither. That half is `check:interaction`: join on the calendar, navigate
+to Home, and the same event says so — nothing in between but a page load and
+`localStorage`.
 
 ### What is deliberately NOT persisted
 
 Card collapse state, and the reveal channel that can drive it (§13). Also: the
 drag in progress, the open editor, the note draft before it commits, the live-region
-sentence, and the calendar's `selectedKey` / `monthKey` — a selected day is a
-momentary place, not a preference. **The calendar's FILTER is persisted**, through
-`calendarPrefs`, because a filter that resets on every navigation is a filter
-nobody uses twice.
+sentence, **the detail dialog's open item and its delete-confirmation step**, and
+the calendar's `selectedKey` / `monthKey` — a selected day is a momentary place,
+not a preference. **The calendar's FILTER is persisted**, through `calendarPrefs`,
+because a filter that resets on every navigation is a filter nobody uses twice.
 
 ### `.svelte.ts` is not decoration
 
@@ -680,7 +816,9 @@ Svelte only processes runes in `.svelte.js` / `.svelte.ts`. A plain `.ts` with
 
 **And the suffix is a claim, so it has to be true in the other direction too.**
 `arrive.ts` is DOM code with no runes and is a plain `.ts` for exactly that reason.
-7a and 7b added five pure modules and **no seventh rune file**.
+Three calendar phases added eight pure modules and **no seventh rune file** —
+`ics.ts`, `calendarEvents.ts` and `calendarAdd.ts` are all plain `.ts`, and
+`actions/focusTrap.ts` is DOM code like `arrive.ts`.
 
 ---
 
@@ -701,8 +839,10 @@ nobody reintroduces them thinking they were an oversight.
 | `useState` + `useRef` for the More sheet | Moot — the sheet is gone (§11) |
 | `useTaskBoard`'s two `useMemo`s and three `useCallback`s | Deriveds recompute on read |
 | `TaskNotes`' `latest` ref + syncing `useEffect` | `onDestroy` reads the draft directly |
-| **`MiniCalendar`'s `gridRef` + `requestAnimationFrame`** | A ref to query the grid, and a frame's guess at when the month had re-rendered. `bind:this` plus `await tick()` is the flush, not a guess |
-| **`CalendarView`'s five `useMemo`s** | Same as above: filter, labels, next-up, squares, day groups all recompute on read |
+| `MiniCalendar`'s `gridRef` + `requestAnimationFrame` | A ref to query the grid, and a frame's guess at when the month had re-rendered. `bind:this` plus `await tick()` is the flush, not a guess |
+| `CalendarView`'s five `useMemo`s | Same as above: filter, labels, next-up, squares, day groups all recompute on read |
+| **`ItemDetail`'s two `useEffect`s and a `useRef`** | A ref for the close button, an effect to focus it on mount, and an effect adding a `window` keydown listener keyed on `onClose`. All three are **one action** here — `focusTrap` plus `escapeKey`, whose lifetimes ARE the element's |
+| **`AddItemForm`'s three `useId()`s** | Only one add form is ever mounted, so plain ids match the repo's rule: per-instance ids for per-instance components, plain ones for singletons |
 
 **Two collapses were requested and made:** `localDayKey(iso)` folded into
 `dayKeyOf(value: Date | string)`, and `CalendarView`'s
@@ -723,6 +863,29 @@ calling component. **The reveal channel is deliberately NOT one** — see §13.
 `TaskNotes` commits its draft on destroy; written as an `$effect` returning a
 cleanup it would commit on every keystroke.
 
+### A prop is a getter, and 7c learned that the hard way
+
+**In Svelte 5 a prop is a getter over the parent's state, so its declared type has
+a lifetime.** `ItemDetail` declares `item: ScheduleItem`, and that is true of the
+VALUE. Closing writes `null` into `CalendarView.detail`; the `{#if}` around the
+component tears the subtree down a tick later. In between, the getter returns null
+while the component's handlers still exist.
+
+It threw, in production, on an ordinary dismissal: closing with focus in the label
+field fired the input's `onblur` **during teardown**, `commitLabel` read `item.id`,
+and the page logged `Cannot read properties of null (reading 'id')`.
+
+**The remedy is to latch the value at mount** — `const row = untrack(() => item)`
+— which fixes the whole class rather than one handler, and states the assumption
+out loud. It is only correct when the prop genuinely cannot change for the
+instance's lifetime, and that has to be arguable: here `detail` is a snapshot, the
+dialog is modal so nothing can swap the row underneath it, and the two fields that
+CAN change while it is open are read from their stores instead. Where a prop really
+does change, guard the handler instead.
+
+Same family as 6b's `derived_inert` — a `dragend` on a row a drop destroyed. Both
+are "the DOM outlives the state for one tick".
+
 ---
 
 ## 10. The shell
@@ -736,8 +899,8 @@ cleanup it would commit on every keystroke.
 - **The top bar is 48px above `lg`, 56px below.** The CONTROLS change size — 44px
   touch, 36px pointer — and the bar's height follows from them. WCAG 2.5.5 asks
   44px of a touch target and 2.5.8 asks 24px of a pointer one. The stat pills, 6b's
-  editor buttons, and 7b's view switcher and key-bar chips all follow the same pair
-  (`min-h-11` below, relaxing above).
+  editor buttons, 7b's view switcher and key-bar chips, and 7c's register and
+  dialog controls all follow the same pair.
 - **`--thrive-page-gutter-bottom`** is the page's bottom breathing room, used
   twice: on mobile added to the bottom nav's height, and above `lg` it is the whole
   padding.
@@ -755,32 +918,49 @@ design against.
 ### The app-wide toast
 
 `toast.svelte.ts` shipped in Phase 3b with six tests and **no consumer**. 6b's
-copy-to-quick-list is the first caller and would have been the worst possible one
+copy-to-quick-list was the first caller and would have been the worst possible one
 to leave unrendered: the floating quick list is feature-flagged off, so the copy
-has **no visible destination either**.
+had no visible destination either.
 
-`role="status"` rather than `alert`: copying a row is not urgent and must not
+`role="status"` rather than `alert`: a confirmation is not urgent and must not
 interrupt a screen reader. The region is **mounted always** and only its text
 changes, because a live region created and populated in the same tick announces
 unreliably. `pointer-events-none` so a confirmation can never swallow a press.
 
-**It currently has no caller, and that is expected** (owner, 2026-08-21). Copy-to-
-list is gated on the same flag, so the toast and its one raiser return together.
+**7c gave it three live callers, so it is no longer flag-dependent.** Adding an
+item ("added to your to-do list" — naming WHICH list, because that is the whole
+point of the kind picker), deleting a custom event, and ignoring an event from the
+calendar.
 
-### The two actions
+### The three actions
 
-`frontend/src/lib/actions/` — `escapeKey` and `clickOutside`. Svelte actions rather
-than translated `useEffect`s, and the shared shape is that **the listener's
-lifetime is the element's**: put one inside an `{#if open}` and it exists exactly
-when the thing it dismisses does.
+`frontend/src/lib/actions/` — `escapeKey`, `clickOutside`, and **`focusTrap`**
+(7c). Svelte actions rather than translated `useEffect`s, and the shared shape is
+that **the listener's lifetime is the element's**: put one inside an `{#if open}`
+and it exists exactly when the thing it dismisses does.
 
-Callers: `StatPopover` and `DueDateEditor` for both. **Neither gained a third in
-7a or 7b** — the calendar has no dismissible floating surface yet; `ItemDetail` in
-7c is the candidate.
+Callers: `StatPopover` and `DueDateEditor` for the first two, and **`ItemDetail`
+for all three** — the third caller 7a and 7b predicted and did not produce.
 
 `clickOutside` takes `alsoInside` because a disclosure's own trigger is not inside
 its panel but *is* inside its widget. Without it, pressing the trigger to close
 fires the dismissal, the panel unmounts, and the trigger's own click reopens it.
+
+**`focusTrap` is one action for three obligations, and that is deliberate.** Move
+focus in, keep it in, put it back. They are one contract, and the first and third
+are two halves of a single fact — the element focused at mount is the element that
+gets it back at destroy. Split across two actions, that fact would live in neither.
+
+It does **not** close anything and does **not** decide what a dialog is: Escape,
+an outside press, `aria-modal` and the scrim are separate decisions a caller can
+make differently, and a non-dismissible dialog is a real thing. It also does not
+make the rest of the document `inert`, which would mean an action reaching outside
+its own node.
+
+**Its focusable set is queried LIVE on every Tab**, not captured at mount, because
+`ItemDetail`'s delete control replaces itself with a two-button confirmation while
+the trap is up. A list captured at mount would hand Tab to a button that no longer
+exists.
 
 **The same shape, one level up.** `TasksCard` clears its drag state from a
 `document` `dragend` listener inside an `$effect` keyed on `drag !== null`. Not an
@@ -800,11 +980,13 @@ the copy succeeded, persisted, and showed the student nothing.
 **A flag that gates a destination should gate the routes INTO it.** That is the
 generalisable form.
 
-**A note the calendar sharpens:** the quick list's *items* now surface somewhere
-the flag does not gate. The agenda renders undated to-dos, which are `QuickItem`s,
-and they are tickable there. That is deliberate — the agenda is the only view that
-can carry them and they would otherwise be invisible forever — but it means the
-store has a visible consumer while its panel does not.
+**The calendar sharpens a note here twice over.** The quick list's *items* surface
+somewhere the flag does not gate: the agenda renders undated to-dos, which are
+`QuickItem`s, and they are tickable there. **And 7c's add form can now CREATE
+one** — "to-do" is one of its three kinds and it writes `thrive:quicklist`. That is
+deliberate on both counts — the agenda is the only view that can carry undated
+to-dos and they would otherwise be invisible forever — but it means the store has
+two visible consumers and a writer while its panel does not exist.
 
 ---
 
@@ -852,7 +1034,7 @@ pointed at parked routes, so the alternative was four places to forget.
 
 **Which cards lost their link:** Tasks (`/assignments`), My Classes (`/classes`),
 Upcoming Events (`/events`). Today's classes keeps `/calendar` — and that link now
-lands on a real page, which it did not when the decision was made.
+lands on a real and complete page.
 
 **`isKnownRoute` is the companion**, separating a parked route from a mistyped one.
 `SectionCard` warns in development on an href in neither list. A warning and not a
@@ -902,7 +1084,7 @@ because their dates are relative to "now" and module load may be hours earlier.
 somebody numbered the request seed `req-000` by hand and set the resume counter to
 4. Commented at the generator, and pinned by a test.
 
-### Five providers finally have a calendar consumer
+### Five providers have a calendar consumer
 
 `buildScheduleData()` was the gating unported piece from Phase 2 to 7a. It reads
 **`getCourses`, `getAssignments`, `getEvents`, `getMyAppointments`, `getAdvisors`**
@@ -936,7 +1118,7 @@ upcoming events, 21 of them inside seven days**, generated 2–4 per day across 
 rolling horizon. That 21-against-4 is what forced the events card decision in §13.
 
 **Event ids are `` `evt-${dayOffset}-${i}` `` — already `evt-`-prefixed**, which is
-the root of the key-space defect in §8. Verified at `mock/events.ts:287`.
+the root of both key-space defects in §8. Verified at `mock/events.ts:287`.
 
 **The eight open tasks are why the collapse matters and why one gate check can run
 at all.** Four are shown collapsed, so `check:interaction` can tick the last of the
@@ -947,13 +1129,16 @@ survived to be found by reading rather than by using the app. **And no fixture i
 carries a label**, which is why the calendar key's labels dimension had to be
 exercised by seeding the store by hand (§14).
 
+**The month the calendar opens on has 36 days with something on it and 14 with
+events**, which is what makes 7c's day-figure gate non-vacuous — see §14.
+
 ---
 
 ## 13. Home
 
-The dashboard, and the only editable surface. `+page.server.ts` awaits **six
-providers in one `Promise.all`** and calls `new Date()` once. Four cards in a
-**2×2 grid** at `lg`, one column below it.
+The dashboard, and the only editable surface besides the calendar.
+`+page.server.ts` awaits **six providers in one `Promise.all`** and calls
+`new Date()` once. Four cards in a **2×2 grid** at `lg`, one column below it.
 
 **What is deliberately not computed on the server:** the three stat counts. They
 have to see the student's persisted ticks, edits and ignores, which only exist in
@@ -1018,6 +1203,10 @@ draft. Both halves are needed — a `pointerdown` flag for mouse, touch and
 **Safari** (where clicking a button does not focus it, leaving `relatedTarget`
 null), and a `relatedTarget` check for the keyboard.
 
+**That Safari note came back in 7c**, one layer up: a pointer press does not
+reliably leave focus on a button, so `ItemRow` focuses its details trigger before
+opening the dialog, or `focusTrap` has nowhere to put focus back (§14).
+
 **"Needs a date" accepts no drops**, enforced as a type:
 `DatedGroupKey = Exclude<GroupKey, 'unknown'>`.
 
@@ -1047,11 +1236,14 @@ Measured after: **303px and one line at 375px, 339–385px at 1512px.**
 
 **The row is a `<div>`, not a `<label>`.** It holds several controls and a label
 wrapping all of them would make pressing the note button tick the task off. The
-**title** is the checkbox's label instead.
+**title** is the checkbox's label instead. **The calendar's `ItemRow` follows the
+same rule for the same reason**, and 7c's details button is why it matters there
+too.
 
 **The control strip is right-anchored (`ms-auto`).** The invariant: a conditional
 control appears and disappears at the strip's leading edge, and nothing already on
-screen moves.
+screen moves. **`ItemRow`'s details control follows it** — last in the strip, so
+adding it moved nothing.
 
 **The row renders `role="listitem"`, and every caller owes it a `role="list"`
 container.**
@@ -1079,6 +1271,35 @@ is currently inside the panel. Choosing an item is the named exception.
 
 **21 items is a long popover** and it scrolls at `max-h-60`.
 
+### Upcoming Events, and the join control that is finally live
+
+The events pill counts events *this week* — 21 in the fixture — while the card showed
+four *upcoming*, so seventeen popover items had no row to jump to.
+
+The fix rests on both sets being **prefixes of the same list**.
+`expandedEventLimit(collapsedLimit, weekCount)` returns `max` of the two, and a test
+asserts the prefix property. The `max` is not decoration: on a quiet week the week
+count is *shorter* than the collapsed slice.
+
+**Filter FIRST, then slice** — ignored events are removed before the slice, which is
+what makes the next event move up instead of leaving a gap.
+
+**"Count me in" was inert from 6a until the 7c follow-on**, with a comment beside it
+saying exactly why: the join store was keyed on the calendar item id, so a write
+from Home would have landed under a key the calendar never reads. §8 settled that,
+and the control is now real.
+
+**It renders the calendar's shape exactly** — "You're in" states the fact, "Remove
+from my list" is the way out, and a joined row says nothing was sent anywhere — and
+the register vocabulary moved to `messages.common.events`, because two live surfaces
+rendering the identical words for the identical act should not be two strings for a
+translator to keep in step.
+
+**An inert control is a dead affordance, and this is the third one removed.** The
+first two were "View all" pointing at a parked route and copy-to-list with nowhere
+to copy to. **"Add to calendar" beside it is still visual only** — not blocked on
+anything now that `$lib/ics` is ported, simply not what that follow-on was for.
+
 ### The reveal channel: the page owns the intent, the cards own their state
 
 - **`$lib/reveal.ts`** is pure and tested. `planReveal(ids, limit, targetId)` is the
@@ -1101,11 +1322,12 @@ to work.
 **Each show-more control governs its OWN region.** Two controls claiming one region
 is a promise to a screen reader that neither keeps.
 
-**`RevealKind` is a closed union — `'task' | 'event'` — on purpose.** Nothing in 7a
-or 7b needed a third, and it was checked rather than assumed: the calendar's "next
-up" line is a static sentence, not a jump, so no calendar surface asks the channel
-for anything. A third member would force an id-space decision, which is why the
-union is closed. **The calendar has added no arrival caller at all yet.**
+**`RevealKind` is a closed union — `'task' | 'event'` — on purpose.** Nothing in
+7a, 7b or 7c needed a third, and it was checked rather than assumed each time: the
+calendar's "next up" line is a static sentence, and 7c's add form deliberately does
+not jump to what it created (§14). A third member would force an id-space decision,
+which is why the union is closed. **The calendar has still added no arrival caller
+at all.**
 
 ### Arriving is one function, and it is the standard
 
@@ -1116,13 +1338,15 @@ either alone.
 Asking and doing are separate modules: **`$lib/arrive`** is "I know which row",
 **`$lib/reveal.svelte`** is "something else has to find it".
 
-**Two callers:** a popover item, and 6b's undo. The calendar was expected to be the
-third and **is not** — see the note above.
+**Two callers, still:** a popover item, and 6b's undo.
 
-**Not every focus move is an arrival.** Two live counter-examples: navigation inside
-a widget (`StatPopover` between its items, and now `MiniCalendar`'s arrow-key grid
-movement), and focus recovery onto a container after the row it was on stopped
-existing (`UpcomingEvents` after an ignore).
+**Not every focus move is an arrival**, and 7c added two more counter-examples to
+the list. Navigation inside a widget (`StatPopover` between its items,
+`MiniCalendar`'s arrow-key grid movement). Focus recovery onto a container after
+the row it was on stopped existing (`UpcomingEvents` after an ignore). **And now
+`focusTrap`'s two moves** — into a dialog on open, and back to the opener on close.
+None of them is "here is the row you asked for", which is the only thing the mark
+means.
 
 `MiniCalendar` is the clearest case for the distinction: it moves focus on every
 arrow press, and marking each one would turn a wayfinding cue into a cursor.
@@ -1162,24 +1386,12 @@ expands the card if it must, and only then arrives.
 nowhere and logs **zero console warnings**, because the gate drives the production
 build where the dev-only warn is compiled out.
 
-### Upcoming Events: collapsed is four, expanded is this week
-
-The events pill counts events *this week* — 21 in the fixture — while the card showed
-four *upcoming*, so seventeen popover items had no row to jump to.
-
-The fix rests on both sets being **prefixes of the same list**.
-`expandedEventLimit(collapsedLimit, weekCount)` returns `max` of the two, and a test
-asserts the prefix property. The `max` is not decoration: on a quiet week the week
-count is *shorter* than the collapsed slice.
-
-**Filter FIRST, then slice** — ignored events are removed before the slice, which is
-what makes the next event move up instead of leaving a gap.
-
 ### Measured heights
 
 Header block **375px → 266px** (6a density pass). Document **1392px → 1238px** (6a)
 **→ 1218px** (6b). **Home fits a 1218px viewport whole**, not 1052px, and the
-decision is **do not cut card rows**. **The phone is 3281px.**
+decision is **do not cut card rows**. **The phone is 3235px** — the join control
+added ~46px per joined row and nothing else.
 
 ### Strings
 
@@ -1187,11 +1399,16 @@ decision is **do not cut card rows**. **The phone is 3281px.**
 by surface, and **anything carrying a value is a function**, not a template
 assembled at the call site.
 
-6b added a `taskEditing` group of ~45 entries. 7a and 7b added a `calendar` group of
-~50, with the same property: `countPart(count, singular, plural)` hands a translation
-both word-forms so it can pluralise its own way, and `dayLabel(date, items, today)`
-decides what a day cell says and in what order rather than letting markup concatenate
-it.
+6b added a `taskEditing` group of ~45 entries. The calendar phases added a
+`calendar` group of ~90, with the same property: `countPart(count, singular,
+plural)` hands a translation both word-forms so it can pluralise its own way, and
+`dayLabel(date, items, today)` decides what a day cell says and in what order rather
+than letting markup concatenate it.
+
+**`common.events` is the one group that is not owned by a surface** (7c follow-on).
+Home and the calendar render the same eight strings for the same act against the
+same store; two copies was survivable while Home's controls were inert and stopped
+being so the moment both were live.
 
 **This is a standing rule, not a Home thing.** Every surface extracts its strings as
 it is built, or Mandarin stops being possible.
@@ -1200,9 +1417,9 @@ it is built, or Mandarin stops being possible.
 
 ## 14. The calendar
 
-**The second built surface, and the largest.** `/calendar` — 13 files, ~2,011 lines.
-7a built the spine, 7b the other two views and the filter. 7c is item detail, the add
-form and the events section.
+**The second built surface, the largest, and as of 7c COMPLETE.** `/calendar` —
+14 components, ~2,850 lines, plus nine pure modules. 7a built the spine, 7b the
+other two views and the filter, 7c the three editing surfaces.
 
 ### The load: one clock read, three values, and no merge
 
@@ -1235,15 +1452,14 @@ and `sortMinutes: 0` — a marker for the day rather than a slot on it.
 ### The three rules that hold it together
 
 **1. ONE filter, applied once.** `filterSchedule` runs on the whole `ScheduleData`
-in `CalendarView` before anything renders, and the month grid, the week columns and
-the agenda all read that one result. **No view filters for itself.** The old failure
-— a dot on a day with no row beneath it — is structurally impossible rather than
-something to remember.
+in `CalendarView` before anything renders, and the month grid, the week columns,
+the agenda, the day sections **and the events section** all read that one result.
+**No view filters for itself.** The old failure — a dot on a day with no row beneath
+it — is structurally impossible rather than something to remember.
 
-The checkable consequence, and the one to verify in a browser after any change here:
-**switching view does not change what a day COUNTS.** The header figure, the
-`n of m done` fraction and the month dots are all derived from the filtered data
-independent of `prefs.view`. Measured across a month-to-week switch: 5 and 5.
+The checkable consequence: **switching view does not change what a day COUNTS.**
+The header figure, the `n of m done` fraction and the month dots are all derived
+from the filtered data independent of `prefs.view`.
 
 **2. ONE `selectedKey`.** Owned by `CalendarView`, read and written by every view,
 so switching view never loses the student's place. Selecting a day from an adjacent
@@ -1257,16 +1473,19 @@ was declined.
 
 | File | Role |
 |---|---|
-| `CalendarView` (401) | **The only stateful node.** Owns `selectedKey`, `monthKey`, `detail`. Merges, filters once, and renders the day panel as a **snippet** shared by month and week |
-| `MiniCalendar` (355) | The month grid. Up to 3 category dots per day plus `+n`, a roving tabindex, full grid keyboard navigation |
-| `KeyBar` (240) | The key AND the filter. Two dimensions that never merge — below |
-| `ItemRow` (209) | One item in the shape every view renders it. Three shapes: full, `compact`, and full-with-a-date |
-| `AgendaView` (140) | A flat grouped list over 30 days. **The only view that can carry undated to-dos** |
+| `CalendarView` (445) | **The only stateful node.** Owns `selectedKey`, `monthKey`, `detail`. Merges, filters once, and renders the day panel as a **snippet** shared by month and week |
+| `ItemDetail` (371) | **The dialog.** Everything about one item plus label, urgent and delete. A real dialog — see below |
+| `MiniCalendar` (360) | The month grid. Up to 3 category dots per day plus `+n`, a roving tabindex, full grid keyboard navigation |
+| `ItemRow` (253) | One item in the shape every view renders it. Three shapes: full, `compact`, and full-with-a-date. Carries the details trigger |
+| `AddItemForm` (251) | Add a task, a to-do or a custom event. Markup only — the routing is a module |
+| `KeyBar` (240) | The key AND the filter. Two dimensions that never merge |
+| `DayEventsSection` (234) | "Happening, register". Join, leave, `.ics`, ignore |
+| `AgendaView` (150) | A flat grouped list over 30 days. **The only view that can carry undated to-dos** |
 | `CalendarHeader` (123) | The day's summary: big figure, breakdown, `n of m done`, "next up", the square strip |
 | `WeekView` (116) | Seven columns. Not rendered below `48rem` |
 | `SquareGrid` (103) | A day's items as squares. Re-exports `SquareCell` / `SquareGroup` from `calendarDay` |
 | `ViewSwitcher` (87) | month / week / agenda as a radiogroup, plus the **agenda-only** grouping select |
-| `DaySection` (65) | One titled group on the selected day |
+| `DaySection` (68) | One titled group on the selected day |
 | `DayGroupToggle` (49) | Arrange the day by type (default) or time |
 
 ### The pure layer behind it
@@ -1282,8 +1501,11 @@ gate can see.**
 | `calendarSources.ts` | `taskToItem`, `todoToItem`, `mergedSchedule` |
 | `calendarDay.ts` (7a) | The selected day: `sortDayItems`, `arrangeDay`, `squareGroupsFor`, `dayCountParts` |
 | `calendarViews.ts` (7b) | The views: `agendaRange`, `showsRowDate`, `undatedTodoItem`, `visibleUndatedTodos` |
+| `calendarEvents.ts` (7c) | **The event boundary.** `dayEventRows`, `joinedCount` |
+| `calendarAdd.ts` (7c) | **The routing.** `addCalendarItem`, `instantFor` |
+| `ics.ts` (7c) | `buildIcs` (pure, clock as an argument), `icsFromItem`, `downloadIcs` |
 | `calendarPrefs.ts` | `normalisePrefs` + the persisted store |
-| `calendarItems.ts` | Custom events, labels, urgent — keyed by calendar item id |
+| `calendarItems.ts` | Custom events, labels, urgent — keyed by calendar item id. Plus `labelFor` / `urgentFor`, the ONE resolution rule |
 | `ignoredEvents.ts` | `eventIdOf`, `canIgnore`, the store — keyed on raw `Event.id` |
 | `tickItem.ts` | `tickItem`, `isTickable` — dispatching on the attached source row |
 
@@ -1298,10 +1520,19 @@ gate can see.**
   and implied three things could be ticked.
 - **"1 classes".** `class` is the only irregular plural in the category list.
 - **The attached source row on an undated to-do.** Built as an object literal in the
-  prototype's markup, which is exactly where a field gets dropped — and dropping
-  `quickItem` renders a checkbox that appears to tick and reverts on the next render.
-  `undatedTodoItem` is a named construction with a test asserting the MECHANISM via
-  `isTickable`.
+  prototype's markup, which is exactly where a field gets dropped.
+- **The three-store routing.** A to-do filed as a task turns up on Home under a
+  heading that says "pulled from every source", which is then untrue; a task filed
+  as an event cannot be ticked, so a deadline quietly stops being one. Neither
+  throws, neither fails a type check, and neither is visible on the day it happens.
+- **The event id boundary.** An id shedding a prefix it did not have, or not
+  shedding one it did. Invisible to types, to `svelte-check`, and to any
+  round-trip test.
+
+> **Extract by failure mode, not by size.** `AddItemForm` is a radio group and three
+> inputs — nothing about it is hard. The routing is the only part that fails
+> silently, so the routing is the part that left the component. Third time in three
+> phases.
 
 ### Ticking dispatches on the attached source row, never on a parsed id
 
@@ -1309,11 +1540,15 @@ gate can see.**
 reads it. `isTickable` asks that same question — is a writable source attached — not
 whether `done` happens to be set, and never by slicing a prefix off an id.
 
-The id-parsing version missed every task the student added themselves (those live in
-`addedStore`, not the server's array) and every undated to-do in the agenda (whose
-synthetic id was never prefixed). Both failed identically and **silently**: the guard
-found nothing and returned, the checkbox appeared to tick, and the next render put it
-back.
+The id-parsing version missed every task the student added themselves and every
+undated to-do in the agenda. Both failed identically and **silently**: the guard
+found nothing and returned, the checkbox appeared to tick, and the next render put
+it back.
+
+**7c extended the same rule to deletion.** `customEventToItem` now attaches the
+`CustomEvent` to the row, so `ItemDetail` deletes by `item.customEvent.id` rather
+than `item.id.replace(/^custom-/, "")` as the source did — doubly hazardous there,
+because a custom event's item id carries the prefix **twice**.
 
 ### `KeyBar`: two dimensions that do not merge
 
@@ -1339,45 +1574,153 @@ section absent entirely when nothing is labelled. **Nothing iterates a merged ar
 way to switch it back on.
 
 **Off reads as off, not as absent** — a hidden stream keeps its chip, dimmed and
-struck through. `hide all` exists and so does the warning that follows it: an empty
-page the student caused and might not remember causing is the one case that owes an
-explanation.
+struck through. `hide all` exists and so does the warning that follows it.
 
 The three toggles are real checkboxes so keyboard and screen-reader behaviour come
-from the platform. They are `sr-only`, which means the app's global focus ring lands
-on a 1px clipped box — `has-[:focus-visible]` moves it out to the chip at the same
-2px primary outline and offset the base layer draws, so there is one focus treatment
-rather than two.
+from the platform. They are `sr-only`, and `has-[:focus-visible]` moves the focus
+ring out to the chip at the same 2px primary outline the base layer draws.
+
+**7c's add form uses the same construction** for its kind picker — a labelled radio
+group with `sr-only` inputs — so arrow keys work, the group is one tab stop, and the
+selected value is announced.
+
+### `ItemDetail` is a real dialog, which the source was not
+
+The Next version had `role="dialog"` and `aria-modal="true"` on a div that kept
+three of the six promises those attributes make.
+
+| Obligation | How |
+|---|---|
+| Named | `aria-labelledby` at the real heading |
+| Announced as modal | `aria-modal="true"` plus the scrim |
+| Focus moves in | `use:focusTrap`, `initial: '[data-dialog-close]'` |
+| Focus is trapped | the same action |
+| Focus returns to the opener | the same action, on destroy |
+| Escape dismisses | `use:escapeKey` |
+
+**Focus lands on CLOSE, not the label field.** The common case is reading, and
+stealing focus into a text input makes Escape feel like it cancelled an edit that
+never started.
+
+**The opener must be focused before the dialog opens.** A pointer press does not
+reliably leave focus on a button — Chrome does it, Safari on macOS does not — so
+`ItemRow` calls `focus()` on itself in the handler before `onOpen`. Without it a
+mouse user lands on `<body>` and the next Tab starts at the top of the page.
+
+**The two live fields read their STORES, not the row.** `detail` is a snapshot, so
+reading its `urgent` for the checkbox would show the value as it was when the dialog
+opened and never move — which is what the source does. Label and urgent resolve
+through the same `labelFor` / `urgentFor` the merge applies to every row, so the
+dialog and the row behind the scrim cannot disagree.
+
+**Delete asks first, and the second step's geometry is thought about.** Deleting a
+custom event is irreversible — there is no undo slot for it. So: "Keep it" takes the
+position "Delete" occupied, and holds focus, so neither a double-tap nor an Enter
+can destroy anything. **A confirm button rendered where the trigger was reintroduces
+the accident the step exists to prevent.** And Escape peels one layer: with the
+question up it cancels the question, not the dialog.
+
+**The dialog is mounted outside the view branches**, because the agenda has no day
+panel and its rows open one too, and `dayPanel` is keyed on the selection — which a
+student can change from the keyboard while the dialog is open.
+
+### `AddItemForm`: three kinds, three stores
+
+```
+task   work with a deadline   -> thrive:task-added     joins Home's Tasks list
+todo   a scratch item         -> thrive:quicklist      joins the quick list
+event  something happening    -> thrive:custom-events  goes nowhere else
+```
+
+**Three departures from the source, each fixing something:**
+
+- **A to-do is dated at the day's start, not the form's time.** The quick list never
+  offers a time and `todoToItem` renders every one "All day", so storing 09:00 puts
+  a number in the store that nothing reads and that contradicts the row it produces.
+  The date still has to be the chosen day, or the item lands in the agenda's "No
+  date" bucket, which is not what "add to this day" asked for.
+- **Label and urgent go to the annotation stores only** — see §3, shape two.
+- **The confirmation names the list.** Three kinds go to three places and a student
+  who picked the wrong one finds out days later on another page.
+
+**No arrival, and that is a decision.** `arriveAtRow` needs a row with a DOM id and
+calendar rows carry none; the arrival mechanism exists for Home's popovers jumping
+across a collapsed card. Nothing like that happens here — the form sits directly
+above the list it just added to, on the day it added to. Giving every calendar row
+an id to support a jump nobody asked for would add a second arrival surface with its
+own gate, and for a to-do (which lands in a section rather than at the cursor) would
+move the page under a student about to add a second thing.
+
+**Default time is 9:00, not "now".** Adding something to next Tuesday at the current
+wall-clock time is almost never what was meant — and it would make the module read
+the clock for no reason.
+
+**Plain field ids, not `useId()`.** Only one add form is ever mounted: the day panel
+is built once per view, and the week view's mobile branch renders the agenda, which
+has none. The repo's rule is per-instance ids for per-instance components (`TaskRow`)
+and plain ones for singletons (`AddTaskForm`).
+
+### `DayEventsSection`, and the day-figure gap that is now closed
+
+**Its own section rather than a group in the day list, because opting in is a
+different act from ticking off.** A class is something the student is already
+committed to and an assignment is something they owe; these are invitations, and
+they carry a blurb, a "for you" badge and three controls no other row has.
+
+**Joining states a fact and leaving is a separate control.** It used to be one
+toggle reading "You're in", which removed you when pressed again — an off-switch
+nobody could discover.
+
+**Nothing is sent anywhere.** "Count me in" is local intent; "add to calendar"
+downloads an `.ics` the student chooses to import. Each joined row says so.
+
+**The fraction counts the rows ON SCREEN**, not the store, which holds every event
+the student has ever joined across every day. A numerator from the store against a
+denominator from the list reads "4/2" on a Tuesday.
+
+**THE 7a GAP IS CLOSED.** The header's figure counts everything on the day, events
+included, so for two phases a day could read "12" above ten rows. Both alternatives
+were worse — filtering events out of the count would also have taken them off the
+month grid, breaking "one filter, applied once". With this section mounted, every
+category the figure counts has rows beneath it.
+
+**And it is gated rather than argued.** `check:interaction` walks **every day in the
+month with anything on it** — 36 days, 14 of them rendering an events section — and
+asserts the figure equals the rows rendered, then asserts it again after an add. The
+whole-month walk matters: the mismatch was per-category, so a check that happened to
+land on a Tuesday of classes would have passed throughout the two phases the gap was
+open.
 
 ### The week-to-agenda fallback, at 48rem
 
 Seven columns on a 375px screen gives each one about 50px, narrower than the word
 "Assignment". So below `md` the week grid does not render and the agenda answers.
 
-**The Next source never had this.** MIGRATION §4 and `WeekView.tsx`'s own comment
-both claim it; `CalendarView.tsx` renders the week at every width and `WeekView`
-papers over narrow screens with `overflow-x-auto` + `min-w-[42rem]`. See §3, shape
-three.
+**The Next source never had this.** See §3, shape three.
 
 **It is CSS** — two media-gated wrappers, for the reasons in §7. Below the
 breakpoint, week renders **exactly what agenda renders** (list, no day panel); the
 alternative, list plus day panel, is a shape no view has. And it **says so on
 screen**: the switcher still shows "week" selected, because that is the student's
-choice and it is honoured the moment the screen is wide enough, so the page owes a
-reason rather than appearing to have ignored the click.
+choice and it is honoured the moment the screen is wide enough.
 
 **48rem, not 40rem, and the difference was measured.** 40rem gave 71px columns —
-correctly clamped and still reading as three short stacks. 48rem gives 89px, with
-~75px of text per title, enough that whole words land on a line.
+correctly clamped and still reading as three short stacks.
 
-| width | week columns | column | agenda | note | h-overflow |
-|---|---|---|---|---|---|
-| 1330px | 7 | 132px | — | no | 0px |
-| 900px | 7 | 108px | — | no | 0px |
-| 769px | 7 | 89px | — | no | 0px |
-| 768px | 7 | 89px | — | no | 0px |
-| 767px | 0 | — | 28 groups | yes | 0px |
-| 375px | 0 | — | 28 groups | yes | 0px |
+Re-measured after 7c (the add form and the events section live in the day panel
+below the grid, so nothing in the columns changed):
+
+| width | week columns | column | agenda | fallback note | h-overflow | tallest title |
+|---|---|---|---|---|---|---|
+| 1330px | 7 | 133px | — | no | 0px | 60px |
+| 900px | 7 | 109px | — | no | 0px | 60px |
+| 769px | 7 | 90px | — | no | 0px | 60px |
+| 768px | 7 | **90px** | — | no | 0px | 60px |
+| 767px | 0 | — | 28 groups | yes | 0px | — |
+| 375px | 0 | — | 28 groups | yes | 0px | — |
+
+Within 1px of 7b's table — the same element measured with a different rounding
+method. No console output at any width.
 
 **There is no min-width and no horizontal scroll in `WeekView`.** The fallback is
 what guarantees the room, so a scrollbar would mean the fallback was doing nothing.
@@ -1395,12 +1738,15 @@ dimensions that can, by the same rules.** `showDone` is obvious. **`urgentOnly` 
 all of them**, because urgent is applied by `mergedSchedule`'s `annotate` over
 `data.dated` only, so an undated to-do can never carry the flag — and leaving them in
 meant switching urgent-only on emptied the whole page except that one section, which
-reads as a broken filter. **That is `filterSchedule`'s own recurring-classes rule
-finished, not a new one**, and nothing in `filterSchedule` changed.
+reads as a broken filter.
 
 They render `allDay: false` with an empty time column, departing from the source's
 `allDay: true` — which made `ItemRow` label every one "all day", a claim about a day
 they do not have.
+
+**They get the details trigger too.** The agenda is the only place an undated to-do
+is reachable, so it is the only place one can be labelled or flagged urgent;
+withholding the control there would make a whole class of row uneditable.
 
 ### Agenda rows name their own date when the grouping is not by day
 
@@ -1414,42 +1760,30 @@ The range is **anchored on TODAY, not on the selection**: the agenda answers "wh
 coming up", and an anchor that moved with the selection would answer a different
 question every time a student touched the month grid.
 
-### Two known-and-accepted gaps
+### One deliberate absence: the agenda has no add form and no events section
 
-**The day's figure counts events that have no rows until 7c.** A day can read "5"
-above three rendered rows. Both alternatives are worse: filtering events out of the
-count and the dots breaks "one filter, applied once" and changes the grid twice, and
-folding events into a generic day group ships them without their register controls,
-blurb and relevance badge. Pinned by a test that states the reason. **Stands unless
-the owner says otherwise after seeing it.**
+**Settled by the owner, 2026-08-21.** The agenda spans thirty days, so there is no
+day for a new item to land on, and both other views offer one. Matching the source
+is right here. Do not revisit without a proposal for what day an agenda-level add
+would add to.
 
-**`check:layout` only ever visits `/calendar` in its DEFAULT view.** Empty
-`localStorage` means `normalisePrefs` returns `view: 'month'`, so week and agenda are
-unvisited by every gate — which matters most for the agenda, 13,764px tall on a phone.
-Covered by hand at eight widths in all three views. **Approved for 7c.**
+### What still has no gate, and was verified by hand
 
-### What has no gate, and was verified by hand instead
-
-`check:interaction` stays scoped to Home (owner's instruction), and nothing in 7a or
-7b argued for extending it: both phases moved their decisions into the pure layer
-where the suite can see them. What is left is genuinely browser-only, and was driven
-against the production build:
+`check:interaction` now covers the calendar's editing surfaces (§15), so the by-hand
+list is shorter than it was. What remains:
 
 - **`MiniCalendar`'s keyboard grid.** 42 cells, one tab stop, arrows in all four
   directions with focus and selection agreeing, Home/End six days apart,
   PageDown/PageUp moving the month while focus survives the swap **and the document
   does not scroll** — the Next version's shared `preventDefault()` sat after the
-  branch that returns, so paging also scrolled the page. Six ArrowUps pull the view
-  back a month; a trailing-cell click pulls it forward.
+  branch that returns, so paging also scrolled the page.
 - **The 48rem boundary**, the table above.
 - **The filter end to end.** Hiding a stream took the month dots 57 → 40, persisted,
   survived a reload, and was restored by "show all". Urgent-only took 114 agenda rows
-  to 0 and removed the undated section too. Show-ignored read "(1)" and took 114 → 115.
+  to 0 and removed the undated section too.
 - **The labels dimension**, which needed a seeded `thrive:item-labels` because **no
-  fixture item carries a label**. Hiding "thesis" removed the row and left the chip.
-- **Ticking**, on the calendar and in the agenda's undated section: both wrote to
-  their stores and survived a reload.
-- **A chip by keyboard**, ring on the chip at `--thrive-primary`, Space toggling.
+  fixture item carries a label**.
+- **The dot geometry**, at six widths — see §6.
 
 No console warnings or errors at any width, in any view.
 
@@ -1459,12 +1793,12 @@ No console warnings or errors at any width, in any view.
 
 | Command | What it proves |
 |---|---|
-| `npm test` | 507 tests. Pure logic and source scans. **Nothing renders.** |
+| `npm test` | 558 tests. Pure logic and source scans. **Nothing renders.** |
 | `npm run check` | Types agree. **Does NOT prove the page renders** |
 | `npm run build` | It compiles |
 | `python3 scripts/check-contrast.py` | 58 assertions: 42 pairs, 6 ceilings, 10 structural |
-| `npm run check:layout` | 12 routes × 3 viewports in a real browser |
-| `npm run check:interaction` | 60 assertions in a real browser: the popovers and task editing |
+| `npm run check:layout` | 14 targets × 3 viewports in a real browser |
+| `npm run check:interaction` | 92 assertions in a real browser: the popovers, task editing, the calendar |
 | the timezone sweep | The suite in seven zones, UTC+14 to UTC−11 |
 
 **Four properties every gate here has.**
@@ -1478,18 +1812,25 @@ No console warnings or errors at any width, in any view.
    at the assertion.
 
 **Property 2 has teeth.** Two gates parse a source file rather than restating it:
-`check-contrast.py` parses `app.css`, and `check-interaction.mjs` parses
-`features.ts` for `floatingTodo` — the second added *after* a version that inferred
-the flag from the page matched the very control the flag gates.
+`check-contrast.py` parses `app.css` — which is why the chroma pass needed no gate
+edit at all — and `check-interaction.mjs` parses `features.ts` for `floatingTodo`.
 
 **`check:layout` asserts the page cannot scroll further than it paints.** It does
 **not** use `documentElement.scrollHeight` — that is the property that reported
 1275px while nothing rendered below 1238px.
 
+**It covers the calendar three times, because the view is a persisted PREFERENCE
+rather than a URL** (7c). `/calendar` alone only ever measured the month grid, so
+7b's two views were invisible to every gate for the same reason they are invisible
+to all the others: nothing navigates to them. The gate writes
+`thrive:calendar-prefs` before each target and removes it when a target names none,
+so a view cannot leak forward into whatever is measured after it. The agenda is
+**15,528px on a phone**, the tallest thing in the app by an order of magnitude.
+
 **`check:interaction` exists because the other five were all green on a version
 where pressing a pill did nothing at all.** None of the others can press a button.
 
-**Verified to fail, ten ways**, each broken on purpose:
+**Verified to fail, eleven ways**, each broken on purpose:
 
 | Broken | Result |
 |---|---|
@@ -1502,40 +1843,54 @@ where pressing a pill did nothing at all.** None of the others can press a butto
 | `{#if href}` restored, so every card links out | 2 red |
 | The `floatingTodo` guard removed from copy-to-list | 1 red |
 | **The ignore store's normaliser reinstated** (7a) | **7 red across two spec files** |
-| **`block` put back beside `line-clamp-3`** (7b) | measured 140px vs 60px — no gate, found by hand |
+| `block` put back beside `line-clamp-3` (7b) | measured 140px vs 60px — no gate, found by hand |
+| **`eventId = item.id` in `dayEventRows`** (7c) | **7 red in `calendarEvents.spec.ts`** |
+| **`annotate`'s old `!label && !isUrgent` shortcut** (7c) | 1 red |
 
-**The ninth carries its own lesson, and it is about the shape of the test rather
-than the bug.** One direction of the new cross-surface ignore test *still passes*
-with the bug reinstated, because both sides then share the same mangling — write
-`"3-1"`, read `"3-1"`. **"Crosses two surfaces" is not the property that catches a
-key-space split; not sharing a transformation is.** The four assertions that pin the
-STORED KEY are what actually go red.
+**The ninth and eleventh carry the same lesson, and it is about the shape of the
+test rather than the bug.** One direction of a cross-surface test *still passes* with
+the bug reinstated, because both sides then share the same mangling — write `"3-1"`,
+read `"3-1"`. **"Crosses two surfaces" is not the property that catches a key-space
+split; not sharing a transformation is.** The assertions that pin the STORED KEY are
+what actually go red.
 
-**The tenth had no gate at all**, which is the honest entry in this table. An
-unclamped `line-clamp` is not an error: the text is all there, nothing throws, and
-it only looks wrong if you happen to be measuring row heights in a narrow column.
+**The tenth had no gate at all**, which is the honest entry in this table.
+
+### What 7c's extension found on its first run
+
+Two real bugs, in code that was green on all five other gates:
+
+1. **A TypeError on every dialog close with focus in the label field.** A prop is a
+   getter; the parent nulls it and the `{#if}` tears the subtree down a tick later,
+   and the input's `onblur` fired in between. **No unit test could have seen it** —
+   the suite has no focus model, and the throw needs a real blur during a real
+   unmount. It only surfaced because something finally opened the dialog: the same
+   shape as 6b's `derived_inert`, where a warning sat in the production build until
+   a gate performed the gesture.
+2. **Focus not returning to the opener** after a pointer-opened dialog.
+
+What it covers that nothing else can: a count of DOM nodes against a rendered
+number (the day figure), `document.activeElement` (the whole focus contract), a
+statement about two presses (the confirmation step), and a store write reflected in
+rendered text on **another page** (the join round trip).
 
 `check:interaction` reports **SKIP** rather than passing when the fixture cannot
 produce the case an assertion needs. It also states its blind spot: it drives the
 production build, so `arriveAtRow`'s dev-only warn is compiled out and invisible.
 
-**Scope, revised twice.** 6a: "stay on the widget that broke". 6b proved editing
-needed it. **7a and 7b did not extend it, by instruction and by judgement** — both
-phases answered "what can only a browser prove?" by moving everything else into the
-pure layer, and then drove the remainder by hand. The general question — component
-tests via jsdom or `vitest-browser-svelte` — is still open.
+**Scope, revised three times.** 6a: "stay on the widget that broke". 6b proved
+editing needed it. 7a and 7b did not extend it, by instruction and by judgement.
+**7c extended it**, because the dialog's entire contract is behaviour no unit test
+in this repo can see, and writing a weaker unit test that looks like coverage is the
+one thing the fourth property forbids. The general question — component tests via
+jsdom or `vitest-browser-svelte` — is still open.
 
 **Anything behind `import.meta.env.DEV` has no gate by construction.**
 
 Both browser gates **skip loudly and exit 0** when there is no chromium.
 
 **`npm run check` is not a render.** `svelte-check` passed 0 errors on a component
-that threw `ReferenceError` on every request. **And it is held at 0 warnings.** 7a
-produced three and all three were real questions: one `a11y` complaint about a grid
-role on a non-interactive `<abbr>` (answered by moving the role onto a wrapping div,
-which is what that element actually is), and two `state_referenced_locally` on state
-seeded from a prop, answered with `untrack` — which says out loud that the prop is
-the initial value and not a source the state follows.
+that threw `ReferenceError` on every request. **And it is held at 0 warnings.**
 
 ---
 
@@ -1552,34 +1907,50 @@ the initial value and not a source the state follows.
 - **An assertion's expected value must not be derived from the thing under test.**
 - **"Crosses two surfaces" does not make a test non-vacuous.** Not sharing a
   transformation does. Count which assertions go red, do not trust the shape.
+- **Pin the STORED KEY, never a round trip**, for anything key-space shaped.
 - **Measure the counterfactual, not just the fix.**
 - **Say when a check cannot see what it looks like it checks**, at the assertion.
 - **A silent no-op is the worst failure mode this app has.** The reveal reading as a
   dead click, an id-parsing row lookup, a hover-swallowed press, an undo arrival
-  without its expansion, a checkbox with nothing to write to, and **an unclamped
-  `line-clamp`** are all the same failure.
+  without its expansion, a checkbox with nothing to write to, an unclamped
+  `line-clamp`, and **an urgent flag that will not clear because it is stored twice**
+  are all the same failure.
 - **A control with two ways in has more states than it has booleans.**
 - **A correct implementation of a bad interaction is still bad.**
 - **Delete an abstraction that loses its last caller**, unless a specific named
-  surface wants it. `hoverIntent` went the day hover did. `Toast` is the counter-case
-  and not an exception: its one raiser returns on the same flag.
+  surface wants it. `hoverIntent` went the day hover did.
 - **Moving a student to a row goes through `arriveAtRow`**, and **write everything
-  before you call it**.
+  before you call it**. **Not every focus move is an arrival** — a dialog's focus
+  in and out is not one.
 - **`RevealKind` is closed on purpose.** A third member forces an id-space decision,
   so it is made deliberately or not at all.
 - **Resolve persisted overrides once per page**, and **apply the calendar's filter
   once per page**. Two views of one list that can disagree is a bug waiting for the
   first edit.
 - **Never resolve a row by parsing its id.** Attach the resolved source object at
-  merge time and dispatch on that.
+  merge time and dispatch on that — for ticking, and for deleting.
 - **A normaliser that cannot distinguish its input cases is a defect, not a
-  helper.** `eventIdOf` cannot tell a raw event id from a calendar item id, so the
-  store normalises nothing and the one prefixed surface converts at its own boundary.
+  helper.** `eventIdOf` cannot tell a raw event id from a calendar item id, so both
+  event-scoped stores normalise nothing and the one prefixed surface converts at its
+  own boundary, once.
+- **Is this a fact about the EVENT or about the ROW?** That is the test for whether
+  something belongs in a new key space. It is why joins and ignores share one and
+  labels and urgent flags do not.
+- **A prop is a getter, so its declared type has a lifetime.** Any handler that can
+  fire during teardown is reading a prop the parent may already have revoked. Latch
+  it at mount where the value genuinely cannot change; guard the handler where it can.
+- **A dialog owes six things and attributes are three of them.** Named, modal, focus
+  in, focus trapped, focus returned, Escape. Focus the opener BEFORE opening.
+- **A destructive step's second press needs its geometry thought about.** The safe
+  control takes the trigger's position and holds focus. Escape peels one layer.
+- **Extract by failure mode, not by size.** The complicated part of a component is
+  usually the part you would notice breaking.
 - **Feedback beats correctness.** "It works" and "it appears to work" are different
   acceptance criteria and only one of them is the product.
 - **A control whose result is invisible is worse than no control**, and **a link to a
-  page that is not built is worse than no link.** Derive the condition from the thing
-  that owns the destination so building it restores the affordance with no edit.
+  page that is not built is worse than no link**, and **an inert control is a dead
+  affordance** — three removed so far: the parked "View all", copy-to-list with
+  nowhere to copy, and Home's "count me in".
 - **If a fallback hides something the student explicitly chose, say so on screen.**
 - **Making an invisible state visible means auditing every path it can now reach.**
 - **A control's `aria-controls` must name the region it actually expands.**
@@ -1590,14 +1961,18 @@ the initial value and not a source the state follows.
   with no CSS equivalent — moving focus, not choosing a layout.
 - **Pick a breakpoint by measuring, not by naming a size**, and the knob is always
   the breakpoint. "Fits" and "is legible" are different bars.
+- **Work colour in a perceptual space, and raise chroma at fixed lightness** when
+  contrast is the binding constraint. **And check the result against every RESERVED
+  colour**, because raising chroma moves a hue toward its neighbours as well as away
+  from grey.
+- **Size may be the cheaper lever than colour.** The dots pass got more from 6px → 8px
+  than from five retuned tokens.
 - **A utility that works by setting `display` conflicts silently with every
   `display` utility.** `line-clamp-*`, `truncate`, `sr-only`.
 - **Wait past the longest transition on an element before reading a computed
   style.** `transition-colors` includes `outline-color`.
-- **A verification claim decays exactly like a comment does.** TESTING.md said the
-  suite was green in seven zones and it was not, because that line predated the test
-  that broke it. Re-run the sweep on any date-shaped change, not just on new
-  date-shaped code.
+- **A verification claim decays exactly like a comment does.** Re-run the sweep on
+  any date-shaped change, not just on new date-shaped code.
 - **Where the source and MIGRATION disagree, the source wins.** Where the source is
   *wrong*, improve on it. Where the source contradicts **itself**, it is not a source
   to follow at all.
@@ -1607,18 +1982,20 @@ the initial value and not a source the state follows.
 - **`@lucide/svelte`, not `lucide-svelte`.**
 - **`cn()` survives** for the `class`-override case only.
 - **Vitest in Node, no jsdom.** Which is why logic gets extracted out of components.
-- **Probe before asserting.** **Suspect the probe before the product** — three checks
-  failed on correct code because `ShowMore` also carries `aria-expanded`, a synthetic
-  `input` event left a submit button disabled, and a computed style read at t=0
-  reported the wrong colour.
+- **Probe before asserting.** **Suspect the probe before the product** — several
+  checks failed on correct code because `ShowMore` also carries `aria-expanded`, a
+  synthetic `input` event left a submit button disabled, a computed style read at
+  t=0 reported the wrong colour, and a programmatic `.click()` does not focus a
+  button the way a real press does.
 - **`npm run check` is held at 0 warnings**, and a warning is answered rather than
   suppressed.
 - **Diff a port, do not review it.**
 - **Any test asserting an absence needs a companion assertion that it can still see a
   presence.**
-- **Extract strings as you build**, not afterwards.
+- **Extract strings as you build**, not afterwards. **And promote a string to
+  `common` the moment a second surface renders it for the same act.**
 - **No Claude/Anthropic attribution anywhere** — commits, PRs, file headers.
-  Verified clean across all 71 commits.
+  Verified clean across all 83 commits.
 
 ---
 
@@ -1631,18 +2008,26 @@ Calm, plain, honest about what is simulated.
   which is why `AssistantConversation` has no brain and says so, and why
   `providers.ts` marks the request and resume flows **SIMULATED** in place.
 - **Copy that apologises for an unfinished feature has to be deleted the moment the
-  feature lands**, or it becomes a lie. The Tasks card's read-only hint is gone.
+  feature lands**, or it becomes a lie.
 - **Sometimes the honest answer is to say nothing.** A "View all" pointing at a
   placeholder was replaced by no link rather than by a caption explaining why.
 - **But sometimes it is to say exactly what happened.** The week fallback tells the
-  student their screen is too narrow rather than silently showing a different view —
-  the difference from the case above is that here the student made a choice and the
-  page is not honouring it yet.
+  student their screen is too narrow rather than silently showing a different view.
+- **And sometimes it is to say where a thing went.** The add form's confirmation
+  names WHICH list the item joined, because three kinds go to three places and
+  picking the wrong one is otherwise discovered days later on another page.
+- **State a promise where a student could reasonably assume otherwise.** Every
+  joined event row says nothing was sent anywhere, and the detail dialog says
+  everything typed into it stays in this browser. Those are the two surfaces where
+  the controls look like they might contact somebody.
 - Empty states are an invitation to act, never "No data". Never a dashed outline.
 - "Overdue" alone, not "Overdue by 3 days" beside "3 days ago".
 - Counts and timers in mono and tabular, so a row does not reflow.
 - **If an action changes state the student cannot see, it needs a cue.** And if it
   changes state that then *removes the row*, it needs a sentence.
+- **Say why a control is disabled.** The dialog's "add to calendar" is off for a
+  recurring class and says so — a greyed button with no reason beside it reads as a
+  bug.
 - **Name the subject in an accessible label.** Five identical "Edit" buttons in a
   list are five buttons a screen-reader user cannot tell apart. The calendar's chips
   say what pressing them will DO — "Hide Class" — rather than what is currently true.
@@ -1654,40 +2039,20 @@ Calm, plain, honest about what is simulated.
 
 **Blocking before any multi-person demo**
 
-1. **The three mock stores are process-global.** MIGRATION §9 defect 1. Concurrent students
-   book over each other and see each other's data; everything resets on restart.
-   **Django is the fix**, and two queued features (5 and 6) now depend on it.
+1. **The three mock stores are process-global.** MIGRATION §9 defect 1. Concurrent
+   students book over each other and see each other's data; everything resets on
+   restart. **Django is the fix**, and two queued features (4 and 5) now depend on it.
 
 **Next up**
 
-2. **7c — the calendar's last third.** `ItemDetail` (a dialog with every edit
-   control: label, urgent, delete), `AddItemForm` (three kinds routing to three
-   different stores), and `DayEventsSection` ("happening, register" — join / leave /
-   `.ics` / ignore, its own section because opting in is a different act from ticking
-   off).
-
-   Four things queued to land with it:
-   - **`thrive:event-joins` is keyed on the calendar item id**, not the raw
-     `Event.id` (MIGRATION §9 defect 13). **It is the same bug as §8's, in a second store**,
-     and it is LOW only because its one consumer does not exist yet. 7c builds that
-     consumer, so the key-space choice gets made with `DayEventsSection` on screen
-     rather than in the abstract. The mechanism is settled; what 7c must decide is
-     whether the raw `Event.id` is right for joins too (it almost certainly is — a
-     join is a fact about an EVENT, not about a calendar row) and how to write a
-     cross-surface test that is non-vacuous in **both** directions.
-   - **`check:layout` extended to the week and agenda views** (owner: approved).
-   - **The day-figure gap closes on its own** once events have rows.
-   - **`ItemDetail` is the candidate third caller** for `escapeKey` and
-     `clickOutside`.
-
-3. **`/assignments`** — the same `TaskRow` with no `reorder` prop. First outside
+2. **`/assignments`** — the same `TaskRow` with no `reorder` prop. First outside
    caller of the row, and **owes it a `role="list"` container**.
 
-4. **Appointments.**
+3. **Appointments.**
 
 **Scoped, not built**
 
-5. **Ask THRIVE as a full page.** **This replaces the earlier tabs-on-top idea** —
+4. **Ask THRIVE as a full page.** **This replaces the earlier tabs-on-top idea** —
    do not build tabs.
 
    The shape: **a SECOND left rail, beside the nav rail**, holding three sub-items —
@@ -1707,7 +2072,7 @@ Calm, plain, honest about what is simulated.
 
    Wired to **Shankar's RAG** later.
 
-6. **Group Projects — a future FIFTH nav item.** Group members, a project holding
+5. **Group Projects — a future FIFTH nav item.** Group members, a project holding
    tasks and subtasks, assigning a task to a person.
 
    **The first feature that is not one student's private view**, and that is the whole
@@ -1721,61 +2086,73 @@ Calm, plain, honest about what is simulated.
 
 **The real-phone list**
 
-7. Two things wait on a session with an actual handset, because a simulated viewport
+6. Two things wait on a session with an actual handset, because a simulated viewport
    cannot answer either:
    - **Touch drag on Home's task rows.** HTML5 drag does not fire on touch, which is
      why the keyboard move buttons exist — but no gate asserts those buttons are the
      only route on a phone or that they are reachable there.
-   - **The month grid at 375px.** The page is 1513px and passes the layout gate, but
-     the cells are ~44px wide — at the touch-target floor, in a 7×6 grid, each holding
-     a dot row. Nothing measurable is wrong; it has never been touched by a thumb.
+   - **The month grid at 375px.** The cells are ~46px wide, at the touch-target
+     floor, in a 7×6 grid, each holding a dot row that is now 8px per dot. Nothing
+     measurable is wrong; it has never been touched by a thumb. **The dots pass makes
+     this more worth doing, not less** — 8px was chosen against a measurement and
+     should be confirmed against a finger.
 
 **Carried**
 
-8. **Provider copies are shallow.** `{ ...version }` shares nested arrays with the
+7. **Provider copies are shallow.** `{ ...version }` shares nested arrays with the
    store. Pinned by a test that says why.
-9. **`npm test` renders nothing.** `check:interaction` covers Home; it is still not a
-   general answer, and the calendar's browser-only behaviour is verified by hand.
-10. **Home fits 1218px, not 1052px.** Accepted. Phone is 3281px. **The calendar's
-    agenda is 13,764px on a phone**, which is a long list rather than a broken layout.
-11. **Three dead providers:** `getSyllabi`, `getResources`, `getCurrentResume`.
-12. **`requestTypeHelp` has no consumer** anywhere in the prototype.
-13. **Two product decisions parked pending real screens:** the missing year in
+8. **`npm test` renders nothing.** `check:interaction` now covers Home and the
+   calendar; it is still not a general answer.
+9. **Home fits 1218px, not 1052px.** Accepted. Phone is 3235px. **The calendar's
+   agenda is 15,528px on a phone**, which is a long list rather than a broken layout,
+   and is now gated.
+10. **Three dead providers:** `getSyllabi`, `getResources`, `getCurrentResume`.
+11. **`requestTypeHelp` has no consumer** anywhere in the prototype.
+12. **Two product decisions parked pending real screens:** the missing year in
     `formatShortDate`, and `countdownPhrase` counting to "13 months".
-14. **`taskNotes` on `createOverrideStore`?** It duplicates the persistence logic. Two
-    more phases have not needed the refactor, which is mild evidence against it.
-15. **`format.ts` still emits `"Invalid Date"` from `formatShortDate`**, and a
+13. **`taskNotes` on `createOverrideStore`?** It duplicates the persistence logic.
+    Three more phases have not needed the refactor, which is mild evidence against it.
+14. **`format.ts` still emits `"Invalid Date"` from `formatShortDate`**, and a
     parseable-but-wrong date still gets through `describeDue`: V8 rolls `"2026-02-30"`
     into March.
-16. **`matchesWide()` is still unported**, and 7b deliberately did not become its
-    first consumer — see §7.
-17. **`calendarSources.nowMinutes()` has no consumer** and may never get one. See §7.
-18. **`CalendarView.detail` is declared and never written.** The one thing in the
-    calendar that anticipates a later phase, kept because it is one of the three
-    things that node owns and moving it in later would mean re-deciding where it
-    lives.
-19. **MIGRATION §9 defect 14 — `custom-custom-…` ids.** Cosmetic and internally
-    consistent; `deleteCustomEvent` clears the matching key. Noted, unscheduled.
-20. **A task moved beyond seven days leaves Home's list.** Correct, and announced
+15. **`matchesWide()` is still unported**, and no phase has become its first
+    consumer — see §7.
+16. **`calendarSources.nowMinutes()` has no consumer** and may never get one. See §7.
+17. **MIGRATION §9 defect 14 — `custom-custom-…` ids.** Cosmetic and internally
+    consistent, and now **harmless**: nothing parses them, because the row carries its
+    own event. Changing the minted id would strand every stored event for no gain.
+    Pinned by a test that says so.
+18. **A task moved beyond seven days leaves Home's list.** Correct, and announced
     rather than silent. `/assignments` is where it lives (owner: accepted).
-21. **`prefs.view` can hold a stale `week` or `agenda`** from a hand-edited store.
-    Harmless — nothing but `ViewSwitcher` writes it, and that now exists.
+19. **`prefs.view` can hold a stale `week` or `agenda`** from a hand-edited store.
+    Harmless — nothing but `ViewSwitcher` writes it.
+20. **Home's "Add to calendar" is still inert**, and is now the only such control in
+    the app. `$lib/ics` is ported and `Event` carries everything `IcsEvent` needs, so
+    it is one small mapper away. Left because it was not what the join follow-on was
+    for.
+21. **Teal and amber cannot be made more vivid** without moving lightness, which the
+    contrast floor forbids (§6). If the dots still read muted, the next lever is size
+    or the surface behind them, not the tokens.
 
-**Closed in 7a and 7b**
+**Closed in 7a, 7b and 7c**
 
 - **`buildScheduleData` is ported.** The gating piece since Phase 2.
-- **The ignore key-space defect is fixed, both halves.** Its defect-record test is
-  replaced by a real cross-surface one.
+- **BOTH event key-space defects are fixed** — ignores in 7a, joins in 7c — and both
+  have cross-surface coverage that pins the stored key rather than round-tripping.
 - **MIGRATION §9 defect 10 — `SquareGrid`'s white ring halo** — built correctly with
-  an `outline` instead. Verified: 2px solid `rgb(76,91,212)`, no box-shadow.
+  an `outline` instead.
 - **The 40rem week fallback**, which never existed in the source, is built at 48rem.
 - **A pre-existing timezone bug in `reveal.spec.ts`**, found by running the sweep.
 - **`line-clamp-3` silently unclamped** beside `block`.
-- **TESTING.md's coverage table** was three specs short and three counts stale. It
-  sums to 507 across 23 rows now, checked programmatically.
-- **The calendar's "next up" arrival** — settled as NOT an arrival. It is a static
-  line in the source, so there is no caller, and inventing one would have forced a
-  third `RevealKind`.
+- **The day-figure gap.** Closed by `DayEventsSection`, and gated across every day
+  in the month with anything on it.
+- **`check:layout` extended to the week and agenda views.**
+- **`CalendarView.detail` is written.** It was declared in 7a and had no writer.
+- **`ItemDetail` became the third caller** for `escapeKey` and `clickOutside`, and
+  the first for `focusTrap`.
+- **Home's "count me in"** — live, and its round trip to the calendar is gated.
+- **The agenda's add form** — settled as deliberately absent (owner).
+- **The calendar's "next up" arrival** — settled as NOT an arrival.
 - **Agenda rows naming their own date** — kept on review (owner).
 - **All nine of 7b's absence decisions** — approved (owner).
 
@@ -1803,7 +2180,8 @@ scheduling with history/notes/summaries/topic tagging, (c) `/resources` as the
 Resource Navigator surface, (d) per-task time estimates.
 
 **(a) is complete.** Home is real and editable. **And the calendar — which was not
-in that scope at all — is now two thirds built and is the second-largest surface in
-the app**, which is worth noting when the dates are re-set: the rebuild's actual
-shape has diverged from the prototype's plan. (b) and (d) were never begun, and (c)
-may be absorbed into Ask THRIVE's second rail rather than built as `/resources`.
+in that scope at all — is now COMPLETE and is the largest surface in the app**,
+which is the thing most worth weighing when the dates are re-set: the rebuild has
+two finished surfaces, and neither the appointment flow nor the resource navigator
+is one of them. (b) and (d) were never begun, and (c) may be absorbed into Ask
+THRIVE's second rail rather than built as `/resources`.
