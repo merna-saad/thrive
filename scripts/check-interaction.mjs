@@ -1,13 +1,20 @@
 #!/usr/bin/env node
 /**
- * Interaction gate: the stat pill popovers actually work.
+ * Interaction gate: the things on Home that only a real browser can prove.
  *
  *     npm run check:interaction     (from frontend/)
  *     node scripts/check-interaction.mjs
  *
- * Exits non-zero if a pill cannot be opened or dismissed, if the list cannot be
- * walked with a keyboard, if choosing an item does not arrive at the row behind
- * it, or if hover has crept back in. No arguments, no config.
+ * Two surfaces, for the same reason: both are behaviour no other gate can see.
+ *
+ *  1. **The stat pill popovers.** Exits non-zero if a pill cannot be opened or
+ *     dismissed, if the list cannot be walked with a keyboard, if choosing an item
+ *     does not arrive at the row behind it, or if hover has crept back in.
+ *  2. **Task editing (Phase 6b).** Ticking, the undo offer, the arrival after an
+ *     undo -- including the hard case where the restored row is hidden and the card
+ *     has to expand -- and an inline rename committing on blur.
+ *
+ * No arguments, no config.
  *
  * ## Why this exists
  *
@@ -53,6 +60,31 @@
  * ids it ticks to force a zero count come from choosing the popover's own items
  * and reading where focus landed. A gate that hardcodes `tsk-001` starts failing
  * the day the fixture is edited, which teaches everyone to ignore it.
+ *
+ * ## Verified to fail
+ *
+ * The third property every gate here is meant to have, demonstrated rather than
+ * claimed. Each was broken on purpose and the count checked:
+ *
+ *  - hover reintroduced                      6 red (the original bug, reproduced)
+ *  - the arrival mark not applied            4 red
+ *  - the mark never cleared                  2 red
+ *  - the undo's expansion moved out of its
+ *    handler and into an effect              1 red, and NO console warning
+ *  - the title field's `onblur` removed      2 red
+ *  - a `dragend` handler put back on the
+ *    row, reading a destroyed block's prop   1 red (`derived_inert`)
+ *
+ * The fourth is the one worth the ink. It is the failure 6a predicted for 6b, it
+ * produces no error, no warning and no visible difference from a successful
+ * arrival at a row that was already on screen, and **this gate is the only thing
+ * in the repo that can see it.**
+ *
+ * The last one is why the drag is performed rather than assumed. That warning was
+ * present in the production build and every other gate was green: `svelte-check`
+ * cannot see it, 439 unit tests cannot see it, and the "nothing threw or warned"
+ * assertion at the foot of this file could only see it once something here
+ * actually dragged a row.
  */
 
 import { spawn } from 'node:child_process';
@@ -211,6 +243,103 @@ function readPanel() {
 }
 
 const ROW_IDS = '[id^="reveal-task-"], [id^="reveal-event-"]';
+
+/*
+ * The Tasks card, read and driven through its accessible shape.
+ *
+ * Same rule as the popover helpers above: no component internals, and no fixture
+ * ids. Every id these need comes off the page.
+ */
+
+/** The task list's state. Runs in the browser. */
+function readTasks() {
+	const list = document.querySelector('#tasks-card-list');
+	const section = list?.closest('section');
+	const rows = [...(list?.querySelectorAll('[id^="reveal-task-"]') ?? [])];
+	const undoButton = [...(list?.querySelectorAll('button') ?? [])].find((b) =>
+		/^Undo/.test(b.textContent.trim())
+	);
+
+	return {
+		rows: rows.map((row) => row.id),
+		open: rows.filter((row) => row.dataset.done === 'false').map((row) => row.id),
+		/* ENABLED, not merely present. Phase 6a rendered these disabled on purpose,
+		   so "a checkbox exists" would have passed against the read-only card. */
+		tickable: rows.filter(
+			(row) => row.querySelector('input[type="checkbox"]:not([disabled])') !== null
+		).length,
+		/* Reordering is offered only when the card is expanded: collapsed, the rows
+		   are a flat slice spanning groups and "move up" has nothing to write. */
+		moveControls: [...(list?.querySelectorAll('button span.sr-only') ?? [])].filter((span) =>
+			/^Move /.test(span.textContent.trim())
+		).length,
+		undoBar: !!undoButton,
+		/* The undo strip must NOT be a region of its own: the card announces the tick
+		   and the offer in one breath, and a second region talks over it. */
+		undoBarIsLive: undoButton ? undoButton.closest('[aria-live]') !== null : false,
+		liveRegions: section?.querySelectorAll('[aria-live]').length ?? 0,
+		live: section?.querySelector('p[aria-live]')?.textContent.trim() ?? ''
+	};
+}
+
+/** Tick one row by id. Runs in the browser. */
+function tickRow(id) {
+	document.getElementById(id)?.querySelector('input[type="checkbox"]')?.click();
+}
+
+/** Press the undo offer, if one stands. Runs in the browser. */
+function pressUndo() {
+	const list = document.querySelector('#tasks-card-list');
+	[...(list?.querySelectorAll('button') ?? [])]
+		.find((b) => /^Undo/.test(b.textContent.trim()))
+		?.click();
+}
+
+/**
+ * Press the Tasks card's own show-more/less control. Runs in the browser.
+ *
+ * The LAST match, deliberately: the done group's control and the open list's both
+ * declare `aria-controls="tasks-card-list"`, and the open one lives in the pinned
+ * footer, so it comes last in document order. Taking the first expands Done and
+ * looks like the card refusing to open.
+ */
+/*
+ * Each of these is passed whole to `page.evaluate`, which serialises the ONE
+ * function it is given -- so they cannot call a shared helper defined out here.
+ * The duplicated selector is the price of that, and it is cheaper than the
+ * `ReferenceError` a factored-out version raises at run time.
+ */
+function toggleTasksCard() {
+	const section = document.querySelector('#tasks-card-list')?.closest('section');
+	const control = [
+		...(section?.querySelectorAll('button[aria-controls="tasks-card-list"]') ?? [])
+	]
+		.filter((b) => /^Show/.test(b.textContent.trim()))
+		.at(-1);
+	control?.click();
+	return !!control;
+}
+
+/**
+ * Expand the Tasks card if it is not already. Runs in the browser.
+ *
+ * Asserting the state rather than toggling blindly, because by this point in the
+ * run the card may already be open -- the undo above expands it to reach a hidden
+ * row. A blind toggle COLLAPSED it instead, the grouped `<section>`s stopped
+ * existing, and the drag check below reported the fixture as having too few groups
+ * to test. A gate reporting SKIP for its own bug is worse than one failing.
+ */
+function expandTasksCard() {
+	const section = document.querySelector('#tasks-card-list')?.closest('section');
+	const control = [
+		...(section?.querySelectorAll('button[aria-controls="tasks-card-list"]') ?? [])
+	]
+		.filter((b) => /^Show/.test(b.textContent.trim()))
+		.at(-1);
+	// "Show 3 more" means collapsed; "Show less" means it is already open.
+	if (control && /^Show \d/.test(control.textContent.trim())) control.click();
+	return !!control;
+}
 
 try {
 	if (!(await waitForServer())) {
@@ -550,6 +679,295 @@ try {
 	}
 
 	await page.close();
+
+	// ── Editing: the tick, the undo, and the arrival after it ──────────────
+	/*
+	 * Its own page, so ticking cannot pollute the counts the sections above read.
+	 *
+	 * ## Why the undo arrival is gated here and nowhere else
+	 *
+	 * `arriveAtRow` awaits exactly ONE `tick()`, and 6a flagged the undo as the
+	 * first caller that might need two: unticking pulls a task out of Done and back
+	 * into its group, so the arrival lands on a row that has just moved.
+	 *
+	 * Measured rather than reasoned about. One tick IS enough -- but only because
+	 * `TasksCard.undoTick` makes every state write, INCLUDING expanding the card,
+	 * before it calls `arriveAtRow`. Sequencing, not flush count.
+	 *
+	 * **Verified to fail.** With the expansion moved out of that handler, the hard
+	 * case below reports no focus and no mark -- and, because this drives the
+	 * PRODUCTION build where `arriveAtRow`'s dev warning is compiled out, **zero
+	 * console warnings**. A silent no-op, which is the single failure mode the whole
+	 * arrival cue exists to prevent. Nothing but this gate can see it.
+	 */
+	const edit = await browser.newPage({ viewport: DESKTOP });
+	edit.on('pageerror', (error) => pageErrors.push(`edit: ${error}`));
+	edit.on('console', (msg) => noisy(msg) && pageErrors.push(`edit: ${msg.text()}`));
+	await edit.goto(BASE + ROUTE, { waitUntil: 'networkidle' });
+	await edit.waitForTimeout(SETTLE);
+
+	const startTasks = await edit.evaluate(readTasks);
+	check(
+		'every task row is really tickable now',
+		startTasks.tickable === startTasks.rows.length && startTasks.rows.length > 0,
+		`${startTasks.tickable}/${startTasks.rows.length} checkboxes enabled`
+	);
+	check(
+		'the card still has exactly one live region',
+		startTasks.liveRegions === 1,
+		`${startTasks.liveRegions} found`
+	);
+	check(
+		'collapsed, no row offers to be reordered',
+		startTasks.moveControls === 0,
+		'position is grouped-only, and collapsed is flat'
+	);
+
+	// Tick the first open row, and read the sentence back.
+	const tickTarget = startTasks.open[0];
+	await edit.evaluate(tickRow, tickTarget);
+	await edit.waitForTimeout(SETTLE);
+
+	const afterTick = await edit.evaluate(readTasks);
+	const doneBefore = Number(/(\d+) of/.exec(startTasks.live)?.[1] ?? -1);
+	const doneAfter = Number(/(\d+) of/.exec(afterTick.live)?.[1] ?? -2);
+
+	check(
+		'ticking a row counts it as done',
+		doneAfter === doneBefore + 1,
+		`"${startTasks.live}" -> "${afterTick.live}"`
+	);
+	check('ticking offers a way back', afterTick.undoBar === true, tickTarget);
+	check(
+		'the undo strip is not a live region of its own',
+		afterTick.undoBarIsLive === false,
+		'the card announces the tick and the offer in one sentence'
+	);
+	check(
+		'the one live sentence carries the undo offer',
+		/undo is available/i.test(afterTick.live),
+		afterTick.live
+	);
+
+	// Undo, and land back on the row.
+	await edit.evaluate(pressUndo);
+	await edit.waitForTimeout(SETTLE);
+
+	const afterUndo = await edit.evaluate(
+		(id) => ({
+			focus: document.activeElement?.id ?? '',
+			marked: document.querySelectorAll('.thrive-arrived').length,
+			markedIsTarget: document.querySelector('.thrive-arrived')?.id === id,
+			restored: document.getElementById(id)?.dataset.done === 'false'
+		}),
+		tickTarget
+	);
+
+	check('undo puts the task back', afterUndo.restored === true, tickTarget);
+	check(
+		'undo arrives at the row it restored',
+		afterUndo.focus === tickTarget && afterUndo.markedIsTarget === true,
+		`focus=${afterUndo.focus} marked=${afterUndo.marked}`
+	);
+
+	/*
+	 * The HARD case: the restored row sits past the collapsed slice, so the arrival
+	 * needs the card to EXPAND as well as the task to be unticked. Two state writes,
+	 * still one tick. Expand, tick the last row, collapse, undo.
+	 */
+	await edit.waitForTimeout(arrivalMs + SETTLE);
+	await edit.evaluate(toggleTasksCard);
+	await edit.waitForTimeout(SETTLE);
+	const openWide = await edit.evaluate(readTasks);
+
+	if (openWide.open.length <= startTasks.open.length) {
+		unproven(
+			'undo expands the card when the row is hidden',
+			'this fixture has no open row past the collapsed slice'
+		);
+		unproven('a hidden row still gets its arrival mark', 'same fixture limit');
+	} else {
+		check(
+			'expanded, rows offer to be reordered',
+			openWide.moveControls > 0,
+			`${openWide.moveControls} move controls`
+		);
+
+		const deep = openWide.open.at(-1);
+		await edit.evaluate(tickRow, deep);
+		await edit.waitForTimeout(SETTLE);
+		// Collapse again, so the row undo restores is not rendered.
+		await edit.evaluate(toggleTasksCard);
+		await edit.waitForTimeout(SETTLE);
+		const wasHidden = await edit.evaluate((id) => !document.getElementById(id), deep);
+
+		await edit.evaluate(pressUndo);
+		await edit.waitForTimeout(SETTLE);
+
+		const deepArrival = await edit.evaluate(
+			(id) => ({
+				rendered: !!document.getElementById(id),
+				focus: document.activeElement?.id ?? '',
+				marked: document.querySelector('.thrive-arrived')?.id === id,
+				control:
+					[
+						...(document
+							.querySelector('#tasks-card-list')
+							?.closest('section')
+							?.querySelectorAll('button[aria-controls="tasks-card-list"]') ?? [])
+					]
+						.map((b) => b.textContent.trim())
+						.at(-1) ?? ''
+			}),
+			deep
+		);
+
+		check(
+			'undo expands the card when the row is hidden',
+			wasHidden === true && deepArrival.rendered === true && /Show less/.test(deepArrival.control),
+			`hidden beforehand=${wasHidden}, control now "${deepArrival.control}"`
+		);
+		/* THE assertion this section exists for. One tick suffices only because the
+		   expansion is written before `arriveAtRow` is called; move it into an effect
+		   and this goes red with no console warning to explain why. */
+		check(
+			'a hidden row still gets its arrival mark',
+			deepArrival.focus === deep && deepArrival.marked === true,
+			`focus=${deepArrival.focus} marked=${deepArrival.marked}`
+		);
+	}
+
+	// ── Dragging a row into another group ──────────────────────────────────
+	/*
+	 * A real mouse drag, because that is the only thing that fires HTML5 drag
+	 * events -- and because the last bug here was invisible to every other gate.
+	 *
+	 * Dropping a row into another group tears down its `{#each}` block, and the
+	 * `dragend` that arrives afterwards used to read a prop belonging to that
+	 * destroyed block: Svelte's `derived_inert`. `npm run check` was clean, 439
+	 * tests were green, and the PRODUCTION build logged the warning -- so the
+	 * "nothing threw or warned" assertion at the end of this file could have caught
+	 * it, but only for a gesture something actually performed. Nothing did.
+	 *
+	 * So this drags. The assertion is the move landing; the warning check at the
+	 * foot of the file is what makes the gesture worth performing.
+	 */
+	await edit.waitForTimeout(arrivalMs + SETTLE);
+	await edit.evaluate(expandTasksCard);
+	await edit.waitForTimeout(SETTLE);
+
+	const dragPlan = await edit.evaluate(() => {
+		/* Only DATED groups: "Needs a date" accepts no drops, because there is
+		   nothing to write -- a task cannot be moved into having no due date. */
+		const sections = [...document.querySelectorAll('#tasks-card-list section')].filter(
+			(s) => !/Needs a date|Done/.test(s.getAttribute('aria-label') ?? '')
+		);
+		const from = sections.find((s) => s.querySelector('[id^="reveal-task-"]'));
+		const to = sections.find((s) => s !== from && s.querySelector('[id^="reveal-task-"]'));
+		if (!from || !to) return null;
+
+		from.querySelector('[id^="reveal-task-"]').setAttribute('data-drag-from', '');
+		to.querySelector('[id^="reveal-task-"]').setAttribute('data-drag-to', '');
+		return {
+			id: from.querySelector('[id^="reveal-task-"]').id,
+			from: from.getAttribute('aria-label'),
+			to: to.getAttribute('aria-label')
+		};
+	});
+
+	if (!dragPlan) {
+		unproven('dragging a row into another group moves it', 'fixture has fewer than two dated groups');
+	} else {
+		await edit.dragAndDrop('[data-drag-from]', '[data-drag-to]');
+		await edit.waitForTimeout(SETTLE * 2);
+
+		const dropped = await edit.evaluate(
+			(plan) => ({
+				group: document.getElementById(plan.id)?.closest('section')?.getAttribute('aria-label') ?? '',
+				live:
+					document
+						.querySelector('#tasks-card-list')
+						?.closest('section')
+						?.querySelector('p[aria-live]')
+						?.textContent.trim() ?? ''
+			}),
+			dragPlan
+		);
+
+		check(
+			'dragging a row into another group moves it',
+			dropped.group === dragPlan.to,
+			`${dragPlan.from} -> ${dropped.group} (wanted ${dragPlan.to})`
+		);
+		check(
+			'the move rewrites the due date and says so',
+			/moved to .*\. Due date updated\./i.test(dropped.live),
+			dropped.live
+		);
+	}
+
+	// ── An inline rename commits on blur ───────────────────────────────────
+	/*
+	 * Blur is the commit path with no button behind it, so it is the one that
+	 * silently loses a rename. It is also a deliberate addition to the Next source,
+	 * which committed only on Enter and Save -- and it is why Cancel needs a guard,
+	 * since `blur` fires BEFORE `click`.
+	 */
+	await edit.waitForTimeout(arrivalMs + SETTLE);
+	const renamed = await edit.evaluate(async () => {
+		const row = document.querySelector('#tasks-card-list [id^="reveal-task-"]');
+		const titleOf = (node) => node?.querySelector('label[for^="tick-"]')?.textContent.trim() ?? '';
+		const before = titleOf(row);
+
+		[...row.querySelectorAll('button')]
+			.find((b) => /^Edit /.test(b.querySelector('span.sr-only')?.textContent.trim() ?? ''))
+			?.click();
+		await new Promise((r) => setTimeout(r, 80));
+
+		const field = row.querySelector('input[name="task-title"]');
+		if (!field) return { before, after: before, typed: '', hadField: false, editorClosed: false };
+
+		const typed = `${before} (edited)`;
+		field.focus();
+		field.value = typed;
+		field.dispatchEvent(new Event('input', { bubbles: true }));
+		/* Blur with nothing to click: focus leaves for the document body, which is the
+		   case a `relatedTarget` guard has to get right. */
+		field.blur();
+		await new Promise((r) => setTimeout(r, 150));
+
+		const now = document.querySelector('#tasks-card-list [id^="reveal-task-"]');
+		return {
+			before,
+			typed,
+			hadField: true,
+			after: titleOf(now),
+			editorClosed: !now?.querySelector('input[name="task-title"]')
+		};
+	});
+
+	check(
+		'the pencil opens an inline title editor',
+		renamed.hadField === true,
+		renamed.hadField ? '' : 'no input[name="task-title"] appeared'
+	);
+	check(
+		'an inline rename commits on blur',
+		renamed.after === renamed.typed && renamed.after !== renamed.before,
+		`"${renamed.before}" -> "${renamed.after}"`
+	);
+	check('committing closes the editor', renamed.editorClosed === true);
+
+	/* The grid must still be immovable with every editor in the tree. */
+	const editCapped = await edit.evaluate(() => {
+		const heights = [...document.querySelectorAll('.thrive-card-body')].map((b) =>
+			Math.round(b.getBoundingClientRect().height)
+		);
+		return { heights, allEqual: new Set(heights).size === 1 };
+	});
+	check('editing did not move the grid', editCapped.allEqual === true, editCapped.heights.join(','));
+
+	await edit.close();
 
 	// ── Reduced motion: still marked, still cleared ────────────────────────
 	/*
