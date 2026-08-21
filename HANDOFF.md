@@ -4,6 +4,68 @@ Session log, newest first. What happened, what was decided, what is still open.
 
 ---
 
+## 2026-08-21 — 7b follow-on: the week breakpoint moves to 48rem
+
+**507 tests · six gates green · green in all seven timezones.** One code change,
+three answers.
+
+### The change
+
+**`sm` → `md`. The week-to-agenda fallback now sits at 48rem.**
+
+40rem was built first because that is the width MIGRATION §4 and the Next comment
+both name. Measured, it gave **71px columns**, where a three-line clamp held "MGT
+142 · Machine Learning for Business" without overflowing and it still read as three
+short stacks rather than a phrase — about 57px of text width, narrow enough that a
+long word breaks mid-word.
+
+The owner's call, and the reasoning is worth keeping: **"fits" and "is legible" are
+different bars, and anything that narrow falls back to the agenda perfectly well.**
+A view whose whole job is to be read owes the second bar.
+
+Re-measured after the move:
+
+| width | week columns | column | agenda | note | h-overflow | tallest title |
+|---|---|---|---|---|---|---|
+| 1330px | 7 | 132px | — | no | 0px | 60px |
+| 900px | 7 | 108px | — | no | 0px | 60px |
+| 769px | 7 | 89px | — | no | 0px | 60px |
+| 768px | 7 | **89px** | — | no | 0px | 60px |
+| 767px | 0 | — | 28 groups | yes | 0px | — |
+| 700px | 0 | — | 28 groups | yes | 0px | — |
+| 640px | 0 | — | 28 groups | yes | 0px | — |
+| 375px | 0 | — | 28 groups | yes | 0px | — |
+
+89px buttons, ~75px of text per title — enough that whole words land on a line
+rather than hyphenating. Titles still cap at 60px, the three lines they should be.
+No console output at any width.
+
+**The knob is the breakpoint, never a min-width.** A min-width puts back the
+horizontal scroll the fallback exists to remove, which is what the Next source did
+and what its own comment called wrong. Recorded in CONVENTIONS, because it is the
+second time this phase that a measurement beat an assumption.
+
+### The two answers that were not code
+
+- **`check:layout` extension to week and agenda: APPROVED for 7c.** A 13,764px
+  agenda on a phone is what a vertical-overflow gate is for. Moved in BUGS and
+  TESTING from "recommended" to "approved, deferred out of 7b because the surface
+  it guards was still moving" — the distinction matters, since the gap is not
+  acceptable, only postponed.
+- **Agenda rows naming their own date: KEPT.** The owner's framing, recorded because
+  it generalises: *the right instinct when the source is simply wrong is to improve
+  on it rather than port the mistake.* That is now the second such case in two
+  phases — the first was the 40rem fallback the source claimed and did not have.
+
+All nine of 7b's absence decisions were approved.
+
+### Still open
+
+Unchanged from the entry below: CONTEXT.md after 7c, the `check:layout` extension in
+7c, `thrive:event-joins` in 7c. The 71px column entry is closed.
+
+---
+
 ## 2026-08-21 — Phase 7b: the other two views and the filter bar
 
 **507 tests · six gates green · green in all seven timezones · all three views

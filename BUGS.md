@@ -516,7 +516,7 @@ Fixed by dropping `block`. Verified: nothing exceeds 60px now, at 640px and at
 conflict with every `display` utility. `line-clamp-*`, `truncate` and `sr-only`
 are the ones in this codebase.
 
-### The Next source never had the 40rem week fallback — **built, per instruction**
+### The Next source never had the week fallback — **built, per instruction, at 48rem**
 
 MIGRATION §4 says week view is "not rendered below `40rem` — the parent falls back
 to agenda", and `WeekView.tsx`'s own doc comment says the same. **Neither is true
@@ -533,26 +533,41 @@ and its markup. The owner's 7b brief said to preserve the fallback, so it is bui
 for the first time — in CSS, and the port drops the min-width and the scroll, since
 a scrollbar would mean the fallback was doing nothing.
 
-Boundary measured: 641px and 640px render seven columns, 639px and 375px render the
-agenda plus a note. Zero horizontal overflow at all four.
+**And it sits at 48rem, not the 40rem the comment named.** See the entry below:
+40rem was built first, measured, and moved.
+
+Boundary re-measured after the move: 769px and 768px render seven columns at 89px,
+767px / 700px / 640px / 375px render the agenda plus a note. Zero horizontal
+overflow at every width.
 
 ---
 
 ## 2026-08-21 — Phase 7b: accepted, with a reason
 
-### Week columns are 71px at the fallback breakpoint — **LOW, owner's call**
+### Week columns were 71px at 40rem — **FIXED: the breakpoint moved to 48rem**
 
-At 640px — the narrowest width that still renders the week grid — the seven columns
-measure 71-72px each. A three-line clamped title fits without overflowing, and
-nothing scrolls sideways, but "MGT 142 · Machine Learning for Business" reads as
-three short stacks rather than a phrase.
+Built at 40rem first, because that is the width MIGRATION and the Next comment
+both name. Measured at 640px, the narrowest width that still rendered the grid: the
+seven columns came out **71px**, and although a three-line clamp held "MGT 142 ·
+Machine Learning for Business" without overflowing, it read as three short stacks
+rather than a phrase. At ~57px of text width a long word breaks mid-word.
 
-**Not changed, because 40rem is the owner's stated breakpoint.** The honest
-alternative is a higher one — 48rem would give ~86px columns — and that is a
-decision about where "readable" sits rather than a defect. Recorded with the
-measurement so it can be decided rather than rediscovered.
+**"Fits" and "is legible" are different bars, and a view whose whole job is to be
+read owes the second one.** Owner's call, and the right one: anything that narrow
+falls back to the agenda perfectly well, so the breakpoint belongs where the
+columns are readable rather than where they merely fit.
 
-### `check:layout` only ever sees the calendar's DEFAULT view — **gap, not a defect**
+Moved to 48rem (`md`). Re-measured: **89px columns at 768px**, up from 71px, with
+about 75px of text width per title — enough that whole words land on a line instead
+of hyphenating. Titles still cap at 60px, which is the three lines they should be.
+Fallback now at 767px, and horizontal overflow is 0px at every width tested
+(1330 / 900 / 769 / 768 / 767 / 700 / 640 / 375).
+
+The lesson, since it is the second time this phase a measurement beat an
+assumption: **the breakpoint is the knob, never a min-width.** A min-width puts the
+horizontal scroll back, which is the thing the fallback exists to avoid.
+
+### `check:layout` only ever sees the calendar's DEFAULT view — **queued for 7c**
 
 The gate visits `/calendar` with an empty `localStorage`, so `normalisePrefs`
 returns `view: 'month'` and the week and agenda views are **unvisited by every
@@ -560,11 +575,13 @@ gate**. That matters most for the agenda, which is 13,764px tall on a phone over
 30-day range — a long list is exactly where a vertical-overflow gate earns its
 keep.
 
-Covered by hand this phase instead, at 375, 639, 640, 641 and 1330px: zero
-horizontal overflow in every view at every width, and the page never scrolls past
-what it paints. **Recommended for 7c**, when the calendar is feature-complete and
-the view dimension is worth adding to a shared gate script; doing it mid-phase
-would be surgery on gate infrastructure for a surface still being built.
+Covered by hand this phase instead, at eight widths across all three views: zero
+horizontal overflow everywhere, and the page never scrolls past what it paints.
+
+**Approved for 7c by the owner** — a 13,764px agenda on a phone is exactly what a
+vertical-overflow gate is for. Deferred out of 7b rather than dropped: the calendar
+was still being built, and adding a view dimension to a shared gate script is worth
+doing once the surface it guards has stopped moving.
 
 ---
 

@@ -151,7 +151,7 @@ which day it is.
 The same rule as hover-to-reveal, and 7b is where it was first tested on something
 other than hover.
 
-Week view needs seven readable columns, so below `40rem` the agenda answers
+Week view needs seven readable columns, so below `48rem` the agenda answers
 instead. That fallback is **two media-gated wrappers**, not a `matchMedia` read:
 
 - CSS has an exact equivalent, so the JS form buys nothing. The reserved case is
@@ -164,6 +164,13 @@ instead. That fallback is **two media-gated wrappers**, not a `matchMedia` read:
   for one `groupAgenda` over thirty days it will not show, a phone pays for one week
   grid. Both are cheap, and `display: none` keeps the hidden one out of the
   accessibility tree, so nothing is announced twice.
+
+**Pick the breakpoint by measuring, not by naming a size.** 40rem was built first
+because that is the number MIGRATION and the Next comment both use. Measured, it
+gave 71px columns — clamped correctly and still not readable — so it moved to
+48rem and 89px. "Fits" and "is legible" are different bars. And the knob is always
+the breakpoint: a min-width would put back the horizontal scroll the fallback
+exists to avoid.
 
 **If a fallback ever hides a view the student explicitly chose, say so on screen.**
 The switcher still shows "week" selected, because that is their choice and it is

@@ -214,11 +214,10 @@ That matters most for the agenda: over a 30-day range it is 13,764px tall on a
 phone, and a long list is exactly where a "does the document scroll further than it
 paints" gate earns its keep.
 
-Covered by hand in 7b instead, at 375 / 639 / 640 / 641 / 1330px in all three
-views: zero horizontal overflow everywhere, and nothing scrolls past what it
-paints. **Recommended for 7c**, when the calendar is feature-complete and adding a
-view dimension to a shared gate script is worth the surgery. Doing it mid-phase
-would be rebuilding gate infrastructure around a surface still being built.
+Covered by hand in 7b instead, at 375 / 640 / 700 / 767 / 768 / 769 / 900 / 1330px
+across all three views: zero horizontal overflow everywhere, and nothing scrolls
+past what it paints. **Approved for 7c** — deferred out of 7b because the surface
+the gate would guard was still being built, not because the gap is acceptable.
 
 ### The calendar, and why `check:interaction` did NOT grow
 
@@ -250,7 +249,7 @@ argue for extending the interaction gate.
 
 **7b did not change that answer.** Its four new components put their decisions in
 `calendarViews.ts` where the suite can see them, and what is left is again
-browser-only: the 40rem boundary, the week columns' measured width, the focus ring
+browser-only: the 48rem boundary, the week columns' measured width, the focus ring
 that `sr-only` inputs make necessary, and whether a filter chip really removes a
 month dot. All driven by hand, all recorded in HANDOFF with numbers.
 

@@ -170,7 +170,7 @@ Editing, the detail dialog, the add form and the events section are 7c.
 | `calendar/DaySection.svelte` | One titled group. **Its count is `done/TICKABLE`**, bare total when nothing is tickable. That was a fixed bug; the doc comment says so. |
 | `calendar/DayGroupToggle.svelte` | Arrange the day by type (default) or time. Writes `dayGroupBy`. |
 | `calendar/ViewSwitcher.svelte` | month / week / agenda as a `radiogroup`, plus the **agenda-only** grouping select. |
-| `calendar/WeekView.svelte` | Seven columns, compact rows, **no checkboxes**. Not rendered below `40rem` — see rule 4 below. No min-width and no horizontal scroll, deliberately. |
+| `calendar/WeekView.svelte` | Seven columns, compact rows, **no checkboxes**. Not rendered below `48rem` — see rule 4 below. No min-width and no horizontal scroll, deliberately. |
 | `calendar/AgendaView.svelte` | A flat grouped list over 30 days. **The only view that can carry undated to-dos**, which is why it exists. Rows name their own date when the grouping is not by day. |
 | `calendar/KeyBar.svelte` | The key AND the filter. **Two dimensions that never merge** — see rule 3 below. |
 | `calendar/ItemRow.svelte` | One item in the shape every view renders it. Numeric tabular time, sans title, a real checkbox on tickable rows. No `compact`, no `onOpen` — those views do not exist yet. |
@@ -190,10 +190,13 @@ Editing, the detail dialog, the add form and the events section are 7c.
    iterates a merged array, so an edit cannot flatten them by accident. The labels
    coming from the unfiltered merge is load-bearing: filtered, hiding a label would
    remove its own chip and there would be no way back.
-4. **The 40rem week fallback is CSS, and the Next source never had it.** Two
+4. **The week fallback is CSS at `48rem`, and the Next source never had it.** Two
    media-gated wrappers, not a `matchMedia` read — a viewport question CSS can
    answer belongs in CSS, and a JS read would have to guess during SSR. Boundary
-   measured at 640px (week) / 639px (agenda + a note saying why).
+   measured at 768px (week, 89px columns) / 767px (agenda + a note saying why).
+   **48rem rather than the 40rem the Next comment names**, because 40rem measured
+   at 71px and read as three short stacks. The knob is the breakpoint, never a
+   min-width.
 5. **The header counts events; nothing renders them until 7c.** A day can read
    "5" above three rows. Deliberate — the alternatives break rule 1 or ship events
    without their register controls. See BUGS.md.

@@ -4,6 +4,38 @@ Dated session summaries, most recent first.
 
 ---
 
+## 2026-08-21 — 7b follow-on: the week breakpoint moves to 48rem
+
+**507 tests · six gates green · green in all seven timezones.**
+
+### What changed
+
+`sm` → `md` on the week-to-agenda fallback. 40rem measured at **71px columns** —
+clamped correctly and still reading as three short stacks rather than a phrase.
+48rem gives **89px**, with about 75px of text per title, enough for whole words.
+
+Re-measured at eight widths: 769px and 768px render seven columns, 767px and below
+fall back to the agenda with its note. Zero horizontal overflow everywhere, titles
+still capped at three lines, no console output.
+
+The rule that came out of it, now in CONVENTIONS: **pick a breakpoint by measuring,
+not by naming a size**, and the knob is always the breakpoint — a min-width puts
+back the horizontal scroll the fallback exists to remove.
+
+### Also settled
+
+- `check:layout` extension to week and agenda: **approved for 7c.**
+- Agenda rows naming their own date: **kept.** Improving on a source that is simply
+  wrong beats porting the mistake — the second such case in two phases.
+- All nine of 7b's absence decisions approved.
+
+### Known issues
+
+Unchanged: CONTEXT.md still not regenerated (after 7c, by decision), `check:layout`
+still blind to two of three views until 7c, `thrive:event-joins` still queued.
+
+---
+
 ## 2026-08-21 — Phase 7b: the other two views and the filter bar
 
 **507 tests · six gates green · green in all seven timezones.**
