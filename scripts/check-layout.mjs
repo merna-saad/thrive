@@ -52,21 +52,47 @@ const ENTRY = join(FRONTEND, 'build', 'index.js');
 const PORT = 4399;
 const BASE = `http://127.0.0.1:${PORT}`;
 
-/** Every route, so a shell-level regression cannot hide on an unvisited page. */
-const ROUTES = [
-	'/',
-	'/calendar',
-	'/appointments',
-	'/ask',
-	'/classes',
-	'/syllabi',
-	'/assignments',
-	'/degree',
-	'/events',
-	'/career',
-	'/resources',
-	'/settings'
+/**
+ * Every route, so a shell-level regression cannot hide on an unvisited page.
+ *
+ * ## The calendar counts three times
+ *
+ * Its view is a persisted PREFERENCE, not a URL. So `/calendar` on its own only
+ * ever measured the month grid, and the two views added in Phase 7b were
+ * invisible to this gate for the same reason they are invisible to every other
+ * one: nothing navigates to them.
+ *
+ * That gap is exactly what a vertical-overflow gate is for. The agenda renders
+ * thirty days of grouped rows and measured **13,764px on a phone** — the tallest
+ * thing in the app by an order of magnitude, and the surface where a stray fixed
+ * height or an un-contained scroller would be least visible. The week view has
+ * the opposite risk: seven columns of clamped titles, where a leaked overflow
+ * would be horizontal first and vertical second.
+ *
+ * `prefs` is written into `thrive:calendar-prefs` before the page is measured;
+ * `null` means the key is removed, so a target cannot inherit the one before it.
+ * Approved for 7c and deferred out of 7b because the surface it guards was still
+ * moving.
+ */
+const TARGETS = [
+	{ route: '/', label: '/' },
+	{ route: '/calendar', label: '/calendar month', prefs: { view: 'month' } },
+	{ route: '/calendar', label: '/calendar week', prefs: { view: 'week' } },
+	{ route: '/calendar', label: '/calendar agenda', prefs: { view: 'agenda' } },
+	{ route: '/appointments', label: '/appointments' },
+	{ route: '/ask', label: '/ask' },
+	{ route: '/classes', label: '/classes' },
+	{ route: '/syllabi', label: '/syllabi' },
+	{ route: '/assignments', label: '/assignments' },
+	{ route: '/degree', label: '/degree' },
+	{ route: '/events', label: '/events' },
+	{ route: '/career', label: '/career' },
+	{ route: '/resources', label: '/resources' },
+	{ route: '/settings', label: '/settings' }
 ];
+
+/** The one key the calendar's view lives under. See `calendarPrefs.ts`. */
+const PREFS_KEY = 'thrive:calendar-prefs';
 
 /**
  * Both sides of the `lg` breakpoint, because that is where the card cap, the
@@ -181,14 +207,34 @@ try {
 		browser = await chromium.launch({ executablePath });
 	}
 
-	console.log(`${'route'.padEnd(15)}${'viewport'.padEnd(14)}${'renders'.padStart(9)}${'scrolls to'.padStart(12)}   result`);
-	console.log('-'.repeat(64));
+	console.log(`${'target'.padEnd(20)}${'viewport'.padEnd(14)}${'renders'.padStart(9)}${'scrolls to'.padStart(12)}   result`);
+	console.log('-'.repeat(69));
 
 	for (const vp of VIEWPORTS) {
 		const page = await browser.newPage({ viewport: { width: vp.w, height: vp.h } });
 
-		for (const route of ROUTES) {
-			await page.goto(BASE + route, { waitUntil: 'networkidle' });
+		for (const target of TARGETS) {
+			await page.goto(BASE + target.route, { waitUntil: 'networkidle' });
+
+			/*
+			 * Write the view preference, then reload so the store hydrates with it.
+			 *
+			 * Set on EVERY target rather than only the ones that want it, and removed
+			 * when a target names none -- otherwise the calendar's view would leak
+			 * forward into whatever is measured after it and a run's results would
+			 * depend on the order of the array above.
+			 *
+			 * A reload rather than an in-page write: `hydrateStores()` runs once, in
+			 * the root layout's effect, and there is deliberately no second path.
+			 */
+			await page.evaluate(
+				({ key, value }) => {
+					if (value === null) localStorage.removeItem(key);
+					else localStorage.setItem(key, JSON.stringify({ value }));
+				},
+				{ key: PREFS_KEY, value: target.prefs ?? null }
+			);
+			await page.reload({ waitUntil: 'networkidle' });
 
 			const measured = await page.evaluate(() => {
 				/*
@@ -241,7 +287,7 @@ try {
 			if (!passed) failures += 1;
 
 			console.log(
-				`${route.padEnd(15)}${vp.label.padEnd(14)}` +
+				`${target.label.padEnd(20)}${vp.label.padEnd(14)}` +
 					`${String(measured.rendersTo).padStart(9)}${String(measured.scrollsTo).padStart(12)}   ` +
 					`${passed ? 'PASS' : `FAIL  ${slack}px of empty scroll`}`
 			);
@@ -255,8 +301,8 @@ try {
 	server.kill();
 }
 
-console.log('-'.repeat(64));
-const total = ROUTES.length * VIEWPORTS.length;
+console.log('-'.repeat(69));
+const total = TARGETS.length * VIEWPORTS.length;
 console.log(`${total - failures}/${total} pass`);
 if (failures > 0) {
 	console.log('');
