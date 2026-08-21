@@ -282,8 +282,13 @@ export interface DegreeProgress {
   electiveRequired: number;
   gaps: DegreeGap[];
   track: Track;
-  /** Expected graduation term, e.g. "Spring 2027". */
-  expectedCompletion: string;
+  /*
+   * No `expectedCompletion`. It was declared here and hardcoded "Spring 2027"
+   * in the fixture while `buildProgramTimeline` derived Fall 2027 for the same
+   * student -- two answers to one question, hidden only because the field
+   * rendered nowhere. See MIGRATION.md section 9 defect 9. The finish term is
+   * derived: read `ProgramTimeline.expectedFinishTerm`.
+   */
 }
 
 // ---------------------------------------------------------------------------
