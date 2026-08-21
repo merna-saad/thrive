@@ -4,6 +4,98 @@ Session log, newest first. What happened, what was decided, what is still open.
 
 ---
 
+## 2026-08-21 — session close: four questions answered, two features scoped
+
+**HEAD:** `bfa0ac3` · 11 commits this session, all pushed · 451 tests · all six
+gates green.
+
+No code this entry. It records the owner's answers, which close four open
+questions outright, and two features scoped in enough detail to plan against.
+
+### Answered, and now settled rather than open
+
+- **`COLLAPSED_TASK_ROWS` stays at 4.** A ~124px inner scroll is barely
+  noticeable; losing a quarter of the visible tasks is. The grid not moving was
+  the guarantee that mattered and it still holds.
+- **`/calendar` keeps its card link** although its body is still a note. It is in
+  `primaryNav`, the rail already links there, and the real body is the next phase.
+- **`/classes` stays link-less indefinitely.** The card is the feature; the page
+  was never needed. **Do not revisit.**
+- **`Toast` having no caller is expected.** It and copy-to-list return on the same
+  flag. Leave it mounted.
+- **Touch drag stays unaddressed**, to be flagged again on a real phone.
+- **A task moved past seven days leaving Home's list is fine.** `/assignments`
+  later.
+
+### The calendar is next, and it is the big one
+
+**15 components, the largest surface in the app.** `CalendarView` is the only
+stateful node; the other fourteen are the month grid, week columns, agenda, day
+sections, item rows, the detail dialog, the add form, the key bar and the events
+section.
+
+**`buildScheduleData()` is still unported and is the gating piece.** It needs five
+providers, all of which now exist. `lib/schedule.ts` is ported and tested, so the
+pure layer is largely waiting on that one function.
+
+Three things already queued to land there: the `eventIdOf` key-space defect's
+calendar half, the "next up" arrival, and `nowMinutes()` finally getting a real
+consumer.
+
+### Scoped, not built: Ask THRIVE as a full page
+
+**This replaces the earlier tabs-on-top idea. Do not build tabs.**
+
+A **second left rail beside the nav rail**, so two rails sit side by side, holding
+three sub-items — **Resources, Course Recommender, Career** — plus a chat window
+and saved chat history.
+
+Two constraints to design against rather than discover:
+
+- **Saved chat history cannot live in `localStorage`.** It is the first persisted
+  thing that is not a small override keyed by id, and it needs **Django or
+  Shankar's service**.
+- **Two rails, one `nav` landmark.** The shell keeps exactly one `nav` in the a11y
+  tree at a time; a second rail must not become a second competing landmark.
+
+Also unsettled, and worth naming now: Resources and Career are the subjects of two
+PARKED routes, so whether they become sub-routes of `/ask`, stay standalone, or
+merely share a name is open. And `FEATURES.floatingAssistant` still exists — a
+floating assistant plus a page with chat and history is two homes for one
+conversation.
+
+### Scoped, not built: Group Projects
+
+A future **fifth nav item**: group members, a project holding tasks and subtasks,
+and assigning a task to a person.
+
+**It is the first feature that is not one student's private view**, and that is
+the whole difficulty rather than a detail:
+
+- **Real accounts.** MIGRATION §9 defect 2 — no auth on any server action — stops
+  being a note and becomes a blocker.
+- **A shared database.** Every persistence property in the store layer assumes one
+  person's overrides in their own browser.
+- **The fixtures model one student.** No second person, no group, no assignee
+  exists anywhere in `mock/`.
+- **The nav has four destinations by decision**, and the mobile bar has four slots.
+  A fifth is the first addition since the trim to four.
+
+### The planning consequence, stated plainly
+
+Both scoped features move Django from "later" to the critical path. Neither can be
+demoed on the mock layer at all — which is a different situation from the
+appointment and request flows, which work today and are merely process-global.
+
+### Docs updated
+
+CONTEXT regenerated in full (and the regeneration caught a contradiction the
+mid-session patches had left: §13 claimed two different phone heights in two
+paragraphs). FINDINGS gained the vacuous-assertion lesson. CODEMAP's built-at
+caught up to HEAD. CHANGELOG, TESTING and setup_info carry the counts.
+
+---
+
 ## 2026-08-21 — copy-to-list follows its surface
 
 **HEAD:** `5e6b3d1` · 1 commit, pushed · 451 tests green · all six gates green.

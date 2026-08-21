@@ -1,4 +1,4 @@
-<!-- built-at: 5e6b3d1 -->
+<!-- built-at: bfa0ac3 -->
 <!-- updated: 2026-08-21 -->
 
 # CODEMAP
@@ -226,6 +226,11 @@ Four properties and three key spaces: see `CONTEXT.md` §8.
 ## Routes — `frontend/src/routes/`
 
 13 routes. Two render a heading, ten are `PagePlaceholder`, one is the swatch.
+
+**Two routes are settled as never-to-be-linked or never-to-be-built:**
+`/classes` keeps its route and its Home card but will not be built (owner) — the
+card IS the feature. `/calendar` keeps its card link while its body is still a
+note, because it is in `primaryNav` and the rail links there already.
 
 | Route | State |
 |---|---|

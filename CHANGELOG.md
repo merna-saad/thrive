@@ -4,6 +4,34 @@ Dated session summaries, most recent first.
 
 ---
 
+## 2026-08-21 — session close: answers, and the road after Home
+
+**HEAD:** `bfa0ac3` · 11 commits this session · 451 tests · six gates green.
+
+Four open questions closed by the owner: `COLLAPSED_TASK_ROWS` stays at 4,
+`/calendar` keeps its card link, `/classes` stays link-less for good, and
+`Toast` having no caller is expected.
+
+### Next priorities
+
+1. **The calendar** — 15 components, the largest surface. `buildScheduleData()`
+   is still unported and gates it.
+2. **`/assignments`**, then **Appointments**.
+3. **Ask THRIVE as a full page** — scoped, not built. A *second left rail* beside
+   the nav rail holding Resources, Course Recommender and Career, plus a chat
+   window and saved history. **Replaces the earlier tabs-on-top idea.** Chat
+   history cannot live in `localStorage`.
+4. **Group Projects** — scoped, not built. A fifth nav item, and the first
+   surface that is not one student's private view: needs real accounts and a
+   shared database.
+
+### Known issues
+
+Both scoped features move Django onto the critical path — neither can be demoed
+on the mock layer at all.
+
+---
+
 ## 2026-08-21 — copy-to-list follows the surface that shows it
 
 **HEAD:** `5e6b3d1` · **451 tests** · check 0/0 over 389 files · build clean ·

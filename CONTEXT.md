@@ -1,4 +1,4 @@
-<!-- updated-at: 5e6b3d1 -->
+<!-- updated-at: bfa0ac3 -->
 
 # CONTEXT
 
@@ -6,16 +6,11 @@ The living context file. Read this and you should be able to pick up the work
 without asking anyone.
 
 **Regenerated in full every handoff.** Never patch it — a partial edit leaves
-stale claims sitting beside fresh ones with no way to tell them apart. (One
-exception was taken and approved on 2026-08-21: a four-spot delta inside the same
-session, on a file written thirty minutes earlier. Full regeneration is for
-accumulated drift across a session; the rule stands for the normal case.)
-
-This file was regenerated in full at `5cdad70` and then PATCHED for two small
-changes later the same session — the show-more `aria-controls` fix and the
-built-vs-parked link rule. Same sanctioned exception, flagged here rather than
-quietly: §11, §13, §14 and §17 carry the delta, and the counts in §5 were
-re-measured. Say the word and it gets a clean regeneration.
+stale claims sitting beside fresh ones with no way to tell them apart. This file
+was patched twice mid-session on 2026-08-21 under the sanctioned same-session
+exception, and this regeneration reconciles both: it caught an internal
+contradiction the patches had introduced (§13 claimed the phone was 3303px in one
+paragraph and 3281px in another), which is the argument for the rule.
 
 ---
 
@@ -129,13 +124,16 @@ and nothing here talks to it.** See §12: the data layer was built against mock
 fixtures on purpose, and the provider signatures are the only contract Django
 will have to honour.
 
+Two things now queued need it rather than merely wanting it — Ask THRIVE's saved
+chat history and Group Projects' shared data. See §17.
+
 **No shadcn-svelte and no bits-ui yet.** Deferred deliberately; `MIGRATION.md`
 §4 lists the Radix primitives that will need equivalents. The stat pill popover
 and the due-date editor are both hand-built floating widgets rather than deferred
 to one of them — see §13.
 
 **One dependency added since Phase 1: `playwright-core`** (2026-08-21), for the
-layout gate. It has since paid for itself three times over: the same dependency
+layout gate. It has since paid for itself several times over: the same dependency
 carries the interaction gate, which caught a dead button five other gates called
 green, a `derived_inert` warning live in the production build, and the undo
 arrival's silent no-op. `@types/node` was rejected in Phase 5 because
@@ -160,16 +158,18 @@ See DEPENDENCIES.md.
 | — | Trim navigation to four destinations | done |
 | 6a | Home — the page, four cards, fit-on-one-screen | done |
 | — | Stat pill popovers, the reveal channel, the arrival cue, `check:interaction` | done |
-| 6b | **Task editing — tick, undo, rename, priority, notes, due date, reorder, add** | **done** |
-| **next** | **The calendar (15 components, largest surface)** | not started |
+| 6b | Task editing — tick, undo, rename, priority, notes, due date, reorder, add | done |
+| — | Honest affordances: no link to a parked route, no copy with nowhere to copy | done |
+| **next** | **The calendar — 15 components, the largest surface** | not started |
 | then | `/assignments` — the same `TaskRow`, no groups | not started |
 | then | Appointments | not started |
-| then | The Ask THRIVE page | not started |
+| then | **Ask THRIVE — a full page: second left rail, chat, saved history** | scoped, not built |
+| later | **Group Projects — a fifth nav item, and the first shared surface** | scoped, not built |
 | later | Floating widgets, behind `FEATURES` | not started |
 
 **451 tests, 20 spec files, all passing.** `svelte-check` clean over 389 files.
 Build clean. Contrast **58/58**. Layout **36/36**. Interaction **60/60**.
-53 commits, all pushed.
+55 commits, all pushed.
 
 **127 files under `frontend/src`** — ~18,286 lines, 12,769 source / 5,517 test.
 
@@ -473,6 +473,12 @@ contain no unparseable date, so no amount of using the app would have found it.
 stores in §12.** Same word, opposite properties: this one is per-student and
 survives a restart; those are shared by everyone and do not.
 
+**And it is the layer that runs out first.** Everything persisted so far is one
+student's private view of their own data, which is exactly what `localStorage` is
+for. The two features queued in §17 are not: saved chat history is too large and
+too long-lived for it, and Group Projects is shared between people by definition.
+Both need Django, and neither is a case of wanting it sooner.
+
 ### Four properties that must survive
 
 1. **Overrides keyed by id, never the whole truth.** `undefined` means "never
@@ -611,6 +617,11 @@ which is what the React unmount effect actually meant.
   item.
 - **`Toast` is mounted here**, once, for every route. See below.
 
+**One thing the shell will have to grow:** Ask THRIVE wants a SECOND left rail
+beside the nav rail (§17). The single-`nav`-landmark rule above is the constraint
+to design against — two rails must not become two nav landmarks competing for the
+same name.
+
 ### The app-wide toast
 
 `toast.svelte.ts` shipped in Phase 3b with its six tests and **no consumer** —
@@ -628,6 +639,10 @@ interrupt what a screen reader is already saying. The region is **mounted always
 and only its text changes, because a live region created and populated in the same
 tick announces unreliably. `pointer-events-none` so a confirmation can never
 swallow a press meant for the page beneath it.
+
+**It currently has no caller, and that is expected** (owner, 2026-08-21). Copy-to-
+list is now gated on the same flag, so the toast and its one raiser return
+together. Not dead code, and not to be removed and re-added.
 
 ### The two actions
 
@@ -666,21 +681,22 @@ cover. See §15.
 
 `FEATURES.floatingTodo` and `FEATURES.floatingAssistant`, both `false`. Mount
 points exist in `AppShell`, gated. **Left untouched when `/ask` became a route** —
-two Ask THRIVE surfaces is a later decision, not an accident to create now.
+two Ask THRIVE surfaces is a later decision, not an accident to create now. Note
+that decision gets sharper with the full Ask THRIVE page scoped in §17: a floating
+assistant and a page with a chat window and saved history are two homes for one
+conversation.
 
-**`floatingTodo` now gates a second thing: the task row's copy-to-list control.**
+**`floatingTodo` gates a second thing: the task row's copy-to-list control.**
 The quick list is the only surface where a copied item is visible, so with the flag
 off the copy succeeded, persisted, and showed the student nothing — the same
 "invisible result reads as broken" argument that withholds a "View all" pointing at
 a parked route. Nothing was deleted: the store, `addQuickItem`, its tests and the
 toast all stay, and flipping one word restores the button to a byte-identical row.
 
-**The consequence, recorded rather than discovered later:** with the button hidden,
-`showToast` has no caller, so the `Toast` mounted in `AppShell` cannot fire. That is
-coherent — the toast exists for exactly this action and returns with it on the same
-flag — but the toast is currently unexercised by anything but its tests. It was
-built during 6b precisely because a copy had no visible destination; hiding the
-button is the other half of that same problem, solved at the source.
+**A flag that gates a destination should gate the routes INTO it.** That is the
+generalisable form, and it is why this was not just a visibility tweak: the flag
+owns a surface, so it owns every affordance that only makes sense once that
+surface exists.
 
 ---
 
@@ -691,6 +707,11 @@ THRIVE — in that order.
 
 Nine of the previous eleven destinations were placeholders, and a nav that is
 four-fifths stubs reads as broken rather than unfinished.
+
+**A fifth is coming.** Group Projects (§17) is scoped as a nav item, which will be
+the first addition since the trim to four — and the first time the four-item
+bottom bar has to hold five things. Worth deciding deliberately rather than
+discovering when it lands.
 
 ### Parked, not deleted
 
@@ -714,11 +735,10 @@ configure yet. It was also the reason the mobile **More sheet** could go — wit
 four destinations there is no overflow, and an overflow button that opens nothing
 is worse than no button.
 
-**`/events` is still parked, and its card no longer links to it.** Home's Upcoming
-Events card used to carry a "View all" pointing there; a link that lands on a
-placeholder reads as broken rather than unfinished, so the link is withheld while
-the route is parked. The card's heading and content are unchanged. Unparking
-`/events` brings the link back with no edit — see below.
+**Two parked routes are scoped to be absorbed rather than unparked.** Ask THRIVE's
+second rail names Resources and Career (§17), which are the subjects of `/resources`
+and `/career`. Whether those become sub-routes of `/ask`, stay standalone, or the
+names simply coincide is unsettled and belongs to whoever builds that page.
 
 ### A card links out only when its destination is built
 
@@ -745,10 +765,16 @@ href is the silent no-op this repo treats as its worst failure mode. So
 throw: `PagePlaceholder` can throw because it IS the page, whereas taking Home
 down over a "View all" would be worse than the missing link.
 
-**`/classes` is unlikely ever to be built** (owner, 2026-08-21). The route and its
-card stay; only the link goes.
+**`/classes` will not be built, and its card stays link-less indefinitely**
+(owner, 2026-08-21, settled — do not revisit). The card IS the feature; the page
+was never needed. The route and its `PagePlaceholder` stay because deleting them
+buys nothing and `allNav` still resolves.
 
-**`/assignments` is parked and is now the next real consumer of a 6b component.**
+**`/calendar` keeps its card link although its own body is still a note** (owner,
+2026-08-21, settled). It is in `primaryNav`, the rail already links there, and its
+real body is the next phase.
+
+**`/assignments` is parked and is the next real consumer of a 6b component.**
 The Tasks card's "View all" points at it, and it renders the same `TaskRow` — with
 no `reorder` prop, since it has no groups to move between. It owes that row a
 `role="list"` container; see §17.
@@ -809,6 +835,10 @@ Fall 2026 · `programStart: 2026-08-03` · standing `onTrack`. `programStart` is
 Advisors: **Amber Hanna** (Graduate Student Advisor, Rady 2S111) and **Nelitza
 Morales** (Career Coach, CMC / Zoom).
 
+**There is exactly one student, and Group Projects is the first thing that breaks
+that assumption** — see §17. Nothing in `mock/` models a second person, a group,
+or an assignee.
+
 ### The fixture's shape, measured
 
 Numbers worth knowing, because three design decisions rest on them: **10 tasks**
@@ -866,19 +896,21 @@ class rows, and `VISIBLE_EVENTS = 4`.
 **The Tasks card now scrolls inside that cap, and the trade is recorded at the
 constant.** 6a measured 299px of collapsed content against the 300px cap — it fit
 exactly. A desktop task row is now **61–81px rather than 54px** and the collapsed
-body holds **424px**. That is arithmetic, not styling: a row carries five 44px
-controls (WCAG 2.5.8; shrinking them trades a layout problem for an accessibility
-one) plus the 44px "Add a task" button, and no arrangement of those fits 300px.
+body holds **424px**. That is arithmetic, not styling: a row carries 44px controls
+(WCAG 2.5.8; shrinking them trades a layout problem for an accessibility one) plus
+the 44px "Add a task" button, and no arrangement of those fits 300px.
 
-**The guarantee that matters is untouched.** The height is fixed, so the overflow
-can only scroll and the grid cannot move — asserted twice, by
-`check:interaction`'s *editing did not move the grid* and by `check:layout` on
-every route and viewport. `COLLAPSED_TASK_ROWS = 3` would fit; it is a visible
-change to Home's densest card, so it is the owner's call rather than a constant's.
+**`COLLAPSED_TASK_ROWS` stays at 4** (owner, 2026-08-21, settled): a ~124px inner
+scroll is barely noticeable, losing a quarter of the visible tasks is, and the
+grid not moving is what mattered.
 
-**That fixed height is also what makes the reveal machinery below safe.**
-Expanding a card to show a hidden row cannot move the grid, and nothing had to be
-added to guarantee it.
+**That guarantee is untouched.** The height is fixed, so the overflow can only
+scroll and the grid cannot move — asserted twice, by `check:interaction`'s
+*editing did not move the grid* and by `check:layout` on every route and viewport.
+
+**It is also what makes the reveal machinery below safe.** Expanding a card to
+show a hidden row cannot move the grid, and nothing had to be added to guarantee
+it.
 
 ### Tasks is flat when collapsed, grouped when expanded
 
@@ -900,17 +932,16 @@ to work and does not is the failure mode this repo cares most about, so the
 control is not offered. The Next app never had to answer this, because its card
 was always grouped.
 
-Everything else — tick, rename, priority, note, due chip, copy-to-list — works in
-both states.
+Everything else — tick, rename, priority, note, due chip — works in both states.
 
 ### Task editing (6b)
 
 The persistence layer was already there from 3b. This phase was wiring, plus the
-three things below.
+things below.
 
 | Component | Role |
 |---|---|
-| `TaskRow` | The row. Checkbox, title-as-label, chips, due chip, five 44px controls, and two disclosure panels |
+| `TaskRow` | The row. Checkbox, title-as-label, chips, due chip, 44px controls, two disclosure panels |
 | `UndoBar` | Fixed at the TOP of the list, not following the row. Deliberately **not** a live region |
 | `DueDateEditor` | The due chip as a button opening a native `<input type="date">` plus Today / Tomorrow / Next week |
 | `PriorityPicker` | Three radios, not a select. Deliberately uncoloured by its own value |
@@ -982,6 +1013,9 @@ skipped.** Done is not week-filtered, so a task due three weeks out can be ticke
 and unticked, and the week filter then removes it again. There is no row to arrive
 at, so the card says so instead.
 
+**Copy-to-quick-list is gated on `FEATURES.floatingTodo`** — see §10. The quick
+list is the only surface where a copied item is visible.
+
 ### The row's structure, and defect 3 twice over
 
 MIGRATION §9 defect 3 — "the worst thing in the app" — was every task title
@@ -992,8 +1026,8 @@ It had **two** causes and 6b would have reintroduced the second.
 to shrink below its longest word, so a text child with no `min-w-0` pushes the row
 wider than its container and the title gets what is left.
 
-**Cause 2, dormant because a read-only row had no controls:** five 44px buttons
-beside the title is 220px against a card about 343px wide. So the controls **wrap
+**Cause 2, dormant because a read-only row had no controls:** several 44px buttons
+beside the title is ~220px against a card about 343px wide. So the controls **wrap
 to their own line below `sm`** and sit inline above it. The buttons stay 44px on
 every pointer type. The row is simply taller on a phone, which costs nothing —
 there is no height cap below `lg`.
@@ -1007,7 +1041,7 @@ three lines at six characters a line — defect 3, by another route. The title n
 takes a line of its own, with the chips and the date on one line beneath it (which
 is the Next source's arrangement, and worth ~27px a row).
 
-Measured after: **303px and one line at 375px, 339px and one line at 1512px.**
+Measured after: **303px and one line at 375px, 339–385px and one line at 1512px.**
 
 **The row is a `<div>`, not a `<label>`.** It holds several interactive controls
 and a label wrapping all of them would make pressing the note button tick the task
@@ -1017,13 +1051,13 @@ design-system size.
 
 **The control strip is right-anchored (`ms-auto`), and that is what makes the
 always-present controls pixel-stable.** Above `sm` it already was, via the `flex-1`
-content column — measured, Edit sits at the same x with two controls or three.
-Below `sm` the strip wraps to its own line where it was LEFT-aligned, so removing
-the leading control slid the rest 49px left, and expanding a card did the same in
-reverse by inserting two reorder controls ahead of them. A pre-existing shift that
-gating copy-to-list merely exposed. The invariant now: **a conditional control
-appears and disappears at the strip's leading edge, and nothing already on screen
-moves.**
+content column — measured, Edit sits at x=761 with two controls or three. Below
+`sm` the strip wraps to its own line where it was LEFT-aligned, so removing the
+leading control slid the rest 49px left (x=86 → 37), and expanding a card did the
+same in reverse by inserting two reorder controls ahead of them. A pre-existing
+shift that gating copy-to-list merely exposed. The invariant now: **a conditional
+control appears and disappears at the strip's leading edge, and nothing already on
+screen moves.**
 
 Measured after: Edit at x=244 on a phone, identical with `floatingTodo` on and off.
 Row heights identical there too; on desktop one of four rows is 20px shorter with
@@ -1260,21 +1294,6 @@ behaves exactly as it did before any of this.
 **The pill and the card are now two views of one set**, which is the same property
 the client-side counting protects: they cannot disagree.
 
-**The header band carries a `min-h-11` floor** so it cannot shrink when a card's
-"View all" is withheld — the link is a 44px touch target on mobile and would
-otherwise be the tallest thing in a band whose title and description are short.
-Measured, it is not the binding constraint on this fixture (the text block is 53px
-at 375px, the link 44px), which is exactly why the floor is worth having: the
-property should hold because a rule says so, not because today's copy is long
-enough. No floor above `lg`, where the link is ~26px and a floor could only ever
-grow a card.
-
-**What the withheld link DID change, measured:** desktop is pixel-identical — all
-four bands 67/103px, page 1218px. On a phone the Tasks band is **22px shorter**,
-and the cause is horizontal rather than vertical: its description regains the width
-the link took and now sets on one line instead of two. Nothing moves sideways and
-nothing overlaps; the page is simply 22px shorter, at 3281px.
-
 The show-more sits in the card's footer band rather than its body, because this
 card scrolls at rest and a control inside the scroll area is unreachable exactly
 when it is wanted. It is passed to `SectionCard` **only when there is something to
@@ -1288,6 +1307,22 @@ of leaving a gap.
 **No extra wording on the card about the narrowing** (owner, 2026-08-21): the
 show-more label carries it.
 
+### The card header band
+
+**A `min-h-11` floor** so the band cannot shrink when a card's "View all" is
+withheld — the link is a 44px touch target on mobile and would otherwise be the
+tallest thing in a band whose title and description are short. Measured, it is not
+the binding constraint on this fixture (the text block is 53px at 375px, the link
+44px), which is exactly why the floor is worth having: the property should hold
+because a rule says so, not because today's copy is long enough. No floor above
+`lg`, where the link is ~26px and a floor could only ever grow a card.
+
+**What the withheld link DID change, measured:** desktop is pixel-identical — all
+four bands 67/103px, page 1218px. On a phone the Tasks band is **22px shorter**,
+and the cause is horizontal rather than vertical: its description regains the width
+the link took and now sets on one line instead of two. Nothing moves sideways and
+nothing overlaps; the page is simply 22px shorter.
+
 ### Measured heights
 
 Header block **375px → 266px** during the 6a density pass. Document
@@ -1299,9 +1334,9 @@ inside its own body instead. It does not fit 1052px, and the decision
 (2026-08-21) is **do not cut card rows**: two task rows would make the card
 useless, and "show more" exists for exactly that.
 
-**The phone is 3303px**, up from 2949px, because a task row on a phone puts its
-five controls on their own line. Accepted: there is no height cap below `lg`, so
-this is a longer scroll rather than a broken layout, and the alternative was
+**The phone is 3281px**, up from 2949px before 6b, because a task row on a phone
+puts its controls on their own line. Accepted: there is no height cap below `lg`,
+so this is a longer scroll rather than a broken layout, and the alternative was
 sub-44px controls.
 
 ### Strings
@@ -1356,6 +1391,12 @@ the fourth was added on 2026-08-21.
    boundary belongs *inside* the gate, at the assertion, not in a doc three files
    away.
 
+**Property 2 has teeth, and 6b's follow-ons are why.** Two gates now parse a
+source file rather than restating it: `check-contrast.py` parses `app.css`, and
+`check-interaction.mjs` parses `features.ts` for `floatingTodo`. That second one
+was added *after* a version that inferred the flag from the page turned out to
+match the very control the flag gates — see below.
+
 **`check-contrast.py` parses `app.css`** rather than mirroring it. That weakness
 was load-bearing during the repalette: 43 assertions were checking green values
 while the app rendered navy, and it would have reported 43/43 throughout.
@@ -1401,6 +1442,15 @@ gates green, simply because nothing dragged a row. So the gate drags one now, an
 the rule is: **when a feature adds a gesture, the gate has to make that gesture**,
 or its warning assertion silently narrows.
 
+**The eighth is the one that nearly did not work at all**, and it is the most
+useful thing in this section. Its first version inferred `floatingTodo` from the
+page by looking for a To-do launcher; the selector `/to-?do list$/i` matched the
+copy button's own accessible name, "Copy X to your to-do list". The check asked
+"is the gate open?" and answered by finding the thing the gate controls. **It
+passed with the guard in place and with the guard removed.** Only the
+verified-to-fail step revealed it. Hence the standing decision in §15, and hence
+property 2 above being about *sources* rather than about convenience.
+
 It reports **SKIP** rather than passing when the fixture cannot produce the case an
 assertion needs, because silent degradation to a weaker assertion is how a gate
 stops meaning anything. It also states its other blind spot: it drives the
@@ -1438,13 +1488,19 @@ saying why tracking them would overwrite what the student is typing), and two
 
 - **The old repo is read-only.** Verified untouched after every phase.
 - **Django is not being written here**, and the port does not anticipate it beyond
-  the provider signatures.
+  the provider signatures — but two queued features now require it rather than
+  merely benefiting from it (§17).
 - **Measure layout in a real browser.** Never reason about pixels.
 - **Drive interaction in a real browser too.** Types, tests, contrast and layout
   were all green on a dead button. Anything a person presses gets pressed by a
   gate — and anything a person *gestures* gets gestured.
 - **A gate must be verified to fail** on the thing it guards, by breaking that
-  thing on purpose and watching it go red.
+  thing on purpose and watching it go red. This is not ceremony for a check you
+  are confident in: it is the only thing that distinguishes a passing check from
+  a check that cannot fail.
+- **An assertion's expected value must not be derived from the thing under test.**
+  A gate that inferred a feature flag from the page matched the very control the
+  flag gates, and so passed with the guard removed. Parse the source of truth.
 - **Measure the counterfactual, not just the fix.** Confirming the good version
   works says nothing about *why*. Breaking it on purpose is what showed that the
   undo arrival depends on ordering rather than luck — without that step it would
@@ -1465,7 +1521,9 @@ saying why tracking them would overwrite what the student is typing), and two
 - **Delete an abstraction that loses its last caller**, unless a specific named
   surface wants it. `hoverIntent` went the day hover did. `escapeKey` was kept
   through Phase 4 with no caller against **two named surfaces** — and both arrived,
-  which is the vindication of naming them rather than hoping.
+  which is the vindication of naming them rather than hoping. `Toast` is the
+  counter-case and it is not an exception: it has no caller today, but its one
+  raiser returns on the same flag it is gated behind.
 - **Moving a student to a row goes through `arriveAtRow`.** One function, never a
   hand-rolled `scrollIntoView`. And **write everything before you call it** — the
   flush count is not the mechanism, the ordering is.
@@ -1474,22 +1532,16 @@ saying why tracking them would overwrite what the student is typing), and two
 - **Feedback beats correctness.** A correct action that shows nothing reads as a
   failure. "It works" and "it appears to work" are different acceptance criteria
   and only one of them is the product.
-- **A feature whose destination is switched off still needs a confirmation.**
-  Copy-to-list writes to a store nothing renders, so it got a toast rather than
-  shipping as a button that does nothing visible.
+- **A control whose result is invisible is worse than no control**, and **a link
+  to a page that is not built is worse than no link.** Copy-to-list is gated on the
+  flag that owns its destination; a "View all" is withheld while its route is
+  parked. One rule: an action that appears to do nothing teaches the student that
+  the app is broken. Derive the condition from the thing that owns the
+  destination — `primaryNav`, or the feature flag — so building the destination
+  restores the affordance with no further edit.
 - **Making an invisible state visible means auditing every path it can now
   reach.** 6a surfaced unparseable due dates; 6b found the RangeError that had been
   unreachable behind them.
-- **A control whose result is invisible is worse than no control.** Copy-to-list
-  is gated on the flag that owns its destination, and a "View all" is withheld while
-  its route is parked. Both are the same rule: an action that appears to do nothing
-  teaches the student that the app is broken.
-- **An assertion's expected value must not be derived from the thing under test.**
-  A gate that inferred a feature flag from the page matched the very control the
-  flag gates, and so passed with the guard removed. Parse the source of truth.
-- **A link to a page that is not built is worse than no link.** A student who
-  spends a click to reach a placeholder distrusts the next link. Derive "is this
-  built" from the navigation, so building a route restores its links with no edit.
 - **A control's `aria-controls` must name the region it actually expands.** Two
   controls claiming one region is a promise to a screen reader that neither keeps,
   and it makes "the control for this list" ambiguous to anything scripting the page.
@@ -1498,8 +1550,10 @@ saying why tracking them would overwrite what the student is typing), and two
 - **A discard control must out-race every save-on-focus-loss path.** `blur` fires
   before `click`, so Cancel needs both a pointer flag and a `relatedTarget` check.
 - **Durations are either motion or dwell**, and they do not share tokens.
-- **Full CONTEXT regeneration is for accumulated drift across a session**, not for
-  a four-spot delta inside one.
+- **CONTEXT is regenerated in full every handoff.** A same-session patch is a
+  sanctioned exception for a small delta, but it is an exception: the patches on
+  2026-08-21 left §13 claiming two different phone heights in two paragraphs, and
+  the regeneration is what caught it.
 - **`@lucide/svelte`, not `lucide-svelte`** (the latter is pinned to Svelte 3/4).
 - **`cn()` survives** for the `class`-override case only.
 - **Vitest in Node, no jsdom.** Matches the prototype, where rendering was
@@ -1520,7 +1574,7 @@ saying why tracking them would overwrite what the student is typing), and two
   test-only export is permanent.
 - **Extract strings as you build**, not afterwards.
 - **No Claude/Anthropic attribution anywhere** — commits, PRs, file headers.
-  Verified clean across all 53 commits.
+  Verified clean across all 55 commits.
 
 ---
 
@@ -1535,6 +1589,10 @@ Calm, plain, honest about what is simulated.
 - **The Tasks card's read-only hint is gone**, along with the disabled checkboxes
   it explained. Copy that exists to apologise for an unfinished feature has to be
   deleted the moment the feature lands, or it becomes a lie.
+- **Sometimes the honest answer is to say nothing.** A "View all" pointing at a
+  placeholder was replaced by no link at all rather than by a caption explaining
+  why — an explanation for an absence the student never noticed is worse than the
+  absence.
 - Empty states are an invitation to act, never "No data". Never a dashed outline.
 - "Overdue" alone, not "Overdue by 3 days" beside "3 days ago".
 - Counts and timers in mono and tabular, so a row does not reflow.
@@ -1554,41 +1612,75 @@ Calm, plain, honest about what is simulated.
 1. **The three mock stores are process-global.** §9 defect 1. Concurrent students
    book over each other and see each other's data; everything resets on restart.
    An `adapter-node` process has the same module-scope hazard the Next server had.
-   **Django is the fix.**
+   **Django is the fix**, and two queued features (5 and 6) now depend on it.
 
 **Next up**
 
-2. **The calendar** — 15 components, the largest surface. Needs
-   `buildScheduleData()`, still unported, which wants five providers that now
-   exist. Two things are waiting there specifically: the **`eventIdOf` key-space
-   defect**'s calendar half (item 9 below), and the **"next up" arrival** (item 15).
+2. **The calendar — this is next.** **15 components, the largest surface in the
+   app.** `CalendarView` is the only stateful node and owns `selectedKey`,
+   `monthKey` and `detail`; the other fourteen are month grid, week columns,
+   agenda, day sections, item rows, the item detail dialog, the add form, the key
+   bar, and the events section. `MIGRATION.md` §4 has the inventory.
+
+   **`buildScheduleData()` is still unported** and is the gating piece. It needs
+   five providers, all of which now exist. `lib/schedule.ts` — the calendar's
+   vocabulary, grid arithmetic, the one filter, grouping and `nextUpItem` — is
+   ported and tested, so the pure layer is largely waiting for it.
+
+   Three things are already queued to land here: the **`eventIdOf` key-space
+   defect**'s calendar half (item 12), the **"next up" arrival** (item 18), and
+   `nowMinutes()`, the first sanctioned client clock read to get a real consumer.
 
 3. **`/assignments`** — the same `TaskRow`, with no `reorder` prop, since it has no
    groups to move between. It is the first outside caller of the row and **owes it
    a `role="list"` container**; the row renders `role="listitem"`.
 
-4. **Then:** appointments, then the **Ask THRIVE page** — three tabs (chat, class
-   recommender, job recommender), a chat window, and a **saved chat history rail on
-   the LEFT beside the nav rail**, so two rails sit side by side. Wired to
-   **Shankar's RAG** later.
+4. **Appointments.**
 
-**New from 6b**
+**Scoped, not built**
 
-5. **The collapsed Tasks card scrolls ~124px inside its fixed body.** A desktop row
-   is 61–81px rather than 54px because five 44px controls plus a 44px add button
-   cannot fit 300px. The grid still cannot move. `COLLAPSED_TASK_ROWS = 3` would
-   fit and is a visible change to Home's densest card — owner's call. Recorded at
-   the constant.
+5. **Ask THRIVE as a full page.** **This replaces the earlier tabs-on-top idea** —
+   do not build tabs.
 
-6. **Nothing gates the drag on touch.** HTML5 drag does not fire there at all,
+   The shape: **a SECOND left rail, beside the nav rail**, so two rails sit side by
+   side. It holds three sub-items — **Resources, Course Recommender, Career** —
+   plus a **chat window** and **saved chat history**.
+
+   Two things to settle before building:
+   - **Saved chat history cannot live in `localStorage`.** It is too large and too
+     long-lived, and it is the first persisted thing that is not a small override
+     keyed by id. It needs **Django or Shankar's service**. See §8.
+   - **Two rails and one `nav` landmark.** §10 keeps exactly one `nav` in the a11y
+     tree at a time; a second rail must not become a second competing landmark.
+
+   Also unsettled: Resources and Career are the subjects of two PARKED routes
+   (§11). Whether they become sub-routes of `/ask`, stay standalone, or merely
+   share a name is open. And `FEATURES.floatingAssistant` still exists — a floating
+   assistant plus a page with chat and history is two homes for one conversation.
+
+   Wired to **Shankar's RAG** later.
+
+6. **Group Projects — a future FIFTH nav item.** Group members, a project that
+   holds tasks and subtasks, and assigning a task to a person.
+
+   **This is the first feature that is not one student's private view**, and that
+   is the whole difficulty rather than a detail. Consequences to design for, not
+   discover:
+   - **It needs real accounts.** MIGRATION §9 defect 2 — no auth on any server
+     action — stops being a note and becomes a blocker.
+   - **It needs a shared database.** Every persistence property in §8 assumes one
+     person's overrides in their own browser.
+   - **The fixtures model one student** (§12). There is no second person, no group,
+     and no assignee anywhere in `mock/`.
+   - **The nav has four destinations by decision** (§11). A fifth is the first
+     addition since the trim, and the mobile bar holds four slots.
+
+**From 6b and its follow-ons**
+
+7. **Nothing gates the drag on touch.** HTML5 drag does not fire there at all,
    which is why the keyboard move buttons exist — but no gate asserts those buttons
    are the only route on a phone, or that they are reachable there. **Flag again
    when we test on a real phone** (owner, 2026-08-21).
-
-7. **`/calendar` keeps its card link while its own body is still a note.** It is in
-   `primaryNav`, so `isBuiltRoute` says yes, and the rail already links there — so a
-   card doing the same is no worse. Worth revisiting only if "in the navigation" and
-   "has real content" come apart for longer than one phase.
 
 **Carried**
 
@@ -1600,31 +1692,33 @@ Calm, plain, honest about what is simulated.
    answer.
 10. **Home fits 1218px, not 1052px.** Accepted. Phone is 3281px.
 11. **Three dead providers:** `getSyllabi`, `getResources`, `getCurrentResume`.
-12. **`requestTypeHelp` has no consumer** anywhere in the prototype.
-13. **The ignore store key-space defect** — Home and the calendar keyed it
+    Note `getResources` gets a consumer if Ask THRIVE's Resources sub-item reuses
+    it.
+12. **The ignore store key-space defect** — Home and the calendar keyed it
     differently. Home is fixed (raw `Event.id`, no prefix stripping); the calendar
     half lands with the calendar.
-14. **`thrive:event-joins` is keyed on the calendar item id**, not the raw
+13. **`thrive:event-joins` is keyed on the calendar item id**, not the raw
     `Event.id` (§9 defect 13). Home's "Count me in" is deliberately visual-only
     rather than writing to a different key.
+14. **`requestTypeHelp` has no consumer** anywhere in the prototype.
 15. **Two product decisions parked pending real screens:** the missing year in
     `formatShortDate`, and `countdownPhrase` counting to "13 months".
 16. **`taskNotes` on `createOverrideStore`?** It duplicates the persistence logic.
     6b used it heavily and did not need the refactor, which is mild evidence
     against bothering.
-17. **`format.ts` still emits `"Invalid Date"` from `formatShortDate`.**
-18. **A parseable-but-wrong date still gets through** `describeDue`: V8 rolls
+17. **`format.ts` still emits `"Invalid Date"` from `formatShortDate`**, and a
+    parseable-but-wrong date still gets through `describeDue`: V8 rolls
     `"2026-02-30"` into March.
-19. **The calendar's "next up" uses `arriveAtRow` directly**, not the reveal
+18. **The calendar's "next up" uses `arriveAtRow` directly**, not the reveal
     channel — it knows its own item, so there is nothing to ask. **Unless** it has
     to reach a row inside a collapsed day group, which is the channel's shape
     again. Decided: settle it when the calendar lands. Note 6b's rule applies
     either way: write the expansion before arriving.
-20. **`matchesWide()` is still unported** — listed in CONVENTIONS as a sanctioned
+19. **`matchesWide()` is still unported** — listed in CONVENTIONS as a sanctioned
     client read for a surface that does not exist yet.
-21. **A task moved beyond seven days leaves Home's list.** Correct — Home is "what's
-    next" — and now announced rather than silent, but a student who dates something
-    three weeks out has no way to see it here. `/assignments` is where it lives.
+20. **A task moved beyond seven days leaves Home's list.** Correct — Home is "what's
+    next" — and announced rather than silent. `/assignments` is where it lives
+    (owner, 2026-08-21: accepted, no change wanted).
 
 **Closed this session**
 
@@ -1634,14 +1728,19 @@ Calm, plain, honest about what is simulated.
   not counting. Now gated.
 - **The done-group branch in `TasksCard`'s reveal effect** was built in 6a for 6b's
   undo. It is exercised now.
-- **"Mount `Toast`?"** — mounted, and it turned out to be a requirement rather than
-  a nicety.
+- **"Mount `Toast`?"** — mounted. It then lost its caller again when copy-to-list
+  was gated, which is expected and settled (owner): both return on the same flag.
 - **`escapeKey` and `clickOutside` each have a second caller.** `DueDateEditor`.
 - The `readOnlyHint` string and the disabled checkboxes are gone.
-- **The shared `aria-controls` on the Tasks card's two show-more controls.** Each
+- **The shared `aria-controls`** on the Tasks card's two show-more controls. Each
   governs its own region now, and two assertions hold it.
 - **"View all" links landing on placeholders.** Withheld while a route is parked,
   derived from `primaryNav`.
+- **Copy-to-list with nowhere to copy.** Gated on `FEATURES.floatingTodo`.
+- **`COLLAPSED_TASK_ROWS`** — stays at 4 (owner). Settled.
+- **`/calendar`'s card link** — stays (owner). Settled.
+- **`/classes`** — stays link-less indefinitely, page never needed (owner).
+  Settled, do not revisit.
 
 ---
 
@@ -1656,7 +1755,15 @@ Note the interaction with loose end 1: a control group implies concurrent users,
 and the process-global stores mean concurrent users see each other's data. Either
 Django lands first or the control group is one person at a time.
 
+**Two scoped features move Django from "later" to "on the critical path".** Ask
+THRIVE's saved chat history cannot live in `localStorage`, and Group Projects is
+shared between people by definition and needs real accounts as well as a shared
+database. Neither can be demoed on the mock layer at all, which is a different
+situation from the appointment and request flows — those work today and are merely
+process-global.
+
 The prototype's Release 1 scope was: (a) the student dashboard, (b) appointment
 scheduling with history/notes/summaries/topic tagging, (c) `/resources` as the
 Resource Navigator surface, (d) per-task time estimates. **(a) is now complete** —
-Home is real and editable, no longer "pending 6b". Three were never begun.
+Home is real and editable, no longer "pending 6b". Three were never begun, and (c)
+may be absorbed into Ask THRIVE's second rail rather than built as `/resources`.

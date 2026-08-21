@@ -4,6 +4,52 @@ Reusable patterns and lessons. Things worth knowing again.
 
 ---
 
+## 2026-08-21 — an assertion whose expected value came from the thing under test
+
+The gate check for "copy-to-list only renders when `FEATURES.floatingTodo` is on"
+needed to know the flag. It inferred it from the page: look for the floating To-do
+launcher, and treat its presence as the flag being true.
+
+The selector was `/to-?do list$/i` over every button and link. It matched the copy
+button's own accessible name — **"Copy X to your to-do list"**. So the check asked
+"is the gate open?" and answered it by finding the thing the gate controls.
+
+It passed with the guard in place. It also passed with the guard removed. A
+green check asserting nothing.
+
+### Why it survived writing and review
+
+It reads correctly. "The launcher is what the flag mounts, so its presence IS the
+flag's value" is a true sentence, and the selector looks like it is about a
+launcher. Nothing about the shape of the code says the two selectors overlap;
+you have to know both strings.
+
+It was caught by the one habit that catches this class of thing: **breaking the
+feature on purpose and checking the count goes red.** The verified-to-fail step
+is not ceremony for a check you are confident in — it is the only thing that
+distinguishes a passing check from a check that cannot fail.
+
+### The rule
+
+**An assertion's expected value must not be derived from the thing under test.**
+
+The fix was to parse `features.ts`, which is the same move `check-contrast.py`
+makes with `app.css` and `arrive.ts` makes with `--thrive-arrival-duration`: read
+the source of truth, never a restatement of it and never the output.
+
+Worth noticing that the repo already had this pattern for *values* — durations,
+tokens, counts — and this was the first time it was needed for a *condition*. The
+shape generalises: if a check has to know what state the system is in, it asks
+the state's own source, not the rendering of it.
+
+### The tell to grep for
+
+A check whose expected side is computed from the same DOM, response or file as its
+actual side. Especially when both are found by a text or pattern match, because
+two patterns written months apart can quietly describe the same string.
+
+---
+
 ## 2026-08-21 — Phase 6b: four lessons worth keeping
 
 ### `await tick()` flushes what you already wrote, not what you meant to
