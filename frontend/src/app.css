@@ -314,6 +314,17 @@
      integers JavaScript slices with, so they cannot be CSS. */
   --thrive-card-body-cap: 18.75rem;
 
+  /* The stat pill popover. See `.thrive-popover`.
+
+     17rem holds a two-line task title without wrapping it to four, and is
+     narrower than the smallest viewport the app targets, so the clamp below is
+     insurance against a pill's position rather than the normal case.
+
+     The inset is the page's own side gutter, doubled: a clamped panel should
+     stop where the page's content stops, not at the very edge of the glass. */
+  --thrive-popover-width: 17rem;
+  --thrive-popover-viewport-inset: 1rem;
+
   /* Typography stack. Both faces are self-hosted via @fontsource above; these
      two variables are what the Next app's next/font call produced, kept under
      the same names so the --font-sans / --font-mono chains below are unchanged.
@@ -758,6 +769,27 @@
   /* A panel inside a panel does not need an edge at all. */
   .thrive-panel[data-flush='true'] {
     border-color: transparent;
+  }
+
+  /* ── The popover ────────────────────────────────────────────────────────
+     The floating list a stat pill opens. Only its WIDTH is here; the surface,
+     the hairline and the radius are ordinary utilities at the call site,
+     because Tailwind can express those and this is the one thing it cannot.
+
+     The clamp is what stops it leaving the screen. A pill sits in a wrapping
+     row inside the header panel, so at 375px the third pill can start well
+     across the page and a fixed 17rem panel anchored to its left edge would
+     hang off the side. `min()` against the viewport means the panel narrows
+     instead of overflowing, and the inset leaves the page's own gutter intact
+     on both sides.
+
+     Not a `max-width`: the panel would then be as wide as its widest task
+     title, and three pills would open three different-width lists. */
+  .thrive-popover {
+    width: min(
+      var(--thrive-popover-width),
+      calc(100vw - 2 * var(--thrive-popover-viewport-inset))
+    );
   }
 
   /* ── The dashboard card body ────────────────────────────────────────────

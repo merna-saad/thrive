@@ -94,6 +94,9 @@ describe("the design system's unenforced rules", () => {
       // The fit-on-one-screen mechanism. Fixed height and inside-scroll on
       // desktop, no cap on mobile -- see app.css.
       "thrive-card-body",
+      // The stat pill popover's width clamp. Width only: its surface, hairline
+      // and radius are utilities at the call site.
+      "thrive-popover",
     ];
 
     const used = new Set<string>();

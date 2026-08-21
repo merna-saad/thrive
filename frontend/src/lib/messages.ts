@@ -71,7 +71,20 @@ export const messages = {
 		stats: {
 			overdue: 'overdue',
 			dueToday: 'due today',
-			eventsThisWeek: 'events this week'
+			eventsThisWeek: 'events this week',
+			/*
+			 * The popover's list name, e.g. "3 overdue".
+			 *
+			 * A function rather than `${count} ${label}` at the call site, and this
+			 * is the case that shows why the rule is not pedantry: the pill's own
+			 * label is already a separate string, so a language that puts the count
+			 * after the noun, or inflects the noun on the count, has one place to say
+			 * so. Assembling it in markup would bake English order into three
+			 * components.
+			 */
+			listLabel: (count: number, label: string) => `${count} ${label}`,
+			/** The accessible name of a popover row. The arrow alone is not a name. */
+			jumpTo: (title: string) => `Jump to ${title}`
 		},
 
 		timeline: {
