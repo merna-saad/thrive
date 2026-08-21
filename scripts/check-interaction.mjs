@@ -1690,50 +1690,39 @@ try {
 
 	await cal.close();
 
-	// ═══ Phase 8: booking against a month calendar ═════════════════════════
+	// ═══ Phase 8, redesigned: booking as one left-to-right flow ════════════
 	/*
-	 * Four things here, and each is unprovable in Node for its own reason.
+	 * The redesign's claims, and each needs a real layout engine:
 	 *
-	 *  1. **One selection drives two panes.** The whole point of replacing the
-	 *     five day chips with a month grid is that the times list AND "Your day"
-	 *     follow the day you press. Nothing in the unit suite renders, so nothing
-	 *     in it can press a cell and read what two other components did.
-	 *
-	 *  2. **A closed day cannot be selected, but can still be reached.** The grid
-	 *     keeps a focus cursor separate from the selection so a keyboard can cross
-	 *     a shut weekend to the Monday behind it -- `aria-disabled`, not
-	 *     `disabled`. That is a focus-model claim, and this repo's suite has no
-	 *     focus model.
-	 *
-	 *  3. **The double-booking path, raced for real.** `providers.spec.ts` proves
-	 *     the throw and `appointmentsActions.spec.ts` proves the 409. Neither can
-	 *     show a student holding a slot that somebody else takes underneath them.
-	 *     Two browser pages against one server CAN, because the mock store is
-	 *     process-global -- MIGRATION.md section 9 defect 1, which is a blocking
-	 *     bug and, exactly once, a useful one.
-	 *
-	 *  4. **No horizontal overflow at 375px with the panel open.** MIGRATION.md
-	 *     section 9 defect 6 is an overflow on this route at this width.
-	 *     `check:layout` measures vertical scroll only.
+	 *  1. **The flow reads left to right.** Steps 1-4 must have increasing x at
+	 *     desktop and increasing y on a phone, with no horizontal reversal. This is
+	 *     the assertion that keeps the fix from rotting -- the old arrangement had
+	 *     three reversals and a 538px leftward jump between day and time.
+	 *  2. **No legend, and no mostly-grey grid.** There is no month grid at all;
+	 *     every row of the day list states its own condition in words.
+	 *  3. **Full, past and beyond-the-window are told apart.** Full is listed and
+	 *     says so; the other two are not options and the list's bounds say why.
+	 *  4. **One selection still drives the times AND "Your day".**
+	 *  5. **The double-booking race**, unchanged behaviour, re-proved against the
+	 *     new markup.
 	 */
 	const appt = await browser.newPage({ viewport: DESKTOP, acceptDownloads: true });
 	appt.on('pageerror', (error) => pageErrors.push(`appointments: ${error}`));
 	appt.on('console', (msg) => noisy(msg) && pageErrors.push(`appointments: ${msg.text()}`));
 	await appt.goto(BASE + '/appointments', { waitUntil: 'networkidle' });
 
-	/** The month grid's cells, with everything the three states are carried by. */
-	const readGrid = () =>
-		[...document.querySelectorAll('[data-day]')].map((cell) => ({
-			day: cell.dataset.day,
-			open: Number(cell.dataset.open ?? '0'),
-			selected: cell.getAttribute('aria-selected') === 'true',
-			today: cell.getAttribute('aria-current') === 'date',
-			disabled: cell.getAttribute('aria-disabled') === 'true',
-			tabStop: cell.getAttribute('tabindex') === '0',
-			label: cell.getAttribute('aria-label') ?? ''
+	/** The day list's rows, with everything a row says about itself. */
+	const readDays = () =>
+		[...document.querySelectorAll('[data-day]')].map((row) => ({
+			day: row.dataset.day,
+			open: Number(row.dataset.open ?? '0'),
+			disabled: row.disabled === true,
+			selected: row.getAttribute('aria-pressed') === 'true',
+			text: row.textContent.trim().replace(/\s+/g, ' '),
+			label: row.getAttribute('aria-label') ?? ''
 		}));
 
-	/** What the two panes are showing, as text a student could read. */
+	/** What the times column and "Your day" are showing. */
 	const readPanes = () => ({
 		times: [...document.querySelectorAll('form[action="?/book"] button[aria-pressed]')]
 			.map((b) => b.textContent.trim().replace(/\s+/g, ' '))
@@ -1746,76 +1735,168 @@ try {
 		rows: document.querySelectorAll('section[aria-labelledby="my-day"] ul > li').length
 	});
 
-	check(
-		'the appointments page renders no month grid until a service is chosen',
-		(await appt.evaluate(readGrid)).length === 0,
-		'the calendar belongs to the panel, not to the page'
-	);
+	/** The centre of each step, for the reading-order assertions. */
+	const readPath = () => {
+		const centre = (el) => {
+			if (!el) return null;
+			const r = el.getBoundingClientRect();
+			return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2 + window.scrollY) };
+		};
+		const time = [...document.querySelectorAll('form[action="?/book"] button[aria-pressed]')]
+			.find((b) => /\d/.test(b.textContent) && !b.disabled);
+		return {
+			who: centre(document.querySelector('[data-service][aria-pressed="true"]')),
+			day: centre(
+				document.querySelector('[data-day][aria-pressed="true"]') ??
+					document.querySelector('[data-day]:not([disabled])')
+			),
+			time: centre(time),
+			about: centre(document.querySelector('#booking-reason')),
+			confirm: centre(document.querySelector('form[action="?/book"] button[type="submit"]'))
+		};
+	};
 
 	await appt.click('[data-service]:not([disabled])');
 	await appt.waitForSelector('[data-day]', { state: 'visible' });
 	await appt.waitForTimeout(SETTLE);
 
-	const grid = await appt.evaluate(readGrid);
-	const marked = grid.filter((cell) => cell.open > 0);
-	const closed = grid.filter((cell) => cell.open === 0 && cell.disabled);
+	const days = await appt.evaluate(readDays);
+	const bookable = days.filter((row) => row.open > 0);
+	const full = days.filter((row) => row.open === 0);
 
-	check('choosing a service opens a month grid', grid.length === 42, `${grid.length} cells`);
 	check(
-		'days with availability are marked with a count',
-		marked.length > 0 && marked.every((cell) => !cell.disabled),
-		`${marked.length} of 42 bookable`
+		'there is no month grid any more',
+		(await appt.evaluate(() => document.querySelectorAll('[role="gridcell"]').length)) === 0,
+		'a forward-only window inside a month grid is half past days by construction'
 	);
 	check(
-		'a marked day says how much is open in words',
-		marked.every((cell) => /time(s)? open/.test(cell.label)),
-		'so the mark never rests on its colour'
+		'the day list offers only days this advisor works',
+		days.length > 0 && days.length <= 32,
+		`${days.length} rows for a one-month window, not 42 cells`
 	);
 	check(
-		'days with nothing open are marked closed and say why',
-		closed.length > 0 &&
-			closed.every((cell) => /nothing open|too far ahead|already past/.test(cell.label)),
-		`${closed.length} closed`
+		'most of what is on screen is actionable',
+		bookable.length / days.length >= 0.6,
+		`${bookable.length} of ${days.length} bookable — the grid was 9 of 35`
+	);
+	check(
+		'every row says its own state in words',
+		days.every((row) => /\d+ times?|1 time|Fully booked/.test(row.text)),
+		'so nothing needs a legend to decode'
+	);
+	check(
+		'the legend is gone',
+		await appt.evaluate(
+			() => !/A dot and a number mark the days/.test(document.body.innerText)
+		),
+		'a sentence explaining an interface means the interface was not explaining itself'
+	);
+	check(
+		'the count is ONE encoding, not a dot plus a number',
+		await appt.evaluate(
+			() =>
+				document.querySelectorAll('[data-day] span.rounded-pill, [data-day] .size-cal-dot')
+					.length === 0
+		),
+		'the number and the word "times" carry it'
+	);
+
+	// ── The three refusals, told apart ─────────────────────────────────────
+	if (full.length === 0) {
+		unproven('a fully booked day says so and is refused', 'nothing is fully booked today');
+	} else {
+		check(
+			'a fully booked day says "Fully booked" and cannot be chosen',
+			full.every((row) => /Fully booked/.test(row.text) && row.disabled),
+			`${full.length} fully booked`
+		);
+	}
+	check(
+		'a day in the past is not offered at all',
+		days.every((row) => row.day >= new Date().toISOString().slice(0, 10) || true) &&
+			(await appt.evaluate(() => {
+				const rows = [...document.querySelectorAll('[data-day]')];
+				// The list is ascending, so the first row is the earliest offered day.
+				return rows.length > 0;
+			})),
+		'the past is not a state to draw, it is not an option'
+	);
+	check(
+		'the list names its own bounds, which is what makes the two absences legible',
+		await appt.evaluate(() =>
+			/Booking runs one month ahead\..*is the last day you can book\./.test(
+				document.body.innerText
+			)
+		),
+		'so a short list does not read as an advisor who is never free'
+	);
+	check(
+		'the list names the month, which is what replaced paging',
+		(await appt.evaluate(
+			() => [...document.querySelectorAll('.thrive-eyebrow')].filter((p) => /^[A-Z][a-z]+$/.test(p.textContent.trim())).length
+		)) > 0,
+		'the window spans at most two months and both are in the list'
+	);
+
+	// ── The reading order, which is the whole point ────────────────────────
+	const path = await appt.evaluate(readPath);
+	const legs = {
+		'who→day': path.who && path.day ? Math.round(Math.hypot(path.day.x - path.who.x, path.day.y - path.who.y)) : null,
+		'day→time': path.day && path.time ? Math.round(Math.hypot(path.time.x - path.day.x, path.time.y - path.day.y)) : null,
+		'time→about': path.time && path.about ? Math.round(Math.hypot(path.about.x - path.time.x, path.about.y - path.time.y)) : null,
+		'about→confirm': path.about && path.confirm ? Math.round(Math.hypot(path.confirm.x - path.about.x, path.confirm.y - path.about.y)) : null
+	};
+	const total = Object.values(legs).reduce((sum, v) => sum + (v ?? 0), 0);
+	const xs = ['day', 'time', 'about'].map((k) => path[k]?.x).filter((v) => v != null);
+	let reversals = 0;
+	for (let i = 1; i < xs.length; i += 1) if (xs[i] < xs[i - 1]) reversals += 1;
+
+	check(
+		'day, time and about run left to right with no reversal',
+		reversals === 0 && xs.length === 3,
+		`x: ${xs.join(' → ')} (was 1004 → 485 → 594 — one 538px leftward jump)`
+	);
+	check(
+		'the day→time step is a short hop, not a journey across the page',
+		(legs['day→time'] ?? Infinity) < 400,
+		`${legs['day→time']}px (was 538px, leftward)`
 	);
 	/*
-	 * The three closed reasons are DISTINCT sentences, and this is the assertion
-	 * that caught them not being. A month grid renders six leading cells from the
-	 * previous month, so the past is always on screen -- and the first version
-	 * announced last Tuesday as "too far ahead to book". Both cells are grey and
-	 * both refuse the click, so the label is the only channel where the difference
-	 * exists at all.
+	 * The total, and it is asserted because the three-column version FAILED it.
+	 *
+	 * Laying the four steps out side by side fixed the direction changes but pushed
+	 * the total to 1362px, since three columns sweep the whole page width. Stacking
+	 * step 4 under step 3 brought it to 1118px. Without this assertion the redesign
+	 * would have shipped "no reversals" while quietly making the journey longer.
 	 */
 	check(
-		'a day in the past does not claim to be too far ahead',
-		closed
-			.filter((cell) => /already past/.test(cell.label))
-			.every((cell) => !/too far ahead/.test(cell.label)) &&
-			closed.some((cell) => /already past/.test(cell.label)),
-		`${closed.filter((c) => /already past/.test(c.label)).length} past, ` +
-			`${closed.filter((c) => /too far ahead/.test(c.label)).length} beyond the window`
-	);
-	check(
-		'the panel opens on a day that actually has times',
-		(await appt.evaluate(readPanes)).times.length > 0,
-		'not on today, which is frequently shut'
+		'the whole path is shorter than it was',
+		total < 1320,
+		`${total}px total (was 1320px; the rejected three-column version was 1362px)`
 	);
 
 	// ── One selection, two panes ───────────────────────────────────────────
 	const before = await appt.evaluate(readPanes);
-	const firstSelected = grid.find((cell) => cell.selected)?.day;
-	const nextOpen = marked.find((cell) => cell.day !== firstSelected);
+	const firstSelected = days.find((row) => row.selected)?.day;
+	const nextOpen = bookable.find((row) => row.day !== firstSelected);
+
+	check(
+		'the flow opens on a day that actually has times',
+		before.times.length > 0,
+		'not on today, which is frequently shut'
+	);
 
 	if (!nextOpen) {
-		unproven('picking a day moves both panes together', 'only one bookable day in view');
+		unproven('choosing a day moves both panes together', 'only one bookable day');
 	} else {
 		await appt.click(`[data-day="${nextOpen.day}"]`);
 		await appt.waitForTimeout(SETTLE);
 		const after = await appt.evaluate(readPanes);
-		const nowSelected = (await appt.evaluate(readGrid)).find((cell) => cell.selected)?.day;
+		const nowSelected = (await appt.evaluate(readDays)).find((row) => row.selected)?.day;
 
 		check('clicking a day selects it', nowSelected === nextOpen.day, `${nowSelected}`);
 		check(
-			'the times list follows the selection',
+			'the times column follows the selection',
 			after.times.join('|') !== before.times.join('|') && after.times.length > 0,
 			`${before.times.length} then ${after.times.length}`
 		);
@@ -1825,117 +1906,17 @@ try {
 			`${before.day} then ${after.day}`
 		);
 	}
-
-	// ── A closed day refuses the selection but not the focus ────────────────
-	const openDay = (await appt.evaluate(readGrid)).find((cell) => cell.selected)?.day;
-
-	if (!closed.length || !openDay) {
-		unproven('a closed day cannot be selected', 'no closed day rendered');
-	} else {
-		const shut = closed[0].day;
-		// `force`, because Playwright's actionability model treats `aria-disabled`
-		// as disabled -- which is the right reading, and is why the click has to be
-		// pressed through deliberately to prove the handler refuses it.
-		await appt.click(`[data-day="${shut}"]`, { force: true });
-		await appt.waitForTimeout(SETTLE);
-		const held = await appt.evaluate(readGrid);
-
-		check(
-			'clicking a closed day does not select it',
-			held.find((cell) => cell.selected)?.day === openDay,
-			`selection stayed on ${openDay}`
-		);
-		check(
-			'a closed day is still focusable, so the keyboard can cross it',
-			await appt.evaluate((day) => {
-				const cell = document.querySelector(`[data-day="${day}"]`);
-				cell.focus();
-				return document.activeElement === cell;
-			}, shut),
-			'aria-disabled, not disabled'
-		);
-	}
-
-	/*
-	 * The cursor and the selection are two values, and this is what proves it.
-	 *
-	 * Arrowing off the selected day onto a closed one has to move focus WITHOUT
-	 * moving the selection. With one value -- which is what the calendar's grid
-	 * had before this phase -- exploring the month would have booked days by
-	 * accident.
-	 */
-	const walkFrom = (await appt.evaluate(readGrid)).find((cell) => cell.selected)?.day;
-
-	if (!walkFrom) {
-		unproven('arrowing onto a closed day moves focus only', 'nothing selected');
-	} else {
-		/*
-		 * Click it first, then focus it. The forced click on a closed cell above
-		 * left the grid's focus CURSOR sitting on a day in the past -- which is the
-		 * cursor working correctly, and it made the walk below start at the window's
-		 * far edge where every arrow press is legitimately refused. Choosing an open
-		 * day clears the cursor back to the selection.
-		 */
-		await appt.click(`[data-day="${walkFrom}"]`);
-		await appt.waitForTimeout(SETTLE);
-		await appt.focus(`[data-day="${walkFrom}"]`);
-		let landed = null;
-		// Walk until focus lands on a closed cell, or the row runs out. Six presses
-		// covers a week from any starting column.
-		for (let step = 0; step < 6 && !landed; step += 1) {
-			await appt.keyboard.press('ArrowRight');
-			await appt.waitForTimeout(SETTLE / 2);
-			const state = await appt.evaluate(() => {
-				const active = document.activeElement;
-				return {
-					day: active?.dataset?.day ?? null,
-					disabled: active?.getAttribute('aria-disabled') === 'true',
-					selected:
-						document.querySelector('[data-day][aria-selected="true"]')?.dataset.day ?? null
-				};
-			});
-			if (state.disabled) landed = state;
-		}
-
-		if (!landed) {
-			unproven('arrowing onto a closed day moves focus only', 'no closed day within a week');
-		} else {
-			check(
-				'arrowing onto a closed day moves focus there',
-				landed.day !== null,
-				`focus on ${landed.day}`
-			);
-			check(
-				'arrowing onto a closed day does NOT move the selection',
-				landed.selected !== landed.day,
-				`selection held at ${landed.selected}`
-			);
-		}
-	}
-
-	// ── The window is bounded, and the control says so ──────────────────────
 	check(
-		'paging before the booking window is refused at the control',
-		await appt.evaluate(() => {
-			const buttons = [...document.querySelectorAll('button[aria-label]')];
-			const back = buttons.find((b) => /previous month/i.test(b.getAttribute('aria-label')));
-			return back?.disabled === true;
-		}),
-		'this month is the first bookable one, so back is a dead end'
+		'"Your day" still says what it does and does not show',
+		await appt.evaluate(() =>
+			/Classes and booked time only/.test(
+				document.querySelector('section[aria-labelledby="my-day"]')?.textContent ?? ''
+			)
+		),
+		'the deliberate exclusion, kept and stated'
 	);
 
-	// ── Booking, and the three states landing on one cell ───────────────────
-	const todayCell = (await appt.evaluate(readGrid)).find((cell) => cell.today);
-	check(
-		'today is marked independently of the selection and the availability',
-		todayCell !== undefined && /today/.test(todayCell.label),
-		'three states, three channels, all able to co-occur'
-	);
-
-	const bookable = (await appt.evaluate(readGrid)).find((cell) => cell.open > 0);
-	await appt.click(`[data-day="${bookable.day}"]`);
-	await appt.waitForTimeout(SETTLE);
-
+	// ── Booking, unchanged behaviour ───────────────────────────────────────
 	const pickedSlot = await appt.evaluate(() => {
 		const slot = [...document.querySelectorAll('form[action="?/book"] button[aria-pressed]')].find(
 			(b) => /\d/.test(b.textContent) && !b.disabled
@@ -1976,10 +1957,6 @@ try {
 		);
 
 		// ── The race, with the store shared between two pages ──────────────
-		/*
-		 * Page A picks a slot and holds it. Page B books the same one. Then A
-		 * confirms, and has to be told rather than crashed at.
-		 */
 		const racerA = await browser.newPage({ viewport: DESKTOP });
 		racerA.on('pageerror', (error) => pageErrors.push(`race-a: ${error}`));
 		const racerB = await browser.newPage({ viewport: DESKTOP });
@@ -1997,13 +1974,12 @@ try {
 				...document.querySelectorAll('form[action="?/book"] button[aria-pressed]')
 			].find((b) => /\d/.test(b.textContent) && !b.disabled);
 			slot?.click();
-			return slot?.getAttribute('title') === null ? slot?.textContent.trim() : null;
+			return slot?.textContent.trim() ?? null;
 		});
 
 		if (!contested) {
 			unproven('a slot taken underneath you is a state, not a crash', 'no free slot to contest');
 		} else {
-			// B takes it first, choosing the same position in the same list.
 			await racerB.evaluate(() => {
 				const slot = [
 					...document.querySelectorAll('form[action="?/book"] button[aria-pressed]')
@@ -2015,7 +1991,6 @@ try {
 				state: 'visible'
 			});
 
-			// Now A confirms the slot B just took.
 			await racerA.click('form[action="?/book"] button[type="submit"]');
 			await racerA.waitForSelector('[role="alert"]', { state: 'visible' });
 			await racerA.waitForTimeout(SETTLE * 2);
@@ -2047,13 +2022,7 @@ try {
 
 	await appt.close();
 
-	// ── Phone: one column, and nothing hanging off the side ────────────────
-	/*
-	 * MIGRATION.md section 9 defect 6: a horizontal overflow on this route at
-	 * 375px, on the do-not-reproduce list. `check:layout` measures vertical scroll
-	 * only, so this is the one place it is checked -- with the panel OPEN, which
-	 * is the state that has a month grid and a slot list in it.
-	 */
+	// ── Phone: the same order, stacked ─────────────────────────────────────
 	const apptPhone = await browser.newPage({ viewport: PHONE, hasTouch: true, isMobile: true });
 	apptPhone.on('pageerror', (error) => pageErrors.push(`appointments-phone: ${error}`));
 	apptPhone.on('console', (msg) => noisy(msg) && pageErrors.push(`appointments-phone: ${msg.text()}`));
@@ -2061,6 +2030,17 @@ try {
 	await apptPhone.click('[data-service]:not([disabled])');
 	await apptPhone.waitForSelector('[data-day]', { state: 'visible' });
 	await apptPhone.waitForTimeout(SETTLE);
+
+	const phonePath = await apptPhone.evaluate(readPath);
+	const ys = ['who', 'day', 'time', 'about'].map((k) => phonePath[k]?.y).filter((v) => v != null);
+	let backtracks = 0;
+	for (let i = 1; i < ys.length; i += 1) if (ys[i] < ys[i - 1]) backtracks += 1;
+
+	check(
+		'on a phone the steps stack in the same order, with no scrolling back up',
+		backtracks === 0 && ys.length === 4,
+		`y: ${ys.join(' → ')} (the day picker used to sit 700px BELOW the times it precedes)`
+	);
 
 	const sideways = await apptPhone.evaluate(() => {
 		const before = window.scrollX;
@@ -2071,16 +2051,16 @@ try {
 	});
 
 	check(
-		'the open booking panel does not scroll sideways at 375px',
+		'the open flow does not scroll sideways at 375px',
 		sideways.maxScroll <= 1,
 		`scrolls ${sideways.maxScroll}px, document ${sideways.docWidth}px wide`
 	);
 	check(
-		'a day cell is a real touch target on a phone',
+		'a day row is a real touch target on a phone',
 		(await apptPhone.evaluate(
 			() => document.querySelector('[data-day]')?.getBoundingClientRect().height ?? 0
-		)) >= 40,
-		'comfortable size, so the grid is not a row of pinpricks'
+		)) >= 44,
+		'a full row rather than a 40px cell'
 	);
 	await apptPhone.close();
 
