@@ -100,6 +100,26 @@ const TARGETS = [
 		click: '[data-service]:not([disabled])'
 	},
 	{ route: '/ask', label: '/ask' },
+	/*
+	 * A saved conversation OPEN, which is the tall state.
+	 *
+	 * `/ask` on its own is an empty state and a rail. With a conversation open the
+	 * page holds a log of message bubbles above a composer, and the whole point of
+	 * the layout is that the LOG scrolls rather than the document -- which needs
+	 * `min-h-0` on every flex parent down the spine, and silently degrades to the
+	 * document growing if one of them is missing. That degradation is exactly what
+	 * this gate measures.
+	 *
+	 * Reachable by URL rather than by a click, because the conversation is a search
+	 * param -- which is the argument for it being one.
+	 */
+	{ route: '/ask/resources?c=conv-001', label: '/ask conversation' },
+	/*
+	 * The career destination too, so a per-destination regression cannot hide. Its
+	 * example conversation is the shortest of the three, and its empty state is the
+	 * one with the longest example questions.
+	 */
+	{ route: '/ask/career', label: '/ask career' },
 	{ route: '/classes', label: '/classes' },
 	{ route: '/syllabi', label: '/syllabi' },
 	{ route: '/assignments', label: '/assignments' },

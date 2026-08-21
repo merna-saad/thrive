@@ -2084,6 +2084,353 @@ try {
 	);
 	await apptPhone.close();
 
+	// ═══ Phase 9: Ask THRIVE ═══════════════════════════════════════════════
+	/*
+	 * Five things, and each is a browser-only claim:
+	 *
+	 *  1. **Two rails on a desktop, one on a phone.** The whole layout decision.
+	 *     It is CSS on one DOM tree, so nothing in Node can see which form is in
+	 *     effect -- Vitest has no layout engine and every height it reports is
+	 *     zero.
+	 *
+	 *  2. **The destination and the conversation are in the URL, and Back works.**
+	 *     A history claim. No unit test has a history stack.
+	 *
+	 *  3. **The log is a live region that a keyboard can scroll.** axe's
+	 *     `scrollable-region-focusable` is the rule this satisfies, and it is about
+	 *     a real element's real overflow.
+	 *
+	 *  4. **Nothing is persisted.** The brief forbids a localStorage chat store, so
+	 *     the assertion is that sending a message writes NO key -- which needs a
+	 *     real `localStorage` to be empty of.
+	 *
+	 *  5. **Switching destination clears the unsent exchange.** A remount claim,
+	 *     and remounting is a runtime behaviour rather than a value.
+	 */
+	const ask = await browser.newPage({ viewport: DESKTOP });
+	ask.on('pageerror', (error) => pageErrors.push(`ask: ${error}`));
+	ask.on('console', (msg) => noisy(msg) && pageErrors.push(`ask: ${msg.text()}`));
+	await ask.goto(BASE + '/ask', { waitUntil: 'networkidle' });
+
+	check(
+		'/ask sends you to a destination rather than a landing page',
+		ask.url().endsWith('/ask/resources'),
+		ask.url()
+	);
+
+	/** Both rails' boxes, so "side by side" can be measured rather than asserted. */
+	const readRails = () => {
+		const nav = document.querySelector('nav[aria-label="Primary"]');
+		const own = document.querySelector('aside[aria-label="Ask THRIVE sections"]');
+		const box = (el) => {
+			if (!el) return null;
+			const cs = getComputedStyle(el);
+			if (cs.display === 'none') return null;
+			const r = el.getBoundingClientRect();
+			return { left: Math.round(r.left), right: Math.round(r.right), width: Math.round(r.width) };
+		};
+		return { nav: box(nav), own: box(own) };
+	};
+
+	const rails = await ask.evaluate(readRails);
+
+	check(
+		'the nav rail and the page rail are both on screen at 1512px',
+		rails.nav !== null && rails.own !== null,
+		`nav ${rails.nav?.width}px, page rail ${rails.own?.width}px`
+	);
+	check(
+		'they sit side by side rather than overlapping',
+		(rails.own?.left ?? 0) >= (rails.nav?.right ?? 0),
+		`nav ends at ${rails.nav?.right}, page rail starts at ${rails.own?.left}`
+	);
+	check(
+		'the page rail is a column, not a band, on a desktop',
+		(rails.own?.width ?? 0) < 400,
+		`${rails.own?.width}px wide`
+	);
+
+	// ── The URL is the state ────────────────────────────────────────────────
+	const destinationLinks = 'nav[aria-label="Ask about"] a';
+
+	check(
+		'the rail offers all three destinations',
+		(await ask.locator(destinationLinks).count()) === 3,
+		'Resources, Course Recommender, Career'
+	);
+
+	await ask.click(`${destinationLinks}[href="/ask/career"]`);
+	await ask.waitForURL('**/ask/career');
+	await ask.waitForTimeout(SETTLE);
+
+	check(
+		'choosing a destination is reflected in the URL',
+		ask.url().endsWith('/ask/career'),
+		ask.url()
+	);
+	check(
+		'the chosen destination is the current one in the rail',
+		await ask.evaluate(
+			() =>
+				document.querySelector('nav[aria-label="Ask about"] a[aria-current="page"]')?.getAttribute('href') ===
+				'/ask/career'
+		)
+	);
+	check(
+		'each destination has its own empty state rather than a blank box',
+		await ask.evaluate(() => {
+			const log = document.querySelector('[role="log"]');
+			return /job search/i.test(log?.textContent ?? '');
+		}),
+		'the Career copy, not a shared one'
+	);
+
+	await ask.goBack();
+	await ask.waitForURL('**/ask/resources');
+	check(
+		'the back button returns to the previous destination',
+		ask.url().endsWith('/ask/resources'),
+		ask.url()
+	);
+
+	// ── A saved conversation is linkable ───────────────────────────────────
+	const historyLinks = 'ul[aria-label="Saved conversations"] a';
+	const savedCount = await ask.locator(historyLinks).count();
+
+	if (savedCount === 0) {
+		unproven('opening a saved conversation is linkable', 'no saved conversation in this section');
+	} else {
+		await ask.locator(historyLinks).first().click();
+		await ask.waitForFunction(() => location.search.includes('c='));
+		await ask.waitForTimeout(SETTLE);
+
+		const opened = await ask.evaluate(() => ({
+			search: location.search,
+			bubbles: document.querySelectorAll('[role="log"] p.inline-block').length,
+			spoken: [...document.querySelectorAll('[role="log"] .sr-only')].map((s) => s.textContent.trim())
+		}));
+
+		check(
+			'opening a saved conversation puts it in the URL',
+			/^\?c=conv-/.test(opened.search),
+			opened.search
+		);
+		check(
+			'the saved messages render',
+			opened.bubbles > 1,
+			`${opened.bubbles} messages`
+		);
+		check(
+			'each message says WHO said it, in words',
+			opened.spoken.some((s) => /^You said/.test(s)) &&
+				opened.spoken.some((s) => /^THRIVE said/.test(s)),
+			'so the speaker does not rest on which side of the column a bubble sits on'
+		);
+
+		// ── The log is a live region a keyboard can reach ──────────────────
+		const log = await ask.evaluate(() => {
+			const el = document.querySelector('[role="log"]');
+			el.focus();
+			return {
+				live: el.getAttribute('aria-live'),
+				labelled: (el.getAttribute('aria-label') ?? '').length > 0,
+				tabbable: el.getAttribute('tabindex') === '0',
+				focused: document.activeElement === el,
+				scrollable: el.scrollHeight > el.clientHeight,
+				scrollTop: el.scrollTop
+			};
+		});
+
+		check('the conversation log is a polite live region', log.live === 'polite');
+		check('the log is named, not just typed', log.labelled === true);
+		check(
+			'the log is focusable, which is what makes it keyboard-scrollable',
+			log.tabbable === true && log.focused === true,
+			"axe's scrollable-region-focusable"
+		);
+
+		check(
+			'the log is the scroller, not the document',
+			await ask.evaluate(() => {
+				const el = document.querySelector('[role="log"]');
+				return getComputedStyle(el).overflowY === 'auto' && el.clientHeight > 0;
+			}),
+			'a definite height on the panel above xl -- see --thrive-chat-height'
+		);
+
+		/*
+		 * Force the overflow rather than hoping the fixture supplies it.
+		 *
+		 * A four-message conversation fits inside a 34rem panel, so asserting on the
+		 * saved history alone left this permanently unproven -- and an unproven
+		 * keyboard-scroll check is the one that matters least when it is skipped and
+		 * most when it is not. Sending pushes real rows in until it overflows.
+		 */
+		let overflowing = log.scrollable;
+		for (let attempt = 0; attempt < 6 && !overflowing; attempt += 1) {
+			await ask.fill('#ask-composer', `Padding question number ${attempt}.`);
+			await ask.press('#ask-composer', 'Enter');
+			await ask.waitForTimeout(SETTLE);
+			overflowing = await ask.evaluate(() => {
+				const el = document.querySelector('[role="log"]');
+				return el.scrollHeight > el.clientHeight + 1;
+			});
+		}
+
+		if (!overflowing) {
+			unproven('a keyboard can scroll the log', 'could not make the log overflow');
+		} else {
+			// Back to the top, focus the log, then press End. Sending already scrolled
+			// it to the bottom, so measuring from there would measure nothing.
+			await ask.evaluate(() => {
+				const el = document.querySelector('[role="log"]');
+				el.scrollTop = 0;
+				el.focus();
+			});
+			const from = await ask.evaluate(() => document.querySelector('[role="log"]').scrollTop);
+			await ask.keyboard.press('End');
+			await ask.waitForTimeout(SETTLE);
+			const moved = await ask.evaluate(() => document.querySelector('[role="log"]').scrollTop);
+
+			check('a keyboard can scroll the log', moved > from, `${from} -> ${moved}`);
+		}
+
+		// Leave the log clean for the composer checks below, which assert on an
+		// exchange they create themselves.
+		await ask.reload({ waitUntil: 'networkidle' });
+		await ask.waitForTimeout(SETTLE);
+	}
+
+	// ── The composer, and the honesty about it ─────────────────────────────
+	check(
+		'the composer refuses an empty question',
+		await ask.evaluate(
+			() => document.querySelector('#ask-composer').closest('form').querySelector('button[type="submit"]').disabled
+		),
+		'disabled until something is typed'
+	);
+	check(
+		'the page says nothing is saved BEFORE anything is typed',
+		await ask.evaluate(() => /Nothing you type here is saved/.test(document.body.innerText))
+	);
+
+	const keysBefore = await ask.evaluate(() => Object.keys(localStorage).sort());
+
+	/*
+	 * A question that appears NOWHERE in the fixture or the empty-state copy.
+	 *
+	 * The first version typed "Which electives suit product analytics?", which is
+	 * word for word one of the Course Recommender's example questions -- so the
+	 * "switching destination clears it" assertion below matched the example rather
+	 * than the message and went red against correct code. A test that can pass or
+	 * fail for a reason other than the one it names is worse than no test.
+	 */
+	await ask.fill('#ask-composer', 'Can I switch my capstone team in week 4?');
+	await ask.press('#ask-composer', 'Enter');
+	await ask.waitForTimeout(SETTLE * 2);
+
+	const afterSend = await ask.evaluate(() => ({
+		text: document.querySelector('[role="log"]').innerText,
+		keys: Object.keys(localStorage).sort(),
+		draft: document.querySelector('#ask-composer').value
+	}));
+
+	check(
+		'sending a question shows it in the log',
+		/capstone team/.test(afterSend.text),
+		'the student half of the exchange'
+	);
+	check(
+		'the reply says plainly that it cannot answer yet',
+		/can’t answer this yet|cannot answer this yet/.test(afterSend.text),
+		'a placeholder that mimicked an answer would teach the student to trust it'
+	);
+	check('sending clears the field', afterSend.draft === '');
+	/*
+	 * The honest constraint, asserted. The brief forbids a localStorage chat store
+	 * -- conversations are too large for it and a second laptop would show an empty
+	 * history indistinguishable from never having asked anything. So the exchange
+	 * above must have written NOTHING.
+	 */
+	check(
+		'sending a question writes no persisted key',
+		afterSend.keys.join('|') === keysBefore.join('|'),
+		afterSend.keys.length === 0 ? 'localStorage untouched' : `keys: ${afterSend.keys.join(', ')}`
+	);
+
+	// ── Switching destination clears what was never saved ──────────────────
+	await ask.click(`${destinationLinks}[href="/ask/courses"]`);
+	await ask.waitForURL('**/ask/courses');
+	await ask.waitForTimeout(SETTLE);
+
+	check(
+		'switching destination clears the unsent exchange',
+		await ask.evaluate(
+			() => !/capstone team/.test(document.querySelector('[role="log"]').innerText)
+		),
+		'the {#key} remount, so a question cannot appear under another title'
+	);
+
+	await ask.close();
+
+	// ── An unknown destination is a 404, not an empty page ─────────────────
+	const bogus = await browser.newPage({ viewport: DESKTOP });
+	const response = await bogus.goto(BASE + '/ask/recommender', { waitUntil: 'networkidle' });
+	check(
+		'a mistyped destination is a 404 rather than a redirect',
+		response?.status() === 404,
+		`status ${response?.status()} — a quiet redirect would make a broken link look fine`
+	);
+	await bogus.close();
+
+	// ── Phone: one rail, and it is not this one's column form ──────────────
+	const askPhone = await browser.newPage({ viewport: PHONE, hasTouch: true, isMobile: true });
+	askPhone.on('pageerror', (error) => pageErrors.push(`ask-phone: ${error}`));
+	askPhone.on('console', (msg) => noisy(msg) && pageErrors.push(`ask-phone: ${msg.text()}`));
+	await askPhone.goto(BASE + '/ask/resources?c=conv-001', { waitUntil: 'networkidle' });
+	await askPhone.waitForTimeout(SETTLE);
+
+	const phoneRails = await askPhone.evaluate(readRails);
+
+	check(
+		'the nav rail is gone at 375px, so two rails can never be side by side',
+		phoneRails.nav === null,
+		'BottomNav has that job at this width'
+	);
+	check(
+		'the page rail is a full-width band rather than a column',
+		(phoneRails.own?.width ?? 0) > 300,
+		`${phoneRails.own?.width}px of 375`
+	);
+	check(
+		'the destinations are still all reachable in the band',
+		(await askPhone.locator(destinationLinks).count()) === 3,
+		'a horizontal scroller, not a truncated list'
+	);
+
+	const phoneSideways = await askPhone.evaluate(() => {
+		const before = window.scrollX;
+		window.scrollTo(1e6, 0);
+		const max = Math.round(window.scrollX);
+		window.scrollTo(before, 0);
+		return max;
+	});
+	check(
+		'the page itself does not scroll sideways at 375px',
+		phoneSideways <= 1,
+		`${phoneSideways}px — the destination row scrolls, the document does not`
+	);
+	check(
+		'the saved history is capped so it cannot push the composer off screen',
+		await askPhone.evaluate(() => {
+			const list = document.querySelector('ul[aria-label="Saved conversations"]');
+			if (!list) return true;
+			return list.getBoundingClientRect().height <= 200;
+		}),
+		'it scrolls inside itself instead'
+	);
+	await askPhone.close();
+
 	// ── Reduced motion: still marked, still cleared ────────────────────────
 	/*
 	 * The global reduced-motion block forces `animation-duration: 0.01ms` on
