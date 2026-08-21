@@ -117,6 +117,20 @@
      the control was resized, and the drift is a 1px misalignment nobody files. */
   --thrive-checkbox-size: 17px;
 
+  /* The month grid's category dot. 8px, up from 6px on 2026-08-21.
+
+     A TOKEN rather than two Tailwind utilities, because the dot and the row that
+     reserves space for it have to agree: the wrapper sets its height so the cell
+     does not reflow between a day with dots and a day without, and a `size-2`
+     paired with an `h-1.5` would clip silently.
+
+     8px, measured rather than guessed. Three dots plus two 2px gaps is 28px
+     inside a 44px cell at every width the grid is drawn at, and the "+n"
+     overflow case shows two dots and a count in 30px. It is 1.8x the area of the
+     6px dot, which is most of the legibility this pass bought — more than the
+     saturation did. */
+  --thrive-cal-dot: 8px;
+
   /* Action accent. UC SAN DIEGO NAVY, replacing the forest green (2026-08-22).
      Official brand value, PMS 2767, from brand.ucsd.edu/visual-brand/color.
      Not an approximation.
@@ -211,9 +225,48 @@
 
      This is the ONLY reserved colour this repalette touched. Every other one
      keeps its value as well as its meaning. */
-  --thrive-on-track: #14706b;
-  --thrive-watch: #8f6220;
-  --thrive-needs-help: #6a5fb0;
+
+  /* ── Chroma pass, 2026-08-21 ────────────────────────────────────────────
+     Five status hues gained saturation and NOT lightness.
+
+     THE PROBLEM: the month grid's category dots read muted and muddy. They are
+     the only thing on that grid carrying stream identity, and eleven categories
+     share eight colours, so the set was competing with itself.
+
+     THE CONSTRAINT: every one of these must still clear 4.5:1 on card, because
+     each is used as TEXT somewhere as well as as a fill (see `tones.ts`). So
+     vibrance could not come from lightening them.
+
+     WHAT WAS DONE: each was converted to oklch, its chroma raised to the most
+     the sRGB gamut allows AT ITS OWN LIGHTNESS AND HUE, capped at a deliberate
+     target below that where the maximum was garish. L and H are untouched, so
+     every measured ratio moved by at most 0.19 and none moved down past its
+     floor. A stream that was teal is still teal; it is a better teal.
+
+     WHAT IT BOUGHT, honestly: very little for teal and amber, which were
+     already at the gamut boundary for their lightness (1.07x and 1.15x). A lot
+     for slate, plum and violet, which had room (2.46x, 1.70x, 1.41x). The slate
+     is the one that mattered most — see the note on `--thrive-later`. */
+  /* was #14706b · C 0.0803 -> 0.0856, the gamut maximum at this L and H */
+  --thrive-on-track: #00716c;
+  /* was #8f6220 · C 0.0988 -> 0.1136, likewise the maximum */
+  --thrive-watch: #946000;
+  /* was #6a5fb0 · C 0.1240 -> 0.1697, and the ONE hue that also moved: 287.7 ->
+     296. The shift is what pays for the chroma.
+
+     Violet is boxed in. Indigo sits at H 273 and is RESERVED for "you are here";
+     civic plum sits at H 323. `needs-help` sat at 288, nearer indigo than plum,
+     and was already only dE 0.072 from it — so raising chroma along its own hue
+     walked it straight into the reserved colour (dE 0.047 at C 0.175, worse than
+     the worst pair on the grid before this pass). Both appear on the month grid
+     at once: indigo is the today ring, `needs-help` is the Rady dot.
+
+     Re-centring the hue in the corridor between its two neighbours buys the
+     saturation for nothing: separation from indigo is 0.0723 -> 0.0727 and from
+     civic 0.0744 -> 0.0777, both marginally BETTER, at 1.37x the chroma. Still a
+     violet, and still the same violet meaning. Capped well under the 0.28 the
+     gamut allows, where it is a neon that would shout in a chip. */
+  --thrive-needs-help: #7851c2;
 
   /* Urgency. RESERVED harder than the rest: overdue and genuinely urgent
      only. If coral shows up for anything else it stops meaning "act now". */
@@ -223,11 +276,26 @@
      `soon` aliases watch and `later` is a neutral slate, so a low-priority
      row is tinted without being colored. */
   --thrive-soon: var(--thrive-watch);
-  --thrive-later: #64748b;
+  /* was #64748b · C 0.0407 -> 0.1000, the biggest single gain in the pass.
+
+     THE COLLISION THIS FIXES. `later` and `muted` were the two least
+     distinguishable dots on the grid by a wide margin — OKLab dE 0.039, about
+     half the next-closest pair — and between them they carried FOUR of the
+     eleven categories (to-do and San Diego on `later`, custom and UCSD on
+     `muted`). Two indistinguishable greys, four streams.
+
+     `muted` cannot move: it is the colour of all secondary text in the app and
+     must stay neutral. `later` can, because it was already a blue-ish slate and
+     nothing about "later" requires it to be grey. Pushing its chroma makes it
+     read as BLUE rather than as grey, which separates the pair by hue instead of
+     by a lightness difference too small to see at 8px. dE 0.039 -> 0.094. */
+  --thrive-later: #4c74ad;
 
   /* Categorical only, never status. Plum rather than the old teal: teal sat
-     between the new sage and the on-track blue and stopped reading apart. */
-  --thrive-civic: #8a5f8f;
+     between the new sage and the on-track blue and stopped reading apart.
+     was #8a5f8f · C 0.0884 -> 0.1500, which also pulls it away from
+     `needs-help` — the second-closest pair, dE 0.074 -> 0.102. */
+  --thrive-civic: #994ea3;
 
   /* Soft tints, derived so they can never drift from the base hue. */
   --thrive-on-track-soft: color-mix(in oklab, var(--thrive-on-track) 9%, white);
@@ -637,6 +705,7 @@
   /* So a row can write `size-checkbox` for the spacer that stands in for one,
      instead of repeating the literal. See the token in layer 1. */
   --spacing-checkbox: var(--thrive-checkbox-size);
+  --spacing-cal-dot: var(--thrive-cal-dot);
 
   /* Fonts */
   --font-sans: var(--font-sans);

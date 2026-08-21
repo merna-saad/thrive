@@ -325,12 +325,17 @@
 
 							<!-- The dots repeat what the cell's accessible name already says in
 							     words, so nothing here rests on colour alone. -->
-							<span class="flex h-1.5 items-center gap-0.5" aria-hidden="true">
+							<!-- The row reserves the dot's height whether or not there are any,
+						     so a day with nothing on it is the same height as a day with three
+						     and the grid cannot reflow as the filter changes. Both sizes come
+						     from ONE token: a `size-cal-dot` paired with a hand-picked
+						     wrapper height would clip the moment either was retuned. -->
+						<span class="flex h-cal-dot items-center gap-0.5" aria-hidden="true">
 								{#each categories.slice(0, shown) as category (category)}
 									<span
 										title={categoryLabel[category]}
 										class={cn(
-											'size-1.5 rounded-pill',
+											'size-cal-dot rounded-pill',
 											isSelected ? 'bg-on-primary' : categoryDot[category]
 										)}
 									></span>
