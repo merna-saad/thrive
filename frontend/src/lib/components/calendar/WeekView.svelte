@@ -7,7 +7,7 @@
 	/**
 	 * Seven days as columns.
 	 *
-	 * ## It is not rendered below 40rem, and the parent decides that
+	 * ## It is not rendered below 48rem, and the parent decides that
 	 *
 	 * Seven columns on a 375px screen gives each one about 50px, which is narrower
 	 * than the word "Assignment". A view that technically renders and cannot be
@@ -22,8 +22,17 @@
 	 *
 	 * Which is why there is NO min-width and no horizontal scroll here. The
 	 * fallback is what guarantees the room, so a scrollbar would mean the fallback
-	 * was doing nothing. If seven columns ever stop fitting at 40rem, the
-	 * breakpoint is the thing to change.
+	 * was doing nothing.
+	 *
+	 * ## Why 48rem rather than the 40rem the Next comment named
+	 *
+	 * Because the columns were measured. At 40rem they came out 71px, where a
+	 * three-line clamp holds "MGT 142 · Machine Learning for Business" without
+	 * overflowing and it still reads as three short stacks rather than a phrase.
+	 * "Fits" and "is legible" are different bars, and this view exists to be read.
+	 * At 48rem the columns are ~86px. **If a title ever stops being legible in a
+	 * column, the breakpoint is the thing to change — never a min-width, which
+	 * would put the scroll back.**
 	 *
 	 * ## Compact rows, and no checkboxes
 	 *

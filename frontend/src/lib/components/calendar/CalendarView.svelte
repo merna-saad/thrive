@@ -344,11 +344,18 @@
 		{@render agenda()}
 	{:else if prefs.view === 'week'}
 		<!--
-			THE 40REM FALLBACK, AND IT IS CSS.
+			THE WEEK-TO-AGENDA FALLBACK, AT 48REM, AND IT IS CSS.
 
 			Seven columns on a 375px screen gives each one about 50px, which is
-			narrower than the word "Assignment". So below `sm` (40rem) the week grid
+			narrower than the word "Assignment". So below `md` (48rem) the week grid
 			does not render and the agenda answers instead.
+
+			48rem, NOT the 40rem the Next comment named. Measured at 40rem the columns
+			came out 71px, where "MGT 142 · Machine Learning for Business" reads as
+			three short stacks rather than a phrase — technically clamped, not actually
+			legible. The owner's call, and the right one: anything that narrow falls
+			back to the agenda perfectly well, so the breakpoint should sit where the
+			columns are readable rather than where they merely fit.
 
 			Done with two media-gated wrappers rather than a `matchMedia` read, and
 			that is a decision. CONVENTIONS is explicit that a viewport question CSS
@@ -363,12 +370,12 @@
 			phone pays for one week grid. Both are cheap, and `display: none` keeps the
 			hidden one out of the accessibility tree, so nothing is announced twice.
 		-->
-		<div class="hidden space-y-3 sm:block">
+		<div class="hidden space-y-3 md:block">
 			<WeekView data={filtered} {selectedKey} {todayKey} onSelect={select} />
 			{@render dayPanel()}
 		</div>
 
-		<div class="space-y-3 sm:hidden">
+		<div class="space-y-3 md:hidden">
 			<!-- Said out loud. The switcher still shows "week" selected, because that
 			     IS the student's choice and it will be honoured the moment the screen
 			     is wide enough — so the page owes them a reason for showing something
