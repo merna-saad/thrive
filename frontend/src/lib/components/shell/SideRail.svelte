@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 
-	import { isActiveRoute, primaryNav, secondaryNav, type NavItem } from '$lib/nav';
+	import { isActiveRoute, primaryNav, type NavItem } from '$lib/nav';
 
 	/**
 	 * Desktop navigation rail. Hidden below `lg`, where BottomNav takes over.
@@ -22,6 +22,14 @@
 	 * `RailLink` was its own component in the Next tree, for one reason: the rail
 	 * renders two lists and they must not drift. A snippet is the Svelte
 	 * equivalent and keeps it in the file that uses it.
+	 *
+	 * IT RENDERS ONE LIST NOW (2026-08-22). The second was a pinned strip at the
+	 * bottom holding `secondaryNav`, which held Settings and nothing else.
+	 * Settings is parked with the other trimmed destinations, so that list is
+	 * empty and the strip with it -- an empty bordered container is not a
+	 * treatment worth keeping. The snippet stays: it is still the thing that
+	 * stops the rail and the bottom bar drifting, which is the more important of
+	 * the two jobs it had.
 	 */
 
 	const pathname = $derived(page.url.pathname);
@@ -73,12 +81,6 @@
 
 	<ul class="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-2 py-2">
 		{#each primaryNav as item (item.href)}
-			<li>{@render railLink(item)}</li>
-		{/each}
-	</ul>
-
-	<ul class="shrink-0 border-t border-line px-2 py-2">
-		{#each secondaryNav as item (item.href)}
 			<li>{@render railLink(item)}</li>
 		{/each}
 	</ul>

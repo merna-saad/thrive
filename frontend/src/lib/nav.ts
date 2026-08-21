@@ -10,6 +10,7 @@ import GraduationCap from '@lucide/svelte/icons/graduation-cap';
 import HouseIcon from '@lucide/svelte/icons/house';
 import LibraryBig from '@lucide/svelte/icons/library-big';
 import Settings from '@lucide/svelte/icons/settings';
+import Sparkles from '@lucide/svelte/icons/sparkles';
 
 /**
  * The icon type, derived from a real icon rather than declared.
@@ -30,12 +31,18 @@ export interface NavItem {
 }
 
 /**
- * The primary navigation. ONE LIST drives the desktop rail, the mobile bottom
- * bar, and the stub route pages, so the three can never drift apart.
+ * The visible navigation. FOUR DESTINATIONS, in this order.
  *
- * Add a route here, not in three places. `PagePlaceholder` looks its own href up
- * in these lists and throws if it is missing, which is what makes that a
- * guarantee rather than an intention.
+ * ONE LIST drives the desktop rail and the mobile bottom bar, so the two can
+ * never drift apart. Trimmed from eleven on 2026-08-22: nine of the eleven were
+ * placeholders, and a nav that is four-fifths stubs reads as broken rather than
+ * unfinished. These four are what the product is for now.
+ *
+ * The bottom bar renders this list DIRECTLY rather than naming its own four
+ * hrefs, which is new. It used to carry `PRIMARY_SLOTS = ['/', '/calendar',
+ * '/classes', '/assignments']` -- a second, hardcoded copy of "which are the
+ * important ones" that had to be kept in step by hand. Two of those four are
+ * parked now, so that copy would have been the thing that broke.
  */
 export const primaryNav: NavItem[] = [
 	{
@@ -50,6 +57,46 @@ export const primaryNav: NavItem[] = [
 		icon: CalendarDays,
 		description: 'Classes, deadlines, and events on one timeline'
 	},
+	{
+		href: '/appointments',
+		label: 'Appointments',
+		icon: CalendarCheck,
+		description: 'Book time with advising and career coaching'
+	},
+	{
+		href: '/ask',
+		label: 'Ask THRIVE',
+		icon: Sparkles,
+		description: 'Ask a question, or get class and job suggestions'
+	}
+];
+
+/**
+ * PARKED. Routes that still exist and are deliberately rendered by no nav
+ * surface.
+ *
+ * Not deleted, because they come back as the product grows -- the routes, their
+ * files, their icons and their descriptions are all intact and reachable by URL.
+ * The only thing removed is the way in.
+ *
+ * ## Why a separate list rather than a `hidden` flag on one list
+ *
+ * A flag would need every surface to remember to filter on it. There are two
+ * surfaces today and there will be more, and the failure mode of forgetting is
+ * that a parked item silently reappears in one place -- exactly the class of bug
+ * "one list drives everything" exists to prevent. With a separate list, the
+ * surfaces render `primaryNav` and CANNOT render these, structurally, without
+ * importing something new. Same reasoning as `filterSchedule` in
+ * CONVENTIONS.md: make the failure impossible rather than something to
+ * remember.
+ *
+ * The cost is that `PagePlaceholder` has to look through more than one list --
+ * which is why the lookup lives in `allNav` below instead of being spread at
+ * each call site.
+ *
+ * To bring one back: move it into `primaryNav`. That is the whole operation.
+ */
+export const parkedNav: NavItem[] = [
 	{
 		href: '/classes',
 		label: 'Classes',
@@ -87,21 +134,27 @@ export const primaryNav: NavItem[] = [
 		description: 'Steps toward your goal'
 	},
 	{
-		href: '/appointments',
-		label: 'Appointments',
-		icon: CalendarCheck,
-		description: 'Book time with advising and career coaching'
-	},
-	{
 		href: '/resources',
 		label: 'Resources',
 		icon: LibraryBig,
 		description: 'Support and services across campus'
-	}
-];
-
-/** Pinned to the bottom of the rail, separate from the primary list. */
-export const secondaryNav: NavItem[] = [
+	},
+	/*
+	 * Settings is parked too, and it is the one item the brief's list did not
+	 * name -- flagged in the handoff rather than decided quietly.
+	 *
+	 * It was the eleventh destination and one of the nine placeholders, it used
+	 * to live in a `secondaryNav` list pinned to the bottom of the rail, and on
+	 * mobile the ONLY way to it was the More sheet. So "trim to four" and "the
+	 * More sheet has nothing to hold" are both only true with Settings parked:
+	 * keeping it would have left the sheet alive holding exactly one item.
+	 *
+	 * `secondaryNav` is gone with it. One item in its own list, rendered in its
+	 * own pinned strip, was a structure worth having for a gear at the bottom of
+	 * a rail; it is not worth having for nothing.
+	 *
+	 * Reachable at /settings, and one line from coming back.
+	 */
 	{
 		href: '/settings',
 		label: 'Settings',
@@ -109,6 +162,19 @@ export const secondaryNav: NavItem[] = [
 		description: 'Preferences, connections, and consent'
 	}
 ];
+
+/**
+ * Every nav entry, visible or parked. THE LOOKUP LIST -- not for rendering.
+ *
+ * `PagePlaceholder` resolves its own href against this and throws when there is
+ * no match, which is what makes "a stub page can never disagree with its nav
+ * entry" a guarantee rather than an intention. Parking a route must not start
+ * that throwing, so parked entries have to stay findable; that is the whole
+ * reason this export exists.
+ *
+ * If you are reaching for this to render something, you want `primaryNav`.
+ */
+export const allNav: NavItem[] = [...primaryNav, ...parkedNav];
 
 /**
  * True when `href` is the section the user is currently in. Exact match for

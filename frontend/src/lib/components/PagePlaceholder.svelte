@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { primaryNav, secondaryNav } from '$lib/nav';
+	import { allNav } from '$lib/nav';
 
 	/**
 	 * Shared body for the routes that exist but aren't built yet.
@@ -12,11 +12,17 @@
 	 * The lookup is a `$derived` so it tracks `href` rather than capturing its
 	 * first value. The throw lands on first read, which is during render -- the
 	 * same moment React threw.
+	 *
+	 * It resolves against `allNav`, which is visible AND parked entries. That
+	 * matters as of 2026-08-22: seven routes were taken out of the visible nav
+	 * and their pages still render this, so looking them up in `primaryNav`
+	 * alone would have turned every one of them into a 500. Parked is "no way in
+	 * from the nav", not "gone".
 	 */
 	let { href }: { href: string } = $props();
 
 	const item = $derived.by(() => {
-		const found = [...primaryNav, ...secondaryNav].find((navItem) => navItem.href === href);
+		const found = allNav.find((navItem) => navItem.href === href);
 		if (!found) throw new Error(`PagePlaceholder: no nav entry for "${href}"`);
 		return found;
 	});
