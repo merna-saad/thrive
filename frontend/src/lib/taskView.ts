@@ -18,6 +18,25 @@ import type { Priority, Task, TaskSource } from '$lib/data';
 export type RowPriority = 'urgent' | 'soon' | 'later' | 'none';
 
 /**
+ * The row's priority as a WORD, for screen readers.
+ *
+ * `.thrive-row` carries priority as a left edge and a wash, and neither of those
+ * exists with colour turned off. Two rows visibly different and identically
+ * spoken is the failure this closes. `none` is empty because a row with no
+ * priority has nothing to say, and an empty string renders no element at all at
+ * the call site.
+ *
+ * Shares `taskLabels`' strings on purpose: a row whose state chip already reads
+ * "Urgent" must not also announce a different word for the same fact.
+ */
+export const rowPriorityLabel: Record<RowPriority, string> = {
+	urgent: messages.taskLabels.urgent,
+	soon: messages.taskLabels.dueSoon,
+	later: messages.taskLabels.later,
+	none: ''
+};
+
+/**
  * Deadline outranks stated priority.
  *
  * A low-priority task that is already overdue is the most urgent thing on the

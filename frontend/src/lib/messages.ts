@@ -127,9 +127,7 @@ export const messages = {
 			liveCount: (done: number, total: number) =>
 				`${done} of ${total} tasks done this week.`,
 			emptyAll: 'Nothing on your list yet. Add the first thing below.',
-			emptyOpen: 'Everything on your list is done. Enjoy it.',
-			/** Says why a row cannot be ticked yet, rather than looking broken. */
-			readOnlyHint: 'Ticking tasks arrives in the next step.'
+			emptyOpen: 'Everything on your list is done. Enjoy it.'
 		},
 
 		todaysClasses: {
@@ -189,11 +187,127 @@ export const messages = {
 	taskLabels: {
 		urgent: 'Urgent',
 		dueSoon: 'Due soon',
+		/** Only ever spoken. `rowPriorityLabel` uses it; no chip renders it. */
+		later: 'Later',
 		done: 'Done',
 		class: 'Class',
 		career: 'Career',
 		admin: 'Admin',
 		event: 'Event'
+	},
+
+	/**
+	 * Editing a task in place. Shared by Home and, later, /assignments.
+	 *
+	 * Nearly every entry here is a function, and the reason is the same one every
+	 * time: these strings name a specific task, so a screen reader hears "Edit
+	 * Draft the case memo" rather than a row of buttons all called "Edit". A
+	 * template assembled at the call site would bake English word order into five
+	 * components.
+	 */
+	taskEditing: {
+		/* --- The row's controls --------------------------------------------- */
+		/** The checkbox's accessible name IS the task, so it needs no verb. */
+		toggle: (title: string) => title,
+		copyToList: (title: string) => `Copy ${title} to your to-do list`,
+		copied: (title: string) => `“${title}” copied to your to-do list`,
+		edit: (title: string) => `Edit ${title}`,
+		addNote: (title: string) => `Add a note to ${title}`,
+		editNote: (title: string) => `Edit your note on ${title}`,
+
+		/* --- Reordering ----------------------------------------------------- */
+		/** Names where the row is now, so a move has a stated starting point. */
+		position: (index: number, count: number, group: string) =>
+			`position ${index} of ${count} in ${group}`,
+		moveUp: (title: string, position: string) => `Move ${title} up. Currently ${position}.`,
+		moveDown: (title: string, position: string) => `Move ${title} down. Currently ${position}.`,
+		/** Announced after a keyboard or pointer move lands. */
+		moved: (title: string, index: number, count: number, group: string) =>
+			`${title} moved to position ${index} of ${count} in ${group}.`,
+		movedToGroup: (title: string, group: string) => `${title} moved to ${group}. Due date updated.`,
+
+		/* --- The inline editor ---------------------------------------------- */
+		titleField: 'Title',
+		titleHint: 'Enter to save, Escape to cancel. Clear the field to restore the original.',
+		priorityField: 'Priority',
+		save: 'Save',
+		saveSubject: (title: string) => ` changes to ${title}`,
+		cancel: 'Cancel',
+		cancelSubject: (title: string) => ` editing ${title}`,
+
+		/* --- Priority ------------------------------------------------------- */
+		priorityLegend: (title: string) => `Priority for ${title}`,
+		priorityHigh: 'High',
+		priorityMedium: 'Med',
+		priorityLow: 'Low',
+		/** The full word, spoken after the abbreviation the button shows. */
+		priorityHighFull: 'High priority',
+		priorityMediumFull: 'Medium priority',
+		priorityLowFull: 'Low priority',
+
+		/* --- Notes ---------------------------------------------------------- */
+		noteLabel: (title: string) => `Your note on ${title}`,
+		notePlaceholder: 'A note to yourself…',
+
+		/* --- The due date editor -------------------------------------------- */
+		changeDue: (title: string) => ` — change the due date for ${title}`,
+		dueDialogLabel: (title: string) => `Due date for ${title}`,
+		dueToday: 'Today',
+		dueTomorrow: 'Tomorrow',
+		dueNextWeek: 'Next week',
+		duePick: 'Pick a date',
+		dueUpdated: (title: string) => `${title} due date updated.`,
+		/*
+		 * The row has just left the list, and saying so is the point.
+		 *
+		 * Home shows this week only, so a date set further out removes the row --
+		 * correctly, and invisibly. A student who sets a date and watches the row
+		 * vanish with no explanation has been given the app's worst failure mode: a
+		 * correct action that looks like a broken one. The date is a value, so it is
+		 * passed in already formatted.
+		 */
+		dueMovedOutOfWeek: (title: string, when: string) =>
+			`${title} moved to ${when}, which is past this week. It is no longer in this list.`,
+
+		/* --- Undo ----------------------------------------------------------- */
+		markedDone: 'Marked done',
+		markedNotDone: 'Marked not done',
+		undoSubject: (action: string, title: string) => ` ${action.toLowerCase()}: ${title}`,
+		/*
+		 * The whole live sentence while an undo offer stands.
+		 *
+		 * ONE function rather than three strings joined at the call site, and this is
+		 * the entry that shows why the rule is not pedantry: the card would otherwise
+		 * write `${a} ${b}${c}` in markup, baking in the order of a clause, a count
+		 * and an offer. A translation gets to put them wherever that language puts
+		 * them, or to drop the count from the middle entirely.
+		 */
+		liveWithUndo: (action: string, title: string, done: number, total: number) =>
+			`${action}: ${title}. ${done} of ${total} tasks done this week. Undo is available.`,
+		/*
+		 * Undone, but not shown -- because Home is this week only.
+		 *
+		 * Unticking a task due three weeks out puts it back on the list and then the
+		 * week filter removes it again, so the row the student was looking at is
+		 * simply gone. Saying so is the point: a correct action that looks like a
+		 * broken one is this app's worst failure mode.
+		 */
+		restoredOutOfWeek: (title: string) =>
+			`${title} is back on your list, but it is due past this week so it is not shown here.`,
+
+		/* --- Adding --------------------------------------------------------- */
+		addOpen: 'Add a task',
+		addTitleField: 'Task',
+		addTitlePlaceholder: 'What needs doing?',
+		addDueField: 'Due',
+		addPriorityField: 'Priority',
+		addLabelField: 'Label',
+		/** Rendered in normal case beside a small-caps label. */
+		addLabelOptional: '(optional)',
+		addLabelPlaceholder: 'MGT 253',
+		addSubmit: 'Add task',
+		addClose: 'Done adding',
+		added: (title: string) => `${title} added.`
 	},
 
 	/** Event origin tags. One per EventType. */

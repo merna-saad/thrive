@@ -76,15 +76,49 @@ export interface HomeTaskGroups {
 	percent: number;
 }
 
+/** Sort keys the student has set by moving rows. See `reorderWithin`. */
+export type OrderOverrides = Readonly<Record<string, number>>;
+
+/**
+ * Order rows within a group: the student's own placement first, then a fallback.
+ *
+ * A row the student has never moved keeps the source order and sorts AFTER any
+ * they have -- an explicit placement outranks an implicit one. Without that rule
+ * a single reordered row would be interleaved by date back into the middle of
+ * the list it was just dragged out of, which reads as the drag having failed.
+ *
+ * `fallback` differs by group, which is the reason this is a factory rather than
+ * one comparator: a dated group falls back to how soon it is due, and the
+ * `unknown` group has no date to fall back TO and must stay stable instead.
+ */
+function byOrder<T extends HomeRow>(
+	order: OrderOverrides,
+	fallback: (a: T, b: T) => number
+): (a: T, b: T) => number {
+	return (a, b) => {
+		const left = order[a.task.id];
+		const right = order[b.task.id];
+
+		if (left !== undefined && right !== undefined) return left - right;
+		if (left !== undefined) return -1;
+		if (right !== undefined) return 1;
+		return fallback(a, b);
+	};
+}
+
 /**
  * Group Home's tasks by urgency, with done pulled out.
  *
  * `total` and `percent` count every task including done ones -- the progress bar
  * reads "6 of 14 done", so the denominator has to be everything.
+ *
+ * `order` defaults to no overrides, so a caller that cannot reorder -- and every
+ * caller before 6b -- gets the provider's ordering unchanged.
  */
 export function buildHomeGroups(
 	rows: readonly HomeRow[],
-	doneOverrides: DoneOverrides
+	doneOverrides: DoneOverrides,
+	order: OrderOverrides = {}
 ): HomeTaskGroups {
 	const done: HomeRow[] = [];
 	const open: HomeRow[] = [];
@@ -99,14 +133,20 @@ export function buildHomeGroups(
 	const groups: HomeGroup[] = GROUP_ORDER.map((key) => {
 		if (key === 'unknown') {
 			/*
-			 * No sort. `days` is null here by construction, so there is nothing to
-			 * order by -- these keep the provider's order, which is the only ordering
-			 * that means anything for a row with no date.
+			 * `days` is null here by construction, so there is nothing to order BY --
+			 * these keep the provider's order, which is the only ordering that means
+			 * anything for a row with no date.
+			 *
+			 * They are still sorted, because the student can reorder within this group
+			 * even though nothing can be dropped INTO it (see `DatedGroupKey` in
+			 * taskBoard.ts). The fallback returns 0 and `Array.prototype.sort` is
+			 * stable, so rows the student has never moved keep exactly the order they
+			 * arrived in.
 			 */
 			return {
 				key,
 				heading: groupHeading[key],
-				rows: open.filter((row) => !isKnown(row))
+				rows: open.filter((row) => !isKnown(row)).sort(byOrder(order, () => 0))
 			};
 		}
 
@@ -122,7 +162,7 @@ export function buildHomeGroups(
 						// card fourteen rows long in the first place.
 						(key !== 'upcoming' || row.due.days <= WEEK)
 				)
-				.sort((a, b) => a.due.days - b.due.days)
+				.sort(byOrder(order, (a, b) => a.due.days - b.due.days))
 		};
 	});
 

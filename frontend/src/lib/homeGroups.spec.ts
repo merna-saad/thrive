@@ -154,6 +154,73 @@ describe("buildHomeGroups", () => {
 	});
 });
 
+describe("buildHomeGroups, ordered by the student", () => {
+	it("sorts by the student's own keys when they exist", () => {
+		const board = buildHomeGroups([rowAt("a", 2), rowAt("b", 3), rowAt("c", 4)], {}, {
+			a: 2,
+			b: 0,
+			c: 1
+		});
+
+		expect(board.groups[3].rows.map((r) => r.task.id)).toEqual(["b", "c", "a"]);
+	});
+
+	it("puts a moved row ahead of every row that has never been moved", () => {
+		/*
+		 * The rule, and it is not arbitrary: an explicit placement outranks an
+		 * implicit one. Interleaving a reordered row back into the date-sorted list
+		 * would drop it near where it started, which reads as the drag having
+		 * failed.
+		 */
+		const board = buildHomeGroups([rowAt("soonest", 1), rowAt("moved", 6)], {}, { moved: 0 });
+
+		expect(board.groups[3].rows.map((r) => r.task.id)).toEqual(["moved", "soonest"]);
+	});
+
+	it("falls back to how soon for rows with no key", () => {
+		const board = buildHomeGroups([rowAt("later", 5), rowAt("sooner", 2)], {}, { other: 0 });
+		expect(board.groups[3].rows.map((r) => r.task.id)).toEqual(["sooner", "later"]);
+	});
+
+	it("lets a student reorder rows that have no date to sort by", () => {
+		/*
+		 * "Needs a date" accepts no drops -- there is nothing to write, since
+		 * `Task.dueDate` is required -- but a student can still arrange the rows
+		 * already in it. The fallback is 0 and `sort` is stable, so unmoved rows
+		 * keep the provider order they arrived in.
+		 */
+		const mk = (id: string): HomeRow => ({
+			task: task({ id, dueDate: "nope" }),
+			due: describeDue("nope", NOW)
+		});
+		const board = buildHomeGroups([mk("z"), mk("a"), mk("m")], {}, { m: 0 });
+
+		expect(board.groups[0].rows.map((r) => r.task.id)).toEqual(["m", "z", "a"]);
+	});
+
+	it("ignores an order key for a row in another group", () => {
+		// Keys are global but groups are sorted separately, so a key belonging to an
+		// overdue row must not reorder the upcoming ones.
+		const board = buildHomeGroups([rowAt("od", -1), rowAt("x", 2), rowAt("y", 3)], {}, { od: 0 });
+
+		expect(board.groups[3].rows.map((r) => r.task.id)).toEqual(["x", "y"]);
+	});
+
+	it("defaults to no overrides, so a caller that cannot reorder is unaffected", () => {
+		const rows = [rowAt("later", 5), rowAt("sooner", 2)];
+		expect(buildHomeGroups(rows, {}).groups[3].rows.map((r) => r.task.id)).toEqual([
+			"sooner",
+			"later"
+		]);
+	});
+
+	it("survives an order key pointing at a row that is not there", () => {
+		// Property 3 again: a stale key in localStorage after a fixture changed.
+		const board = buildHomeGroups([rowAt("a", 1)], {}, { ghost: 0 });
+		expect(board.groups[3].rows.map((r) => r.task.id)).toEqual(["a"]);
+	});
+});
+
 describe("nonEmptyGroups", () => {
 	it("drops groups with no rows, so no heading appears over nothing", () => {
 		// Including `unknown`: it leads the order but must not render a heading on
