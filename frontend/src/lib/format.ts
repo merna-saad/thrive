@@ -67,11 +67,19 @@ export const standingLabel: Record<Standing, string> = {
 // Due dates
 // ---------------------------------------------------------------------------
 
+/**
+ * How urgent a REAL deadline is. Three values, because a date that exists is
+ * always one of these three things relative to today.
+ *
+ * Deliberately does not include the unparseable case. "How urgent is it" has no
+ * answer for a date that does not exist, and folding one in here would make
+ * every `Record<DueUrgency, Tone>` map in the UI owe a colour to a non-status.
+ * That case is a separate variant of the descriptor instead -- see below.
+ */
 export type DueUrgency = "overdue" | "today" | "upcoming";
 
-/** A due date reduced to what the UI actually renders. */
-export interface DueDescriptor {
-  urgency: DueUrgency;
+/** What every descriptor carries, whether or not the date parsed. */
+interface DueDescriptorShared {
   /** Short human label, e.g. "Overdue", "Today", "Fri". */
   label: string;
   /**
@@ -81,11 +89,38 @@ export interface DueDescriptor {
    * something a student reads at a glance.
    */
   countdown: string;
-  /** Whole calendar days from now. Negative once overdue. */
-  days: number;
   /** Full text for tooltips and screen readers. */
   fullLabel: string;
 }
+
+/** A due date that parsed, reduced to what the UI actually renders. */
+export interface KnownDueDescriptor extends DueDescriptorShared {
+  urgency: DueUrgency;
+  /** Whole calendar days from now. Negative once overdue. */
+  days: number;
+}
+
+/**
+ * A due date that did not parse.
+ *
+ * `days` is `null` rather than `NaN` on purpose. NaN is a number as far as the
+ * type system is concerned, so it flows into `a.days - b.days` and into
+ * `days <= 7` and quietly poisons both; null does not typecheck there at all,
+ * which turns a silent runtime hole into a compile error the caller has to
+ * answer for.
+ */
+export interface UnknownDueDescriptor extends DueDescriptorShared {
+  urgency: "unknown";
+  days: null;
+}
+
+/**
+ * A due date reduced to what the UI actually renders.
+ *
+ * A discriminated union rather than one interface, so `urgency` is the single
+ * thing a caller checks and narrowing on it is what unlocks `days`.
+ */
+export type DueDescriptor = KnownDueDescriptor | UnknownDueDescriptor;
 
 /**
  * Whole days as a phrase a person would say.
@@ -131,6 +166,32 @@ export function describeDue(
   now: Date = new Date(),
 ): DueDescriptor {
   const due = new Date(iso);
+
+  /*
+   * An unparseable date is its own outcome, not a deadline.
+   *
+   * Without this guard every NaN comparison below is false, so a broken date
+   * fell past `days < 0`, `days === 0` and `days === 1` into the final branch
+   * and came back as `upcoming` -- carrying the literal strings "Invalid Date"
+   * and "in NaN months" into the UI. Worse than the strings: `upcoming` meant
+   * it never appeared in the overdue group, so a student never saw the deadline
+   * at all. Invisible is worse than wrong.
+   *
+   * Every sibling mapper already guards this way -- `taskToItem`, `todoToItem`
+   * and `customEventToItem` all test `Number.isNaN(date.getTime())` and return
+   * null. This function was the exception. It cannot return null, because a
+   * descriptor is what the row renders from, so it returns the fourth state.
+   */
+  if (Number.isNaN(due.getTime())) {
+    return {
+      urgency: "unknown",
+      label: "No date",
+      countdown: "",
+      days: null,
+      fullLabel: "Due date unavailable",
+    };
+  }
+
   const days = calendarDaysBetween(now, due);
 
   const fullLabel = due.toLocaleDateString("en-US", {
@@ -226,13 +287,49 @@ export function isWithinDays(
 
 const WEEKDAY_ABBREV = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-/** "09:30" -> "9:30 AM". Wall-clock strings, so no timezone is involved. */
+/**
+ * What a malformed wall-clock string renders as.
+ *
+ * Visible and obviously not a time, so a bad `CourseMeeting` shows up on the
+ * page instead of reaching a student as "NaN:undefined PM". Matches the shape
+ * of `formatMeetingPattern`'s "Schedule TBD": the schedule says plainly that it
+ * does not know rather than inventing something.
+ */
+const UNKNOWN_CLOCK_TIME = "--:--";
+
+/**
+ * "HH:mm", one or two digits of hour and exactly two of minute.
+ *
+ * The hour is left lenient because "9:30" already formatted correctly and is a
+ * reasonable thing to hold; the minute is strict because "9:5" is not a time,
+ * and the old implementation passed that half through unparsed and emitted
+ * "9:5 AM".
+ */
+const WALL_CLOCK = /^(\d{1,2}):(\d{2})$/;
+
+/**
+ * "09:30" -> "9:30 AM". Wall-clock strings, so no timezone is involved.
+ *
+ * Validates the shape rather than trusting it. `Number("abc")` is NaN, and the
+ * old version did no checking, so a malformed value produced
+ * "NaN:undefined PM" -- every part of which reached the DOM. No caller passes
+ * anything but a well-formed `CourseMeeting.startTime` today, so this was
+ * latent rather than live, but it was reachable.
+ */
 export function formatClockTime(hhmm: string): string {
-  const [hourText, minuteText] = hhmm.split(":");
-  const hour = Number(hourText);
+  const match = WALL_CLOCK.exec(hhmm);
+  if (!match) return UNKNOWN_CLOCK_TIME;
+
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  // `\d` cannot be negative, so only the upper bounds need testing.
+  if (hour > 23 || minute > 59) return UNKNOWN_CLOCK_TIME;
+
   const suffix = hour < 12 ? "AM" : "PM";
   const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-  return `${displayHour}:${minuteText} ${suffix}`;
+  // The minute text as written, not re-formatted from the number, so a valid
+  // "09:00" still renders "9:00 AM".
+  return `${displayHour}:${match[2]} ${suffix}`;
 }
 
 /**

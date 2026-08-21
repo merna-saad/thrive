@@ -391,6 +391,132 @@ describe("countdown: the 60-day switch to months", () => {
 });
 
 // ---------------------------------------------------------------------------
+// describeDue -- the unparseable guard
+//
+// Before the guard, every NaN comparison was false, so a broken date fell
+// through to the final branch and came back as `upcoming` carrying the strings
+// "Invalid Date" and "in NaN months". The strings were the visible half; the
+// real damage was `upcoming`, which kept the row out of the overdue group so a
+// student never saw the deadline at all.
+// ---------------------------------------------------------------------------
+
+/** Inputs `new Date()` cannot parse at all. */
+const UNPARSEABLE = [
+  "not a date",
+  "",
+  "   ",
+  "2026-13-01", // month out of range
+  "2026-08-17T99:00:00", // hour out of range
+  "undefined",
+  "null",
+  "NaN",
+];
+
+describe("describeDue: an unparseable date", () => {
+  it("returns the unknown state, with every field spelled out", () => {
+    expect(describeDue("not a date", NOW)).toEqual({
+      urgency: "unknown",
+      label: "No date",
+      countdown: "",
+      days: null,
+      fullLabel: "Due date unavailable",
+    });
+  });
+
+  it("is NOT classified as upcoming", () => {
+    // THE BUG THIS GUARD EXISTS FOR. `upcoming` meant the row never appeared in
+    // the overdue group, and invisible is worse than wrong.
+    for (const input of UNPARSEABLE) {
+      expect(describeDue(input, NOW).urgency).not.toBe("upcoming");
+      expect(describeDue(input, NOW).urgency).toBe("unknown");
+    }
+  });
+
+  it("never renders NaN or Invalid Date in any field", () => {
+    for (const input of UNPARSEABLE) {
+      const d = describeDue(input, NOW);
+      for (const field of [d.label, d.countdown, d.fullLabel]) {
+        expect(field).not.toMatch(/NaN/);
+        expect(field).not.toMatch(/Invalid Date/);
+        expect(field).not.toMatch(/undefined/);
+      }
+    }
+  });
+
+  it("reports days as null rather than NaN", () => {
+    // null does not typecheck in `a.days - b.days`, so a caller has to narrow.
+    // NaN would have flowed straight through and poisoned the arithmetic.
+    for (const input of UNPARSEABLE) {
+      expect(describeDue(input, NOW).days).toBeNull();
+      expect(describeDue(input, NOW).days).not.toBeNaN();
+    }
+  });
+
+  it("is detectable on the discriminant, with no string matching", () => {
+    const d = describeDue("not a date", NOW);
+    expect(d.urgency === "unknown").toBe(true);
+
+    // And narrowing on it is what unlocks `days` as a number.
+    if (d.urgency === "unknown") {
+      expect(d.days).toBeNull();
+    } else {
+      throw new Error("expected the unknown variant");
+    }
+  });
+
+  it("handles an empty and a whitespace-only string", () => {
+    expect(describeDue("", NOW).urgency).toBe("unknown");
+    expect(describeDue("   ", NOW).urgency).toBe("unknown");
+  });
+
+  it("stays pure: the answer does not depend on now", () => {
+    // Nothing about an unparseable date is relative to anything, so a different
+    // `now` must not change the result. This also pins that the guard runs
+    // BEFORE the clock is consulted.
+    const other = new Date(2030, 0, 1, 3, 0);
+    expect(describeDue("not a date", NOW)).toEqual(
+      describeDue("not a date", other),
+    );
+  });
+
+  it("still parses a valid non-ISO date rather than over-rejecting", () => {
+    // The guard tests the parse result, not the string's shape, so anything the
+    // platform genuinely understands keeps working.
+    const d = describeDue("Aug 17 2026", NOW);
+    expect(d.urgency).toBe("today");
+    expect(d.days).toBe(0);
+  });
+
+  it("DOCUMENTS A GAP: a rolled-over date is parseable, so it is not caught", () => {
+    /*
+     * Not a desired outcome -- a record of current behaviour so the gap is
+     * visible rather than discovered later.
+     *
+     * V8 is inconsistent about invalid ISO dates. "2026-13-01" (bad month) is
+     * Invalid Date and the guard catches it, but "2026-02-30" (bad day) rolls
+     * forward into March and parses fine, so it arrives here as a real date the
+     * student never chose.
+     *
+     * Catching this needs a round-trip check -- reformat the parsed date and
+     * compare it to the input, which is what `customEventToItem` does for day
+     * keys -- and that is input validation rather than a parse guard. Out of
+     * scope here deliberately.
+     *
+     * Only the discriminant is asserted, not the date it rolled to. A date-ONLY
+     * ISO string parses as UTC, so which local day it lands on depends on the
+     * running machine: Mar 1 in America/Los_Angeles, Mar 2 in UTC. Pinning the
+     * string made this the one test in the file that failed a timezone spot
+     * check -- a live demonstration of exactly why every other fixture here is
+     * built from local parts.
+     */
+    const d = describeDue("2026-02-30", NOW);
+    expect(d.urgency).not.toBe("unknown");
+    expect(d.days).not.toBeNull();
+    expect(d.fullLabel).toMatch(/^Was due /);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // The rest of the exported surface
 // ---------------------------------------------------------------------------
 
@@ -439,6 +565,61 @@ describe("formatClockTime", () => {
   it("passes the minutes through as written", () => {
     // The minute half is never parsed, so it keeps its own zero padding.
     expect(formatClockTime("09:00")).toBe("9:00 AM");
+  });
+
+  it("accepts a one-digit hour", () => {
+    // Lenient on the hour, because "9:30" already worked and is a reasonable
+    // thing to hold. Strict on the minute -- see below.
+    expect(formatClockTime("9:30")).toBe("9:30 AM");
+  });
+
+  it("returns --:-- for a shape that is not HH:mm", () => {
+    // Was "NaN:undefined PM", every part of which reached the DOM.
+    for (const input of ["abc", "", "   ", "0930", ":30", "9:", "09:30:00", "9:30 AM", "-1:30"]) {
+      expect(formatClockTime(input)).toBe("--:--");
+    }
+  });
+
+  it("returns --:-- for a one-digit minute", () => {
+    // "9:5" is not a time. The old version passed the minute half through
+    // unparsed and emitted "9:5 AM".
+    expect(formatClockTime("9:5")).toBe("--:--");
+  });
+
+  it("returns --:-- for an out-of-range hour or minute", () => {
+    expect(formatClockTime("24:00")).toBe("--:--");
+    expect(formatClockTime("99:99")).toBe("--:--");
+    expect(formatClockTime("12:60")).toBe("--:--");
+  });
+
+  it("never emits NaN or undefined for any malformed input", () => {
+    for (const input of ["abc", "", "9:5", "24:00", "12:60", ":30", "0930"]) {
+      const result = formatClockTime(input);
+      expect(result).not.toMatch(/NaN/);
+      expect(result).not.toMatch(/undefined/);
+    }
+  });
+
+  it("still accepts both ends of the valid range", () => {
+    expect(formatClockTime("00:00")).toBe("12:00 AM");
+    expect(formatClockTime("23:59")).toBe("11:59 PM");
+  });
+});
+
+describe("formatMeetingPattern with a malformed time", () => {
+  it("shows the marker rather than propagating NaN into the pattern", () => {
+    // formatMeetingPattern composes formatClockTime, so the guard has to hold
+    // through it: this used to read "Mon NaN:undefined PM".
+    expect(
+      formatMeetingPattern([
+        {
+          dayOfWeek: 1,
+          startTime: "oops",
+          endTime: "10:50",
+          location: "Otterson 1S118",
+        },
+      ]),
+    ).toBe("Mon --:--");
   });
 });
 
