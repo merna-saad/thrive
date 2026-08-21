@@ -1,13 +1,17 @@
 <script lang="ts">
 	import CalendarPlus from '@lucide/svelte/icons/calendar-plus';
+	import Check from '@lucide/svelte/icons/check';
 	import MapPin from '@lucide/svelte/icons/map-pin';
 	import Sparkles from '@lucide/svelte/icons/sparkles';
+	import X from '@lucide/svelte/icons/x';
 
 	import { messages } from '$lib/messages';
 	import { revealRowId } from '$lib/reveal';
 	import Button from '$lib/components/ui/Button.svelte';
 	import IgnoreButton from '$lib/components/ui/IgnoreButton.svelte';
 	import Tag from '$lib/components/ui/Tag.svelte';
+	import { eventJoins, isEventJoined, setEventJoined } from '$lib/userEdits.svelte';
+	import { cn } from '$lib/utils';
 	import type { TagTone } from '$lib/tones';
 	import type { Event, EventType } from '$lib/data';
 
@@ -55,6 +59,19 @@
 	 * letting a jump put focus on it -- see the note in `TaskRow`.
 	 */
 	const rowId = $derived(revealRowId({ kind: 'event', id: event.id }));
+
+	const copy = messages.common.events;
+
+	/**
+	 * Has the student said yes to this one?
+	 *
+	 * `event.id` straight into the store, with nothing done to it. Home holds an
+	 * `Event`, so its id is already the raw form the store keys on; `eventIdOf` is
+	 * for CALENDAR item ids and calling it here would mangle rather than normalise,
+	 * because a raw event id begins with `evt-` too. Exactly the rule the ignore
+	 * reader two lines of reasoning above already follows.
+	 */
+	const joined = $derived(isEventJoined(event.id, eventJoins()));
 </script>
 
 <article
@@ -87,7 +104,7 @@
 				{#if event.relevantToGoal}
 					<Tag tone="primary">
 						<Sparkles aria-hidden="true" class="size-3" />
-						{messages.home.events.relevanceBadge}
+						{copy.relevanceBadge}
 					</Tag>
 				{/if}
 			</span>
@@ -103,26 +120,51 @@
 			</span>
 		</p>
 
-		<!-- Visual only, as in the Next app. Typed as buttons rather than links so
-		     nothing navigates, and THRIVE never writes to a real calendar.
+		<!--
+			"Count me in" is LIVE as of the 7c follow-on. It was inert for four phases
+			because the join store was keyed on the calendar item id (MIGRATION.md
+			section 9 defect 13), so a write here would have landed under a key the
+			calendar never reads. 7c settled that key space on the raw `Event.id`,
+			which is exactly what `event.id` holds — no prefix to shed, no `eventIdOf`.
+			Join here and the calendar's day shows you joined, and the reverse.
 
-		     STILL NOT WIRED, but the reason has changed. It used to be that the join
-		     store was keyed on the calendar item id (MIGRATION.md section 9 defect
-		     13) so a "count me in" here would write a key the calendar never reads.
-		     Phase 7c settled that: `thrive:event-joins` keys on the raw `Event.id`,
-		     which is exactly what `event.id` holds here, so wiring these two is now
-		     a one-line change on each rather than a decision. Left for the phase
-		     that owns Home, so it arrives with its own gate coverage. -->
-		<div class="mt-1.5 flex flex-wrap gap-1.5">
-			<Button size="sm">
-				{messages.home.events.countMeIn}
-				<span class="sr-only">{messages.home.events.countMeInSubject(event.title)}</span>
-			</Button>
+			Nothing is sent anywhere. This is local intent, stored in this browser,
+			and the row says so once it is set.
+
+			State and exit are two controls, matching `DayEventsSection` exactly. It
+			used to be one toggle reading "You're in", which removed you when pressed
+			again — an off-switch nobody could discover.
+
+			"Add to calendar" is still visual only. It is not blocked on anything now
+			that `$lib/ics` is ported; it is simply not what this follow-on was for.
+		-->
+		<div class="mt-1.5 flex flex-wrap items-center gap-1.5">
+			{#if joined}
+				<!-- A statement of fact, so it is not a button. Rendering it as one is
+				     what made the old toggle undiscoverable. -->
+				<span
+					class="inline-flex h-8 items-center gap-1.5 rounded-md bg-on-track px-2.5 text-2xs font-medium text-on-primary"
+				>
+					<Check aria-hidden="true" class="size-3" />
+					{copy.joined}
+				</span>
+
+				<Button size="sm" variant="danger" onclick={() => setEventJoined(event.id, false)}>
+					<X aria-hidden="true" class="size-3" />
+					{copy.leave}
+					<span class="sr-only">{copy.subject(event.title)}</span>
+				</Button>
+			{:else}
+				<Button size="sm" onclick={() => setEventJoined(event.id, true)}>
+					{copy.countMeIn}
+					<span class="sr-only">{copy.subject(event.title)}</span>
+				</Button>
+			{/if}
 
 			<Button size="sm">
 				<CalendarPlus aria-hidden="true" class="size-3" />
-				{messages.home.events.addToCalendar}
-				<span class="sr-only">{messages.home.events.countMeInSubject(event.title)}</span>
+				{copy.addToCalendar}
+				<span class="sr-only">{copy.subject(event.title)}</span>
 			</Button>
 
 			<!-- Pushed to the far end rather than sitting flush as a third equal
@@ -132,5 +174,11 @@
 				<IgnoreButton title={event.title} {onIgnore} class="ms-auto" />
 			{/if}
 		</div>
+
+		<!-- Mounted always, filled conditionally. A live region created and populated
+		     in the same tick is announced unreliably. -->
+		<p aria-live="polite" class={cn('text-3xs text-muted-ink', joined && 'mt-1.5')}>
+			{joined ? copy.joinedNote : ''}
+		</p>
 	</div>
 </article>

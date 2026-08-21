@@ -69,6 +69,9 @@
 	} = $props();
 
 	const copy = messages.calendar.events;
+	/* The register vocabulary itself. Shared with Home, which renders the identical
+	   words for the identical act against the same store. */
+	const shared = messages.common.events;
 
 	/*
 	 * Both stores read here, once, and passed into a pure function.
@@ -137,7 +140,7 @@
 							{#if row.item.relevantToGoal}
 								<Tag tone="primary">
 									<Sparkles aria-hidden="true" class="size-3" />
-									{copy.relevanceBadge}
+									{shared.relevanceBadge}
 								</Tag>
 							{/if}
 						</span>
@@ -167,7 +170,7 @@
 								class="inline-flex min-h-11 items-center gap-1.5 rounded-md bg-on-track px-2.5 text-2xs font-medium text-on-primary"
 							>
 								<Check aria-hidden="true" class="size-3" />
-								{copy.joined}
+								{shared.joined}
 							</span>
 
 							<Button
@@ -176,16 +179,16 @@
 								onclick={() => setEventJoined(row.eventId, false)}
 							>
 								<X aria-hidden="true" class="size-3" />
-								{copy.leave}
-								<span class="sr-only">{copy.subject(row.item.title)}</span>
+								{shared.leave}
+								<span class="sr-only">{shared.subject(row.item.title)}</span>
 							</Button>
 						{:else}
 							<!-- `min-h-11` rather than the button's own height: these were about
 							     26px tall in the source, well under a comfortable touch target on
 							     the one surface whose whole job is signing up for things. -->
 							<Button class="min-h-11" onclick={() => setEventJoined(row.eventId, true)}>
-								{copy.countMeIn}
-								<span class="sr-only">{copy.subject(row.item.title)}</span>
+								{shared.countMeIn}
+								<span class="sr-only">{shared.subject(row.item.title)}</span>
 							</Button>
 						{/if}
 
@@ -195,8 +198,8 @@
 							onclick={() => downloadItemIcs(row.item)}
 						>
 							<CalendarPlus aria-hidden="true" class="size-3" />
-							{copy.addToCalendar}
-							<span class="sr-only">{copy.subject(row.item.title)}</span>
+							{shared.addToCalendar}
+							<span class="sr-only">{shared.subject(row.item.title)}</span>
 						</Button>
 
 						<!-- Separated by an auto margin rather than sitting flush as a third
@@ -222,7 +225,7 @@
 					<!-- Mounted always, filled conditionally. A live region created and
 					     populated in the same tick is announced unreliably. -->
 					<p aria-live="polite" class={cn('text-3xs text-muted-ink', row.joined && 'mt-2')}>
-						{row.joined ? copy.joinedNote : ''}
+						{row.joined ? shared.joinedNote : ''}
 					</p>
 				</li>
 			{/each}

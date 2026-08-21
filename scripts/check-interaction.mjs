@@ -1450,6 +1450,145 @@ try {
 		unproven('joining an event', 'no day in this month renders an events section');
 	}
 
+
+	// ── The join, across both surfaces, in the real app ────────────────────
+	/*
+	 * `calendarEvents.spec.ts` pins the stored key, and that is the assertion that
+	 * would catch a key-space split. What it cannot do is prove the two SURFACES
+	 * really share it, because a unit test does not render either of them: it can
+	 * only exercise the paths it was told are the real ones.
+	 *
+	 * This does the round trip in the built app. Join on the calendar, navigate to
+	 * Home, and the same event must say so — with nothing in between but a page
+	 * load and `localStorage`.
+	 *
+	 * The pair matters. Home's control was inert for four phases BECAUSE this key
+	 * space was unsettled, so wiring it without a cross-surface check would repeat
+	 * the exact conditions of the 7a defect: two surfaces, one store, each
+	 * self-consistent, nothing looking at both at once.
+	 */
+	if (daysWithEvents.length > 0) {
+		const joinedTitle = await cal.evaluate(() => {
+			const section = document.querySelector('section[aria-labelledby="calendar-happening"]');
+			const li = [...(section?.querySelectorAll('li') ?? [])].find((row) =>
+				/You’re in/.test(row.textContent)
+			);
+			return li?.querySelector('h4')?.textContent.trim() ?? null;
+		});
+
+		if (!joinedTitle) {
+			unproven('a join made on the calendar shows on Home', 'nothing was joined above');
+		} else {
+			await cal.goto(BASE + ROUTE, { waitUntil: 'networkidle' });
+			await cal.waitForTimeout(SETTLE);
+
+			const onHome = await cal.evaluate((title) => {
+				const row = [...document.querySelectorAll('article[id^="reveal-event-"]')].find((el) =>
+					el.querySelector('h3')?.textContent.trim() === title
+				);
+				return {
+					found: row !== undefined,
+					states: /You’re in/.test(row?.textContent ?? ''),
+					offersExit: [...(row?.querySelectorAll('button') ?? [])].some((b) =>
+						/Remove from my list/i.test(b.textContent)
+					)
+				};
+			}, joinedTitle);
+
+			if (!onHome.found) {
+				unproven(
+					'a join made on the calendar shows on Home',
+					`"${joinedTitle}" is not among Home's upcoming events`
+				);
+			} else {
+				check(
+					'a join made on the calendar shows on Home',
+					onHome.states === true,
+					`"${joinedTitle}" — one store, two surfaces, nothing in between but a page load`
+				);
+				check('and Home offers the same way out', onHome.offersExit === true);
+			}
+		}
+	} else {
+		unproven('a join made on the calendar shows on Home', 'no day rendered an events section');
+	}
+
+	// ── Home's own control, and the key it writes ──────────────────────────
+	/*
+	 * The other direction, and a cross-check the unit tests structurally cannot
+	 * make: the id in the DOM and the id in the store arrive by two different
+	 * routes — `revealRowId()` builds the row's `id` attribute, the click handler
+	 * passes `event.id` to `setEventJoined`. If those ever disagree, the popover
+	 * would jump to a row the store has never heard of.
+	 */
+	const home = await browser.newPage({ viewport: DESKTOP });
+	home.on('pageerror', (error) => pageErrors.push(`home-join: ${error}`));
+	home.on('console', (msg) => noisy(msg) && pageErrors.push(`home-join: ${msg.text()}`));
+	await home.goto(BASE + ROUTE, { waitUntil: 'networkidle' });
+	await home.waitForTimeout(SETTLE);
+
+	const homeJoin = await home.evaluate(async () => {
+		const row = document.querySelector('article[id^="reveal-event-"]');
+		if (!row) return null;
+
+		const rowId = row.id;
+		[...row.querySelectorAll('button')]
+			.find((b) => /Count me in/i.test(b.textContent))
+			?.click();
+		await new Promise((r) => setTimeout(r, 150));
+
+		const now = document.getElementById(rowId);
+		return {
+			rowId,
+			states: /You’re in/.test(now?.textContent ?? ''),
+			offersExit: [...(now?.querySelectorAll('button') ?? [])].some((b) =>
+				/Remove from my list/i.test(b.textContent)
+			),
+			says: /Nobody was notified/i.test(now?.textContent ?? ''),
+			stored: Object.keys(JSON.parse(localStorage.getItem('thrive:event-joins') ?? '{}'))
+		};
+	});
+
+	if (!homeJoin) {
+		unproven("Home's join control writes the raw Event.id", 'no event rows on Home');
+	} else {
+		check("Home's join states the fact", homeJoin.states === true);
+		check('and offers a visible way out', homeJoin.offersExit === true);
+		check('a joined row on Home says nothing was sent anywhere', homeJoin.says === true);
+
+		/*
+		 * The row's DOM id is `reveal-event-<raw Event.id>`. The store key must be
+		 * that same raw id — not the calendar's `evt-evt-` form, and not `3-1`,
+		 * which is what `eventIdOf` produces if it is wrongly applied here.
+		 */
+		const expected = homeJoin.rowId.replace(/^reveal-event-/, '');
+		check(
+			"Home's join control writes the raw Event.id",
+			homeJoin.stored.length === 1 && homeJoin.stored[0] === expected,
+			`stored ${JSON.stringify(homeJoin.stored)}, row is ${homeJoin.rowId}`
+		);
+
+		const undone = await home.evaluate(async (rowId) => {
+			[...(document.getElementById(rowId)?.querySelectorAll('button') ?? [])]
+				.find((b) => /Remove from my list/i.test(b.textContent))
+				?.click();
+			await new Promise((r) => setTimeout(r, 150));
+			return {
+				backToOffer: /Count me in/i.test(document.getElementById(rowId)?.textContent ?? ''),
+				stored: Object.keys(JSON.parse(localStorage.getItem('thrive:event-joins') ?? '{}'))
+			};
+		}, homeJoin.rowId);
+
+		check('leaving puts the offer back', undone.backToOffer === true);
+		check(
+			'and deletes the key rather than storing false',
+			undone.stored.length === 0,
+			'which is what makes "never touched" answerable'
+		);
+	}
+
+	await home.close();
+
 	await cal.close();
 
 	// ── Reduced motion: still marked, still cleared ────────────────────────

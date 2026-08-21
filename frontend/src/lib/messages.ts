@@ -50,7 +50,38 @@ export const messages = {
 		showLess: 'Show less',
 		done: 'Done',
 		/** A group heading's count, e.g. "Done · 3". */
-		countSuffix: (count: number) => ` · ${count}`
+		countSuffix: (count: number) => ` · ${count}`,
+
+		/**
+		 * Copy shared by every surface that lists an opt-in event.
+		 *
+		 * Home and the calendar render the same act with the same words, and they
+		 * write the same store under the same key. Two copies of these strings was
+		 * survivable while Home's controls were inert; it stopped being survivable
+		 * the moment both were live, because a translation would then have to find
+		 * both and keep them in step.
+		 *
+		 * Here rather than in `home` or `calendar` for the reason this group exists:
+		 * these are reused across surfaces, not owned by one.
+		 */
+		events: {
+			countMeIn: 'Count me in',
+			/** Appended so a screen reader hears which event, not four identical buttons. */
+			subject: (title: string) => ` for ${title}`,
+			/**
+			 * State and exit, deliberately two things.
+			 *
+			 * Joining used to be one toggle: the button read "You're in" and pressing
+			 * it again removed you, which nobody could discover. A control whose
+			 * off-switch is invisible is a control students are afraid to press.
+			 */
+			joined: 'You’re in',
+			leave: 'Remove from my list',
+			/** Said once per joined row, because the button implies otherwise. */
+			joinedNote: 'Saved in THRIVE only. Nobody was notified.',
+			addToCalendar: 'Add to calendar',
+			relevanceBadge: 'For you'
+		}
 	},
 
 	home: {
@@ -157,11 +188,10 @@ export const messages = {
 			allIgnored: 'You have ignored every upcoming event.',
 			bringBack: 'Bring them back',
 			broughtBack: 'Ignored events restored',
-			ignored: (title: string) => `Ignored “${title}”`,
-			countMeIn: 'Count me in',
-			countMeInSubject: (title: string) => ` for ${title}`,
-			addToCalendar: 'Add to calendar',
-			relevanceBadge: 'For you'
+			ignored: (title: string) => `Ignored “${title}”`
+			/* "Count me in", "You're in", "Add to calendar" and the "For you" badge
+			   moved to `common.events` in 7c, when Home's controls were wired and the
+			   calendar started rendering the identical words for the identical act. */
 		}
 	},
 
@@ -567,23 +597,11 @@ export const messages = {
 			prefix: 'optional',
 			joinedCount: (joined: number, total: number) => `${joined}/${total} joined`,
 			empty: 'Nothing to sign up for this day.',
-			countMeIn: 'Count me in',
-			/** Appended so a screen reader hears which event, not four identical buttons. */
-			subject: (title: string) => ` for ${title}`,
-			/**
-			 * State and exit, deliberately two things.
-			 *
-			 * Joining used to be one toggle: the button read "You're in" and pressing
-			 * it again removed you, which nobody could discover. A control whose
-			 * off-switch is invisible is a control students are afraid to press.
-			 */
-			joined: 'You’re in',
-			leave: 'Remove from my list',
-			addToCalendar: 'Add to calendar',
-			relevanceBadge: 'For you',
-			unIgnore: 'Un-ignore',
-			/** Said once per joined row, because the button implies otherwise. */
-			joinedNote: 'Saved in THRIVE only. Nobody was notified.'
+			/* The register vocabulary itself is `common.events` — Home renders the
+			   identical words for the identical act, against the same store. Only
+			   un-ignore is calendar-only: Home is a recommendation feed, so a
+			   dismissal there is permanent by design. */
+			unIgnore: 'Un-ignore'
 		}
 	},
 
