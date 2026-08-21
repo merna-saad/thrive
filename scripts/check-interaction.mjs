@@ -88,7 +88,7 @@
  */
 
 import { spawn } from 'node:child_process';
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -116,6 +116,25 @@ const SETTLE = 150;
  * `check-contrast.py` avoids by parsing app.css rather than mirroring it.
  */
 let arrivalMs = 0;
+
+/**
+ * `FEATURES.floatingTodo`, parsed from its own source.
+ *
+ * Copy-to-quick-list renders only when this is true, because the quick list lives
+ * in the floating To-do panel and there is nowhere to see a copy without it. The
+ * gate therefore has to know the flag to know what it should be looking at — and
+ * it must NOT try to infer it from the page, which is how the first version of
+ * that check became vacuous (see the assertion for the details).
+ *
+ * Parsed rather than imported: this file is plain node with no bundler, and
+ * `features.ts` is TypeScript. A regex over one boolean is honest about that; a
+ * copy of the value would rot the day the flag flips.
+ */
+const floatingTodo = /floatingTodo:\s*true/.test(
+	readFileSync(join(FRONTEND, 'src', 'lib', 'features.ts'), 'utf8')
+		// Strip the interface declaration, so `floatingTodo: boolean` cannot match.
+		.replace(/export interface Features \{[\s\S]*?\}/, '')
+);
 
 function skip(reason) {
 	console.log('check-interaction: SKIPPED');
@@ -733,6 +752,42 @@ try {
 		'collapsed, no row offers to be reordered',
 		startTasks.moveControls === 0,
 		'position is grouped-only, and collapsed is flat'
+	);
+
+	/*
+	 * Copy-to-quick-list is gated on `FEATURES.floatingTodo`, because the quick list
+	 * lives in the floating To-do panel and with the flag off the student has no way
+	 * to see what they just copied.
+	 *
+	 * Asserted against the FLAG rather than against "the button is absent", which is
+	 * the difference between a check that survives the flag being flipped and one
+	 * that has to be rewritten the day it is.
+	 *
+	 * **The flag is PARSED from `features.ts`**, not inferred from the page, and the
+	 * first attempt at this got it wrong in an instructive way: it looked for a
+	 * To-do launcher in the DOM and treated its presence as "flag on". But the
+	 * selector `/to-?do list$/i` matched the copy button's OWN accessible name —
+	 * "Copy X to your to-do list" — so the check read the thing it was gating as
+	 * proof the gate was open. It passed both with the guard and with the guard
+	 * removed. A vacuous check, and the exact shape this file's fourth gate property
+	 * warns about.
+	 *
+	 * Reading the source of truth is what `check-contrast.py` does with `app.css`,
+	 * for the same reason: the answer cannot be derived from the thing under test.
+	 */
+	const copyControl = await edit.evaluate(() => ({
+		copies: [...document.querySelectorAll('#tasks-card-list button span.sr-only')].filter((s) =>
+			/to your to-do list$/.test(s.textContent.trim())
+		).length,
+		rows: document.querySelectorAll('#tasks-card-list [id^="reveal-task-"]').length
+	}));
+
+	check(
+		'copy-to-list appears exactly when the quick list does',
+		floatingTodo
+			? copyControl.copies === copyControl.rows && copyControl.rows > 0
+			: copyControl.copies === 0,
+		`floatingTodo=${floatingTodo}, ${copyControl.copies} copy controls on ${copyControl.rows} rows`
 	);
 
 	/*

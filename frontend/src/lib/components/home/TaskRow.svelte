@@ -12,6 +12,7 @@
 	import { rowPriorityLabel, rowPriorityOf, taskLabels } from '$lib/taskView';
 	import { addQuickItem } from '$lib/quickList';
 	import { showToast } from '$lib/toast.svelte';
+	import { FEATURES } from '$lib/features';
 	import { setTaskTitle } from '$lib/userEdits.svelte';
 	import { taskNote } from '$lib/taskNotes.svelte';
 	import PriorityPicker from './PriorityPicker.svelte';
@@ -344,16 +345,59 @@
 			</p>
 		</div>
 
-		<!-- All five controls are always visible and always 44px, on every pointer
+		<!-- Every control here is always visible and always 44px, on every pointer
 		     type. An earlier pass hid the note button until hover, which on a phone
-		     meant the only way to add a note was invisible. -->
-		<div class="flex shrink-0 items-center gap-0.5">
-			<!-- Copy, not move, and never a link: the row stays here, and the two
-			     lists go their own ways from this moment on. -->
-			<button type="button" onclick={copyToList} class={cn(glyph, glyphQuiet, 'hover:text-primary')}>
-				<ListPlus aria-hidden="true" class="size-4" />
-				<span class="sr-only">{messages.taskEditing.copyToList(task.title)}</span>
-			</button>
+		     meant the only way to add a note was invisible.
+
+		     "Always visible" means: whenever it is rendered at all. Two are
+		     conditional and neither is conditional on the POINTER -- reorder needs
+		     the groups (see TasksCard), and copy needs somewhere to copy TO.
+
+		     `ms-auto` anchors the strip to the RIGHT, which is what makes the two
+		     always-present controls pixel-stable as the conditional ones come and go.
+
+		     Above `sm` the strip was already right-anchored, by the `flex-1` content
+		     column beside it -- measured, Edit sits at the same x with two controls or
+		     three. Below `sm` the strip wraps to its own line, where it was
+		     LEFT-aligned, so removing the leading Copy control slid Edit and Add-a-note
+		     49px left. Expanding a card did the same thing in reverse, since that adds
+		     two reorder controls ahead of them.
+
+		     So the invariant is now: a conditional control appears and disappears at
+		     the strip's leading edge, and nothing already on screen moves. -->
+		<div class="ms-auto flex shrink-0 items-center gap-0.5">
+			{#if FEATURES.floatingTodo}
+				<!--
+					Copy, not move, and never a link: the row stays here, and the two lists
+					go their own ways from this moment on.
+
+					## Gated on the flag that owns the destination
+
+					The quick list lives in the floating To-do panel, which is behind
+					`FEATURES.floatingTodo`. With the flag off, the copy still works and
+					still persists to `thrive:quicklist` -- and the student has no way to
+					see the thing they just copied. An action whose result is invisible
+					reads as broken, which is the same reasoning that withholds a "View
+					all" pointing at a parked route.
+
+					Nothing is deleted: the store, `addQuickItem`, the tests and the toast
+					all stay, and flipping one word brings the button back. Visibility only.
+
+					Note the consequence, so it is not a surprise later: with this hidden,
+					`showToast` has NO caller, so the `Toast` mounted in `AppShell` can
+					never fire. That is coherent rather than dead code -- the toast exists
+					for exactly this action and returns with it on the same flag -- but it
+					does mean the toast is currently unexercised by anything but its tests.
+				-->
+				<button
+					type="button"
+					onclick={copyToList}
+					class={cn(glyph, glyphQuiet, 'hover:text-primary')}
+				>
+					<ListPlus aria-hidden="true" class="size-4" />
+					<span class="sr-only">{messages.taskEditing.copyToList(task.title)}</span>
+				</button>
+			{/if}
 
 			{#if reorder}
 				<!-- Dragging is pointer-only, so reordering gets real buttons too.
