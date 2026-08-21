@@ -15,7 +15,7 @@ Plus two gates that are tests in everything but name:
 ```bash
 python3 scripts/check-contrast.py    # 58 assertions: 42 pairs, 6 ceilings, 10 structural
 npm run check:layout                 # 12 routes x 3 viewports, in a real browser
-npm run check:interaction            # 59 assertions: the popovers and task editing
+npm run check:interaction            # 60 assertions: the popovers and task editing
 ```
 
 `check-contrast.py` PARSES `app.css` rather than mirroring it, so a token edited
@@ -76,7 +76,7 @@ rather than being appended to the pure-logic ones.
 
 ### The interaction gate
 
-`npm run check:interaction` · `scripts/check-interaction.mjs` · 59 assertions.
+`npm run check:interaction` · `scripts/check-interaction.mjs` · 60 assertions.
 
 **Why it exists.** The other five gates were ALL green on a version of the stat
 pill popovers where pressing a pill did nothing at all. Hover had already opened
@@ -123,6 +123,15 @@ undo expansion moved into an effect (1, and no console warning), `onblur` remove
 **The limitation, stated:** its closing "nothing threw or warned" assertion reads
 like a blanket guarantee over the page and is really a guarantee over the gestures
 the script performs. When a feature adds a gesture, the gate has to make it.
+
+**And one vacuous check, caught and fixed.** `copy-to-list appears exactly when the
+quick list does` first inferred `FEATURES.floatingTodo` from the page by looking for
+a To-do launcher — but the selector matched the copy button's own accessible name,
+"Copy X to your to-do list". It read the thing it was gating as proof the gate was
+open, and passed both with the guard and without it. **The flag is parsed from
+`features.ts` now**, the way `check-contrast.py` parses `app.css`: an assertion's
+expected value cannot be derived from the thing under test. Worth knowing because
+nothing but re-running it with the guard removed would have revealed it.
 
 **It reads its inputs from the source of truth.** The arrival dwell comes from
 `--thrive-arrival-duration` on the running page, not from a copy in the script, so
@@ -296,7 +305,7 @@ assertions over opening, keyboard navigation, all four dismissal paths, the
 reveal, and the clamped panel at 375px. Those assertions were a **throwaway
 probe**, run once, and they do not exist in the repo.
 
-**It is now a gate.** `npm run check:interaction`, 59 assertions, decided
+**It is now a gate.** `npm run check:interaction`, 60 assertions, decided
 and built the same day. No new dependency, and see its own section below.
 
 The gap it closes is no longer one widget: 6b's editing is gated through the same

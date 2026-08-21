@@ -1,4 +1,4 @@
-<!-- updated-at: df72ad1 -->
+<!-- updated-at: 5e6b3d1 -->
 
 # CONTEXT
 
@@ -73,7 +73,7 @@ thrive/
 └── scripts/
     ├── check-contrast.py       58 assertions over the palette and app.css
     ├── check-layout.mjs        12 routes x 3 viewports, in a real browser
-    └── check-interaction.mjs   59 assertions: the popovers and task editing
+    └── check-interaction.mjs   60 assertions: the popovers and task editing
 ```
 
 `MIGRATION.md` is also the **only surviving copy** of the prototype inventory —
@@ -168,8 +168,8 @@ See DEPENDENCIES.md.
 | later | Floating widgets, behind `FEATURES` | not started |
 
 **451 tests, 20 spec files, all passing.** `svelte-check` clean over 389 files.
-Build clean. Contrast **58/58**. Layout **36/36**. Interaction **59/59**.
-51 commits, all pushed.
+Build clean. Contrast **58/58**. Layout **36/36**. Interaction **60/60**.
+53 commits, all pushed.
 
 **127 files under `frontend/src`** — ~18,286 lines, 12,769 source / 5,517 test.
 
@@ -668,8 +668,19 @@ cover. See §15.
 points exist in `AppShell`, gated. **Left untouched when `/ask` became a route** —
 two Ask THRIVE surfaces is a later decision, not an accident to create now.
 
-**Note the interaction with 6b:** `floatingTodo` being off is why the toast had to
-exist. Copy-to-list writes to `thrive:quicklist`, which nothing renders yet.
+**`floatingTodo` now gates a second thing: the task row's copy-to-list control.**
+The quick list is the only surface where a copied item is visible, so with the flag
+off the copy succeeded, persisted, and showed the student nothing — the same
+"invisible result reads as broken" argument that withholds a "View all" pointing at
+a parked route. Nothing was deleted: the store, `addQuickItem`, its tests and the
+toast all stay, and flipping one word restores the button to a byte-identical row.
+
+**The consequence, recorded rather than discovered later:** with the button hidden,
+`showToast` has no caller, so the `Toast` mounted in `AppShell` cannot fire. That is
+coherent — the toast exists for exactly this action and returns with it on the same
+flag — but the toast is currently unexercised by anything but its tests. It was
+built during 6b precisely because a copy had no visible destination; hiding the
+button is the other half of that same problem, solved at the source.
 
 ---
 
@@ -1004,6 +1015,21 @@ off. The **title** is the checkbox's label instead, which is what makes the tick
 target the width of the row without `.thrive-checkbox` growing past its
 design-system size.
 
+**The control strip is right-anchored (`ms-auto`), and that is what makes the
+always-present controls pixel-stable.** Above `sm` it already was, via the `flex-1`
+content column — measured, Edit sits at the same x with two controls or three.
+Below `sm` the strip wraps to its own line where it was LEFT-aligned, so removing
+the leading control slid the rest 49px left, and expanding a card did the same in
+reverse by inserting two reorder controls ahead of them. A pre-existing shift that
+gating copy-to-list merely exposed. The invariant now: **a conditional control
+appears and disappears at the strip's leading edge, and nothing already on screen
+moves.**
+
+Measured after: Edit at x=244 on a phone, identical with `floatingTodo` on and off.
+Row heights identical there too; on desktop one of four rows is 20px shorter with
+the control hidden, because the content column gains 46px and that row's chip line
+stops wrapping. Card bodies stay 300px, so the grid is immovable.
+
 **The row renders `role="listitem"`, and every caller owes it a `role="list"`
 container.** That is the honest answer to a `draggable` div needing a role rather
 than the one that quiets the linter: these rows were anonymous divs inside a
@@ -1315,7 +1341,7 @@ as it is built, or Mandarin stops being possible.
 | `npm run build` | It compiles |
 | `python3 scripts/check-contrast.py` | 58 assertions: 42 pairs, 6 ceilings, 10 structural |
 | `npm run check:layout` | 12 routes × 3 viewports in a real browser |
-| `npm run check:interaction` | 59 assertions in a real browser: the popovers, task editing, and what the cards link to |
+| `npm run check:interaction` | 60 assertions in a real browser: the popovers, task editing, and what the cards offer to link or copy to |
 
 **Four properties every gate here has.** The first three were the original set;
 the fourth was added on 2026-08-21.
@@ -1350,7 +1376,7 @@ it, and it knows no fixture ids — the task ids it needs are discovered by choo
 the popover's own items and reading where focus landed, or by reading the rows on
 the page.
 
-**Verified to fail, seven ways**, each broken on purpose:
+**Verified to fail, eight ways**, each broken on purpose:
 
 | Broken | Result |
 |---|---|
@@ -1361,6 +1387,7 @@ the page.
 | The title field's `onblur` removed | 2 red |
 | A `dragend` put back on the row | 1 red (`derived_inert`) |
 | `{#if href}` restored, so every card links out | 2 red (4 of 4 cards linking out) |
+| The `floatingTodo` guard removed from copy-to-list | 1 red (4 copy controls, flag false) |
 
 **The fourth is the one worth the ink.** It is the failure 6a predicted for 6b, it
 produces no error and no visible difference from a successful arrival at a row that
@@ -1453,6 +1480,13 @@ saying why tracking them would overwrite what the student is typing), and two
 - **Making an invisible state visible means auditing every path it can now
   reach.** 6a surfaced unparseable due dates; 6b found the RangeError that had been
   unreachable behind them.
+- **A control whose result is invisible is worse than no control.** Copy-to-list
+  is gated on the flag that owns its destination, and a "View all" is withheld while
+  its route is parked. Both are the same rule: an action that appears to do nothing
+  teaches the student that the app is broken.
+- **An assertion's expected value must not be derived from the thing under test.**
+  A gate that inferred a feature flag from the page matched the very control the
+  flag gates, and so passed with the guard removed. Parse the source of truth.
 - **A link to a page that is not built is worse than no link.** A student who
   spends a click to reach a placeholder distrusts the next link. Derive "is this
   built" from the navigation, so building a route restores its links with no edit.
@@ -1486,7 +1520,7 @@ saying why tracking them would overwrite what the student is typing), and two
   test-only export is permanent.
 - **Extract strings as you build**, not afterwards.
 - **No Claude/Anthropic attribution anywhere** — commits, PRs, file headers.
-  Verified clean across all 51 commits.
+  Verified clean across all 53 commits.
 
 ---
 

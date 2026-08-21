@@ -1,4 +1,4 @@
-<!-- built-at: df72ad1 -->
+<!-- built-at: 5e6b3d1 -->
 <!-- updated: 2026-08-21 -->
 
 # CODEMAP
@@ -67,7 +67,7 @@ No framework surface. All of it ported in Phase 2 and under test.
 | `reveal.ts` | **"Show me the row behind this number", as arithmetic.** `planReveal` is the one question a card asks. Read this before touching the popovers. |
 | `arrive.ts` | **`arriveAtRow` — the ONE way any surface moves a student to a row.** Focus, scroll, and the arrival mark. Awaits one `tick()` and **warns in dev** when the row is not there. Never hand-roll a `scrollIntoView`; see CONVENTIONS. |
 | `nav.ts` | **One list drives the rail, the bottom bar, and every stub page** — and now whether a card links out at all. `isBuiltRoute` asks `primaryNav`; `isKnownRoute` separates "parked on purpose" from "typo". |
-| `features.ts` | `FEATURES` — both floating widgets off. |
+| `features.ts` | `FEATURES` — both floating widgets off. **`floatingTodo` also gates the task row's copy-to-list control**, since the quick list is the only place a copy is visible. |
 | `title.ts` | `pageTitle()` — Next's `"%s · THRIVE"` template. |
 | `utils.ts` | `cn()`. Survives for the `class`-override case only. |
 
@@ -123,7 +123,7 @@ The one fully-built page, and now editable. Read Phase 6b's entry in HANDOFF bef
 | `home/GreetingPanel.svelte` | Greeting, standing sentence, and ONE row of pills + chips. |
 | `home/TaskStatPills.svelte` | The three counts, and the three lists behind them. **Reads the stores**, so the counts see the student's own ticks and ignores. Each pill's number IS `items.length` of the list it opens. |
 | `home/TasksCard.svelte` | **Flat when collapsed, grouped when expanded.** The one real design decision in 6a. Owns ticking, undo, drag/keyboard reorder, and the add form. Reordering is offered **only when expanded** — see its doc comment. Also answers the reveal channel by writing its own collapse state, never anyone else's. |
-| `home/TaskRow.svelte` | One task, fully editable. Tick, rename, priority, note, due chip, copy-to-list, move. **Controls wrap to their own line below `sm`**, and the title takes a line of its own — both halves of the 375px fix. |
+| `home/TaskRow.svelte` | One task, fully editable. Tick, rename, priority, note, due chip, copy-to-list (behind `FEATURES.floatingTodo`), move. The control strip is **right-anchored**, so a conditional control appears at its leading edge and nothing already on screen moves. **Controls wrap to their own line below `sm`**, and the title takes a line of its own — both halves of the 375px fix. |
 | `home/UndoBar.svelte` | The way back from a tick. Fixed at the top of the list, deliberately **not** a live region. |
 | `home/AddTaskForm.svelte` | Quick add, collapsed to one button. Title is the only required field. |
 | `home/DueDateEditor.svelte` | The due chip as a button opening a native date input plus three shortcuts. Uses `clickOutside` + `escapeKey`. |
@@ -180,7 +180,7 @@ control must not scroll away with the content it controls.
 | Command | What it proves |
 |---|---|
 | `npm test` | 451 tests. Pure logic and source scans. Nothing renders. |
-| `npm run check:interaction` | 59 assertions in a real browser: the popovers **and** 6b's editing — tick, undo, the undo arrival (including the hidden-row case), a drag between groups, rename-on-blur. **The only gate that can press a button.** Fails on a console warning too — but it drives the PRODUCTION build, so it cannot see `arriveAtRow`'s dev-only warn. |
+| `npm run check:interaction` | 60 assertions in a real browser: the popovers **and** 6b's editing — tick, undo, the undo arrival (including the hidden-row case), a drag between groups, rename-on-blur. **The only gate that can press a button.** Fails on a console warning too — but it drives the PRODUCTION build, so it cannot see `arriveAtRow`'s dev-only warn. |
 | `npm run check` | Types agree. **Does NOT prove the page renders** — see BUGS.md. |
 | `npm run build` | It compiles. |
 | `python3 scripts/check-contrast.py` | 58 assertions. **Parses `app.css`**, so tokens cannot drift from their checks. |
@@ -343,7 +343,7 @@ npm test                   # vitest run — 451 tests
 
 python3 scripts/check-contrast.py    # 58 assertions: 42 pairs, 6 ceilings, 10 structural
 npm run check:layout                 # 12 routes x 3 viewports, in a real browser
-npm run check:interaction            # 59 assertions: the popovers and task editing
+npm run check:interaction            # 60 assertions: the popovers and task editing
 ```
 
 If a page looks stale locally, something is holding the port:

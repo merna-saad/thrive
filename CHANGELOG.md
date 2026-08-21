@@ -4,6 +4,42 @@ Dated session summaries, most recent first.
 
 ---
 
+## 2026-08-21 — copy-to-list follows the surface that shows it
+
+**HEAD:** `5e6b3d1` · **451 tests** · check 0/0 over 389 files · build clean ·
+contrast **58/58** · layout **36/36** · interaction **60/60**
+
+The copy-to-quick-list control worked and persisted, but the quick list lives in
+the floating To-do panel behind `FEATURES.floatingTodo`, so the task was copied
+somewhere the student cannot see. Gated on that flag — visibility only, nothing
+deleted, and flipping one word restores a byte-identical row.
+
+**The control strip is right-anchored now (`ms-auto`).** Above `sm` it already
+was; below `sm` it wrapped to its own line LEFT-aligned, so removing the leading
+control slid the others 49px left — and expanding a card did the same in reverse.
+A pre-existing shift that gating one control exposed. Edit now sits at x=244 on a
+phone whether the flag is on or off.
+
+**Measured, not claimed:** phone row heights and page height identical; on
+desktop one of four rows is 20px shorter, because the content column gains 46px
+and that row's chip line stops wrapping. Card bodies stay 300px.
+
+### What broke
+
+The gate assertion I wrote for this was **vacuous on the first attempt**. It
+inferred the flag from the page by looking for a To-do launcher, and the selector
+matched the copy button's own accessible name — so it read the thing it was
+gating as proof the gate was open, and passed with the guard removed. The flag is
+parsed from `features.ts` now.
+
+### Known issues
+
+- With the button hidden, `showToast` has no caller, so the mounted `Toast`
+  cannot fire. Coherent (both return on the same flag) but unexercised outside
+  its tests.
+
+---
+
 ## 2026-08-21 — two follow-ons: honest disclosures, honest links
 
 **HEAD:** `df72ad1` · 2 commits, both pushed · **451 tests, 20 files, all green**

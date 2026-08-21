@@ -180,6 +180,6 @@ npm test                              # 451 tests, Node, no jsdom
 npm run check                         # svelte-check
 npm run build                         # vite build, adapter-node
 npm run check:layout                  # 12 routes x 3 viewports, real browser
-npm run check:interaction             # 59 assertions: popovers + editing, real browser
+npm run check:interaction             # 60 assertions: popovers + editing, real browser
 cd .. && python3 scripts/check-contrast.py   # 58 assertions, no dependencies
 ```

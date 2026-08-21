@@ -4,6 +4,78 @@ Session log, newest first. What happened, what was decided, what is still open.
 
 ---
 
+## 2026-08-21 — copy-to-list follows its surface
+
+**HEAD:** `5e6b3d1` · 1 commit, pushed · 451 tests green · all six gates green.
+
+Third in the same family as the two below: an action whose result the student
+cannot see reads as broken. The quick list lives in the floating To-do panel
+behind `FEATURES.floatingTodo`, so with the flag off the copy succeeded, persisted
+to `thrive:quicklist`, and showed nothing. Now gated on that flag. Visibility
+only — store, logic, tests and toast all stay, and flipping the flag restores a
+byte-identical row (verified by flipping it and re-measuring).
+
+### The strip is right-anchored now, and it fixed a pre-existing shift
+
+The brief asked that removing a control not move the others. Above `sm` that
+already held — the `flex-1` content column pushes the strip right, and Edit sits
+at x=761 with two controls or three.
+
+Below `sm` it did not. The strip wraps to its own line, where it was LEFT-aligned,
+so removing the leading Copy control slid Edit and Add-a-note 49px left (x=86 →
+37). **Expanding a card did the same thing in reverse**, since that inserts two
+reorder controls ahead of them — so this was a shift that already existed and
+gating one control merely exposed.
+
+`ms-auto` at every width. Measured after: Edit at x=244, last control's right edge
+at x=340 on a phone, identical with the flag on and off.
+
+### What I could not make identical, and why
+
+Row heights are identical on a phone and the page is 3281px either way. **On
+desktop one of four rows is 20px shorter** with the control hidden: the content
+column gains 46px and that row's chip line stops wrapping to a second line. It is
+a horizontal reflow, not the strip's geometry, and the only way to prevent it
+would be to reserve 46px of dead space on every row forever — which would keep
+that row needlessly wrapped. Card bodies stay 300px and the page 1218px, so the
+grid is immovable.
+
+### What broke — my own gate assertion, and it is the useful part
+
+The first version of `copy-to-list appears exactly when the quick list does`
+inferred the flag from the page: it looked for a To-do launcher and treated its
+presence as "flag on". The selector `/to-?do list$/i` **matched the copy button's
+own accessible name**, "Copy X to your to-do list" — so the check read the thing
+it was gating as proof the gate was open. It passed with the guard AND with the
+guard removed.
+
+Caught only by running the verified-to-fail step. The flag is parsed from
+`features.ts` now, the way `check-contrast.py` parses `app.css`, and it fails
+correctly in both directions.
+
+**New standing decision:** an assertion's expected value must never be derived
+from the thing under test.
+
+### Decisions made
+
+- **`FEATURES.floatingTodo` gates the control, not a new flag** (brief). One word
+  brings back the panel and the button together.
+- **The strip is right-anchored at every width** (mine). Needed to honour the
+  no-shift constraint below `sm`, and it removes an existing shift on expand. It
+  does move the phone strip from left- to right-aligned, which is a visible change
+  to the current state — flagged here rather than buried.
+- **The toast stays mounted** even with no caller. It returns with the button on
+  the same flag; removing and re-adding it would be churn.
+
+### Loose ends carried forward
+
+- **`Toast` has no caller while `floatingTodo` is false**, so it is unexercised
+  outside its six tests. Not dead code — same flag restores both — but worth
+  knowing that nothing on screen can currently raise one.
+- Everything from the entry below is unchanged.
+
+---
+
 ## 2026-08-21 — two follow-ons after 6b
 
 **HEAD:** `df72ad1` · 2 commits, both pushed · 451 tests green · all six gates green.
