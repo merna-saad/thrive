@@ -779,6 +779,132 @@ export const messages = {
 			'This is a prototype. Bookings are held in THRIVE only. Nothing is written to your calendar, and no one is notified.'
 	},
 
+	/* --- Ask THRIVE -------------------------------------------------------- */
+	ask: {
+		documentTitle: 'Ask THRIVE',
+		eyebrow: 'ask thrive',
+		title: 'Ask a question',
+		/**
+		 * Names the split, and says the honest thing about it in the same breath.
+		 *
+		 * The three destinations exist because they will be wired to different
+		 * material, and a student choosing between them deserves to know that none of
+		 * them can answer yet rather than finding out one question in.
+		 */
+		intro:
+			'Three places to ask, depending on what you need. None of them are connected to real material yet — the saved conversations below are examples of what this will hold.',
+
+		/**
+		 * The three destinations. Keyed by `AskDestination`, so a fourth is a
+		 * compile error here rather than a blank panel on screen.
+		 *
+		 * Each carries a `blurb` for the rail and a full empty state, because an
+		 * empty chat box tells a student nothing about what this particular
+		 * destination knows. The examples are the useful part: they are the shape of
+		 * question that belongs here, which is faster to read than a description of
+		 * the shape of question that belongs here.
+		 */
+		destinations: {
+			resources: {
+				label: 'Resources',
+				blurb: 'Program material and policy',
+				emptyHeading: 'Ask about how the program works',
+				emptyBody:
+					'Handbooks, policies, deadlines, and who owns which decision. This one answers from the program’s own material rather than from the open web.',
+				examples: [
+					'What happens if I drop a course after week 2?',
+					'Who has to approve a petition?',
+					'Where do I request a laptop for the quarter?'
+				]
+			},
+			courses: {
+				label: 'Course Recommender',
+				blurb: 'Classes and electives',
+				emptyHeading: 'Ask which classes fit where you are going',
+				emptyBody:
+					'Electives, sequencing, and what a quarter will actually cost you in hours. Say what you are aiming at and it can be specific.',
+				examples: [
+					'Which electives suit product analytics?',
+					'Can I take experimentation and data engineering together?',
+					'Does auditing a course count toward the degree?'
+				]
+			},
+			career: {
+				label: 'Career',
+				blurb: 'Job search and interviews',
+				emptyHeading: 'Ask about the job search',
+				emptyBody:
+					'Applications, interviews, offers, and the awkward conversations in between. Bring the specific situation rather than the general question.',
+				examples: [
+					'How do I answer the salary question in a first screen?',
+					'Is two pages too long for my resume?',
+					'How do I follow up after a rejection?'
+				]
+			}
+		},
+
+		rail: {
+			label: 'Ask THRIVE sections',
+			destinationsHeading: 'Ask about',
+			historyHeading: 'Saved conversations',
+			/** Scoped to the destination, because that is what the list shows. */
+			historyEmpty: 'Nothing saved here yet.',
+			historyLabel: 'Saved conversations',
+			/** Names the count beside a title so the figure is not bare. */
+			messageCount: (count: number) => (count === 1 ? '1 message' : `${count} messages`),
+			newConversation: 'New conversation',
+			/** The rail's own accessible name for a history entry. */
+			openConversation: (title: string, when: string) => `${title}, ${when}`
+		},
+
+		history: {
+			today: 'Today',
+			yesterday: 'Yesterday'
+		},
+
+		chat: {
+			/** Names the log region. A bare "log" tells a screen reader nothing. */
+			logLabel: (destination: string) => `${destination} conversation`,
+			composerLabel: 'Ask a question',
+			placeholder: 'Type your question…',
+			send: 'Send',
+			/**
+			 * Spoken prefixes, so who said what does not rest on which side of the
+			 * column a bubble sits on.
+			 */
+			youSaid: 'You said: ',
+			thriveSaid: 'THRIVE said: ',
+
+			/**
+			 * The reply, and it says plainly that it cannot answer.
+			 *
+			 * A placeholder that mimics a real answer teaches a student to trust
+			 * something that is not there. Same decision the floating assistant made,
+			 * and the same wording problem: this has to sound like a limitation
+			 * rather than a failure, because it is one.
+			 */
+			placeholderReply:
+				'I can’t answer this yet. I’m not connected to the program’s material, your courses, or the career team — this page is the container, and the answers arrive when the retrieval service does.',
+
+			/**
+			 * Said BEFORE anything is typed, not after.
+			 *
+			 * The composer works and the exchange is real on screen, but it lives in
+			 * this tab and nothing else. A student who found that out by navigating
+			 * away would reasonably read it as having lost something.
+			 */
+			notSaved: 'Nothing you type here is saved yet. Leaving this page clears it.',
+			/** The heading over an exchange that only exists in this tab. */
+			draftHeading: 'This session'
+		},
+
+		/** A destination or a conversation that does not exist. */
+		notFound: {
+			destination: 'There is no such section of Ask THRIVE.',
+			conversation: 'That conversation is not on file.'
+		}
+	},
+
 	/** Event origin tags. One per EventType. */
 	eventTypes: {
 		career: 'Career',
