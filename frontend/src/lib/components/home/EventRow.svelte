@@ -105,10 +105,14 @@
 
 		<!-- Visual only, as in the Next app. Typed as buttons rather than links so
 		     nothing navigates, and THRIVE never writes to a real calendar.
-		     Deliberately NOT wired to the join store: that store is keyed on the
-		     calendar item id rather than the raw Event.id (MIGRATION.md section 9
-		     defect 13), so a "count me in" here would write to a different key than
-		     the calendar reads. 6b or later, once the key space is settled. -->
+
+		     STILL NOT WIRED, but the reason has changed. It used to be that the join
+		     store was keyed on the calendar item id (MIGRATION.md section 9 defect
+		     13) so a "count me in" here would write a key the calendar never reads.
+		     Phase 7c settled that: `thrive:event-joins` keys on the raw `Event.id`,
+		     which is exactly what `event.id` holds here, so wiring these two is now
+		     a one-line change on each rather than a decision. Left for the phase
+		     that owns Home, so it arrives with its own gate coverage. -->
 		<div class="mt-1.5 flex flex-wrap gap-1.5">
 			<Button size="sm">
 				{messages.home.events.countMeIn}

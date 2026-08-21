@@ -15,6 +15,7 @@ import type { Priority, Task } from "$lib/data";
  */
 
 const doneStore = createOverrideStore<boolean>("thrive:task-done");
+/** Keyed on the RAW `Event.id`, not on a task id. See `isEventJoined`. */
 const joinStore = createOverrideStore<boolean>("thrive:event-joins");
 const titleStore = createOverrideStore<string>("thrive:task-titles");
 const priorityStore = createOverrideStore<Priority>("thrive:task-priority");
@@ -38,7 +39,7 @@ export type JoinOverrides = Readonly<Record<string, boolean>>;
 /** Every done-override the student has made, keyed by task id. */
 export const taskDoneOverrides = () => doneStore.values;
 
-/** Every event the student has said yes to, keyed by CALENDAR ITEM id. */
+/** Every event the student has said yes to, keyed by RAW `Event.id`. */
 export const eventJoins = () => joinStore.values;
 
 /** Titles the student has rewritten, keyed by task id. */
@@ -72,12 +73,57 @@ export function setTaskDone(task: Task, done: boolean) {
 	doneStore.set(task.id, done === task.done ? undefined : done);
 }
 
-/** Has the student said "count me in" for this event? */
+/**
+ * Has the student said "count me in" for this event?
+ *
+ * ## The key is a RAW `Event.id`, settled in Phase 7c
+ *
+ * `evt-3-1`. Never the calendar item id `evt-evt-3-1`, and never `3-1`.
+ *
+ * The Next tree keyed this store on the CALENDAR ITEM id -- MIGRATION.md §9
+ * defect 13 -- which is the same defect that was fixed in the ignore store in
+ * 7a, sitting in a second store. It was invisible there because the join store
+ * had exactly one consumer, and one consumer can be self-consistent under any
+ * key space at all.
+ *
+ * 7c built that consumer, so the decision was made with it in front of us:
+ *
+ *  - **The two stores are asked about the same thing by the same row.** A
+ *    `DayEventsSection` row offers "count me in" and "ignore" side by side.
+ *    Under the old shape it would hold TWO ids for one event and have to
+ *    remember which control took which -- the precise arrangement that produced
+ *    two stores wearing one name last time.
+ *  - **Home already holds the other id.** `EventRow` has a "count me in" button
+ *    sitting inert, with a comment saying it is inert *because this key space
+ *    was unsettled*. Home holds an `Event`, so it holds `event.id` -- raw. Wiring
+ *    it under the item-id shape would have written a key the calendar never reads.
+ *  - **Nothing argues the other way.** A join is a fact about an EVENT, not about
+ *    a row on a particular day. Labels and urgent are keyed by calendar item id
+ *    for the opposite reason: those annotate a row the student may not own, on
+ *    streams that have no event behind them at all.
+ *
+ * So there are still three key spaces, not four: task id (`userEdits`'s six
+ * other stores), calendar item id (`calendarItems`), and raw `Event.id`
+ * (`ignoredEvents` and this one). The calendar sheds its prefix at its own
+ * boundary, in `calendarEvents.ts`, exactly once.
+ *
+ * Keys written under the old shape stay in `localStorage` and are inert. Not
+ * migrated, and the same reasoning as 7a: absence means "never joined" here, so
+ * a stale key is harmless rather than corrupt, and this is mock data in dev. A
+ * student who joined an event before this change is asked once more.
+ */
 export function isEventJoined(id: string, joins: JoinOverrides): boolean {
 	return joins[id] ?? false;
 }
 
-/** Nothing is sent anywhere; this is local intent only. */
+/**
+ * Say yes, or take it back. Takes a RAW `Event.id` -- see the note above.
+ *
+ * Nothing is sent anywhere; this is local intent only. No normalising happens
+ * here, deliberately: a caller holding a calendar item id converts at its own
+ * boundary, where it is the only party that knows which kind of id it has. The
+ * ignore store states the same rule for the same reason.
+ */
 export function setEventJoined(id: string, joined: boolean) {
 	// Not joined is the default, so store the absence rather than `false`.
 	joinStore.set(id, joined ? true : undefined);

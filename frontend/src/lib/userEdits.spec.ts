@@ -148,11 +148,31 @@ describe("property 4: the other setters", () => {
 	it("setEventJoined stores the absence rather than false", async () => {
 		const edits = await fresh();
 
-		edits.setEventJoined("evt-evt-3-1", true);
-		expect(edits.eventJoins()).toEqual({ "evt-evt-3-1": true });
+		// A RAW `Event.id`, which is the key space this store settled on in 7c.
+		edits.setEventJoined("evt-3-1", true);
+		expect(edits.eventJoins()).toEqual({ "evt-3-1": true });
 
-		edits.setEventJoined("evt-evt-3-1", false);
+		edits.setEventJoined("evt-3-1", false);
 		expect(edits.eventJoins()).toEqual({});
+	});
+
+	it("keys on exactly the id it is handed, and normalises nothing", async () => {
+		/*
+		 * The store's own half of the key-space rule, stated the same way the ignore
+		 * store states it. Both live in the raw-`Event.id` space and BOTH must
+		 * refuse to touch what they are given -- a normaliser here could not tell a
+		 * raw id from a calendar item id, because a raw event id starts with `evt-`
+		 * too, which is exactly how the ignore store ended up as two stores wearing
+		 * one name.
+		 *
+		 * The conversion belongs at the calendar's boundary. That half is pinned in
+		 * `calendarEvents.spec.ts`.
+		 */
+		const edits = await fresh();
+
+		edits.setEventJoined("evt-evt-3-1", true);
+
+		expect(stored("thrive:event-joins")).toEqual({ "evt-evt-3-1": true });
 	});
 });
 
