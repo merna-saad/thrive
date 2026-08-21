@@ -32,12 +32,17 @@
 	<div class="lg:pl-rail">
 		<TopBar {student} notificationCount={2} />
 
-		<!-- The bottom padding clears the mobile nav bar, which is fixed over the
-		     page. Above `lg` the bar is gone and the padding relaxes. -->
+		<!-- The bottom padding clears the mobile nav bar, which is fixed OVER the
+		     page, so on mobile it is the bar's height plus the page's gutter. Above
+		     `lg` there is no bar and the gutter is the whole padding.
+		     Both halves now come from `--thrive-page-gutter-bottom` rather than one
+		     being a bare `pb-8`: 32px of desktop padding was buying nothing under a
+		     page whose last element is already a bordered panel, and it cost every
+		     route. -->
 		<main
 			id="main-content"
 			tabindex="-1"
-			class="mx-auto w-full max-w-6xl px-3 pt-4 pb-[calc(var(--thrive-bottomnav-height)+1rem)] sm:px-5 lg:pb-8"
+			class="mx-auto w-full max-w-6xl px-3 pt-4 pb-[calc(var(--thrive-bottomnav-height)+var(--thrive-page-gutter-bottom))] sm:px-5 lg:pb-page-bottom"
 		>
 			{@render children()}
 		</main>

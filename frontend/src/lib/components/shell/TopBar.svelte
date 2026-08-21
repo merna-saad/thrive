@@ -14,6 +14,18 @@
 	 * PORTED AT 1px. Same reason as the rail -- see the note there. The Next
 	 * source's `border-b-2` and its comment about "its 2px bottom edge" are both
 	 * from the reversed direction.
+	 *
+	 * ## Two heights, one token (2026-08-21)
+	 *
+	 * 56px on mobile, 48px above `lg`, via a media override on
+	 * `--thrive-topbar-height` rather than a class here. The bar was 56px
+	 * everywhere to hold two 44px touch targets, and it was paying that on
+	 * desktop where nothing touches it -- on every route, not just Home.
+	 *
+	 * So the CONTROLS are what change size: 44px on mobile, 36px above `lg`. The
+	 * bar's height follows from them rather than the other way round. WCAG 2.5.8
+	 * asks 24px of a pointer target and 2.5.5 asks 44px of a touch one; 36px on a
+	 * pointer is comfortably past the first and mobile keeps the second intact.
 	 */
 	let {
 		student,
@@ -55,33 +67,36 @@
 	<div class="flex shrink-0 items-center gap-2">
 		<!-- The shared IconButton is not ported yet, so its ghost treatment is
 		     inlined: a border box held at rest so the button cannot change size on
-		     hover, drawing nothing until it is reached for. A real 44px box rather
-		     than a 36px one with a padded hit area -- this is chrome in a bar with
-		     room for it, and a target you can see beats one you can only hit. -->
+		     hover, drawing nothing until it is reached for.
+		     A real box rather than a padded hit area -- a target you can see beats
+		     one you can only hit. 44px on touch, 36px on a pointer. -->
 		<button
 			type="button"
 			aria-label={notificationCount > 0
 				? `Notifications, ${notificationCount} unread`
 				: 'Notifications'}
-			class="relative inline-flex size-11 items-center justify-center rounded-md border border-transparent text-muted-ink transition-[background-color,color,border-color] duration-(--motion-fast) ease-standard hover:border-line hover:bg-sunken hover:text-ink"
+			class="relative inline-flex size-11 items-center justify-center rounded-md border border-transparent text-muted-ink transition-[background-color,color,border-color] duration-(--motion-fast) ease-standard hover:border-line hover:bg-sunken hover:text-ink lg:size-9"
 		>
-			<Bell aria-hidden="true" class="size-5" />
+			<Bell aria-hidden="true" class="size-5 lg:size-4" />
 			{#if notificationCount > 0}
+				<!-- The dot rides the icon's corner, so it moves with the button as the
+				     box shrinks rather than drifting off the glyph. -->
 				<span
 					aria-hidden="true"
-					class="absolute top-2 right-2 size-2 rounded-pill bg-watch ring-2 ring-surface"
+					class="absolute top-2 right-2 size-2 rounded-pill bg-watch ring-2 ring-surface lg:top-1.5 lg:right-1.5"
 				></span>
 			{/if}
 		</button>
 
-		<!-- A 44px hit area around a 36px mark: the target clears the touch
-		     minimum without the avatar itself growing into a headline. -->
+		<!-- A hit area around a smaller mark: the target clears the touch minimum
+		     without the avatar itself growing into a headline. Both shrink together
+		     above `lg` so the ring of space around the avatar stays even. -->
 		<button
 			type="button"
 			aria-label={`Account menu for ${student.name}`}
-			class="flex size-11 items-center justify-center rounded-pill transition-opacity duration-(--motion-fast) ease-standard hover:opacity-80"
+			class="flex size-11 items-center justify-center rounded-pill transition-opacity duration-(--motion-fast) ease-standard hover:opacity-80 lg:size-9"
 		>
-			<Avatar name={student.name} src={student.avatarUrl} class="size-9" />
+			<Avatar name={student.name} src={student.avatarUrl} class="size-9 lg:size-7" />
 		</button>
 	</div>
 </header>

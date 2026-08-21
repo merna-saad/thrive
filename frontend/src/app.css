@@ -257,8 +257,31 @@
 
   /* Layout constants for the app shell */
   --thrive-rail-width: 15rem;
+
+  /* The header's height, and the one shell token that CHANGES BY BREAKPOINT.
+     See the media override below layer 3.
+
+     56px on mobile because the bar holds two 44px touch targets and a 44px
+     target in a 48px bar is 2px of padding. 48px above `lg`, where the same
+     controls drop to 36px because a pointer does not need 44 -- 6px of
+     breathing above and below a 36px control, which is the smallest step that
+     still reads as a deliberate bar rather than a squeezed one. 44px was
+     measured too and leaves 4px, which reads as squeezed.
+
+     `SideRail` draws its brand band at `h-topbar` so the rail's edge and the
+     bar's edge continue one line across the shell. Because that is the same
+     token, the two cannot fall out of step at the breakpoint. */
   --thrive-topbar-height: 3.5rem;
+
   --thrive-bottomnav-height: 3.75rem;
+
+  /* The page's bottom breathing room, below the content and above the fold.
+     Used twice: on mobile it is added to the bottom nav's height, because that
+     bar is fixed OVER the page and the content has to clear it; above `lg`
+     there is no bar and this is the whole padding.
+     Was a bare `pb-8` (32px) on desktop, which was buying nothing on a page
+     whose last element is already a bordered panel. */
+  --thrive-page-gutter-bottom: 1rem;
 
   /* The dashboard card body height, desktop only. See `.thrive-card-body`.
 
@@ -557,15 +580,31 @@
   --ease-standard: var(--thrive-ease-standard);
   --ease-pop: var(--thrive-ease-pop);
 
-  /* Layout */
+  /* Layout. `inline` matters for `topbar`: the utility inlines the var()
+     expression rather than resolving it once, which is what lets the media
+     override below change `h-topbar` everywhere it is used. */
   --spacing-rail: var(--thrive-rail-width);
   --spacing-topbar: var(--thrive-topbar-height);
   --spacing-bottomnav: var(--thrive-bottomnav-height);
+  --spacing-page-bottom: var(--thrive-page-gutter-bottom);
 
   /* Fonts */
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
   --font-heading: var(--font-sans);
+}
+
+/* The one responsive token in the system.
+   Above `lg` the header's controls become pointer-sized, so the bar can be
+   shorter. Overriding the RAW token rather than the utility means every call
+   site follows -- the bar itself, the rail's brand band, and the sticky offset
+   of anything that ever pins below the header.
+   64rem matches the breakpoint the rail and the bottom bar swap at, so the bar
+   changes height on the same line the navigation changes shape. */
+@media (width >= 64rem) {
+  :root {
+    --thrive-topbar-height: 3rem;
+  }
 }
 
 @layer base {
@@ -757,6 +796,29 @@
       overflow-y: auto;
       /* Stops a flick at the end of the list scrolling the page behind it. */
       overscroll-behavior: contain;
+      /*
+       * Containment, and it is load-bearing rather than an optimisation.
+       *
+       * Without it the page carried 37px of scrollable EMPTY space: every
+       * element rendered at or above the shell's bottom edge, `body.scrollHeight`
+       * agreed at 1238px, and yet `window.scrollTo(0, 1e6)` still moved 37px.
+       * A capped card whose content overflows was leaking its scrollable overflow
+       * out to the document, so Home could not fit any viewport shorter than
+       * 1275px however tightly the header was packed.
+       *
+       * Measured the fix rather than guessed it: `overflow: hidden`, `clip`, and
+       * `overflow-x: hidden` all left the 37px in place; `contain: paint` took it
+       * to zero.
+       *
+       * Safe here, and not a visual change. Paint containment clips at the box
+       * edge, which `overflow-y: auto` already does vertically -- and horizontally
+       * too, since a `visible` axis paired with a non-`visible` one computes to
+       * `auto`. Nothing inside a card body positions itself against an outer
+       * ancestor: the one absolutely-positioned thing in a row,
+       * `.thrive-strike::after`, is contained by its own `position: relative`
+       * parent.
+       */
+      contain: paint;
     }
   }
 
