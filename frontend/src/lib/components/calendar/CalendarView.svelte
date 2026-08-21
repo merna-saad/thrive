@@ -1,16 +1,23 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 
+	import AgendaView from '$lib/components/calendar/AgendaView.svelte';
 	import CalendarHeader from '$lib/components/calendar/CalendarHeader.svelte';
 	import DayGroupToggle from '$lib/components/calendar/DayGroupToggle.svelte';
 	import DaySection from '$lib/components/calendar/DaySection.svelte';
+	import KeyBar from '$lib/components/calendar/KeyBar.svelte';
 	import MiniCalendar from '$lib/components/calendar/MiniCalendar.svelte';
+	import ViewSwitcher from '$lib/components/calendar/ViewSwitcher.svelte';
+	import WeekView from '$lib/components/calendar/WeekView.svelte';
 	import { arrangeDay, squareGroupsFor } from '$lib/calendarDay';
+	import { agendaRange, visibleUndatedTodos } from '$lib/calendarViews';
 	import { calendarPrefs } from '$lib/calendarPrefs';
 	import { mergedSchedule } from '$lib/calendarSources';
 	import { ignoredEvents } from '$lib/ignoredEvents';
 	import { messages } from '$lib/messages';
+	import { cn } from '$lib/utils';
 	import {
+		allLabels,
 		filterSchedule,
 		fromDayKey,
 		itemsForDay,
@@ -142,6 +149,41 @@
 		})
 	);
 
+	/**
+	 * Every label in use, for the key to render — from the UNFILTERED merge.
+	 *
+	 * Load-bearing, and the kind of line that gets "tidied" into a bug. If the
+	 * labels came from `filtered`, switching a label off would remove its own chip
+	 * from the key and there would be no way to switch it back on.
+	 */
+	const labels = $derived(allLabels(merged.data));
+
+	/**
+	 * The agenda's thirty days, anchored on TODAY rather than on the selection.
+	 *
+	 * The agenda answers "what is coming up". An anchor that moved with the
+	 * selection would answer a different question every time a student touched the
+	 * month grid. See `agendaRange`.
+	 */
+	const agendaDays = $derived(agendaRange(todayKey));
+
+	/**
+	 * Undated to-dos that survive the filter.
+	 *
+	 * `filterSchedule` cannot reach these — they are not in `ScheduleData`, because
+	 * they have no day to be in — so the two dimensions that CAN apply to them are
+	 * applied here by the same rules. `urgentOnly` hides all of them, for the exact
+	 * reason `filterSchedule` drops recurring classes under the same switch: none of
+	 * them can carry the flag, and a filter that visibly skips one section reads as
+	 * broken. Nothing in `filterSchedule` changed.
+	 */
+	const visibleTodos = $derived(
+		visibleUndatedTodos(merged.undatedTodos, {
+			showDone: prefs.showDone,
+			urgentOnly: prefs.urgentOnly
+		})
+	);
+
 	const dayItems = $derived(itemsForDay(filtered, selectedKey));
 	const schedule = $derived(scheduleItemsForDay(filtered, selectedKey));
 	const personal = $derived(personalItemsForDay(filtered, selectedKey));
@@ -225,29 +267,23 @@
 	const onTick = (item: ScheduleItem, done: boolean) => tickItem(item, done);
 </script>
 
-<!-- Capped and centred rather than full width: a month grid stops being readable
-     when its columns stretch across a desktop. The wider `max-w-5xl` the other
-     views want arrives with them in 7b. -->
-<div class="mx-auto w-full max-w-2xl space-y-3">
-	<p aria-live="polite" class="sr-only">{announcement}</p>
+<!--
+	The selected day's panel: its summary, then its items.
 
-	<MiniCalendar
-		data={filtered}
-		{todayKey}
-		{selectedKey}
-		onSelect={select}
-		{monthKey}
-		onMonthChange={(next) => (monthKey = next)}
-		showTodayButton
-		size="comfortable"
-	/>
+	A SNIPPET because two views render it — month below the grid, week below the
+	columns — and only agenda replaces it. The Next source expressed that as
+	`view === "agenda" ? <Agenda/> : <dayPanel/>`, which reads as "agenda is the
+	odd one out" and hides that the panel is shared. Written twice it would be two
+	things to keep in step; written once it cannot drift.
 
-	<!-- Keyed on the day, so the whole panel replays its entrance when the
-	     selection changes. The global reduced-motion rule collapses the duration,
-	     so it simply appears for anyone who asked for that. -->
+	Keyed on the day, so the whole panel replays its entrance when the selection
+	changes. The global reduced-motion rule collapses the duration, so it simply
+	appears for anyone who asked for that.
+-->
+{#snippet dayPanel()}
 	{#key selectedKey}
 		<div class="animate-rise space-y-3">
-			<CalendarHeader {heading} {isToday} items={dayItems} {nextUp} squares={squares} />
+			<CalendarHeader {heading} {isToday} items={dayItems} {nextUp} {squares} />
 
 			<!--
 				The day, by type. Groups run in DAY_GROUPS order -- classes, then what
@@ -279,4 +315,80 @@
 			</section>
 		</div>
 	{/key}
+{/snippet}
+
+<!-- The agenda, rendered from one place so the week fallback and the agenda view
+     itself cannot drift apart. -->
+{#snippet agenda()}
+	<AgendaView
+		data={filtered}
+		dayKeys={agendaDays}
+		mode={prefs.groupBy}
+		undatedTodos={visibleTodos}
+		{onTick}
+	/>
+{/snippet}
+
+<!--
+	Capped and centred rather than full width. A month grid stops being readable
+	when its columns stretch across a desktop; a list and seven columns both use
+	the room, so they get `max-w-5xl`.
+-->
+<div class={cn('mx-auto w-full space-y-3', prefs.view === 'month' ? 'max-w-2xl' : 'max-w-5xl')}>
+	<p aria-live="polite" class="sr-only">{announcement}</p>
+
+	<ViewSwitcher {prefs} />
+	<KeyBar {prefs} {labels} ignoredEventCount={ignoredEventIds.length} />
+
+	{#if prefs.view === 'agenda'}
+		{@render agenda()}
+	{:else if prefs.view === 'week'}
+		<!--
+			THE 40REM FALLBACK, AND IT IS CSS.
+
+			Seven columns on a 375px screen gives each one about 50px, which is
+			narrower than the word "Assignment". So below `sm` (40rem) the week grid
+			does not render and the agenda answers instead.
+
+			Done with two media-gated wrappers rather than a `matchMedia` read, and
+			that is a decision. CONVENTIONS is explicit that a viewport question CSS
+			can answer belongs in CSS — the JS form is reserved for cases with no CSS
+			equivalent, like moving FOCUS. A `matchMedia` read would also have to
+			guess during SSR, so one width of student would watch the wrong view paint
+			and get replaced a beat after hydration, which is the quiet hydration drift
+			the same file warns about.
+
+			What it costs, stated rather than discovered: both subtrees are built, so a
+			desktop pays for one `groupAgenda` over thirty days it will not show and a
+			phone pays for one week grid. Both are cheap, and `display: none` keeps the
+			hidden one out of the accessibility tree, so nothing is announced twice.
+		-->
+		<div class="hidden space-y-3 sm:block">
+			<WeekView data={filtered} {selectedKey} {todayKey} onSelect={select} />
+			{@render dayPanel()}
+		</div>
+
+		<div class="space-y-3 sm:hidden">
+			<!-- Said out loud. The switcher still shows "week" selected, because that
+			     IS the student's choice and it will be honoured the moment the screen
+			     is wide enough — so the page owes them a reason for showing something
+			     else rather than appearing to have ignored the click. -->
+			<p data-tone="sunken" class="thrive-panel text-xs text-muted-ink">
+				{copy.week.fallbackNote}
+			</p>
+			{@render agenda()}
+		</div>
+	{:else}
+		<MiniCalendar
+			data={filtered}
+			{todayKey}
+			{selectedKey}
+			onSelect={select}
+			{monthKey}
+			onMonthChange={(next) => (monthKey = next)}
+			showTodayButton
+			size="comfortable"
+		/>
+		{@render dayPanel()}
+	{/if}
 </div>
