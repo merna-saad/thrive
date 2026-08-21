@@ -42,6 +42,13 @@ day's items. Month view only — 7b brings the other two views and the filter ba
   reappears once.
 - **CONTEXT.md is not regenerated** and its `updated-at` is behind.
 
+### Answered after the report
+
+All four closing questions came back and are settled in HANDOFF: CONTEXT.md is
+regenerated **after 7c**, `thrive:event-joins` is handled **in 7c** with its only
+consumer on screen, the day-figure gap **stands** pending the owner seeing it, and
+375px joins touch drag on a real-phone list.
+
 ### Next priorities
 
 Phase 7b: `ViewSwitcher`, `WeekView`, `AgendaView`, `KeyBar`.

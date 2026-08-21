@@ -128,19 +128,48 @@ owns.
 `prefs.view` is effectively pinned to month: nothing can change it until `KeyBar`
 and `ViewSwitcher` land.
 
+### Answered after the report, and now settled rather than open
+
+All four of 7a's closing questions came back. Recorded here so 7b does not
+re-litigate any of them.
+
+- **CONTEXT.md is regenerated after 7c, not now.** The owner's words: three
+  calendar phases are in flight and a stale-and-flagged file beats a half-patched
+  one. The `updated-at` stays behind and the hook will keep saying so — **that is
+  the intended state, not a missed step.** Do not patch it in place in 7b; the
+  regeneration is one job at the end of 7c.
+- **`thrive:event-joins` is handled in 7c, not before.** It is MIGRATION §9 defect
+  13 and it is the same bug 7a just fixed, in a second store: the join store is
+  keyed on the calendar item id (`evt-evt-3-1`) where the ignore store is keyed on
+  the raw `Event.id`. The reason to wait is the good one — **7c builds
+  `DayEventsSection`, its only consumer**, so the decision gets made with the
+  consumer on screen rather than in the abstract. It becomes a live bug the moment
+  Home grows a "count me in" button, which is not this phase either.
+- **The day-figure gap stands unless the owner says otherwise.** They are looking
+  at it on screen. Assume it holds; do not pre-emptively change what the header
+  counts or what the month grid dots.
+- **375px goes on the real-phone list**, below.
+
+### The real-phone list
+
+Two things now wait on the same session with an actual handset, because a
+simulated viewport cannot answer either:
+
+1. **Touch drag on Home's task rows.** Carried from the previous handoff, still
+   unaddressed.
+2. **`/calendar`'s month grid at 375px.** The page is 1513px and passes the layout
+   gate, but the cells are ~44px wide — at the touch-target floor, in a 7×6 grid,
+   with a dot row inside each cell. Nothing measurable is wrong; it has just never
+   been touched by a thumb.
+
 ### Still open
 
-- **CONTEXT.md is NOT regenerated.** Its `updated-at` is behind and the hook will
-  say so. Deliberate: the rule is all-or-nothing, three calendar phases are coming,
-  and a stale-and-flagged file beats a half-patched one. **This is the largest
-  thing owed.**
-- Two `LOW` defects from the accepted list are still live and untouched:
-  MIGRATION §9 defect 13 (`thrive:event-joins` keyed on the calendar item id) and
-  defect 14 (`custom-custom-…` ids). Defect 13 becomes real the moment Home grows
-  a "count me in" button, and it is the same bug shape 7a just fixed — worth
-  deciding in 7c rather than discovering.
-- `/calendar` at 375px is 1513px tall and passes the layout gate, but the grid's
-  cells are ~44px wide there and have not been eyeballed on a real phone.
+- **MIGRATION §9 defect 14** (`custom-custom-…` ids) is untouched and unscheduled.
+  Cosmetic and internally consistent — `deleteCustomEvent` clears the matching
+  `custom-${id}` — so it is noted rather than queued.
+- `prefs.view` can hold `week` or `agenda` from a hand-edited store while nothing
+  renders those views. Harmless today because no control writes it, and it stops
+  being a question the moment `ViewSwitcher` lands in 7b.
 
 ---
 

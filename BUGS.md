@@ -510,6 +510,11 @@ Pinned by `calendarDay.spec.ts` → `"counts events too, because the figure besi
 it does"`, which states the reason in the test rather than leaving it to be
 rediscovered as a bug.
 
+**Owner's call, after seeing the reasoning: it stands** unless looking at it on
+screen changes their mind. So do not pre-emptively change what the header counts
+or what the month grid dots — the fix, if one is wanted, is 7c arriving on time
+rather than 7a hiding a number.
+
 ### `SquareGrid`'s white halo — **built correctly, not ported**
 
 MIGRATION.md §9 defect 10. The Next version rings the "next up" cell with
@@ -586,6 +591,34 @@ Untested deliberately: writing `expect(...).toBe("Invalid Date")` would entrench
 it. The last unguarded function in `format.ts`. Currently unreachable with
 garbage via `describeDue` (the date has already parsed by then) but directly
 callable.
+
+---
+
+## 2026-08-21 — queued for Phase 7c, deliberately not fixed in 7a
+
+### `thrive:event-joins` is keyed on the calendar item id — **LOW now, the same bug as above later**
+
+MIGRATION §9 defect 13. `setEventJoined(item.id, …)` is called with the calendar's
+id (`evt-evt-3-1`), whereas the ignore store keys on the raw `Event.id`
+(`evt-3-1`). **This is the defect 7a just fixed, in a second store.**
+
+It is LOW today only because the join store has exactly one consumer and that
+consumer does not exist yet. It becomes real the moment Home grows a "count me in"
+button, which would hold `event.id` and write to a different key — producing the
+two-stores-one-name split all over again.
+
+**Deferred to 7c by decision, not by omission.** 7c builds `DayEventsSection`,
+which is the join store's only consumer, so the key-space choice gets made with
+the consumer on screen rather than in the abstract. Fixing it in 7a would mean
+choosing a canonical key for a store nothing reads.
+
+The precedent is set, so 7c has the easy version of the question: the store keys
+on exactly what it is handed, and the surface holding a prefixed id sheds it at
+its own boundary. What 7c has to decide is whether the raw `Event.id` is right for
+joins as well — it almost certainly is, since a join is a fact about an EVENT
+rather than about a calendar row — and to add a cross-surface test that is not
+vacuous in either direction. See CONVENTIONS and FINDINGS for why the second half
+is the harder one.
 
 ---
 
