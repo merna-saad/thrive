@@ -51,12 +51,43 @@ npm install
 
 npm run dev -- --open    # :5173, the one you want
 npm run build            # production build
-node build/index.js      # run the build, :3000
+ORIGIN=http://localhost:3000 node build/index.js   # run the build, :3000
 npm run preview          # vite's preview of the build, :4173
 npm run check            # svelte-check
-npm test                 # vitest run, 563 tests
+npm test                 # vitest run, 608 tests
 npm run test:unit        # vitest watch
 ```
+
+### `ORIGIN` is required to run the build (added 2026-08-21, Phase 8)
+
+**Serving `build/index.js` without `ORIGIN` set breaks every form submission with
+`403 Cross-site POST form submissions are forbidden`.**
+
+`adapter-node` cannot know the public URL it is reached on, and SvelteKit's CSRF
+check compares a POST's `Origin` header against the URL it thinks it is serving.
+Without the variable it guesses, the guess does not match, and the POST is
+refused.
+
+Two things made this invisible until now:
+
+- **Nothing in the app posted anything.** Home and the calendar write to
+  `localStorage`. `/appointments` is the first surface with a form action, so it
+  is the first POST the app has ever made.
+- **The dev server is unaffected**, because Vite serves the app on the origin it
+  reports. So `npm run dev` books appointments fine and only the built server
+  fails — the worst possible split.
+
+It was found by `check:interaction`, which now sets `ORIGIN` when it spawns the
+server (so does `check:layout`). That is not a workaround for the gates: it is
+the same variable a real deployment must set, so the gates now run the app the
+way it actually has to be run.
+
+For a real deployment, set `ORIGIN` to the public URL. Behind a reverse proxy,
+`PROTOCOL_HEADER=x-forwarded-proto` and `HOST_HEADER=x-forwarded-host` are the
+alternative — see the adapter-node docs. Do not reach for
+`csrf: { checkOrigin: false }`; the check is the only thing standing between the
+form actions and a cross-site POST, and the actions have no auth yet
+(MIGRATION.md §9 defect 2).
 
 From the repo root:
 
