@@ -1,4 +1,10 @@
-import type { QuickItem } from '$lib/quickList';
+import {
+	customEventToItem,
+	itemLabels,
+	itemUrgent,
+	customEvents
+} from '$lib/calendarItems';
+import { quickItems, type QuickItem } from '$lib/quickList';
 import {
 	dayKeyOf,
 	minutesOf,
@@ -6,6 +12,15 @@ import {
 	type DatedScheduleItem,
 	type ScheduleData
 } from '$lib/schedule';
+import {
+	addedTasks,
+	applyTaskEdits,
+	isTaskDone,
+	taskDoneOverrides,
+	taskDues,
+	taskPriorities,
+	taskTitles
+} from '$lib/userEdits.svelte';
 import type { Task } from '$lib/data';
 
 /**
@@ -35,22 +50,25 @@ import type { Task } from '$lib/data';
  * student's calendar. Local is the correct answer until the Django backend
  * settles it.
  *
- * ## Ported in Phase 2: the two mappers
+ * ## Hydration
  *
- * `useMergedSchedule` is a hook over nine localStorage stores and waits for the
- * store phase -- see the note at the top of `calendarPrefs.ts`. The mappers
- * below are where the actual decisions live (which day a thing lands on,
- * whether it is all-day, whether a bad date takes the page down) and they are
- * pure, so they are what the tests pin.
+ * Every store read here is empty until `hydrateStores()` has run, so the server
+ * and the first client render both see "no personal items" and the student's own
+ * rows land on the render after mount. Nothing in this module may be called
+ * during a server render expecting personalised output -- it will be correct,
+ * just un-personalised.
  *
- * When the merge does land, the ordering it encodes matters and is documented
- * here so it is not lost: student-created tasks are keyed by id alongside the
- * server's so one cannot be listed twice; edits apply before the due-date
- * override so a renamed AND rescheduled task lands correctly on both counts;
- * and labels and urgent are applied LAST, over everything, because they are
- * keyed by calendar item id rather than by source id. Urgent is suppressed on
- * a done item -- a finished thing is not urgent, and a coral pill on a
- * struck-through row is the contradiction the reserved palette exists to stop.
+ * ## The memo moved to the call site
+ *
+ * `useMergedSchedule` was a hook wrapping all of this in a `useMemo` over nine
+ * dependencies. `mergedSchedule` is a plain function instead, because in Svelte
+ * the caller is the only place that knows what to key the caching on:
+ *
+ *     const merged = $derived(mergedSchedule(data, tasks));
+ *
+ * That reads the same signals, recomputes when any of them actually changes,
+ * and needs no dependency array to keep in sync with the body. Threading nine
+ * dependencies by hand was a React obligation, not a design.
  */
 
 /**
@@ -128,6 +146,95 @@ export interface MergedSchedule {
 	 * flattened version was the reason undated to-dos silently would not tick.
 	 */
 	undatedTodos: QuickItem[];
+}
+
+/**
+ * Fold the student's tasks, to-dos and custom events onto the server's schedule.
+ *
+ * `serverTasks` comes from `getTasks()` through the page's `load`, so the server
+ * rows are still the source of truth for anything the student has not edited.
+ *
+ * Call this inside a `$derived` -- see the note at the top of the module.
+ */
+export function mergedSchedule(server: ScheduleData, serverTasks: Task[]): MergedSchedule {
+	const titles = taskTitles();
+	const priorities = taskPriorities();
+	const dues = taskDues();
+	const added = addedTasks();
+	const doneOverrides = taskDoneOverrides();
+	const quick = quickItems();
+	const labels = itemLabels();
+	const urgent = itemUrgent();
+	const custom = customEvents();
+
+	// Student-created tasks sit alongside the server's, keyed by id so an added
+	// task cannot be listed twice if it ever gains a server row.
+	const byId = new Map<string, Task>();
+	for (const task of serverTasks) byId.set(task.id, task);
+	for (const task of Object.values(added)) byId.set(task.id, task);
+
+	const taskItems: DatedScheduleItem[] = [];
+
+	for (const source of byId.values()) {
+		// Edits first, then the due-date override, so a renamed AND rescheduled
+		// task lands correctly on both counts.
+		const edited = applyTaskEdits(source, titles, priorities);
+		const dueDate = dues[source.id] ?? edited.dueDate;
+		const task: Task = { ...edited, dueDate };
+
+		const item = taskToItem(task, isTaskDone(task, doneOverrides));
+		if (item) taskItems.push(item);
+	}
+
+	const todoItems: DatedScheduleItem[] = [];
+	const undatedTodos: MergedSchedule['undatedTodos'] = [];
+
+	for (const item of quick) {
+		if (!item.dueDate) {
+			undatedTodos.push(item);
+			continue;
+		}
+
+		const row = todoToItem(item);
+		if (row) todoItems.push(row);
+	}
+
+	const customItems = custom
+		.map(customEventToItem)
+		.filter((item): item is DatedScheduleItem => item !== null);
+
+	/*
+	 * Labels and urgent are applied LAST, over everything.
+	 *
+	 * They are keyed by calendar item id rather than by source id, which is
+	 * what lets a student flag an assignment or label an appointment -- rows
+	 * they do not own and cannot otherwise touch. Applying them here, once,
+	 * means no individual mapper has to know they exist.
+	 *
+	 * Urgent is suppressed on a done item. A finished thing is not urgent, and
+	 * a coral pill on a struck-through row is the sort of contradiction the
+	 * reserved palette exists to prevent.
+	 */
+	const annotate = (item: DatedScheduleItem): DatedScheduleItem => {
+		const label = labels[item.id] ?? item.label;
+		const isUrgent = (urgent[item.id] ?? item.urgent) === true;
+
+		if (!label && !isUrgent) return item;
+
+		return {
+			...item,
+			label,
+			urgent: isUrgent && item.done !== true ? true : undefined
+		};
+	};
+
+	return {
+		data: {
+			dated: [...server.dated, ...taskItems, ...todoItems, ...customItems].map(annotate),
+			recurring: server.recurring
+		},
+		undatedTodos
+	};
 }
 
 /**

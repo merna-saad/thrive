@@ -1,4 +1,5 @@
-import { isEventCategory, type ScheduleItem } from '$lib/schedule';
+import { createOverrideStore } from "$lib/overrideStore.svelte";
+import { isEventCategory, type ScheduleItem } from "$lib/schedule";
 
 /**
  * Events the student has said they are not interested in.
@@ -29,19 +30,20 @@ import { isEventCategory, type ScheduleItem } from '$lib/schedule';
  * one helper is what makes "one shared state" actually true rather than two
  * stores that happen to have the same name.
  *
- * ## Ported in Phase 2: the id rule and the eligibility guard
- *
- * The persisted store is not here yet -- `useIgnoredEvents`,
- * `readIgnoredEvents`, `setEventIgnored` and `clearIgnoredEvents` all sit on
- * `createOverrideStore`, which waits for the store phase. See the note at the
- * top of `calendarPrefs.ts` for why that is a decision rather than a
- * translation.
- *
- * Everything below is pure: it takes the ignored map as an argument rather
- * than reading it, which is exactly the shape that survives the store port.
+ * This is the third of three deliberate key spaces -- task id, calendar item
+ * id, raw Event.id -- and normalising through `eventIdOf` on the way in and out
+ * is what keeps it its own space rather than a second calendar-item-id store.
  */
 
+const store = createOverrideStore<true>("thrive:ignored-events");
+
 export type IgnoredMap = Readonly<Record<string, true>>;
+
+/** Every ignored id, reactive. Was `useIgnoredEvents()`. */
+export const ignoredEvents = () => store.values;
+
+/** Read outside a reactive context. */
+export const readIgnoredEvents = () => store.read();
 
 /**
  * The raw `Event.id` behind a calendar item id.
@@ -54,11 +56,10 @@ export type IgnoredMap = Readonly<Record<string, true>>;
  * inline with `.replace(/^evt-/, "")` instead of calling this -- one in
  * `schedule.ts`, one in `useIgnoreUndo.ts` -- while the docs asserted there was
  * only one. See MIGRATION.md section 9 defect 12. `schedule.ts` keeps its
- * inline copy in this port for the reason recorded there; nothing else should
- * grow one.
+ * inline copy for the reason recorded there; nothing else should grow one.
  */
 export function eventIdOf(itemId: string): string {
-	return itemId.startsWith('evt-') ? itemId.slice('evt-'.length) : itemId;
+	return itemId.startsWith("evt-") ? itemId.slice("evt-".length) : itemId;
 }
 
 /**
@@ -74,6 +75,21 @@ export function canIgnore(item: ScheduleItem): boolean {
 
 export function isEventIgnored(eventId: string, ignored: IgnoredMap): boolean {
 	return ignored[eventIdOf(eventId)] === true;
+}
+
+/**
+ * Not-ignored is the default, so the absence is stored rather than `false`.
+ * That keeps the map small and makes un-ignoring a delete rather than a second
+ * kind of truth -- which is also why undo restores a row to its original
+ * position: ordering was never touched.
+ */
+export function setEventIgnored(eventId: string, ignored: boolean) {
+	store.set(eventIdOf(eventId), ignored ? true : undefined);
+}
+
+/** The way back from an empty Home feed. */
+export function clearIgnoredEvents() {
+	for (const id of Object.keys(store.read())) store.set(id, undefined);
 }
 
 export function ignoredCount(ignored: IgnoredMap): number {

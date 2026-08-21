@@ -1,30 +1,30 @@
+import { createOverrideStore } from '$lib/overrideStore.svelte';
 import type { DayGroupMode, GroupMode, ScheduleCategory } from '$lib/schedule';
 
 /**
- * What the student has done to the calendar's controls.
+ * What the student has done to the calendar's controls, persisted.
  *
  * A filter that resets on every navigation is a filter nobody uses twice. If a
  * student has decided they never want to see UCSD-wide events, that decision
  * should outlive a click on Home.
  *
- * ## Ported in Phase 2: the normaliser only
+ * Built on `createOverrideStore` under one fixed key, the same compromise
+ * `floatingPanel.ts` makes: this is UI state rather than an override over
+ * provider truth, but that module is the single persistence mechanism and one
+ * seam to change later beats two.
  *
- * In the Next app this module also owned the persisted store -- `useMemo` over
- * a `createOverrideStore` snapshot, plus `useCalendarPrefs`,
- * `readCalendarPrefs`, `setCalendarPrefs`, `toggleCategory`, `toggleLabel` and
- * `showAllCategories`.
+ * ## The memo is gone, on purpose
  *
- * None of that is here yet. `createOverrideStore` is `useSyncExternalStore`
- * over localStorage, and its three-snapshot contract (client snapshot, server
- * snapshot, referential stability) has no one-to-one Svelte equivalent --
- * MIGRATION.md section 8 item 1 flags where the "empty until mounted" gate
- * lives as a real design decision rather than a translation. Inventing an
- * answer here would bake that decision in silently, so the store layer waits
- * for its own phase.
+ * The React version wrapped `normalisePrefs` in a `useMemo` keyed on the raw
+ * stored value, and that memo WAS load-bearing there: `useSyncExternalStore`
+ * handed back a referentially stable snapshot, `normalisePrefs` built a fresh
+ * object from it, and so without the memo every render produced a new
+ * `prefs.hidden` array and busted every downstream `useMemo` -- including the
+ * schedule filter running across 42 month-grid cells.
  *
- * What IS here is the part that was always pure and always the risky part:
- * `normalisePrefs`, whose input is whatever happens to be sitting in a
- * browser's localStorage.
+ * None of that applies here. Svelte tracks the signal, not the object identity,
+ * so a reader re-runs when the stored value actually changes and not otherwise.
+ * Keeping the memo would be caching against a problem that no longer exists.
  */
 
 export type CalendarViewMode = 'month' | 'week' | 'agenda';
@@ -112,4 +112,57 @@ export function normalisePrefs(stored: Partial<CalendarPrefs> | undefined): Cale
 				: 'day',
 		dayGroupBy: stored.dayGroupBy === 'time' ? 'time' : 'type'
 	};
+}
+
+/* --- The store ---------------------------------------------------------- */
+
+/**
+ * One fixed key inside the override store, rather than a key per field.
+ *
+ * Prefs are read and written as a whole object -- `setCalendarPrefs` takes a
+ * partial and merges -- so splitting them across seven override keys would buy
+ * nothing and make `normalisePrefs` impossible to apply in one place.
+ */
+const KEY = 'value';
+const store = createOverrideStore<CalendarPrefs>('thrive:calendar-prefs');
+
+/**
+ * The current prefs, reactive and always normalised. Was `useCalendarPrefs()`.
+ *
+ * Before hydration this returns `DEFAULT_PREFS`, which is the correct
+ * un-personalised answer: everything visible, month view, done items shown.
+ */
+export const calendarPrefs = (): CalendarPrefs => normalisePrefs(store.values[KEY]);
+
+/** Read outside a reactive context. */
+export function readCalendarPrefs(): CalendarPrefs {
+	return normalisePrefs(store.read()[KEY]);
+}
+
+export function setCalendarPrefs(next: Partial<CalendarPrefs>) {
+	store.set(KEY, { ...readCalendarPrefs(), ...next });
+}
+
+/** Toggle one category. Convenience, because every caller wants exactly this. */
+export function toggleCategory(category: ScheduleCategory) {
+	const { hidden } = readCalendarPrefs();
+	setCalendarPrefs({
+		hidden: hidden.includes(category)
+			? hidden.filter((entry) => entry !== category)
+			: [...hidden, category]
+	});
+}
+
+/** Toggle one label. Same shape as `toggleCategory`, different dimension. */
+export function toggleLabel(label: string) {
+	const { hiddenLabels } = readCalendarPrefs();
+	setCalendarPrefs({
+		hiddenLabels: hiddenLabels.includes(label)
+			? hiddenLabels.filter((entry) => entry !== label)
+			: [...hiddenLabels, label]
+	});
+}
+
+export function showAllCategories() {
+	setCalendarPrefs({ hidden: [], hiddenLabels: [] });
 }
