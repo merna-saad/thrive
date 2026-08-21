@@ -295,27 +295,22 @@ function pressUndo() {
 		?.click();
 }
 
-/**
- * Press the Tasks card's own show-more/less control. Runs in the browser.
- *
- * The LAST match, deliberately: the done group's control and the open list's both
- * declare `aria-controls="tasks-card-list"`, and the open one lives in the pinned
- * footer, so it comes last in document order. Taking the first expands Done and
- * looks like the card refusing to open.
- */
 /*
  * Each of these is passed whole to `page.evaluate`, which serialises the ONE
  * function it is given -- so they cannot call a shared helper defined out here.
  * The duplicated selector is the price of that, and it is cheaper than the
  * `ReferenceError` a factored-out version raises at run time.
+ *
+ * The open list's control is found by the region it CONTROLS. Both show-more
+ * controls on this card used to declare `aria-controls="tasks-card-list"`, so
+ * "the control for the open list" had to be disambiguated by document order --
+ * `.at(-1)`, because the open one sits in the pinned footer. Taking the first
+ * expanded the DONE group instead, which looks exactly like the card refusing to
+ * open, and it cost two debugging rounds. The ids are distinct now and the
+ * selector says what it means.
  */
 function toggleTasksCard() {
-	const section = document.querySelector('#tasks-card-list')?.closest('section');
-	const control = [
-		...(section?.querySelectorAll('button[aria-controls="tasks-card-list"]') ?? [])
-	]
-		.filter((b) => /^Show/.test(b.textContent.trim()))
-		.at(-1);
+	const control = document.querySelector('button[aria-controls="tasks-open-list"]');
 	control?.click();
 	return !!control;
 }
@@ -330,15 +325,32 @@ function toggleTasksCard() {
  * to test. A gate reporting SKIP for its own bug is worse than one failing.
  */
 function expandTasksCard() {
-	const section = document.querySelector('#tasks-card-list')?.closest('section');
-	const control = [
-		...(section?.querySelectorAll('button[aria-controls="tasks-card-list"]') ?? [])
-	]
-		.filter((b) => /^Show/.test(b.textContent.trim()))
-		.at(-1);
+	const control = document.querySelector('button[aria-controls="tasks-open-list"]');
 	// "Show 3 more" means collapsed; "Show less" means it is already open.
 	if (control && /^Show \d/.test(control.textContent.trim())) control.click();
 	return !!control;
+}
+
+/**
+ * Every show-more control on the Tasks card, with the region each one claims.
+ *
+ * Runs in the browser. Exists to assert that no two controls claim the same
+ * region and that every claimed region is really in the document -- an
+ * `aria-controls` pointing at nothing is a promise to a screen reader that
+ * nothing keeps.
+ */
+function readTaskDisclosures() {
+	const section = document.querySelector('#tasks-card-list')?.closest('section');
+	const controls = [...(section?.querySelectorAll('button[aria-controls]') ?? [])].filter((b) =>
+		/^Show/.test(b.textContent.trim())
+	);
+	const claimed = controls.map((b) => b.getAttribute('aria-controls'));
+	return {
+		count: controls.length,
+		claimed,
+		unique: new Set(claimed).size === claimed.length,
+		allResolve: claimed.every((id) => id && document.getElementById(id) !== null)
+	};
 }
 
 try {
@@ -723,6 +735,65 @@ try {
 		'position is grouped-only, and collapsed is flat'
 	);
 
+	/*
+	 * Two disclosures on one card, and each must govern its OWN region.
+	 *
+	 * They both declared `aria-controls="tasks-card-list"` — the whole list,
+	 * including the done group neither of them expands. To a screen-reader user each
+	 * control then announces that it expands something it does not, and to this gate
+	 * "the control for the open list" was ambiguous enough to need disambiguating by
+	 * document order, which cost two debugging rounds.
+	 */
+	/*
+	 * A "View all" must never land on a placeholder.
+	 *
+	 * Several cards point at PARKED routes, which render a title and a note, so the
+	 * link renders only when `isBuiltRoute` says its destination exists. Asserted in
+	 * the browser rather than only in Vitest because the question is "what did the
+	 * page actually put in front of a student" — a unit test can prove the predicate
+	 * and still miss a card that stopped asking it.
+	 *
+	 * The nav lists are read from the page's own rail, so this knows no hrefs: when
+	 * a route is built and moves into `primaryNav`, the rail gains it and this check
+	 * starts allowing it, with no edit here.
+	 */
+	const viewAll = await edit.evaluate(() => {
+		const rail = document.querySelector('nav');
+		const navigable = new Set(
+			[...(rail?.querySelectorAll('a[href]') ?? [])].map((a) => a.getAttribute('href'))
+		);
+		const links = [...document.querySelectorAll('.thrive-panel > div:first-child a[href]')];
+		return {
+			navigable: [...navigable],
+			targets: links.map((a) => a.getAttribute('href')),
+			cards: document.querySelectorAll('.thrive-card-body').length,
+			allNavigable: links.every((a) => navigable.has(a.getAttribute('href')))
+		};
+	});
+
+	check(
+		'every "View all" points at a page the nav links to',
+		viewAll.allNavigable === true && viewAll.navigable.length > 0,
+		`${viewAll.targets.length} of ${viewAll.cards} cards link out: ${viewAll.targets.join(', ') || 'none'}`
+	);
+	check(
+		'a card whose destination is parked shows no link at all',
+		viewAll.targets.length < viewAll.cards,
+		'otherwise this fixture cannot prove the link is ever withheld'
+	);
+
+	const disclosures = await edit.evaluate(readTaskDisclosures);
+	check(
+		'each show-more control governs its own region',
+		disclosures.unique === true,
+		disclosures.claimed.join(' + ') || 'none rendered'
+	);
+	check(
+		'every region a control claims is really in the document',
+		disclosures.allResolve === true,
+		'an aria-controls pointing at nothing is a promise nothing keeps'
+	);
+
 	// Tick the first open row, and read the sentence back.
 	const tickTarget = startTasks.open[0];
 	await edit.evaluate(tickRow, tickTarget);
@@ -810,14 +881,9 @@ try {
 				focus: document.activeElement?.id ?? '',
 				marked: document.querySelector('.thrive-arrived')?.id === id,
 				control:
-					[
-						...(document
-							.querySelector('#tasks-card-list')
-							?.closest('section')
-							?.querySelectorAll('button[aria-controls="tasks-card-list"]') ?? [])
-					]
-						.map((b) => b.textContent.trim())
-						.at(-1) ?? ''
+					document
+						.querySelector('button[aria-controls="tasks-open-list"]')
+						?.textContent.trim() ?? ''
 			}),
 			deep
 		);

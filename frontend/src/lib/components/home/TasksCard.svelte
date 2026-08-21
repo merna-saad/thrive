@@ -411,61 +411,106 @@
 			<UndoBar {undo} onUndo={undoTick} />
 		{/if}
 
-		{#if openCollapse.isExpanded}
-			<!-- Expanded: grouped, and the only state where position can be changed. -->
-			{#each groups as group (group.key)}
-				{@const droppable = isDatedGroup(group.key)}
-				<section aria-label={group.heading}>
-					<h3 class="mb-1 text-2xs font-medium text-ink uppercase">{group.heading}</h3>
+		<!--
+			The open rows are their OWN region, and the id is the point.
 
-					<!-- The group is its own drop zone, so a row can be dropped in the empty
-					     area below the last one and still land in this group. "Needs a date"
-					     gets none: there is nothing to write. -->
-					<div
-						role="list"
-						class="min-h-4 space-y-1"
-						ondragover={(event) => {
-							if (!drag || !droppable) return;
-							event.preventDefault();
-							dropTarget = { group: group.key, index: group.rows.length };
-						}}
-						ondrop={(event) => {
-							event.preventDefault();
-							onDrop(group.key, group.rows.length);
-						}}
-					>
-						{#each group.rows as row, index (row.task.id)}
-							<TaskRow
-								task={row.task}
-								due={row.due}
-								done={false}
-								onToggle={toggle}
-								reorder={{
-									onDragStart: () => (drag = { id: row.task.id, from: group.key, index }),
-									onDragOver: (event) => {
-										if (!drag) return;
-										event.preventDefault();
-										event.stopPropagation();
-										dropTarget = { group: group.key, index };
-									},
-									onDrop: (event) => {
-										event.preventDefault();
-										event.stopPropagation();
-										onDrop(group.key, index);
-									},
-									onMoveUp: index > 0 ? () => move(group.key, index, index - 1) : null,
-									onMoveDown:
-										index < group.rows.length - 1
-											? () => move(group.key, index, index + 1)
-											: null,
-									position: messages.taskEditing.position(
-										index + 1,
-										group.rows.length,
-										group.heading
-									),
-									dropBefore: dropTarget?.group === group.key && dropTarget.index === index
+			Both show-more controls used to declare `aria-controls="tasks-card-list"` --
+			this whole list, including the done group that neither of them governs. Two
+			controls claiming one region is wrong for a screen-reader user (each
+			announces that it expands something it does not) and it trapped the
+			interaction gate twice, because "the control for this list" was ambiguous and
+			had to be disambiguated by document order.
+
+			So the open rows and the done rows each get an id and each control names the
+			region it actually expands. `#tasks-card-list` stays as the card's list
+			container, and nothing claims to control it now.
+
+			Rendered only when there ARE open rows, so this is never an empty box taking
+			a `space-y-3` gap. Safe for the footer control, which exists only when
+			`openCollapse.canExpand` -- and that requires rows.
+
+			`space-y-3` moves here from the parent so the gaps BETWEEN group sections are
+			unchanged now they sit one level deeper.
+		-->
+		{#if flatOpen.length > 0}
+			<div id="tasks-open-list" class="space-y-3">
+				{#if openCollapse.isExpanded}
+					<!-- Expanded: grouped, and the only state where position can be changed. -->
+					{#each groups as group (group.key)}
+						{@const droppable = isDatedGroup(group.key)}
+						<section aria-label={group.heading}>
+							<h3 class="mb-1 text-2xs font-medium text-ink uppercase">{group.heading}</h3>
+
+							<!-- The group is its own drop zone, so a row can be dropped in the empty
+							     area below the last one and still land in this group. "Needs a date"
+							     gets none: there is nothing to write. -->
+							<div
+								role="list"
+								class="min-h-4 space-y-1"
+								ondragover={(event) => {
+									if (!drag || !droppable) return;
+									event.preventDefault();
+									dropTarget = { group: group.key, index: group.rows.length };
+								}}
+								ondrop={(event) => {
+									event.preventDefault();
+									onDrop(group.key, group.rows.length);
 								}}
 							>
+								{#each group.rows as row, index (row.task.id)}
+									<TaskRow
+										task={row.task}
+										due={row.due}
+										done={false}
+										onToggle={toggle}
+										reorder={{
+											onDragStart: () => (drag = { id: row.task.id, from: group.key, index }),
+											onDragOver: (event) => {
+												if (!drag) return;
+												event.preventDefault();
+												event.stopPropagation();
+												dropTarget = { group: group.key, index };
+											},
+											onDrop: (event) => {
+												event.preventDefault();
+												event.stopPropagation();
+												onDrop(group.key, index);
+											},
+											onMoveUp: index > 0 ? () => move(group.key, index, index - 1) : null,
+											onMoveDown:
+												index < group.rows.length - 1
+													? () => move(group.key, index, index + 1)
+													: null,
+											position: messages.taskEditing.position(
+												index + 1,
+												group.rows.length,
+												group.heading
+											),
+											dropBefore: dropTarget?.group === group.key && dropTarget.index === index
+										}}
+									>
+										{#snippet dueEditor()}
+											<DueDateEditor
+												task={row.task}
+												due={row.due}
+												{nowISO}
+												onPick={(iso) => {
+													setTaskDue(row.task, iso);
+													announce(messages.taskEditing.dueUpdated(row.task.title));
+												}}
+											/>
+										{/snippet}
+									</TaskRow>
+								{/each}
+							</div>
+						</section>
+					{/each}
+					{:else}
+					<!-- Collapsed: flat, and no reorder. Every row still states its own urgency
+					     in its labels, so no information is lost with the headings. -->
+					<div role="list" class="space-y-1">
+						{#each openCollapse.visible as row (row.task.id)}
+							<TaskRow task={row.task} due={row.due} done={false} onToggle={toggle}>
 								{#snippet dueEditor()}
 									<DueDateEditor
 										task={row.task}
@@ -480,27 +525,7 @@
 							</TaskRow>
 						{/each}
 					</div>
-				</section>
-			{/each}
-		{:else if flatOpen.length > 0}
-			<!-- Collapsed: flat, and no reorder. Every row still states its own urgency
-			     in its labels, so no information is lost with the headings. -->
-			<div role="list" class="space-y-1">
-				{#each openCollapse.visible as row (row.task.id)}
-					<TaskRow task={row.task} due={row.due} done={false} onToggle={toggle}>
-						{#snippet dueEditor()}
-							<DueDateEditor
-								task={row.task}
-								due={row.due}
-								{nowISO}
-								onPick={(iso) => {
-									setTaskDue(row.task, iso);
-									announce(messages.taskEditing.dueUpdated(row.task.title));
-								}}
-							/>
-						{/snippet}
-					</TaskRow>
-				{/each}
+				{/if}
 			</div>
 		{/if}
 
@@ -511,20 +536,24 @@
 						{messages.common.countSuffix(board.done.length)}
 					</span>
 				</h3>
-				{#if doneCollapse.visible.length > 0}
-					<div role="list" class="space-y-1">
-						{#each doneCollapse.visible as row (row.task.id)}
-							<!-- No due editor and no reorder on a done row: the date has stopped
-							     being a deadline and position in a record does not mean anything. -->
-							<TaskRow task={row.task} due={row.due} done={true} onToggle={toggle} />
-						{/each}
-					</div>
-				{/if}
+				<!-- Always rendered, so the id its control names is never absent. Empty
+				     while collapsed, which is exactly what "expands nothing yet" means. -->
+				<div id="tasks-done-list">
+					{#if doneCollapse.visible.length > 0}
+						<div role="list" class="space-y-1">
+							{#each doneCollapse.visible as row (row.task.id)}
+								<!-- No due editor and no reorder on a done row: the date has stopped
+								     being a deadline and position in a record does not mean anything. -->
+								<TaskRow task={row.task} due={row.due} done={true} onToggle={toggle} />
+							{/each}
+						</div>
+					{/if}
+				</div>
 				{#if doneCollapse.canExpand}
 					<ShowMore
 						hiddenCount={doneCollapse.hiddenCount}
 						expanded={doneCollapse.isExpanded}
-						controls="tasks-card-list"
+						controls="tasks-done-list"
 						onToggle={() => (doneExpanded = !doneExpanded)}
 					/>
 				{/if}
@@ -547,7 +576,7 @@
 			<ShowMore
 				hiddenCount={openCollapse.hiddenCount}
 				expanded={openCollapse.isExpanded}
-				controls="tasks-card-list"
+				controls="tasks-open-list"
 				onToggle={() => (openExpanded = !openExpanded)}
 			/>
 		{/if}
