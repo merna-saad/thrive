@@ -327,6 +327,15 @@ REQUIRED_CSS = [
         r"@media\s*\(width\s*>=\s*64rem\)\s*\{\s*\.thrive-card-body\s*\{[^}]*overflow-y:\s*auto",
         "the capped card scrolls inside rather than clipping",
     ),
+    # A browser-free backstop for the bug `scripts/check-layout.mjs` measures.
+    # That gate is the real one -- it drives a browser and would catch a NEW
+    # source of phantom scroll, which a regex cannot. This catches the specific
+    # regression of someone deleting the containment while tidying, on a machine
+    # with no browser installed, which is the likeliest way it would come back.
+    (
+        r"@media\s*\(width\s*>=\s*64rem\)\s*\{\s*\.thrive-card-body\s*\{[^}]*contain:\s*paint",
+        "the capped card contains its paint, so overflow cannot leak to the page",
+    ),
 ]
 
 

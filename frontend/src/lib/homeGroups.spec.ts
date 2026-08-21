@@ -34,14 +34,21 @@ function rowAt(id: string, days: number, extra: Partial<Task> = {}): HomeRow {
 }
 
 describe("buildHomeGroups", () => {
-	it("splits open rows into overdue, today and this week", () => {
+	it("splits open rows into needs-a-date, overdue, today and this week", () => {
 		const rows = [rowAt("a", -2), rowAt("b", 0), rowAt("c", 3)];
 		const board = buildHomeGroups(rows, {});
 
-		expect(board.groups.map((g) => g.key)).toEqual(["overdue", "today", "upcoming"]);
-		expect(board.groups[0].rows.map((r) => r.task.id)).toEqual(["a"]);
-		expect(board.groups[1].rows.map((r) => r.task.id)).toEqual(["b"]);
-		expect(board.groups[2].rows.map((r) => r.task.id)).toEqual(["c"]);
+		// `unknown` leads, always, even when empty -- see GROUP_ORDER.
+		expect(board.groups.map((g) => g.key)).toEqual([
+			"unknown",
+			"overdue",
+			"today",
+			"upcoming"
+		]);
+		expect(board.groups[0].rows).toEqual([]);
+		expect(board.groups[1].rows.map((r) => r.task.id)).toEqual(["a"]);
+		expect(board.groups[2].rows.map((r) => r.task.id)).toEqual(["b"]);
+		expect(board.groups[3].rows.map((r) => r.task.id)).toEqual(["c"]);
 	});
 
 	it("keeps 'this week' to a week", () => {
@@ -49,14 +56,14 @@ describe("buildHomeGroups", () => {
 		// is real, but it is not what Home is for.
 		const board = buildHomeGroups([rowAt("in-week", 7), rowAt("beyond", 8)], {});
 
-		expect(board.groups[2].rows.map((r) => r.task.id)).toEqual(["in-week"]);
+		expect(board.groups[3].rows.map((r) => r.task.id)).toEqual(["in-week"]);
 		// Still counted in the total -- it exists, it is just not on this card.
 		expect(board.total).toBe(2);
 	});
 
 	it("sorts within a group by how soon, not by input order", () => {
 		const board = buildHomeGroups([rowAt("later", 5), rowAt("sooner", 2)], {});
-		expect(board.groups[2].rows.map((r) => r.task.id)).toEqual(["sooner", "later"]);
+		expect(board.groups[3].rows.map((r) => r.task.id)).toEqual(["sooner", "later"]);
 	});
 
 	it("pulls done rows out of the groups entirely", () => {
@@ -81,7 +88,7 @@ describe("buildHomeGroups", () => {
 		// And the inverse: unticking something that ships done.
 		const unticked = buildHomeGroups(rows, { "ships-done": false });
 		expect(unticked.done).toEqual([]);
-		expect(unticked.groups[2].rows).toHaveLength(2);
+		expect(unticked.groups[3].rows).toHaveLength(2);
 	});
 
 	it("counts every task in the total, including done and out-of-window", () => {
@@ -99,15 +106,16 @@ describe("buildHomeGroups", () => {
 		expect(board.total).toBe(0);
 	});
 
-	it("surfaces an unparseable due date instead of dropping it silently", () => {
+	it("puts an unparseable due date in its own group, at the top", () => {
 		/*
 		 * The Next version filtered by `due.urgency === group.key`, and "unknown"
 		 * matches none of the three -- so a task with a broken deadline vanished
 		 * from Home with no error. The fixtures contain no such date, which is why
 		 * nobody noticed.
 		 *
-		 * It still renders nowhere (where an unknown row belongs in a grouped list
-		 * is an open question), but it is now reachable rather than lost.
+		 * Now it leads the list. Loud is correct, invisible is not: this is the one
+		 * group a student can actually fix, and a deadline that silently does not
+		 * exist is worse than one shouting for attention.
 		 */
 		const broken: HomeRow = {
 			task: task({ id: "broken", dueDate: "not-a-date" }),
@@ -115,10 +123,26 @@ describe("buildHomeGroups", () => {
 		};
 		const board = buildHomeGroups([broken, rowAt("fine", 1)], {});
 
-		expect(board.unclassified.map((r) => r.task.id)).toEqual(["broken"]);
-		expect(board.groups.flatMap((g) => g.rows)).toHaveLength(1);
+		expect(board.groups[0].key).toBe("unknown");
+		expect(board.groups[0].rows.map((r) => r.task.id)).toEqual(["broken"]);
+		// It is FIRST in the flattened order, which is what makes it survive the
+		// collapse to four rows on a capped card.
+		expect(board.groups.flatMap((g) => g.rows).map((r) => r.task.id)).toEqual([
+			"broken",
+			"fine"
+		]);
 		// Counted, so the progress denominator does not quietly shrink.
 		expect(board.total).toBe(2);
+	});
+
+	it("keeps unparseable rows in provider order, since there is nothing to sort by", () => {
+		const mk = (id: string): HomeRow => ({
+			task: task({ id, dueDate: "nope" }),
+			due: describeDue("nope", NOW)
+		});
+		const board = buildHomeGroups([mk("z"), mk("a"), mk("m")], {});
+
+		expect(board.groups[0].rows.map((r) => r.task.id)).toEqual(["z", "a", "m"]);
 	});
 
 	it("does not put an unparseable row in done", () => {
@@ -132,6 +156,8 @@ describe("buildHomeGroups", () => {
 
 describe("nonEmptyGroups", () => {
 	it("drops groups with no rows, so no heading appears over nothing", () => {
+		// Including `unknown`: it leads the order but must not render a heading on
+		// the overwhelmingly common day when every task has a date.
 		const board = buildHomeGroups([rowAt("only", 3)], {});
 		const shown = nonEmptyGroups(board.groups);
 

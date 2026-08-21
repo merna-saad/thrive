@@ -27,11 +27,21 @@ interface KnownRow extends HomeRow {
 	due: KnownDueDescriptor;
 }
 
-export type GroupKey = 'overdue' | 'today' | 'upcoming';
+export type GroupKey = 'unknown' | 'overdue' | 'today' | 'upcoming';
 
-export const GROUP_ORDER: GroupKey[] = ['overdue', 'today', 'upcoming'];
+/**
+ * Group order, and `unknown` is FIRST on purpose.
+ *
+ * A task whose due date will not parse has no urgency to sort by, so there is no
+ * natural place for it -- which is exactly how it ended up rendered nowhere for a
+ * phase. Putting it at the top is the decision: loud is correct, invisible is
+ * not. A deadline that silently does not exist is worse than one shouting for
+ * attention, and this is the only group a student can actually fix.
+ */
+export const GROUP_ORDER: GroupKey[] = ['unknown', 'overdue', 'today', 'upcoming'];
 
 export const groupHeading: Record<GroupKey, string> = {
+	unknown: messages.taskGroups.unknown,
 	overdue: messages.taskGroups.overdue,
 	today: messages.taskGroups.today,
 	upcoming: messages.taskGroups.upcoming
@@ -61,21 +71,6 @@ export interface HomeGroup {
 export interface HomeTaskGroups {
 	groups: HomeGroup[];
 	done: HomeRow[];
-	/**
-	 * Rows whose due date would not parse, and which therefore belong to no
-	 * group.
-	 *
-	 * The Next version dropped these silently: it filtered by
-	 * `due.urgency === group.key`, and `"unknown"` matches none of the three
-	 * keys, so a task with a broken deadline vanished from Home with no error.
-	 * The fixtures contain no such date, which is why nobody noticed.
-	 *
-	 * Returned explicitly here so the information is not lost and a future
-	 * decision has somewhere to land. Nothing renders it yet -- where an unknown
-	 * row belongs in a grouped list is an open question in CONTEXT, and inventing
-	 * an answer in the logic layer would settle it by accident.
-	 */
-	unclassified: HomeRow[];
 	total: number;
 	doneCount: number;
 	percent: number;
@@ -100,29 +95,42 @@ export function buildHomeGroups(
 	}
 
 	const openKnown = open.filter(isKnown);
-	const unclassified = open.filter((row) => !isKnown(row));
 
-	const groups: HomeGroup[] = GROUP_ORDER.map((key) => ({
-		key,
-		heading: groupHeading[key],
-		rows: openKnown
-			.filter(
-				(row) =>
-					row.due.urgency === key &&
-					// "This week" means it. An assignment three weeks out is real, but
-					// it is not what Home is for, and letting it in is what made the
-					// card fourteen rows long in the first place.
-					(key !== 'upcoming' || row.due.days <= WEEK)
-			)
-			.sort((a, b) => a.due.days - b.due.days)
-	}));
+	const groups: HomeGroup[] = GROUP_ORDER.map((key) => {
+		if (key === 'unknown') {
+			/*
+			 * No sort. `days` is null here by construction, so there is nothing to
+			 * order by -- these keep the provider's order, which is the only ordering
+			 * that means anything for a row with no date.
+			 */
+			return {
+				key,
+				heading: groupHeading[key],
+				rows: open.filter((row) => !isKnown(row))
+			};
+		}
+
+		return {
+			key,
+			heading: groupHeading[key],
+			rows: openKnown
+				.filter(
+					(row) =>
+						row.due.urgency === key &&
+						// "This week" means it. An assignment three weeks out is real, but
+						// it is not what Home is for, and letting it in is what made the
+						// card fourteen rows long in the first place.
+						(key !== 'upcoming' || row.due.days <= WEEK)
+				)
+				.sort((a, b) => a.due.days - b.due.days)
+		};
+	});
 
 	const total = rows.length;
 
 	return {
 		groups,
 		done,
-		unclassified,
 		total,
 		doneCount: done.length,
 		percent: total === 0 ? 0 : (done.length / total) * 100

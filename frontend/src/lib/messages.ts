@@ -156,6 +156,16 @@ export const messages = {
 
 	/** Group headings for the task list. Also the spoken name of each group. */
 	taskGroups: {
+		/*
+		 * A task whose due date will not parse. Its own group, at the TOP of the
+		 * list -- decided 2026-08-21 after it spent a phase reachable in the data
+		 * and rendered nowhere.
+		 *
+		 * "Needs a date" rather than "No date": the row is not describing itself,
+		 * it is asking for something. A student who sees it can fix it; a student
+		 * who never sees it has a deadline that silently does not exist.
+		 */
+		unknown: 'Needs a date',
 		overdue: 'Overdue',
 		today: 'Today',
 		upcoming: 'This week',
