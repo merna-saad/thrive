@@ -4,6 +4,64 @@ Dated session summaries, most recent first.
 
 ---
 
+## 2026-08-21 — Phase 6b: task editing is live
+
+**HEAD:** `5cdad70` · 4 commits, all pushed · **439 tests, 19 files, all green**
+· `svelte-check` 0/0 over 388 files · build clean · contrast **58/58** · layout
+**36/36** · interaction **55/55**
+
+### What changed
+
+Everything deferred from 6a. Ticking with undo, inline rename, `PriorityPicker`,
+`TaskNotes`, `DueDateEditor`, copy to the quick list, drag and keyboard reorder,
+and `AddTaskForm`. The persistence layer already existed from 3b, so this phase
+wired the UI to stores that were already built and tested.
+
+New pure module `taskBoard.ts` (the editing half of the Next `useTaskBoard`),
+`homeGroups` gained the order overrides, `taskView` gained `rowPriorityLabel`,
+and ~60 new strings went into `messages.ts`. `Toast.svelte` was built and mounted
+in `AppShell` — its store had shipped in 3b with no consumer, and 6b's
+copy-to-list is the first caller.
+
+`+page.svelte` now resolves the task rows ONCE and hands the same array to the
+stat pills and to the Tasks card, so an edited due date cannot leave a pill
+counting the server's stale answer.
+
+### The undo arrival, settled
+
+One `tick()` is enough — but only because `undoTick` makes every state write,
+including expanding the card, before calling `arriveAtRow`. The flush count is
+not the mechanism; the ordering is. Measured both ways in a real browser: with
+the expansion moved into an effect, the hidden-row case lands nowhere, marks
+nothing, and logs **no warning in the production build**. Now a gate assertion,
+which is the loud failure that was asked for.
+
+### Bugs found and fixed
+
+- **Every date converter threw a RangeError on a "Needs a date" row.** Latent in
+  the Next source and made reachable by 6a surfacing those rows. Reproduced
+  against the Next source before fixing.
+- **`dragend` on a dropped row read a destroyed block's derived** —
+  `derived_inert`, present in the production build with all six gates green.
+  Found by dragging by hand; the card now owns drag cleanup.
+- **Defect 3 nearly returned twice.** Measured at 375px mid-build: the title box
+  was 90px, wrapping over three lines at six characters a line.
+
+### Known issues
+
+- The collapsed Tasks card now scrolls ~124px inside its fixed body: a desktop
+  row is 61–81px rather than 54px, because five 44px controls cannot be shorter.
+  The grid still cannot move. `COLLAPSED_TASK_ROWS` at 3 would fit — owner's call.
+- Reordering is offered only when the card is expanded, since collapsed is a flat
+  slice spanning groups and sort keys are read per group.
+
+### Next priorities
+
+`/assignments`, which renders the same `TaskRow` — the first consumer of the
+`role="list"` contract the row now requires.
+
+---
+
 ## 2026-08-21 — click only, an arrival cue, and check:interaction
 
 **HEAD:** `aadfca9` · 6 commits, all pushed · **389 tests, 18 files, all green**

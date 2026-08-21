@@ -59,9 +59,9 @@ This is why `describeDue`'s `now` parameter exists. It is not a convenience or
 a testing seam. Removing the parameter and reading the clock inside would
 collapse the exception into the bug it was designed around.
 
-### The two sanctioned client clock reads
+### The three sanctioned client reads
 
-Exactly two, both deliberate, both documented at their definition:
+Exactly three, all deliberate, all documented at their definition:
 
 1. **`nowMinutes()`** in `calendarSources.ts` — minutes past midnight, for the
    calendar's "next up" line. Called from a handler or a memo, never during a
@@ -70,6 +70,21 @@ Exactly two, both deliberate, both documented at their definition:
 2. **`matchesWide()`** in the floating-panel geometry — a `matchMedia` read, not
    a clock, but the same hydration shape and gated the same way. (Not yet ported;
    the floating panels are a later phase.)
+3. **`TaskNotes`' autofocus gate** — `matchMedia('(hover: hover)')`, added in 6b.
+   Opening the note panel is an explicit request to write, so focus lands in the
+   field — but only where a keyboard will not cover the screen. On a phone
+   autofocus throws the keyboard over half the card, and the note button sits in
+   a thumb's resting arc, so the mis-tap cost is real.
+
+   **This is not the `hoverIntent` that was deleted**, and the difference is the
+   whole reason it is allowed. That one gated hover-to-reveal, which is CSS and
+   needs no JavaScript opinion. This one decides whether to move FOCUS, and no
+   media query can do that — there is no CSS form of it to prefer.
+
+Note what is NOT on this list: `Date.now()` used as an id nonce, in `quickList.ts`
+and `taskBoard.ts`'s `mintTaskId`. It is never parsed back into a day and never
+asks what "now" is, so it is not a clock read in the sense this rule is about.
+A nonce is not a date.
 
 A third briefly existed and is gone: `hoverIntent` read `(hover: hover)` for the
 stat pill popovers' hover opener. Hover was removed from that interaction on
@@ -163,15 +178,35 @@ costs: `check:interaction` drives the PRODUCTION build, where the branch is
 compiled out, so **no gate covers it.** Verified by hand against `vite dev`
 instead — a normal arrival warns about nothing, a missing row warns exactly once.
 
-One tick is enough for every caller today: expanding a card is one state write.
-**6b's undo is the first case that might not be** — unticking a task moves it
-between groups, and if the regrouping takes two flushes the arrival lands on a row
-that does not exist yet.
+### Settled in 6b: one tick is enough, but only if you make it enough
 
-**Check it explicitly when 6b lands** (decided 2026-08-21), and if one tick is not
-enough, **make it fail loudly rather than quietly.** A silent no-op here is the
-single failure mode this whole cue exists to prevent, so it is the last place that
-should have one.
+The question was checked in a real browser rather than reasoned about, both ways.
+**The flush count is not the mechanism. The ordering is.**
+
+`arriveAtRow` awaits one `tick()`, which flushes whatever has already been
+written. So the rule for a caller is:
+
+> **Make every state change the row's existence depends on BEFORE you call
+> `arriveAtRow`. Never leave one to an effect that has not run yet.**
+
+`TasksCard.undoTick` is the worked example. It unticks, then READS the derived
+list — Svelte's deriveds are pull-based, so the post-undo list is available
+immediately with no flush — then asks `planReveal` whether the restored row is
+past the collapsed slice, expands the card if it is, and only then arrives. One
+tick has every change to flush and the arrival lands.
+
+**Measured both ways.** With the expansion moved out of that handler and into an
+effect, the hard case — a restored row hidden behind "show more" — lands nowhere,
+marks nothing, and logs **no warning in the production build**. Indistinguishable
+from a successful arrival at a row that was already on screen, which is precisely
+the failure this cue exists to prevent.
+
+It fails LOUDLY now, as decided: `check:interaction` asserts the hidden-row
+arrival, and that assertion is what goes red. The dev-only `console.warn` still
+cannot be seen by any gate, so the gate is the loud part.
+
+A caller that genuinely cannot write everything up front should say so and be
+argued about in review — do not reach for a second `tick()`.
 
 ### What is NOT an arrival
 
@@ -237,6 +272,14 @@ downstream.
 
 Persisted state records **only what the student personally changed**, keyed by
 id, with `undefined` meaning "never touched, use the source value".
+
+**Corollary, learned in 6b: resolve those overrides ONCE per page, not once per
+consumer.** Home has two things reading the same task list — the stat pills and
+the Tasks card — and `+page.svelte` resolves for both. Each resolving its own
+would let a moved due date restyle the card while the pill above it went on
+counting the server's answer. Two views of one list that can disagree is the same
+bug in a different place, and the pills were made client-side in 6a specifically
+to stop it.
 
 A bare set of "done task ids" cannot express *"I unticked a task that ships as
 done"* — reload and it silently re-ticks itself. A write that matches the

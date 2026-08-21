@@ -1,6 +1,6 @@
 # TESTING
 
-**Last verified:** 2026-08-21 at `d3621b9`. **389 tests, 18 files, all passing.**
+**Last verified:** 2026-08-21 at `5cdad70`. **439 tests, 19 files, all passing.**
 Verified green in all seven timezones of the sweep below.
 
 ```bash
@@ -15,7 +15,7 @@ Plus two gates that are tests in everything but name:
 ```bash
 python3 scripts/check-contrast.py    # 58 assertions: 42 pairs, 6 ceilings, 10 structural
 npm run check:layout                 # 12 routes x 3 viewports, in a real browser
-npm run check:interaction            # 37 assertions on the stat pill popovers
+npm run check:interaction            # 55 assertions: the popovers and task editing
 ```
 
 `check-contrast.py` PARSES `app.css` rather than mirroring it, so a token edited
@@ -55,7 +55,8 @@ rather than being appended to the pure-logic ones.
 |---|---|---|
 | `providers.spec.ts` | 47 | The four provider properties (Promise-returning, copies-not-references, deterministic generation, fixtures relative to now), the public surface of `$lib/data` including what must **not** leak, and every store behaviour: booking claims, double-book throws, cancel releases only its own slot, `submitRequest` idempotence, unknown ids returning null |
 | `collapse.spec.ts` | 13 | The fit-on-one-screen rule at its boundaries: exactly-at-the-limit produces no control, one-over holds back one, a zero limit means show-none (the done group), a negative limit clamps rather than slicing from the end, and `visible` is never the caller's array |
-| `homeGroups.spec.ts` | 12 | Home's grouping: the four groups in order with `unknown` first, "this week" held to a week, done pulled out, a student's override outranking the fixture BOTH ways, and an unparseable date landing in its own group rather than vanishing |
+| `homeGroups.spec.ts` | 19 | Home's grouping: the four groups in order with `unknown` first, "this week" held to a week, done pulled out, a student's override outranking the fixture BOTH ways, and an unparseable date landing in its own group rather than vanishing. Plus ordering (6b): the student's own keys, an explicit placement outranking an implicit one, reordering inside the dateless group, and a stale key for a row that is gone |
+| `taskBoard.spec.ts` | 43 | The editing half. `resolveRows` returning an untouched row BY REFERENCE (so an open note panel is not torn down by a sibling's tick), reclassifying only when the date moved, created tasks described against the same instant; the date converters in LOCAL time with a full round-trip; **every path through a due date that will not parse**, each of which threw a RangeError before this existed; `reorderedIds` and the drop-below-me off-by-one; and `isDatedGroup` pinning "Needs a date" as a source, never a destination |
 | `taskView.spec.ts` | 14 | `rowPriorityOf` (deadline outranks stated priority; done strips the tint), `taskLabels` (two-label cap, course code over source word, Done replaces rather than joins), and the tone maps — including that `standingTone` never lands on `primary` |
 | `programStrip.spec.ts` | 5 | `abbreviateTerm` on all four seasons, an unexpected shape passed through unchanged, and every phase status having a spoken form |
 | `designSystem.spec.ts` | 4 | The two rules nothing else enforces: no hardcoded colour in a component, no component naming a font, every `.thrive-*` class in the known vocabulary |
@@ -74,12 +75,16 @@ rather than being appended to the pure-logic ones.
 
 ### The interaction gate
 
-`npm run check:interaction` · `scripts/check-interaction.mjs` · 37 assertions.
+`npm run check:interaction` · `scripts/check-interaction.mjs` · 55 assertions.
 
 **Why it exists.** The other five gates were ALL green on a version of the stat
 pill popovers where pressing a pill did nothing at all. Hover had already opened
 the panel, so the click found it open and closed it again. None of the other five
 can press a button.
+
+It has since earned the point twice more. A `derived_inert` warning shipped in the
+production build with all six gates green, because nothing dragged a row; and the
+undo arrival's silent no-op is invisible to everything else in the repo.
 
 **What it covers.** Opening and closing; the pill's number matching the length of
 the list it opens; focus moving into the list; Arrow, Home and End; Escape and
@@ -93,6 +98,30 @@ rejected and removed, and reintroducing it is the only route back to the origina
 bug — so it is asserted rather than assumed. The check is non-vacuous: the gate
 first asserts the driving browser reports `(hover: hover)`, or "hover did nothing"
 would pass on a browser that cannot hover at all.
+
+**What 6b added** (18 assertions). A row being really tickable — ENABLED, not
+merely present, since 6a rendered these disabled on purpose and "a checkbox
+exists" would have passed against the read-only card. Then the tick counting, the
+undo offer standing, the undo strip **not** being a live region of its own, the
+undo arrival, **the undo arrival when the row is hidden and the card must expand**,
+a drag between groups, a rename committing on blur, and the grid still not moving
+with every editor in the tree.
+
+The hidden-row arrival is the one that earns its place. One `tick()` suffices only
+because `undoTick` writes everything — including the expansion — before calling
+`arriveAtRow`; move that into an effect and the arrival lands nowhere, marks
+nothing, and logs **no warning in production**. It is indistinguishable from a
+successful arrival at a row that was already on screen, and this assertion is the
+only thing anywhere that can tell them apart.
+
+**Verified to fail**, each broken on purpose: hover reintroduced (6 red, the
+original bug reproduced), the arrival mark not applied (4), never cleared (2), the
+undo expansion moved into an effect (1, and no console warning), `onblur` removed
+(2), a `dragend` put back on the row (1, `derived_inert`).
+
+**The limitation, stated:** its closing "nothing threw or warned" assertion reads
+like a blanket guarantee over the page and is really a guarantee over the gestures
+the script performs. When a feature adds a gesture, the gate has to make it.
 
 **It reads its inputs from the source of truth.** The arrival dwell comes from
 `--thrive-arrival-duration` on the running page, not from a copy in the script, so
@@ -266,13 +295,14 @@ assertions over opening, keyboard navigation, all four dismissal paths, the
 reveal, and the clamped panel at 375px. Those assertions were a **throwaway
 probe**, run once, and they do not exist in the repo.
 
-**It is now a gate.** `npm run check:interaction`, 37 assertions, decided and
-built the same day. No new dependency, and see its own section below.
+**It is now a gate.** `npm run check:interaction`, 55 assertions after 6b, decided
+and built the same day. No new dependency, and see its own section below.
 
-The gap it closes is narrow and worth stating precisely: **one widget on one
-page.** Nothing else in the app is pressed by anything. The general question —
-component tests via jsdom or `vitest-browser-svelte` — is still open, and 6b's
-editing is the next thing that genuinely wants a rendered assertion.
+The gap it closes is no longer one widget: 6b's editing is gated through the same
+script, which is where "the next thing that wants a rendered assertion" landed. The
+general question — component tests via jsdom or `vitest-browser-svelte` — is still
+open, and the answer so far is that driving the built page has caught three real
+bugs and cost one dependency the repo already had.
 
 ### Nothing exercises hydration for real
 

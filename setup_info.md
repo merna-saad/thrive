@@ -52,7 +52,7 @@ npm run build            # production build
 node build/index.js      # run the build, :3000
 npm run preview          # vite's preview of the build, :4173
 npm run check            # svelte-check
-npm test                 # vitest run, 389 tests
+npm test                 # vitest run, 439 tests
 npm run test:unit        # vitest watch
 ```
 
@@ -176,10 +176,10 @@ does require `npm run build` to have run, and it fails with a clear message if
 
 ```bash
 cd frontend
-npm test                              # 389 tests, Node, no jsdom
+npm test                              # 439 tests, Node, no jsdom
 npm run check                         # svelte-check
 npm run build                         # vite build, adapter-node
 npm run check:layout                  # 12 routes x 3 viewports, real browser
-npm run check:interaction             # 37 assertions on the stat pills, real browser
+npm run check:interaction             # 55 assertions: popovers + editing, real browser
 cd .. && python3 scripts/check-contrast.py   # 58 assertions, no dependencies
 ```

@@ -4,6 +4,82 @@ Reusable patterns and lessons. Things worth knowing again.
 
 ---
 
+## 2026-08-21 — Phase 6b: four lessons worth keeping
+
+### `await tick()` flushes what you already wrote, not what you meant to
+
+The 6a worry about `arriveAtRow` was framed as "will the regrouping take two
+flushes?" That turned out to be the wrong question, and asking it that way would
+have produced the wrong fix (a second `tick()`).
+
+Svelte's deriveds are **pull-based**: reading one after a state write recomputes
+it *synchronously*, with no flush at all. So a handler can untick a task, read
+the resulting list, decide the card must expand, expand it, and *then* await one
+tick — and everything is in place. One flush, three writes.
+
+The failure mode is not "too few ticks", it is **a write that has not happened
+yet** because it was left to an effect. Reframed that way the rule is simple and
+has nothing to do with counting:
+
+> Make every state change the row's existence depends on before you call
+> `arriveAtRow`.
+
+**Measure the counterfactual, not just the fix.** Confirming the good version
+works says nothing about *why* it works. Breaking it on purpose — moving the
+expansion into an effect — is what showed that the ordering is load-bearing and
+that the failure is silent. Without that step this would have been recorded as
+"one tick was fine", which is true and useless to the next caller.
+
+### Fixing one bug can promote another from unreachable to certain
+
+Unparseable due dates rendered nowhere in the Next app. 6a gave them their own
+group at the top of the list, which was the right call — a deadline that silently
+does not exist is worse than one shouting for attention.
+
+It also made a latent crash reachable. Every date converter read
+`new Date(fromISO).getHours()`, which is `NaN` for those rows, and the resulting
+Invalid Date **throws** on `toISOString()`. The controls for fixing such a row
+are exactly the controls that would have thrown.
+
+The lesson is not "guard your dates". It is: **when you make a previously
+invisible state visible, audit every path that state can now reach.** The
+fixtures contain no unparseable date, so no amount of using the app would have
+found it.
+
+### A gate that fails on console noise covers only the gestures it makes
+
+`check:interaction` ends with "nothing threw or warned anywhere on the way", which
+reads like a blanket guarantee over the page. It is not. It is a guarantee over
+the interactions the script actually performs.
+
+A `derived_inert` warning sat in the production build with all six gates green,
+because nothing in any gate ever dragged a row. It was found by dragging one by
+hand.
+
+Same family as the earlier note below about a check appearing to cover what it
+cannot — and the same remedy. When a feature adds a *gesture*, the gate has to
+make that gesture, or its warning assertion silently narrows.
+
+### `blur` fires before `click`, so Cancel saves
+
+Adding commit-on-blur to an inline editor quietly breaks its Cancel button: focus
+leaves the field on the way to Cancel, blur commits the draft, and then `cancelEdit`
+restores a variable nothing reads any more.
+
+Both halves of the guard are needed, and each covers what the other cannot:
+
+- a `pointerdown` flag on the Cancel button — catches mouse and touch, and catches
+  **Safari**, where clicking a button does not focus it and so leaves
+  `relatedTarget` null;
+- a `relatedTarget` check in the blur handler — catches the keyboard, where Tab
+  moves focus to Cancel with no pointer event at all.
+
+The general shape: **a control whose job is to discard has to out-race every
+autosave path that fires on focus loss.** Worth checking the moment "save on blur"
+appears next to anything called Cancel.
+
+---
+
 ## 2026-08-21 — a gate that cannot see what it looks like it checks
 
 ### The shape of the problem

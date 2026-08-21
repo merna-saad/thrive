@@ -1,4 +1,4 @@
-<!-- built-at: aadfca9 -->
+<!-- built-at: 5cdad70 -->
 <!-- updated: 2026-08-21 -->
 
 # CODEMAP
@@ -6,7 +6,7 @@
 Navigation map for the THRIVE rebuild. Read this before opening files.
 
 **Built:** 2026-08-21, refreshed at session close.
-**Size:** 120 files under `frontend/src` — ~16,894 lines, 11,978 source / 4,916 test.
+**Size:** 126 files under `frontend/src` — ~18,039 lines, 12,646 source / 5,393 test.
 
 > The `built-at` comment above is machine-read by the codemap staleness hook.
 > Keep it as the first line, in that exact `<!-- built-at: <hash> -->` form.
@@ -112,17 +112,23 @@ move.
 
 ## Home — `frontend/src/routes/+page.server.ts` + `lib/components/home/`
 
-The one fully-built page. Read Phase 6a's entry in HANDOFF before changing it.
+The one fully-built page, and now editable. Read Phase 6b's entry in HANDOFF before changing it.
 
 | File | Role |
 |---|---|
 | `routes/+page.server.ts` | **Six providers in one `Promise.all`, and the only `new Date()` on this page.** Every date is classified and formatted here. |
+| `routes/+page.svelte` | Owns the reveal channel **and** calls `resolveRows` ONCE, feeding the same array to the stat pills and to the Tasks card so they cannot disagree. |
 | `home/HomeHeader.svelte` | One panel holding the strip and the greeting. Exists to save a panel's padding and a stack gap. |
 | `home/ProgramTimelineCompact.svelte` | The program strip. Bare, not a panel. |
 | `home/GreetingPanel.svelte` | Greeting, standing sentence, and ONE row of pills + chips. |
 | `home/TaskStatPills.svelte` | The three counts, and the three lists behind them. **Reads the stores**, so the counts see the student's own ticks and ignores. Each pill's number IS `items.length` of the list it opens. |
-| `home/TasksCard.svelte` | **Flat when collapsed, grouped when expanded.** The one real design decision in 6a — see its doc comment. Also answers the reveal channel by writing its own collapse state, never anyone else's. |
-| `home/TaskRow.svelte` | One task. Read-only until 6b. Carries the `min-w-0` that fixes the 375px title collapse. |
+| `home/TasksCard.svelte` | **Flat when collapsed, grouped when expanded.** The one real design decision in 6a. Owns ticking, undo, drag/keyboard reorder, and the add form. Reordering is offered **only when expanded** — see its doc comment. Also answers the reveal channel by writing its own collapse state, never anyone else's. |
+| `home/TaskRow.svelte` | One task, fully editable. Tick, rename, priority, note, due chip, copy-to-list, move. **Controls wrap to their own line below `sm`**, and the title takes a line of its own — both halves of the 375px fix. |
+| `home/UndoBar.svelte` | The way back from a tick. Fixed at the top of the list, deliberately **not** a live region. |
+| `home/AddTaskForm.svelte` | Quick add, collapsed to one button. Title is the only required field. |
+| `home/DueDateEditor.svelte` | The due chip as a button opening a native date input plus three shortcuts. Uses `clickOutside` + `escapeKey`. |
+| `home/PriorityPicker.svelte` | Three radios, not a select. Deliberately uncoloured by its own value. |
+| `home/TaskNotes.svelte` | One task's note. Draft local, committed on blur, on close, and on destroy — never per keystroke. |
 | `home/TodaysClasses.svelte` · `MyClasses.svelte` · `CourseCard.svelte` | Today's meetings; the course list; one course. |
 | `home/UpcomingEvents.svelte` · `EventRow.svelte` | **Filters ignored FIRST, then slices to four.** The order is the behaviour. Collapsed is four, **expanded is this week** — see the doc comment for the contradiction that forced it. |
 
@@ -132,7 +138,8 @@ The one fully-built page. Read Phase 6a's entry in HANDOFF before changing it.
 |---|---|
 | `messages.ts` | **Every user-facing string.** Values are functions, not templates. Extract into this as each surface is built. |
 | `homeView.ts` | View models. Every date field is already a formatted string. |
-| `homeGroups.ts` | Grouping and counting. `unknown` is a real group, FIRST. Read-only half of the Next `useTaskBoard`. |
+| `homeGroups.ts` | Grouping, counting and ordering. `unknown` is a real group, FIRST. The read-only half of the Next `useTaskBoard`. |
+| `taskBoard.ts` | **The editing half.** `resolveRows` (edits over provider truth, reclassified), the date arithmetic, `reorderedIds`. `DatedGroupKey` makes "you cannot drop into Needs a date" a type error. |
 | `collapse.ts` | The fit-on-one-screen rule as arithmetic, shared by four cards. |
 | `cardLayout.ts` | The collapsed row COUNTS. The height cap is CSS — see `app.css`. |
 | `taskView.ts` | `rowPriorityOf`, `taskLabels`. Deadline outranks stated priority. |
@@ -147,7 +154,10 @@ The one fully-built page. Read Phase 6a's entry in HANDOFF before changing it.
 
 `Tag` · `Button` · `ProgressBar` · `EmptyState` · `SectionCard` · `ShowMore` ·
 `StatPill` · `StatPopover` · `StatusBadge` · `DueChip` · `IgnoreButton` ·
-`IgnoreUndoBar`
+`IgnoreUndoBar` · `Toast`
+
+`Toast` is the app-wide confirmation line, mounted once in `AppShell`. It had no
+consumer until 6b's copy-to-list, which is why it is new here and the store is not.
 
 `StatPill` has two shapes and one look: given `items` it is a **button owning a
 popover**, given none it is a plain chip. A zero count gets the chip, on purpose.
@@ -167,8 +177,8 @@ control must not scroll away with the content it controls.
 
 | Command | What it proves |
 |---|---|
-| `npm test` | 389 tests. Pure logic and source scans. Nothing renders. |
-| `npm run check:interaction` | 37 assertions on the popovers in a real browser. **The only gate that can press a button.** Fails on a console warning too — but it drives the PRODUCTION build, so it cannot see `arriveAtRow`'s dev-only warn. |
+| `npm test` | 439 tests. Pure logic and source scans. Nothing renders. |
+| `npm run check:interaction` | 55 assertions in a real browser: the popovers **and** 6b's editing — tick, undo, the undo arrival (including the hidden-row case), a drag between groups, rename-on-blur. **The only gate that can press a button.** Fails on a console warning too — but it drives the PRODUCTION build, so it cannot see `arriveAtRow`'s dev-only warn. |
 | `npm run check` | Types agree. **Does NOT prove the page renders** — see BUGS.md. |
 | `npm run build` | It compiles. |
 | `python3 scripts/check-contrast.py` | 58 assertions. **Parses `app.css`**, so tokens cannot drift from their checks. |
@@ -225,7 +235,7 @@ Four properties and three key spaces: see `CONTEXT.md` §8.
 
 ---
 
-## Tests — 389, 18 files
+## Tests — 439, 19 files
 
 `npm test`. Vitest, **Node environment, no jsdom**, so nothing renders.
 
@@ -237,6 +247,7 @@ in TESTING.md.
 | Spec | Holds down |
 |---|---|
 | `format.spec.ts` (89) | `describeDue` across every branch, field and boundary; both private helpers via their public surfaces; both DST transitions |
+| `taskBoard.spec.ts` (43) | `resolveRows` identity and reclassification, the date converters including every unparseable-date path, `reorderedIds` |
 | `calendarStores.spec.ts` (35) | Prefs, quick list, annotations, ignored events, `tickItem`, and the three key spaces |
 | `schedule.spec.ts` (27) | Grid arithmetic, filtering, grouping, the collapsed `dayKeyOf` |
 | `userEdits.spec.ts` (27) | Property 4 one setter at a time, added tasks, the undo slot |
@@ -293,6 +304,22 @@ vocabulary.
 is "something else has to find it". Two modules on purpose, and only the second
 declares runes.
 
+**`arriveAtRow`'s one `tick()` is enough only if you make it enough.** Settled in
+6b: write EVERY state change — including expanding the card — before calling it.
+The flush count is not the mechanism; the ordering is. A caller that unticks and
+then lets an effect expand the card arrives at a row that does not exist yet, and
+fails with no warning in production. `TasksCard.undoTick` is the worked example.
+
+**A date that will not parse throws on the way out.** `new Date('nope').getHours()`
+is NaN and the resulting Invalid Date raises on `toISOString()`. Every converter in
+`taskBoard.ts` guards it, because "Needs a date" exists precisely so a student can
+fix such a row.
+
+**A handler on a row that a drop destroys reads a dead derived.** `dragend` after
+a cross-group drop fires on a torn-down `{#each}` block; reading a prop there is
+Svelte's `derived_inert`. The CARD owns drag cleanup, via a document listener that
+lives exactly as long as the drag.
+
 **`ShowMore` carries `aria-expanded` too.** Anything querying
 `button[aria-expanded="true"]` to find an open popover will match an expanded
 card's own control. Query `.thrive-popover` instead.
@@ -309,11 +336,11 @@ npm run dev -- --open      # dev server, :5173
 npm run build              # production build
 node build/index.js        # run the build, :3000
 npm run check              # svelte-check
-npm test                   # vitest run — 389 tests
+npm test                   # vitest run — 439 tests
 
 python3 scripts/check-contrast.py    # 58 assertions: 42 pairs, 6 ceilings, 10 structural
 npm run check:layout                 # 12 routes x 3 viewports, in a real browser
-npm run check:interaction            # 37 assertions on the stat pill popovers
+npm run check:interaction            # 55 assertions: the popovers and task editing
 ```
 
 If a page looks stale locally, something is holding the port:

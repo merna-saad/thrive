@@ -7,6 +7,103 @@ Note on links: this repo has no PRs — all commits go direct to `main`
 
 ---
 
+## 2026-08-21 — Phase 6b, task editing
+
+### Every date converter threw a RangeError on a "Needs a date" row
+
+**FIXED** · `ad42a35` · was **HIGH**, and latent in the Next source
+
+`dateForGroup`, `fromDateInputValue` and the due shortcuts all carry the task's
+existing clock time over when only its DAY changes -- correct, and the reason a
+problem set due at 11:59pm stays due at 11:59pm when it moves to today.
+
+They did it by reading `new Date(fromISO).getHours()`. For a date that will not
+parse that is `NaN`, `setHours(NaN, NaN)` yields an Invalid Date, and
+**`Invalid Date.toISOString()` throws a RangeError.** `toDateInputValue` was
+quieter and no better: it returned the literal string `"NaN-NaN-NaN"`, which a
+native `<input type="date">` silently rejects, leaving a field that looks broken.
+
+The group guaranteed to hit this is `unknown` -- "Needs a date" -- which exists
+*precisely* because a due date did not parse, and whose entire purpose is that a
+student can fix it. So every route out of it (the date input, all three
+shortcuts, a drag into a dated group) would have raised an exception in front of
+the person using the one control the group was surfaced for.
+
+**Reproduced against the Next source before fixing it**, rather than assumed:
+
+```
+toDateInputValue("not-a-date") => "NaN-NaN-NaN"
+dateForGroup THREW: RangeError: Invalid time value
+```
+
+**Fix:** one `clockFrom` helper, falling back to the reference instant's clock and
+then to local midnight. A date that never parsed has no time of day to preserve,
+so nothing is lost. `toDateInputValue` returns `""`, which is what "no value
+selected" means to a date input.
+
+**Why it was latent in Next and live here.** The Next app filtered by
+`due.urgency === group.key` over three groups, none of which is `"unknown"`, so
+those rows rendered *nowhere* -- a separate defect, fixed in 6a by giving them
+their own group at the top of the list. Making them visible is what made the
+crash reachable. **Fixing one bug can promote another from unreachable to
+certain**, and the fixtures contain no unparseable date, so nothing would have
+caught it in use.
+
+**Now gated:** 5 tests in `taskBoard.spec.ts` covering the input, both
+shortcuts, and all three dated drag destinations.
+
+### `dragend` on a dropped row read a destroyed block's derived
+
+**FIXED** · `5bfd3eb` · was **LOW** in effect, **MEDIUM** as a warning
+
+Dropping a task into another group tears down its `{#each}` block. The browser
+then fires `dragend` on the old element, and that handler read the `reorder`
+prop -- a derived owned by the block that had just been destroyed. Svelte named
+it exactly: `derived_inert`, *"reading a derived belonging to a now-destroyed
+effect may result in stale values"*.
+
+No stale value did any harm today, because the handler only cleared state that
+`onDrop` had already cleared. But the warning was real and it was **present in
+the production build**, and a stale read inside a drag handler is the kind of bug
+that takes a day to find.
+
+**Fix:** the row no longer owns that cleanup. `TasksCard` clears its own drag
+state from a `document` `dragend` listener that exists exactly as long as
+`drag !== null` -- the same "lifetime is the state's" shape as `clickOutside` and
+`escapeKey`, one level up. A cancelled drag leaves the source row in place so its
+`dragend` bubbles; a completed drop has already cleared synchronously.
+
+**How it was found, and the part that matters:** by dragging a row in a real
+browser. All six gates were green. `svelte-check` reports 0/0, 439 tests pass, and
+`check:interaction` *does* fail on console warnings -- but only for gestures it
+actually performs, and nothing performed a drag.
+
+**Now gated:** the gate drags a row between groups. Verified to fail by putting a
+`dragend` back on the row: 1 red.
+
+**The pattern:** *a gate that fails on console noise only covers the gestures it
+makes.* Its "nothing threw or warned" assertion reads like a blanket guarantee and
+is really a per-interaction one. Same family as the note in FINDINGS about a check
+that appears to cover what it cannot.
+
+### The undo arrival, answered
+
+**NOT A BUG** · `5bfd3eb` · the open question from `aadfca9`, closed
+
+`arriveAtRow` awaits one `tick()`, and 6a predicted the undo would be the first
+caller needing two. Measured in a real browser, both ways.
+
+**One tick is enough -- but only because of the ordering, not the count.**
+`undoTick` unticks, reads the recomputed derived list, decides whether to expand
+the card, expands it, and only then arrives. Every write precedes the flush.
+
+With the expansion moved into an effect instead, the hidden-row case lands
+nowhere, marks nothing, and logs **no warning in production**. Now the
+hidden-row arrival is a gate assertion, which is the loud failure that was asked
+for.
+
+---
+
 ## 2026-08-21 — found and fixed while building the stat pill popovers
 
 ### Pressing a stat pill did nothing at all

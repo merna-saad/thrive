@@ -4,6 +4,134 @@ Session log, newest first. What happened, what was decided, what is still open.
 
 ---
 
+## 2026-08-21 — Phase 6b: task editing
+
+**HEAD:** `5cdad70` · 4 commits, all pushed · 439 tests green · all six gates green.
+
+Everything deferred from 6a. The persistence layer was already there from 3b, so
+the work was wiring and the interesting parts were the three things the brief
+asked to be handled deliberately.
+
+### 1. The undo arrival: one tick IS enough, and here is why
+
+Measured in a real browser, not reasoned about, and measured **both ways**.
+
+`undoTick` unticks, then READS the derived list — Svelte's deriveds are pull-based,
+so the post-undo list is available immediately with no flush — then asks
+`planReveal` whether the restored row is past the collapsed slice, expands the card
+if so, and only then calls `arriveAtRow`. Every write precedes the single `tick()`.
+
+**The counterfactual is the part worth keeping.** With the expansion moved out of
+that handler and into an effect, the hard case — a restored row hidden behind "show
+more" — lands nowhere, focuses nothing, marks nothing, and logs **zero console
+warnings**, because the gate drives the production build where the dev warn is
+compiled out. Indistinguishable from a successful arrival at a row that was already
+on screen. Exactly the silent no-op that was most feared.
+
+So the reframe: **the flush count was the wrong question.** The rule is "write
+everything before you arrive", and it is now in CONVENTIONS in those terms. The
+loud failure is the gate assertion `a hidden row still gets its arrival mark`.
+
+### 2. The tick resolution bug: not reintroduced
+
+Home's rows carry a real `Task` object end to end. `taskToggle.toggle(task)` takes
+the object; nothing in this path parses an id. `isTickable` does not arise here
+because every row has a writable source by construction — the calendar's
+`tickItem` dispatch is untouched.
+
+### 3. The stat pills are still honest — and would not have been
+
+This needed a change 6a did not anticipate. `TaskStatPills` counts
+`item.due.urgency` off the **server's** descriptor. The moment a due date became
+editable, "1 overdue" would have survived moving that task to next week: the
+dashboard contradicting the list beneath it, which is the exact bug that moved the
+counting to the client in the first place.
+
+Fixed by resolving ONCE in `+page.svelte` and handing the same array to both. The
+gate's `ticking every counted task takes its pill to zero` is still green, now via
+real ticking rather than a seeded `localStorage`.
+
+### Decisions made
+
+- **Controls wrap to their own line below `sm`** (owner). Five 44px buttons is
+  220px against a 343px card. Shrinking them would trade a layout bug for a WCAG
+  2.5.8 failure.
+- **No `justChanged` ring** (owner). The Next row marked a ticked task for the
+  whole 6s undo window; this app has ONE arrival treatment and the ring is spent on
+  the undo, which is the move that needs finding again.
+- **"Needs a date" accepts no drops** (owner). Nothing to write —
+  `Task.dueDate` is required. Enforced as a TYPE (`DatedGroupKey`), not remembered.
+- **`TaskNotes`' `matchMedia('(hover: hover)')` is the THIRD sanctioned client
+  read** (owner), and recorded in CONVENTIONS. It is not the deleted `hoverIntent`:
+  that gated hover-to-reveal, which is CSS; this decides whether to move FOCUS, and
+  no media query can do that.
+- **Reordering only when the card is expanded** (mine, forced by 6a's flat-when-
+  collapsed decision). Collapsed rows are a flat slice spanning groups, and sort
+  keys are read per group, so a move across a boundary would persist a key and
+  change nothing on screen — a control that appears to work and does not.
+- **Commit-on-blur for the title**, which the Next source did not do (it committed
+  only on Enter and Save). Requested for the gate. It forced the Cancel guard.
+- **`AddTaskForm` keeps the source's native `<select>`** for priority; the
+  three-radio rule was about `PriorityPicker`. Different question: three values
+  being changed in a strip, versus one of four fields being filled in sequence.
+- **`Toast` built and mounted.** Not scope creep: without it, copy-to-list is a
+  silent no-op, because the floating quick list is feature-flagged off so the copy
+  has no visible destination either.
+- **`COLLAPSED_TASK_ROWS` stays at 4** — see the loose end below.
+
+### What broke
+
+Two real defects, both mine to find and both fixed:
+
+- **Every date converter threw a `RangeError` on a "Needs a date" row.** Latent in
+  the Next source; 6a made it reachable by surfacing those rows. Reproduced against
+  the Next source before fixing rather than assumed.
+- **`dragend` on a dropped row read a destroyed `{#each}` block's derived** —
+  `derived_inert`, live in the production build with all six gates green. Found by
+  dragging by hand.
+
+And **defect 3 nearly returned twice.** The controls were one cause; the other was
+inherited from 6a — title and chips on one wrapping line with the title
+`flex-1 min-w-0` means the TITLE gives way, not the chips. Measured mid-build at
+375px: a 90px title box, three lines, six characters a line. Fixed by giving the
+title its own line; 303px and one line after.
+
+Three authoring faults in my own probes and gate code: a synthetic `input` event
+that left a submit button disabled (so "add a task" looked broken when it was not),
+taking the FIRST `aria-controls="tasks-card-list"` control (which expands Done, not
+the list), and a blind toggle that collapsed an already-open card and made the drag
+check report SKIP for its own bug.
+
+### Loose ends carried forward
+
+- **The collapsed Tasks card scrolls ~124px inside its fixed body.** 6a measured
+  299px of content against the 300px cap — it fit exactly. A desktop row is now
+  61–81px rather than 54px and the collapsed body holds 424px. This is arithmetic,
+  not styling: five 44px controls plus the 44px add button cannot fit 300px in any
+  arrangement. **The grid still cannot move** (fixed height, asserted by two gates).
+  `COLLAPSED_TASK_ROWS = 3` would fit and is a visible change to Home's densest
+  card, so it is the owner's call, not this constant's. Recorded at the definition.
+- **`TaskRow` now requires a `role="list"` container.** It renders
+  `role="listitem"`. `/assignments` is the next caller and owes it that.
+- **The two show-more controls on the Tasks card share `aria-controls`.** The done
+  group's and the open list's both name `tasks-card-list`. It tripped the gate twice
+  during authoring. Harmless to a reader, but two controls claiming the same region
+  is not right and it is a trap for the next script.
+- **Nothing gates the drag on touch.** HTML5 drag does not fire there at all, which
+  is why the keyboard buttons exist; but no gate asserts the buttons are the only
+  route on a phone.
+- **`check:interaction`'s "nothing threw or warned" is per-gesture, not per-page.**
+  Stated at the assertion now. When a feature adds a gesture, the gate must make it.
+
+### Still open from earlier phases
+
+Unchanged: §9 defect 1 (process-global mock stores, **BLOCKING** a multi-person
+demo), shallow provider copies, `buildScheduleData()` unported, three dead
+providers, `requestTypeHelp` with no consumer, the calendar half of the ignore
+key-space defect, Home fitting 1218px rather than 1052px.
+
+---
+
 ## 2026-08-21 — click only, an arrival cue, and a gate that can press a button
 
 **HEAD:** `aadfca9` · 6 commits, all pushed · 389 tests green · all six gates green.
