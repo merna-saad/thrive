@@ -6,7 +6,7 @@ Dated session summaries, most recent first.
 
 ## 2026-08-21 — click only, an arrival cue, and check:interaction
 
-**HEAD:** `3c27158` · 4 commits, all pushed · **389 tests, 18 files, all green**
+**HEAD:** `aadfca9` · 6 commits, all pushed · **389 tests, 18 files, all green**
 · `svelte-check` 0/0 over 374 files · build clean · contrast **58/58** · layout
 **36/36** · interaction **37/37**.
 

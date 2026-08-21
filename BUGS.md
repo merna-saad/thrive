@@ -7,6 +7,110 @@ Note on links: this repo has no PRs — all commits go direct to `main`
 
 ---
 
+## 2026-08-21 — found and fixed while building the stat pill popovers
+
+### Pressing a stat pill did nothing at all
+
+**FIXED** · `035c4ff` (and `4439c58` for the gate's other half) · was **HIGH**
+
+The popover opened on hover as well as click, and held ONE boolean for its open
+state. A mouse click is preceded by a pointer entering, so:
+
+```
+pointer enters  -> open = true
+click           -> saw open, closed it
+net effect      -> nothing
+```
+
+The feature's headline interaction was dead. A second fault sat behind the same
+boolean: clicking to open and then moving the mouse closed the panel, because a
+pointer leaving cannot tell a hover it started from a click it did not.
+
+**How it was found:** by driving the built page in Playwright, on the first
+attempt to click a pill. **Every other gate was green** — 389 tests,
+`svelte-check` 0 errors and 0 warnings, a clean build, contrast 58/58, layout
+36/36. None of them can press a button.
+
+**Fix, in two steps.** First `openedBy: 'pointer' | 'command' | null`, so hover
+opened only what was shut and hover closed only what hover opened. Then, the same
+day and after the owner tried it, **hover was removed entirely** — three pills sit
+in one row, so a cursor crossing that row opened and closed panels nobody asked
+for. `openedBy` collapsed back to a boolean with hover gone.
+
+**Now gated:** `scripts/check-interaction.mjs`, and specifically the assertion
+that **hovering a pill does NOT open its popover** — reintroducing hover is the
+only route back to this. Verified to fail on it: putting `onpointerenter` back
+turns 6 checks red, including "clicking a pill opens its popover".
+
+**The pattern:** a control with two ways in has more states than it has booleans.
+If two input methods can produce the same visible state, the state has to record
+which one produced it — or the second will undo the first. And the corollary the
+owner reached: a correct implementation of a bad interaction is still bad.
+
+### Jumping to a row changed nothing on screen
+
+**FIXED** · `4439c58` · was **MEDIUM**, and reported by the owner
+
+Choosing an item in a stat popover moved focus to the row and scrolled it into
+view. Both correct. Everything on Home is already on one page, so for a row that
+needed no scrolling **nothing moved and nothing changed**, and a student who
+clicked "Submit peer review" concluded the click had failed.
+
+The focus ring is not the answer: `:focus-visible` is exactly what does not
+render for the pointer user who just clicked.
+
+**Fix:** `.thrive-arrived` — an indigo inset ring on the arrived row, solid for
+most of a 1200ms beat then faded. An outline because it cannot move the layout,
+does not contest the background wash a task row already uses for priority, and
+follows each row's own radius so one rule fits both row shapes.
+
+**A trap inside the fix.** `app.css` ends with a blanket
+`animation-duration: 0.01ms !important` for `prefers-reduced-motion`, so a mark
+*painted* by a keyframe appears and vanishes within a hundredth of a millisecond —
+invisible, with no error. So the ring is a normal declaration and the animation
+only takes it away; reduced motion gets `animation: none` and a timer still clears
+it.
+
+**Now gated:** five assertions in `check-interaction` — marked, uniquely marked,
+cleared after its beat, marked even when no scrolling was needed, and marked under
+reduced motion with `animation-name: none`. Verified to fail: not applying the
+mark turns 4 red, never clearing it turns 2 red.
+
+**The pattern:** a correct action that shows nothing reads as a failure. "It
+works" and "it appears to work" are different acceptance criteria and only one of
+them is the product.
+
+### `arriveAtRow` could do nothing, silently
+
+**FIXED** · `aadfca9` · was **LOW** today, **HIGH** the moment 6b lands
+
+`arriveAtRow` awaits one `tick()` and returns if the row is not in the DOM. Fine
+for every caller today, because expanding a card is a single state write. But an
+arrival that lands too early is **indistinguishable from a successful arrival at a
+row that was already visible** — which is the exact bug above, arriving by another
+route.
+
+**Fix:** a `console.warn` naming the id it could not find, behind
+`import.meta.env.DEV`. A warning and not a throw, because a student must never see
+an exception over a wayfinding cue.
+
+**Not gated, and that is stated at the assertion.** `check:interaction` drives the
+production build, where the branch is compiled out. It now fails on console
+warnings anyway — worth having — but it cannot see this one. Verified by hand
+against `vite dev` instead: a normal arrival warns about nothing; a row with its
+id removed warns exactly once and names it.
+
+**Open for 6b:** unticking a task moves it between groups, and if that regrouping
+takes two flushes the single `tick()` is not enough. Decided: check it explicitly
+there, and if one tick is too few, make it fail loudly.
+
+**The pattern:** a silent no-op is the worst failure mode in this app. It is what
+made the reveal read as a dead click, what an id-parsing row lookup did before
+`tickItem` dispatched on the attached source row, and what a hover-swallowed press
+looked like.
+
+---
+
 ## 2026-08-21 — found and fixed during the repalette and Phase 6a
 
 ### 37px of scrollable empty space at the bottom of Home

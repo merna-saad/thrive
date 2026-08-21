@@ -1,11 +1,11 @@
-<!-- built-at: d3621b9 -->
+<!-- built-at: aadfca9 -->
 <!-- updated: 2026-08-21 -->
 
 # CODEMAP
 
 Navigation map for the THRIVE rebuild. Read this before opening files.
 
-**Built:** 2026-08-21, refreshed after the popovers went click-only.
+**Built:** 2026-08-21, refreshed at session close.
 **Size:** 120 files under `frontend/src` — ~16,894 lines, 11,978 source / 4,916 test.
 
 > The `built-at` comment above is machine-read by the codemap staleness hook.

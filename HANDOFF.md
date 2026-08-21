@@ -6,9 +6,9 @@ Session log, newest first. What happened, what was decided, what is still open.
 
 ## 2026-08-21 — click only, an arrival cue, and a gate that can press a button
 
-**HEAD:** `3c27158` · 4 commits, all pushed · 389 tests green · all six gates green.
+**HEAD:** `aadfca9` · 6 commits, all pushed · 389 tests green · all six gates green.
 
-Four pieces, all follow-ons from the popovers landing earlier the same day.
+Five pieces, all follow-ons from the popovers landing earlier the same day.
 
 ### 1. Hover removed. Click only.
 
@@ -89,6 +89,19 @@ marking that would tell the student they had been taken somewhere when they had
 just lost their place. Both cases are live in the tree.
 
 No behaviour change; same 37 assertions.
+
+### 5. `arriveAtRow` says so when the row is not there
+
+Asked and answered mid-session: it returned without doing anything, which is the
+failure the arrival cue exists to prevent, sitting inside the cue. Now a
+`console.warn` naming the missing id, behind `import.meta.env.DEV` — a warning not
+a throw, because a student must never see an exception over a wayfinding cue.
+
+`check:interaction` now fails on console warnings too, and **cannot see this one**
+because it drives the production build. That limitation is written at the
+assertion, and the branch was verified by hand against `vite dev` instead. See
+FINDINGS: a check that appears to cover something it cannot is worse than no
+check, because it converts an unknown into a false known.
 
 ### Decisions made
 

@@ -52,14 +52,14 @@ npm run build            # production build
 node build/index.js      # run the build, :3000
 npm run preview          # vite's preview of the build, :4173
 npm run check            # svelte-check
-npm test                 # vitest run, 277 tests
+npm test                 # vitest run, 389 tests
 npm run test:unit        # vitest watch
 ```
 
 From the repo root:
 
 ```bash
-python3 scripts/check-contrast.py    # must stay 43/43
+python3 scripts/check-contrast.py    # must stay 58/58
 ```
 
 ### Gotcha: stale servers
@@ -129,17 +129,25 @@ if it ever is, add it to `.gitignore` and verify with
 
 ---
 
-## The layout gate needs a browser (added 2026-08-21)
+## The two browser gates need a browser (added 2026-08-21)
 
 `npm run check:layout` drives a real Chromium to assert no route can be scrolled
-further than it paints. It is the only part of the toolchain with an environment
-requirement beyond Node.
+further than it paints. `npm run check:interaction` drives one to press the stat
+pills. They are the only parts of the toolchain with an environment requirement
+beyond Node, and they share all of the behaviour described here.
 
 ```bash
 cd frontend
-npm run build          # the gate measures the BUILD, not the dev server
+npm run build              # both gates measure the BUILD, not the dev server
 npm run check:layout
+npm run check:interaction
 ```
+
+**That "the BUILD, not the dev server" has one consequence worth knowing.**
+`arriveAtRow` warns on a missing row behind `import.meta.env.DEV`, so the branch
+is compiled out of what `check:interaction` drives and no gate covers it. To see
+it you need `npm run dev`. Noted here because it is an environment fact, not a
+code one.
 
 **`playwright-core` ships no browser.** On this machine the gate uses a Chromium
 already in `~/Library/Caches/ms-playwright/` from an earlier Playwright install —
@@ -158,8 +166,9 @@ ignored, and an ignored gate is worse than no gate because it looks like
 coverage. It is not part of `npm test` and not part of `npm run build`, so a
 machine without a browser is never blocked.
 
-**It manages its own server.** The script spawns `node build/index.js` on port
-4399, waits for it, measures, and kills it. Nothing to start by hand — but it
+**Each manages its own server.** The scripts spawn `node build/index.js` — the
+layout gate on port 4399, the interaction gate on 4400 — wait for it, measure, and
+kill it. Nothing to start by hand — but it
 does require `npm run build` to have run, and it fails with a clear message if
 `frontend/build/index.js` is missing.
 
@@ -167,9 +176,10 @@ does require `npm run build` to have run, and it fails with a clear message if
 
 ```bash
 cd frontend
-npm test                              # 373 tests, Node, no jsdom
+npm test                              # 389 tests, Node, no jsdom
 npm run check                         # svelte-check
 npm run build                         # vite build, adapter-node
 npm run check:layout                  # 12 routes x 3 viewports, real browser
+npm run check:interaction             # 37 assertions on the stat pills, real browser
 cd .. && python3 scripts/check-contrast.py   # 58 assertions, no dependencies
 ```

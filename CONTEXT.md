@@ -1,4 +1,4 @@
-<!-- updated-at: d3621b9 -->
+<!-- updated-at: aadfca9 -->
 
 # CONTEXT
 
@@ -6,7 +6,10 @@ The living context file. Read this and you should be able to pick up the work
 without asking anyone.
 
 **Regenerated in full every handoff.** Never patch it — a partial edit leaves
-stale claims sitting beside fresh ones with no way to tell them apart.
+stale claims sitting beside fresh ones with no way to tell them apart. (One
+exception was taken and approved on 2026-08-21: a four-spot delta inside the same
+session, on a file written thirty minutes earlier. Full regeneration is for
+accumulated drift across a session; the rule stands for the normal case.)
 
 ---
 
@@ -22,6 +25,8 @@ now frozen; this is the SvelteKit + Django version of it.
 - **Repo:** `rsm-msaad/thrive`, private, GitHub. Default branch `main`.
 - **Owner:** Merna (`rsm-msaad`, `mesaad@ucsd.edu`). Solo developer.
 - **Local path:** `~/code/thrive`
+- **No PRs.** Everything goes direct to `main` — solo, no review gate yet. Commit
+  hashes stand in for PR links throughout the docs.
 
 ### The frozen prototype
 
@@ -48,7 +53,7 @@ thrive/
 ├── CONTEXT.md       this file — the snapshot
 ├── HANDOFF.md       the diary — what happened, per session
 ├── MIGRATION.md     the map of the frozen prototype, and the port spec
-├── CONVENTIONS.md   rules the tooling does not enforce
+├── CONVENTIONS.md   five rules the tooling does not enforce
 ├── CODEMAP.md       navigation map for this repo
 ├── CHANGELOG.md     dated session summaries, newest first
 ├── FINDINGS.md      reusable patterns and lessons
@@ -120,10 +125,10 @@ see §13.
 **One dependency added since Phase 1: `playwright-core`** (2026-08-21), for the
 layout gate. It now carries the interaction gate as well, which is the whole
 argument for having added it rather than measuring by hand: the second gate cost
-nothing. `@types/node` was rejected in Phase 5 because
-`import.meta.glob(..., { query: "?raw" })` did that job with nothing added — the
-rule is "do not add one where the platform already answers", not "never add one".
-See DEPENDENCIES.md.
+nothing and caught a dead button five other gates called green. `@types/node` was
+rejected in Phase 5 because `import.meta.glob(..., { query: "?raw" })` did that
+job with nothing added — the rule is "do not add one where the platform already
+answers", not "never add one". See DEPENDENCIES.md.
 
 ---
 
@@ -141,18 +146,18 @@ See DEPENDENCIES.md.
 | — | Repalette to campus brand; tighten the two-face type rule | done |
 | — | Trim navigation to four destinations | done |
 | 6a | Home — the page, four cards, fit-on-one-screen | done |
-| — | **Stat pill popovers, the reveal channel, `check:interaction`** | **done** |
+| — | **Stat pill popovers, the reveal channel, the arrival cue, `check:interaction`** | **done** |
 | **next** | **6b — task editing** | not started |
 | then | The calendar (15 components, largest surface) | not started |
 | then | Appointments | not started |
 | then | The Ask THRIVE page | not started |
 | later | Floating widgets, behind `FEATURES` | not started |
 
-**389 tests, 18 spec files, all passing.** `svelte-check` clean over 374 files.
+**389 tests, 18 spec files, all passing.** `svelte-check` clean over 375 files.
 Build clean. Contrast **58/58**. Layout **36/36**. Interaction **37/37**.
-38 commits, all pushed.
+43 commits, all pushed.
 
-**120 files under `frontend/src`** — ~16,894 lines, 11,978 source / 4,916 test.
+**120 files under `frontend/src`** — ~16,919 lines, 12,003 source / 4,916 test.
 
 ---
 
@@ -205,8 +210,8 @@ to an indicator and get away with it.
 | `civic` / `later` | `#8a5f8f` / `#64748b` | Categorical only, never status |
 
 **`indigo` has two consumers now, and they are the same sentence.** "You are
-here" in the navigation, and `.thrive-arrived` — the ring on a row a stat pill's
-popover has just jumped to. An arrival cue *is* "this is where you are now", so
+here" in the navigation, and `.thrive-arrived` — the ring on a row something has
+just moved the student to. An arrival cue *is* "this is where you are now", so
 this widened indigo's use without weakening its meaning. Anything else wanting
 indigo has to make that same argument.
 
@@ -228,7 +233,7 @@ carried by different tokens, and must never collapse.** Control boundaries owe
 3:1 under WCAG 1.4.11 because the boundary is the only thing marking where the
 control is. Only `.thrive-checkbox` and `--input` consume the 1.5px stroke.
 
-**There is now a third ring width, and it is deliberately not either of those.**
+**There is a third ring width, and it is deliberately not either of those.**
 `--thrive-arrival-ring: 2px` matches the focus ring in the base layer, because
 both draw a ring around something you have just arrived at and two ring weights
 would read as two kinds of thing. It is not the 1.5px control stroke: that one
@@ -265,7 +270,7 @@ Light-only, no shadows. Below `40rem` the **root** goes to 106.25%.
 
 ### The component classes
 
-Eight, and each exists because Tailwind cannot express it at the call site:
+Nine, and each exists because Tailwind cannot express it at the call site:
 `.thrive-numeric`, `.thrive-eyebrow`, `.thrive-panel`, `.thrive-row`,
 `.thrive-checkbox`, `.thrive-strike`, `.thrive-card-body`, `.thrive-popover`,
 `.thrive-arrived`.
@@ -275,7 +280,9 @@ Eight, and each exists because Tailwind cannot express it at the call site:
   clamp is what stops a pill near the right edge opening a panel off the screen.
   Not a `max-width`, or three pills would open three different-width lists. Its
   surface, hairline and radius are ordinary utilities.
-- **`.thrive-arrived`** is the arrival ring. See §13.
+- **`.thrive-arrived`** is the arrival ring. See §13, and note it is the only one
+  of the nine applied from TypeScript rather than markup — which is why
+  `designSystem.spec.ts` scans `.ts` files too.
 
 ### Durations: motion versus dwell
 
@@ -286,11 +293,14 @@ must not share a token: reusing `--thrive-motion-slow` for the arrival mark woul
 have tied the fade's speed to how long the mark lasts, and the next person to tune
 one would silently retune the other.
 
-`reveal.svelte.ts` READS `--thrive-arrival-duration` from the computed root style
-rather than repeating it, so the timer that removes the mark and the animation
-that fades it cannot drift apart — and 1200ms stays a design-system value rather
-than becoming a number in a TypeScript file. `check-interaction.mjs` reads the
-same token for the same reason.
+`arrive.ts` READS `--thrive-arrival-duration` from the computed root style rather
+than repeating it, so the timer that removes the mark and the animation that fades
+it cannot drift apart — and 1200ms stays a design-system value rather than becoming
+a number in a TypeScript file. `check-interaction.mjs` reads the same token for the
+same reason.
+
+**1200ms is a judgement, not a measurement**, and it stands until a real student
+says otherwise (decided 2026-08-21).
 
 ### The one responsive token
 
@@ -306,7 +316,10 @@ resolving it once.
 Renders every token, both border weights, the brand values with their PMS
 numbers, the yellow constraint shown legible-on-navy beside decorative-on-cream,
 and the two-face rule as a table of worked pairs. Throwaway; delete before
-Release 1. It does **not** yet show the popover or the arrival ring.
+Release 1.
+
+**It does not show the popover or the arrival ring, and that is a decision**
+(owner, 2026-08-21): it is slated for deletion, so it is not worth the time.
 
 ---
 
@@ -428,6 +441,11 @@ Svelte only processes runes in `.svelte.js` / `.svelte.ts`. A plain `.ts` with
 `$state` is **silently inert**. Six files carry the suffix: `overrideStore`,
 `userEdits`, `taskNotes`, `toast`, `ignoreUndo`, `reveal`.
 
+**And the suffix is a claim, so it has to be true in the other direction too.**
+`arrive.ts` is DOM code with no runes and is a plain `.ts` for exactly that
+reason — it was moved out of `reveal.svelte.ts` on 2026-08-21 partly to stop
+implying otherwise.
+
 ---
 
 ## 9. React-isms deliberately dropped
@@ -479,7 +497,7 @@ place that pattern was rejected — see §13.
   `nav` landmark in the a11y tree at a time, `aria-current="page"` on the active
   item.
 
-### The three actions
+### The two actions
 
 `frontend/src/lib/actions/` — Svelte actions rather than translated `useEffect`s.
 The shared shape is that **the listener's lifetime is the element's**: put one on
@@ -693,9 +711,13 @@ about to land on the revealed row, so it must not be pulled back on the way. Foc
 follows the jump, not the dismissal.
 
 `aria-controls` names an id that is absent while the popover is closed. **That
-deviation is accepted** (2026-08-21): the alternative is a permanently mounted
-panel and two permanently mounted document listeners per pill, which is exactly
-what the action lifetimes in §10 exist to avoid.
+deviation is accepted** (owner, 2026-08-21): the alternative is a permanently
+mounted panel and two permanently mounted document listeners per pill, which is
+exactly what the action lifetimes in §10 exist to avoid.
+
+**21 items is a long popover** and it scrolls at `max-h-60`. Decided: keep the
+honest number, revisit a cap with a "see all in /events" tail only if the list gets
+very long.
 
 ### The reveal channel: the page owns the intent, the cards own their state
 
@@ -735,29 +757,34 @@ ordering never decides who saw the request.
 states derive from the variable the effect writes, so reading one would make the
 write re-run the effect.
 
-### Arriving has to be visible
+### Arriving is one function, and it is the standard
 
-Focus moved and the row scrolled into view, which is correct and **completely
-invisible** — everything on Home is already on one page, so a student choosing
-"Submit peer review" saw nothing change and concluded the click had failed. The
-focus ring is not the answer: a pointer user does not get one.
+**`arriveAtRow` in `$lib/arrive` is how ANYTHING on Home moves a student to a
+row** (decided 2026-08-21). Never a hand-rolled `scrollIntoView`. 6b's undo
+returning to a task just ticked, and the calendar's "next up" pointing at the item
+it names, both want exactly this — and two arrival treatments on one page would be
+worse than either alone, because a student learns the cue once.
 
-So **`arriveAtRow`** (`$lib/arrive`) focuses the row, scrolls it with
-`block: 'nearest'`, and marks it with **`.thrive-arrived`** — an indigo ring, solid
-for most of a 1200ms beat and then faded out.
+Asking and doing are separate modules on purpose: **`$lib/arrive`** is "I know
+which row", **`$lib/reveal.svelte`** is "something else has to find it". A card
+answering a channel request does both — it expands itself, then arrives.
 
-**It is the standard way anything on Home moves a student to a row**, decided
-2026-08-21 rather than left as the popovers' private helper. 6b's undo returning
-to a task just ticked, and the calendar's "next up" pointing at the item it names,
-both want exactly this — and two arrival treatments on one page would be worse
-than either alone, because a student learns the cue once. CONVENTIONS states the
-rule and what a caller owes it. **Not every focus move is an arrival:** navigation
-inside a widget is not, and neither is focus recovery onto a container after the
-row it was on stopped existing.
+**Not every focus move is an arrival**, and CONVENTIONS states both live
+counter-examples: navigation inside a widget (`StatPopover` between its items), and
+focus recovery onto a container after the row it was on stopped existing
+(`UpcomingEvents` after an ignore). Marking the second would tell a student they
+had been taken somewhere when they had in fact just lost their place.
 
-`$lib/arrive` is a plain `.ts` and declares no runes. Asking is the separate half:
-`$lib/reveal.svelte` is the channel a surface writes into when it cannot know
-which card owns the row, and the card that answers calls `arriveAtRow` itself.
+#### Why the mark exists
+
+Focus moved and the row scrolled, which was correct and **completely invisible** —
+everything on Home is already on one page, so a student choosing "Submit peer
+review" saw nothing change and concluded the click had failed. The focus ring is
+not the answer: a pointer user does not get one.
+
+So `arriveAtRow` focuses the row, scrolls it with `block: 'nearest'`, and marks it
+with **`.thrive-arrived`** — an indigo ring, solid for most of a 1200ms beat and
+then faded out.
 
 - **Indigo** because indigo is the reserved "this is where you are now" colour and
   an arrival cue is that sentence exactly. Not coral: nothing has gone wrong. Not
@@ -775,9 +802,9 @@ which card owns the row, and the card that answers calls `arriveAtRow` itself.
   keyframe would appear and vanish within a hundredth of a millisecond. Declared,
   plus `animation: none` under reduced motion, leaves the ring on and still
   cleared on the beat by the timer.
-- **Exactly one row is ever marked.** Any previous mark is cleared first; two
-  rings would read as two selections, and this is not a selection.
-- **Jumping twice to the same row forces a reflow** between the class removal and
+- **Exactly one row is ever marked.** Any previous mark is cleared first,
+  document-wide, so that holds across surfaces and not just within one.
+- **Arriving twice at the same row forces a reflow** between the class removal and
   the re-add, or the browser never sees a change and the animation does not
   restart.
 - **The mark is unconditional**, including for a row that needed no scrolling —
@@ -786,6 +813,23 @@ which card owns the row, and the card that answers calls `arriveAtRow` itself.
 
 Focus behaviour is unchanged and the mark is additive. The accessible answer and
 the visual one are different channels for different people.
+
+#### The one-tick edge
+
+`arriveAtRow` awaits exactly **one** `tick()`. Enough for every caller today,
+because expanding a card is a single state write. **6b's undo is the first case
+that might need two** — unticking moves a task between groups — and an arrival that
+lands early is indistinguishable from a successful arrival at a row that was
+already visible.
+
+It is no longer silent about it: a `console.warn` names the id it could not find,
+behind `import.meta.env.DEV`. A warning and not a throw, because a student must
+never see an exception over a wayfinding cue. **No gate covers that branch** —
+`check:interaction` drives the production build, where it is compiled out — so it
+was verified by hand against `vite dev`, both directions.
+
+Decided: check the tick count explicitly in 6b, and if one is not enough, make it
+fail loudly rather than quietly.
 
 ### Upcoming Events: collapsed is four, expanded is this week
 
@@ -821,15 +865,18 @@ snippet that renders nothing leaves an empty ruled strip.
 are removed before the slice, which is what makes the next event move up instead
 of leaving a gap.
 
+**No extra wording on the card about the narrowing** (owner, 2026-08-21): the
+show-more label carries it.
+
 ### Measured heights
 
 Header block **375px → 266px** during the 6a density pass. Document
 **1392px → 1238px**.
 
 **Home fits a 1238px viewport whole** and has not moved since — the fixed card cap
-absorbed everything the popovers added. It does not fit 1052px, and the decision
-(2026-08-21) is **do not cut card rows**: two task rows would make the card
-useless, and "show more" exists for exactly that.
+absorbed everything the popovers and the arrival ring added. It does not fit
+1052px, and the decision (2026-08-21) is **do not cut card rows**: two task rows
+would make the card useless, and "show more" exists for exactly that.
 
 **The phone grew 2878px → 2949px** when the popovers landed: 44px touch targets on
 all three pills, plus the new footer band on Upcoming Events. Accepted.
@@ -868,9 +915,18 @@ as it is built, or Mandarin stops being possible.
 | `npm run check:layout` | 12 routes × 3 viewports in a real browser |
 | `npm run check:interaction` | 37 assertions on the stat pill popovers, in a real browser |
 
-**Three properties every gate here has:** it measures the thing rather than a
-model of it; it reads its inputs from the source of truth; and it has been
-**verified to fail** on the bug it was written for.
+**Four properties every gate here has.** The first three were the original set;
+the fourth was added on 2026-08-21.
+
+1. **It measures the thing rather than a model of it.**
+2. **It reads its inputs from the source of truth.**
+3. **It has been verified to fail** on the bug it was written for.
+4. **It says what it does not cover.** A check that appears to cover something it
+   cannot is worse than no check, because it converts an unknown into a false
+   known — the absent check leaves you cautious, the misleading one makes you
+   confident. Where a gate's reach stops short of what it seems to include, that
+   boundary belongs *inside* the gate, at the assertion, not in a doc three files
+   away.
 
 **`check-contrast.py` parses `app.css`** rather than mirroring it. That weakness
 was load-bearing during the repalette: 43 assertions were checking green values
@@ -885,14 +941,26 @@ landed.
 **`check:interaction` exists because the other five were all green on a version
 where pressing a pill did nothing at all.** Hover had already opened the panel, so
 the click found it open and closed it again. None of the other gates can press a
-button. It reads `--thrive-arrival-duration` from the running page rather than
-repeating it, and it knows no fixture ids — the task ids it ticks to force a zero
-count are discovered by choosing the popover's own items and reading where focus
-landed. Verified to fail three ways: hover reintroduced (6 red, including the
-original bug), the arrival mark not applied (4 red), the mark never cleared
-(2 red). One check reports **SKIP** rather than passing when the fixture cannot
-produce a reveal target past a collapsed slice, because silent degradation to a
-weaker assertion is how a gate stops meaning anything.
+button.
+
+It reads `--thrive-arrival-duration` from the running page rather than repeating
+it, and it knows no fixture ids — the task ids it ticks to force a zero count are
+discovered by choosing the popover's own items and reading where focus landed.
+Verified to fail three ways: hover reintroduced (6 red, including the original
+bug), the arrival mark not applied (4 red), the mark never cleared (2 red).
+
+It reports **SKIP** rather than passing when the fixture cannot produce a reveal
+target past a collapsed slice, because silent degradation to a weaker assertion is
+how a gate stops meaning anything. And it states its own blind spot at the
+assertion: it fails on console warnings, but it drives the production build, so
+`arriveAtRow`'s dev-only warn is compiled out and invisible to it.
+
+**Scope, by decision** (owner, 2026-08-21): `check:interaction` stays on the widget
+that broke. Extend it when something else proves it needs one, not on principle.
+
+**Anything behind `import.meta.env.DEV` has no gate by construction.** That is
+usually the point, but it means the diagnostics — the code nobody exercises — are
+the least covered code in the repo. Verify those by hand when they land.
 
 Both browser gates **skip loudly and exit 0** when there is no chromium. A gate
 that cries wolf gets ignored.
@@ -914,35 +982,34 @@ destructuring, and an unknown identifier in a Svelte template is not a type erro
   gate.
 - **A gate must be verified to fail** on the thing it guards, by breaking that
   thing on purpose and watching it go red.
+- **Say when a check cannot see what it looks like it checks**, at the assertion.
+- **A silent no-op is the worst failure mode this app has.** It is what made the
+  reveal read as a dead click, what an id-parsing row lookup did before `tickItem`
+  dispatched on the attached source row, and what a hover-swallowed press looked
+  like. Where a courtesy can silently not happen, prefer it failing loudly — and
+  where it currently cannot, say so at the definition.
 - **A control with two ways in has more states than it has booleans.** If two
   input methods can produce the same visible state, the state has to record which
   one produced it — or the second method will undo the first. This is why
   `openedBy` existed; when hover went, the extra state went with it rather than
   being left as branches that can only take one value.
+- **A correct implementation of a bad interaction is still bad.** The `openedBy`
+  work was real engineering spent making hover behave, and the right answer was
+  that hover should not have been there. Ask earlier whether the second way in is
+  wanted, before building the state that reconciles it.
 - **Delete an abstraction that loses its last caller**, unless a specific named
   surface wants it. `hoverIntent` went the day hover did. `escapeKey` was kept
   through Phase 4 with no caller and that was the right call — but it was kept
   against two named surfaces, not against the general chance that something might.
-- **Durations are either motion or dwell**, and they do not share tokens.
 - **Moving a student to a row goes through `arriveAtRow`.** One function, never a
   hand-rolled `scrollIntoView`. Two arrival treatments on one page is worse than
   either of them, because the cue is learned once.
-- **A silent no-op is the worst failure mode this app has.** It is what made the
-  reveal read as a dead click, it is what an id-parsing row lookup did before
-  `tickItem` dispatched on the attached source row, and it is what a hover-swallowed
-  press looked like. Where a courtesy can silently not happen, prefer it failing
-  loudly — and where it currently cannot, say so at the definition. `arriveAtRow`
-  is the worked example: it still returns rather than throwing at a student, but it
-  warns in development.
-- **Say when a check cannot see what it looks like it checks.** The gate fails on
-  console warnings, which reads as covering the one above — it does not, because
-  the gate drives a production build. Written into the gate at the assertion, not
-  only in a doc, because a check that appears to cover something it cannot is worse
-  than no check.
+- **Feedback beats correctness.** A correct action that shows nothing reads as a
+  failure. "It works" and "it appears to work" are different acceptance criteria
+  and only one of them is the product.
+- **Durations are either motion or dwell**, and they do not share tokens.
 - **Full CONTEXT regeneration is for accumulated drift across a session**, not for
-  a four-spot delta inside one. Confirmed by the owner 2026-08-21 after this file
-  was patched thirty minutes after being written. The rule stands for the normal
-  case.
+  a four-spot delta inside one.
 - **`@lucide/svelte`, not `lucide-svelte`** (the latter is pinned to Svelte 3/4).
 - **`cn()` survives** for the `class`-override case only.
 - **Vitest in Node, no jsdom.** Matches the prototype, where rendering was
@@ -959,7 +1026,7 @@ destructuring, and an unknown identifier in a Svelte template is not a type erro
   test-only export is permanent.
 - **Extract strings as you build**, not afterwards.
 - **No Claude/Anthropic attribution anywhere** — commits, PRs, file headers.
-  Verified clean across all 38 commits.
+  Verified clean across all 43 commits.
 
 ---
 
@@ -976,8 +1043,7 @@ Calm, plain, honest about what is simulated.
 - Empty states are an invitation to act, never "No data". Never a dashed outline.
 - "Overdue" alone, not "Overdue by 3 days" beside "3 days ago".
 - Counts and timers in mono and tabular, so a row does not reflow.
-- **Feedback beats correctness.** A jump that works and shows nothing reads as a
-  failure. If an action changes state the student cannot see, it needs a cue.
+- **If an action changes state the student cannot see, it needs a cue.**
 - Comments explain **why**, not what.
 
 ---
@@ -997,21 +1063,17 @@ Calm, plain, honest about what is simulated.
    editing, drag to reorder, add task. `TaskRow` is read-only with disabled
    checkboxes today and a footer line saying so; that line goes when 6b lands.
    `homeGroups.ts` is the read-only half of the Next `useTaskBoard`; the rest of
-   that hook is what 6b needs. The done-group branch in `TasksCard`'s reveal
-   effect is unreachable from Home today — no pill counts a done task — and was
-   built because 6b's undo wants exactly that path.
+   that hook is what 6b needs.
 
-   **And `arriveAtRow`'s single `tick()` needs checking there.** Unticking moves a
-   task between groups; if that regrouping takes two flushes, the arrival lands on
-   a row that does not exist yet and does nothing — no mark, no focus move. That is
-   the failure the cue exists to prevent, arriving by another route. Decided
-   2026-08-21: check it explicitly in 6b, and if one tick is not enough, **make it
-   fail loudly rather than quietly.**
+   Two things are waiting there specifically. The **done-group branch** in
+   `TasksCard`'s reveal effect is unreachable from Home today — no pill counts a
+   done task — and was built because 6b's undo wants exactly that path. And
+   **`arriveAtRow`'s single `tick()` needs checking**: unticking moves a task
+   between groups, and if that regrouping takes two flushes the arrival lands on a
+   row that does not exist yet. Decided: check it explicitly, and if one tick is
+   not enough, make it fail loudly. A dev-only warn now names the case, but no
+   gate covers that branch.
 
-   A dev-only `console.warn` now names the missing id, so the case is audible
-   before it is understood. **No gate covers that branch** — `check:interaction`
-   drives the production build, where it is compiled out — so it was verified by
-   hand against `vite dev`.
 3. **Then, in order:** the calendar (15 components, largest surface; needs
    `buildScheduleData()`, still unported), appointments, then the **Ask THRIVE
    page** — three tabs (chat, class recommender, job recommender), a chat window,
@@ -1024,8 +1086,8 @@ Calm, plain, honest about what is simulated.
    store. Pinned by a test that says why.
 5. **`npm test` renders nothing.** A component can render the wrong content with
    correct types, correct classes and no page overflow. `check:interaction` closes
-   this for one widget on one page; it is not a general answer, and 6b's editing
-   is the next thing that genuinely wants a rendered assertion.
+   this for one widget on one page, by decision; it is not a general answer, and
+   6b's editing is the next thing that genuinely wants a rendered assertion.
 6. **Home fits 1238px, not 1052px.** Accepted. Phone is 2949px.
 7. **Three dead providers:** `getSyllabi`, `getResources`, `getCurrentResume`.
 8. **`requestTypeHelp` has no consumer** anywhere in the prototype.
@@ -1042,25 +1104,21 @@ Calm, plain, honest about what is simulated.
 14. **`format.ts` still emits `"Invalid Date"` from `formatShortDate`.**
 15. **A parseable-but-wrong date still gets through** `describeDue`: V8 rolls
     `"2026-02-30"` into March.
-16. **`/swatch` does not show the popover or the arrival ring.** It is the design
-    system's display page and two treatments are now missing from it. Small, and
-    it is throwaway anyway.
-17. **The calendar's "next up" uses `arriveAtRow` directly**, not the reveal
+16. **The calendar's "next up" uses `arriveAtRow` directly**, not the reveal
     channel — it knows its own item, so there is nothing to ask. **Unless** it has
     to reach a row inside a collapsed day group, which is the channel's shape
-    again. Decided 2026-08-21: settle it when the calendar lands, not before.
-18. **`matchesWide()` is still unported** — listed in CONVENTIONS as a sanctioned
+    again. Decided: settle it when the calendar lands, not before.
+17. **`matchesWide()` is still unported** — listed in CONVENTIONS as a sanctioned
     client read for a surface that does not exist yet.
-19. **21 items is a long popover.** It scrolls at `max-h-60`. Decision
-    (2026-08-21): **keep the honest number**, revisit a cap with a "see all in
-    /events" tail only if the list gets very long.
 
-**Closed since the last regeneration**
+**Closed this session**
 
 - `escapeKey` has a caller. It is `StatPopover`.
-- `CONTEXT.md` was stale at `f8593b7`. This regeneration is the fix.
 - The stat pill popovers were "queued, specified, not built". They are built.
-- "Should the browser probe become a gate?" — yes, it did.
+- "Should the browser probe become a gate?" — yes, `check:interaction`.
+- `/swatch` missing the two new treatments: closed as **won't fix**, it is slated
+  for deletion.
+- 1200ms and the 21-item popover: both confirmed as standing.
 
 ---
 

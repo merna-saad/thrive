@@ -4,6 +4,62 @@ Reusable patterns and lessons. Things worth knowing again.
 
 ---
 
+## 2026-08-21 — a gate that cannot see what it looks like it checks
+
+### The shape of the problem
+
+`check:interaction` was extended to fail on console warnings, right after
+`arriveAtRow` gained a `console.warn` for the row it could not find. Reading the
+two together, it looks like the warning is covered.
+
+It is not. The gate drives `node build/index.js` — the **production** build — and
+the warning is behind `import.meta.env.DEV`, so the branch does not exist in the
+artifact being measured. The check is real and useful for anything that warns in
+production; it is simply blind to the one thing it appears to have been added for.
+
+**Nobody would have noticed.** Both halves are correct in isolation, they landed
+in the same commit, and every gate stayed green. The next person reading the
+warning would reasonably assume a regression in it would be caught.
+
+### What to do about it
+
+Two things, and the second is the one that generalises.
+
+**Say it at the assertion, not in a doc.** The comment naming the blind spot sits
+on the `check(...)` line, because that is where somebody stands when they are
+deciding whether to trust it. A doc three files away does not reach them.
+
+**Verify the uncovered branch by hand, and record how.** A `vite dev` run,
+stripping a row's `id` so `getElementById` misses while `planReveal` still reports
+`found` — because that reads data, not the DOM. Both directions, so the
+observation is not vacuous:
+
+```
+control   arrival succeeded=true  warnings=0
+missing   marked=1 activeElement=BODY  warnings=1
+```
+
+### Generalisable
+
+**A check that appears to cover something it cannot is worse than no check**, and
+worse in a specific way: it converts an unknown into a false known. The absent
+check leaves you cautious; the misleading one makes you confident.
+
+So when a gate's reach stops short of what it seems to include, that boundary is
+part of the gate and belongs inside it. The three properties this repo asks of a
+gate — measures the thing, reads from the source of truth, verified to fail — are
+worth a fourth: **it says what it does not cover.**
+
+### The related trap: dev-only code has no gate by construction
+
+Anything behind `import.meta.env.DEV`, `if (dev)`, or a `NODE_ENV` check is
+invisible to every gate that measures a build. That is usually the point. But it
+means the guard rails and diagnostics — the code most likely to be wrong, because
+it is the code nobody exercises — are exactly the code least covered. Verify those
+by hand when they land, or accept they are decoration.
+
+---
+
 ## 2026-08-21 — a correct action that shows nothing reads as a failure
 
 ### The bug was that it worked
