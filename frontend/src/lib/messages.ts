@@ -411,9 +411,77 @@ export const messages = {
 		row: {
 			allDay: 'all day',
 			urgent: 'urgent',
+			/** Spoken form, for the week column's glyph where the pill will not fit. */
+			urgentLabel: 'Urgent',
 			/** The checkbox says what pressing it will do, not what is true now. */
 			toggle: (title: string, done: boolean) =>
 				done ? `Mark ${title} not done` : `Mark ${title} done`
+		},
+
+		/* --- The view switcher ---------------------------------------------- */
+		views: {
+			label: 'Calendar view',
+			month: 'month',
+			week: 'week',
+			agenda: 'agenda',
+			/** The agenda-only grouping control. Words, so DM Sans. */
+			groupByLabel: 'group by',
+			groupByDay: 'day',
+			groupByCategory: 'type',
+			groupByCourse: 'course'
+		},
+
+		/* --- The week columns ----------------------------------------------- */
+		week: {
+			/** A day with nothing in it. An em dash, not the word "empty". */
+			emptyDay: '—',
+			/** Names the column, since the heading is an abbreviation and a number. */
+			selectDay: (date: string) => `Show ${date}`,
+			/**
+			 * Shown in the agenda's place when week view cannot fit.
+			 *
+			 * Not an error. The student asked for a view that needs seven readable
+			 * columns and this screen has room for about two, so they get the list
+			 * instead and are told why rather than left wondering what happened to
+			 * their choice.
+			 */
+			fallbackNote: 'Week view needs a wider screen. Showing the agenda instead.'
+		},
+
+		/* --- The agenda ----------------------------------------------------- */
+		agenda: {
+			empty: 'Nothing in this range. Try showing more streams, or a different view.',
+			/** The undated section. These rows exist nowhere else in the app. */
+			undatedTitle: 'No date',
+			undatedHint: 'to-dos you never dated',
+			/** How far ahead the list looks, stated so the range is not a guess. */
+			rangeNote: (days: number) => `the next ${days} days`
+		},
+
+		/* --- The key, which is also the filter ------------------------------ */
+		key: {
+			headingId: 'calendar-key',
+			title: 'Key',
+			/** Sits inline before the title, lowercase. */
+			prefix: 'show',
+			/** The count beside the title. A value, so it renders numeric. */
+			hiddenCount: (count: number) => `${count} hidden`,
+			showAll: 'show all',
+			hideAll: 'hide all',
+			/** The two dimensions, named. They are never one list. */
+			streams: 'streams',
+			labels: 'labels',
+			/** Says what a stream chip will do, since the chip itself is one word. */
+			streamToggle: (stream: string, on: boolean) =>
+				on ? `Hide ${stream}` : `Show ${stream}`,
+			labelToggle: (label: string, on: boolean) =>
+				on ? `Hide items labelled ${label}` : `Show items labelled ${label}`,
+			doneItems: 'done items',
+			urgentOnly: 'urgent only',
+			ignoredEvents: 'ignored events',
+			/** Shown only when there are some, so flipping it has a visible effect. */
+			ignoredCount: (count: number) => `(${count})`,
+			allHidden: 'Everything is hidden — nothing will show below.'
 		}
 	},
 
