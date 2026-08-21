@@ -336,6 +336,43 @@ store into a module the server renders through would poison it. That is the one
 sanctioned sibling, stated in both places. MIGRATION.md §9 defect 12 is the
 record of what happens when a third copy appears.
 
+### Corollary, settled in 7c: BOTH event-scoped stores share the raw id space
+
+`thrive:ignored-events` and `thrive:event-joins`. A join and an ignore are both
+facts about an EVENT, and one `DayEventsSection` row offers them side by side --
+so if they keyed differently, that row would hold two ids for one event and would
+have to remember which control took which. That is precisely the arrangement that
+produced the 7a defect.
+
+`calendarEvents.ts` is the calendar's one boundary and calls `eventIdOf` once,
+handing the raw id back with each row. The join store, like the ignore store,
+normalises nothing.
+
+Note what makes this consistent rather than merely tidy: labels and urgent are
+keyed by CALENDAR ITEM id for the opposite reason -- they annotate a row the
+student may not own, on streams that have no event behind them at all. Three key
+spaces, and the test for a fourth is "is this a fact about the event, or about the
+row?"
+
+### And the test shape, because the obvious one does not work
+
+**Pin the STORED KEY, never a round trip.**
+
+A store that mangles on write and mangles identically on read is perfectly
+self-consistent about a key nothing else in the app uses. That is exactly what
+7a's bug was, and a round-trip test passes throughout it.
+
+So a key-space test must not share a transformation with the code:
+
+- read the string straight out of the fake `localStorage` and compare it to a
+  hard-coded literal, **or**
+- write through one surface's real path and read through the other's, with the
+  reading side's id hard-coded rather than derived.
+
+Then break it on purpose and count the reds. `calendarEvents.spec.ts` goes 7 red
+with `eventId = item.id` reinstated; that number is the evidence the file is worth
+having.
+
 ---
 
 ## One filter, applied once
@@ -398,3 +435,78 @@ ever holds genuine divergence.
 
 The store layer is not ported yet. When it is, this shape is the requirement,
 and so is the "empty on the server, real after mount" ordering.
+
+---
+
+## A prop is a getter, so its declared type has a lifetime
+
+**Any handler that can fire while a component is being torn down is reading a
+prop the parent may already have revoked.**
+
+In Svelte 5 a prop is a getter over the parent's state. `ItemDetail` declares
+`item: ScheduleItem`, and that is true of the VALUE. The parent closes the dialog
+by writing `null` into `detail`; the `{#if}` around the component tears the
+subtree down a tick later. In between, the getter returns null while the
+component's handlers still exist.
+
+It threw, in production, on an ordinary dismissal: closing with focus in the label
+field fired the input's `onblur` during teardown and `commitLabel` read `item.id`
+off nothing. Found by `check:interaction`, which fails on a console error — no
+unit test in this repo could see it, because the suite has no focus model.
+
+**Two remedies, and prefer the second where it is honest:**
+
+1. Guard the handler. Fixes one site, and the type says the guard is dead code, so
+   review eventually deletes it.
+2. **Latch the value at mount** — `const row = untrack(() => item)`. Fixes the
+   whole class and states the assumption out loud.
+
+The latch is only correct when the prop genuinely cannot change for the instance's
+lifetime, and that has to be arguable rather than assumed. It is here: `detail` is
+a snapshot, the dialog is modal so nothing can swap the row underneath it, and the
+two fields that CAN change while it is open are read from their stores instead.
+Where a prop really does change, guard the handler.
+
+What to look for in a diff:
+
+- a prop read inside `onblur`, `onpointerup`, a transition callback, an observer
+  callback, or anything else that can outlive a conditional block
+- a component that latches a prop which the parent DOES update — the mirror
+  failure, and a silently stale view rather than a throw
+
+Same family as 6b's `derived_inert` (a `dragend` on a row a drop destroyed). Both
+are "the DOM outlives the state for one tick".
+
+---
+
+## A dialog owes six things, and attributes are three of them
+
+`role="dialog"` and `aria-modal="true"` are claims. What they promise is
+behaviour, and the Next source made three of those promises without keeping them.
+
+The six, and where each lives:
+
+| Obligation | How |
+|---|---|
+| Named | `aria-labelledby` pointing at the real heading |
+| Announced as modal | `aria-modal="true"` plus the scrim |
+| Focus moves in | `use:focusTrap`, `initial` selector |
+| Focus is trapped | the same action |
+| Focus returns to the opener | the same action, on destroy |
+| Escape dismisses | `use:escapeKey` |
+
+Two things that are NOT in the action, on purpose: it does not close anything, and
+it does not make the page behind it inert. A non-dismissible dialog is a real
+thing, and folding dismissal in would make it un-declinable.
+
+**The opener must be focused before the dialog opens.** A pointer press does not
+reliably leave focus on a button — Chrome does it, Safari on macOS does not — so
+`ItemRow` calls `focus()` on itself in the handler before `onOpen`. Without it a
+mouse user lands on `<body>` and the next Tab starts at the top of the page.
+
+**A destructive action inside one needs a second step, and the second step needs
+its geometry thought about.** In `ItemDetail` the safe control takes the position
+the trigger occupied and holds focus, so neither a double-tap nor an Enter can
+destroy anything. A confirm button rendered where the trigger was reintroduces the
+accident the step exists to prevent. And Escape peels one layer: with the question
+up it cancels the question, not the dialog.

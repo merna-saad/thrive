@@ -4,6 +4,175 @@ Session log, newest first. What happened, what was decided, what is still open.
 
 ---
 
+## 2026-08-21 — Phase 7c: the calendar's editing surfaces. The calendar is done.
+
+**HEAD:** `5b636f6` · 8 commits · **558 tests** (was 507) · six gates green ·
+green in all seven timezones.
+
+Worked end to end without stopping, at the owner's instruction. Every call made in
+their absence is below with the reasoning, so any of them can be reversed.
+
+### The decision this phase was handed
+
+**`thrive:event-joins` now keys on the raw `Event.id`.**
+
+The brief was right that this is 7a's defect in a second store, and right that it
+had to be decided with the consumer in front of us. Having built that consumer, the
+argument is stronger than "be consistent":
+
+1. **One row asks both stores.** A `DayEventsSection` row offers "count me in" and
+   "ignore" side by side. Under the old shape the component holds two ids for one
+   event and has to remember which control takes which — the exact arrangement that
+   produced the 7a bug, not merely a rhyme with it.
+2. **Home already holds the other id, and says so in a comment.** `EventRow`'s
+   "count me in" is inert *because this key space was unsettled*. Home holds an
+   `Event`, so it holds `event.id` — raw.
+3. **A join is a fact about an EVENT.** Labels and urgent are keyed by calendar item
+   id for the opposite reason: they annotate a row the student may not own, on
+   streams with no event behind them. That is the test for whether a fourth key
+   space is ever warranted, and this is not one.
+
+Nothing argued the other way. Three key spaces still, not four.
+
+Old keys go stale and stay inert. No migration, same reasoning as 7a: absence means
+"never joined", so a stale key is harmless rather than corrupt, and this is mock
+data in dev.
+
+**The test pins the stored key.** `calendarEvents.spec.ts` never round-trips: each
+case reads the literal string out of the fake `localStorage`, or writes through one
+surface's path and reads through the other's with the reading id hard-coded.
+Verified to fail — **7 red** with `eventId = item.id` reinstated. A round trip over
+the same pair of functions stays green, which is the whole point.
+
+### The day figure and the rows agree, and it is now gated
+
+Yes. Not argued — measured, in a browser, across **every day in the month that has
+anything on it**: 36 days, 14 of them rendering an events section, figure equal to
+rows on all of them, and again immediately after an add. That assertion is in
+`check:interaction`, so the gap cannot reopen quietly. BUGS.md's 7a entry is closed.
+
+### What was built
+
+| | |
+|---|---|
+| `ItemDetail.svelte` | The dialog. Focus in / trapped / returned, Escape and outside press, two-step delete. |
+| `AddItemForm.svelte` | Three kinds, three stores. Markup only — the routing is a module. |
+| `DayEventsSection.svelte` | Join, leave, `.ics`, ignore. |
+| `calendarEvents.ts` | The event id boundary. One `eventIdOf` call in the whole calendar. |
+| `calendarAdd.ts` | The routing, out where a gate can see it. |
+| `ics.ts` | Pure builder, clock as a parameter; `downloadIcs` reads it at the boundary. |
+| `actions/focusTrap.ts` | Move focus in, keep it in, put it back. |
+| `ui/UnIgnoreButton.svelte` | `IgnoreButton`'s twin. Calendar only. |
+
+### Calls made in the owner's absence
+
+Each is reversible and each has a reason:
+
+1. **`AddItemForm` does not use `arriveAtRow`.** The brief said to use it *if*
+   adding should take the student to the row. It should not: `arriveAtRow` needs a
+   DOM id, calendar rows carry none, and giving every row one would add a second
+   arrival surface with its own gate needs. The form sits directly above the list it
+   adds to, on the day it adds to. Confirmation is the app-wide toast, naming WHICH
+   LIST the item went to — three kinds go to three places and picking the wrong one
+   is otherwise discovered days later on another page.
+2. **No new `RevealKind`.** Nothing here wanted one, and the union is still closed.
+3. **A to-do is dated at the day's start, not the form's time.** The source stored
+   the form's time; `todoToItem` renders every to-do "All day" and the quick list
+   never offers a time, so that was a number nothing reads, contradicting the row it
+   produced.
+4. **Label and urgent are written to the annotation stores only**, not also onto the
+   custom event. The source did both, and that was a live bug — see below.
+5. **`customEventToItem` attaches the event to the row.** The source recovered the
+   id with `item.id.replace(/^custom-/, "")`, which CONVENTIONS forbids and which is
+   doubly hazardous here because the prefix genuinely appears twice.
+6. **The dialog is mounted outside the view branches.** The agenda has no day panel
+   and its rows open one too, and `dayPanel` is keyed on the selection, which a
+   student can change from the keyboard while the dialog is open.
+7. **`AddItemForm` and `DayEventsSection` are absent in agenda view**, matching the
+   source. The agenda spans thirty days and has no single selected day to add to.
+   Flagged rather than fixed, because "which day does the agenda's add form add to"
+   is a design question and it is the owner's.
+8. **The interaction gate was widened**, not just the layout gate. The brief only
+   asked for `check:layout`, but the dialog's whole contract is behaviour no unit
+   test in this repo can see, and writing a weaker unit test that looks like
+   coverage is what the brief told me not to do. It found two real bugs.
+
+### Where the source contradicts itself or is simply wrong
+
+Three, all recorded in BUGS.md and none ported:
+
+- **`AddItemForm.tsx` stores urgent twice** — on the event and in the override
+  store — and `mergedSchedule` resolves `override ?? item.urgent`. So clearing the
+  flag in the dialog wrote `undefined` and fell back to the copy on the event.
+  **Un-marking urgent did nothing.**
+- **`ItemDetail.tsx` reads a stale snapshot.** Its checkbox renders `item.urgent`
+  off the row it was handed, which never changes, so it does not move until the
+  dialog is reopened. Read live here, through the same rule the merge uses.
+- **`ItemDetail.tsx` deletes on one click** of a button labelled "delete", with no
+  undo anywhere in the system for it.
+
+### What the new gate caught, which is the argument for widening it
+
+Two bugs, on its first run, in code that was green on all five other gates:
+
+1. **A TypeError on every close with focus in the label field.** A Svelte 5 prop is
+   a getter; the parent nulls `detail`, the `{#if}` tears the subtree down a tick
+   later, and the input's `onblur` fired in between and read `item.id` off null.
+   **The declared type is true of the value and not of the getter.** Fixed by
+   latching the row at mount. Now a CONVENTIONS rule.
+2. **Focus did not return to the opener.** A pointer press does not reliably leave
+   focus on a button, so a mouse user landed on `<body>`. `ItemRow` focuses its
+   trigger before opening.
+
+Neither is visible to 553 unit tests, `svelte-check`, the build, contrast or layout.
+
+### The 48rem breakpoint
+
+**Already there** — moved in the 7b follow-on (`7f12511`), so this phase verified
+rather than moved it. Re-measured after 7c, driving the built page:
+
+| width | week columns | column | agenda | fallback note | h-overflow | tallest title |
+|---|---|---|---|---|---|---|
+| 1330px | 7 | 133px | — | no | 0px | 60px |
+| 900px | 7 | 109px | — | no | 0px | 60px |
+| 769px | 7 | 90px | — | no | 0px | 60px |
+| 768px | 7 | **90px** | — | no | 0px | 60px |
+| 767px | 0 | — | 28 groups | yes | 0px | — |
+| 700px | 0 | — | 28 groups | yes | 0px | — |
+| 640px | 0 | — | 28 groups | yes | 0px | — |
+| 375px | 0 | — | 28 groups | yes | 0px | — |
+
+Unchanged from 7b's table within 1px of rounding (that run measured the same button
+with a different rounding method). Titles still cap at 60px — three lines. No
+horizontal overflow at any width, no console output at any width. **7c added nothing
+to the columns**: the add form and the events section live in the day panel below
+the grid, not inside a column.
+
+### The gates
+
+`npm test` 558 · `npm run check` 0/0 · `npm run build` clean ·
+`check-contrast` 58/58 · `check:layout` **42/42** (was 36) ·
+`check:interaction` **84/84** (was 60) · seven timezones 558 each.
+
+### Loose ends for the next session
+
+1. **CONTEXT.md is owed.** §14 still describes 7c as pending, §5's phase table and
+   every count are stale. Not patched — the file is regenerated in full by rule, and
+   a partial edit leaves stale claims sitting beside fresh ones with no way to tell
+   them apart. It is a job of its own, as last session's entry says.
+2. **Home's "count me in" is still inert.** The key space is settled and the wiring
+   is now one line on each side. Left to the phase that owns Home so it arrives with
+   its own gate coverage.
+3. **The agenda has no add form and no events section.** Owner's call: what day
+   would an agenda-level add form add to?
+4. **The real-phone list, unchanged:** touch drag, and the month grid's 44px cells.
+5. **The `custom-custom-` double prefix stands** (MIGRATION §9 defect 14). Cosmetic,
+   internally consistent, and now harmless — nothing parses it, because the row
+   carries its own event. Changing the minted id would strand every stored event for
+   no gain.
+
+---
+
 ## 2026-08-21 — session close: CONTEXT regenerated after two phases
 
 **HEAD:** `bac3fbf` · 15 commits this session, all pushed · 507 tests · six gates

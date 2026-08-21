@@ -4,6 +4,103 @@ Reusable patterns and lessons. Things worth knowing again.
 
 ---
 
+## 2026-08-21 — a prop's declared type does not survive the parent revoking it
+
+Phase 7c, and the most transferable thing in it.
+
+In Svelte 5 a prop is a **getter** over the parent's state. `ItemDetail` declares
+`item: ScheduleItem`, and that type is true of the VALUE. It is not true of the
+getter: the parent closes the dialog by writing `null` into `detail`, and the
+`{#if}` tears the subtree down a beat later. In between, the getter returns null
+while the component's handlers still exist.
+
+Which is not theoretical. Closing with focus in the label field fired the input's
+`onblur` **during teardown**, `commitLabel` read `item.id`, and the page threw.
+
+**The rule: any handler that can fire during teardown is reading a prop that may
+already be gone.** Blur is the obvious one; so is anything on a `pointerup`, a
+transition end, or an `IntersectionObserver`.
+
+Two fixes, and the second is better:
+
+1. Guard the handler — `if (!item) return`. Fixes one site, and the type says the
+   guard is dead code, so review will eventually delete it.
+2. **Latch the value at mount** — `const row = untrack(() => item)`. Fixes the
+   whole class, and says out loud what the component already assumed.
+
+The latch is only correct when the prop genuinely cannot change for the lifetime
+of the instance, which is worth stating rather than assuming. Here it can be
+argued: `detail` is a snapshot, the dialog is modal so nothing can swap the row
+underneath it, and the two things that CAN change while it is open are read from
+their stores instead. Where a prop really does change, guard the handler.
+
+Same family as 6b's `derived_inert` — a handler on a row that a drop destroys
+reading a dead derived. Both are "the DOM outlives the state for one tick".
+
+---
+
+## 2026-08-21 — a test that shares a transformation with the code cannot catch a key-space bug
+
+7a fixed a store keyed through a normaliser applied on both sides. Two tests
+passed the entire time it was broken, because a store that mangles on write and
+mangles identically on read is perfectly self-consistent — about a key nothing else
+in the app uses.
+
+7c had the same decision to make in a second store, so the test shape was the
+deliverable as much as the fix:
+
+- **Assert the STORED KEY**, read straight out of the fake `localStorage` and
+  compared to a hard-coded literal. Never through the store's own getter.
+- **Or write through one surface's real path and read through the other's.** The
+  calendar writes `setEventJoined(eventIdOf(item.id))`; Home reads
+  `isEventJoined(event.id, joins)`. Neither side shares a step with the other.
+- **Hard-code the id on the reading side.** Deriving it would reintroduce exactly
+  the shared transformation being tested for.
+
+And then **verify it fails**: reinstating the bug turned 7 cases red. A test
+written against a known failure mode is worth little until it has been shown to
+notice that failure.
+
+---
+
+## 2026-08-21 — extract the part that fails silently, not the part that is complicated
+
+`AddItemForm` is a radio group and three inputs. Nothing about it is hard. The one
+thing in it that can be wrong invisibly is WHICH STORE each kind lands in — a to-do
+filed as a task turns up on Home under a heading claiming everything there was
+"pulled from every source"; a task filed as an event cannot be ticked, so a
+deadline quietly stops being one. Neither throws, neither fails a type check, and
+neither is visible on the day it happens.
+
+So `addCalendarItem` is a module and the form is markup around it. The heuristic
+generalises past this repo's "nothing renders in a test" constraint: **extract by
+failure mode, not by size.** The complicated part of a component is usually the
+part you would notice breaking.
+
+Third time in three phases: `calendarDay.ts` in 7a, `calendarViews.ts` in 7b,
+`calendarAdd.ts` and `calendarEvents.ts` in 7c.
+
+---
+
+## 2026-08-21 — a confirmation step that keeps the button in the same place is not one
+
+The delete control in `ItemDetail` replaces itself with a question. Two decisions,
+both about the SECOND press:
+
+1. **"Keep it" takes the position "Delete" occupied.** A student who double-taps,
+   or whose finger is already moving, hits the safe control. A confirm button
+   rendered where the trigger was reintroduces exactly the accident the step exists
+   to prevent.
+2. **Focus lands on "Keep it" too**, so Enter and Space agree with the pointer. The
+   keyboard path must not be the dangerous one.
+
+Also worth keeping: **Escape peels one layer.** With the confirmation up, Escape
+cancels the confirmation and not the dialog — otherwise the key that means "back
+out of this" skips past the question being asked and the student cannot tell
+whether the delete happened.
+
+---
+
 ## 2026-08-21 — a forward-looking claim decays into a false claim about the present
 
 The most useful thing regenerating CONTEXT.md after two deferred phases turned up,

@@ -1,6 +1,6 @@
 # TESTING
 
-**Last verified:** 2026-08-21, after Phase 7b. **507 tests, 23 files, all
+**Last verified:** 2026-08-21, after Phase 7c. **558 tests, 26 files, all
 passing.** Verified green in all seven timezones of the sweep below — and in 7a
 the sweep **caught a real failure**, which is recorded there.
 
@@ -15,13 +15,73 @@ Plus two gates that are tests in everything but name:
 
 ```bash
 python3 scripts/check-contrast.py    # 58 assertions: 42 pairs, 6 ceilings, 10 structural
-npm run check:layout                 # 12 routes x 3 viewports, in a real browser
-npm run check:interaction            # 60 assertions: the popovers and task editing
+npm run check:layout                 # 14 targets x 3 viewports, in a real browser
+npm run check:interaction            # 84 assertions: the popovers, task editing, the calendar
 ```
 
 `check-contrast.py` PARSES `app.css` rather than mirroring it, so a token edited
 there is checked there. `check:layout` needs a browser and skips loudly (exit 0)
 when it cannot find one — see the note below.
+
+---
+
+## Phase 7c — three new spec files, and both browser gates widened
+
+`ics.spec.ts` (13), `calendarAdd.spec.ts` (18), `calendarEvents.spec.ts` (8), plus
+new cases in `calendarItems.spec.ts`, `calendarStores.spec.ts` and
+`userEdits.spec.ts`. 507 → 558.
+
+### The one that is written against a known failure mode
+
+`calendarEvents.spec.ts` deliberately **never round-trips**. Phase 7a's ignore-store
+defect survived two passing tests because a normaliser applied on both sides makes a
+store perfectly self-consistent about a key nothing else uses. So each case here
+either
+
+- reads the literal string back out of the fake `localStorage` and compares it to a
+  hard-coded key, or
+- writes through the path ONE surface really uses and reads through the path the
+  OTHER really uses.
+
+**Not sharing a transformation is the property that catches a key-space split.**
+Verified to fail: reinstating the bug (`eventId = item.id`) turns 7 cases red. A
+round trip written over the same pair of functions stays green.
+
+### Absence as well as presence
+
+`calendarAdd.spec.ts` asserts, for each of the three kinds, that its store gained a
+key AND that the other two localStorage keys were never created. "The task store
+gained a key" stays green if the write went to all three. One case does three adds
+in a row, because a case that starts from empty cannot notice a stray write on the
+second call.
+
+### What is still browser-only, and now actually covered
+
+`check:interaction` gained 24 assertions (60 → 84), and they are the ones that
+**cannot** be written as unit tests here — Vitest runs in Node with no jsdom, so
+there is no `document.activeElement`, no layout, and no unmount to blur during:
+
+| Claim | Why only a browser can see it |
+|---|---|
+| the day figure equals the rows beneath it | a count of DOM nodes against a rendered number |
+| focus moves into the dialog, and onto CLOSE | there is no focus model in Node |
+| Tab and Shift+Tab are trapped | needs real key events against a live tab order |
+| focus returns to the opener | the opener is a DOM node, and pointer focus is browser-specific |
+| delete asks first | a statement about two presses |
+| joining moves the fraction | a store write reflected in rendered text |
+
+**It found two real bugs on its first run** — a TypeError on every close with focus
+in the label field, and focus not returning after a pointer-opened dialog. Both are
+in BUGS.md. Neither was visible to 553 unit tests, `svelte-check`, the build, the
+contrast gate or the layout gate.
+
+### `check:layout` covers the week and agenda views
+
+The calendar's view is a persisted preference rather than a URL, so `/calendar`
+only ever measured the month grid. The gate now writes `thrive:calendar-prefs`
+before measuring and removes it when a target names none, so a view cannot leak
+forward into the next route. 36 → 42 assertions. The agenda measures 15,528px on a
+phone, which is what the gate is for.
 
 ---
 
@@ -80,7 +140,7 @@ rather than being appended to the pure-logic ones.
 
 ### The interaction gate
 
-`npm run check:interaction` · `scripts/check-interaction.mjs` · 60 assertions.
+`npm run check:interaction` · `scripts/check-interaction.mjs` · 84 assertions.
 
 **Why it exists.** The other five gates were ALL green on a version of the stat
 pill popovers where pressing a pill did nothing at all. Hover had already opened
@@ -392,8 +452,8 @@ assertions over opening, keyboard navigation, all four dismissal paths, the
 reveal, and the clamped panel at 375px. Those assertions were a **throwaway
 probe**, run once, and they do not exist in the repo.
 
-**It is now a gate.** `npm run check:interaction`, 60 assertions, decided
-and built the same day. No new dependency, and see its own section below.
+**It is now a gate.** `npm run check:interaction` — 60 assertions when it was
+decided and built the same day, 84 since 7c widened it to the calendar. No new dependency, and see its own section below.
 
 The gap it closes is no longer one widget: 6b's editing is gated through the same
 script, which is where "the next thing that wants a rendered assertion" landed. The

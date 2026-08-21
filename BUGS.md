@@ -7,6 +7,88 @@ Note on links: this repo has no PRs — all commits go direct to `main`
 
 ---
 
+## 2026-08-21 — Phase 7c, the calendar's editing surfaces
+
+### `ItemDetail` threw on every close with focus in the label field
+
+**FIXED** · `d6c96c0` · was **HIGH** in effect: a TypeError in production on a
+routine dismissal
+
+`item` is a prop, which in Svelte 5 is a GETTER over the parent's state -- here
+`CalendarView.detail`. Closing writes `null` into that state and the `{#if}` then
+tears the subtree down. Between those two things the getter returns null while the
+component's handlers still exist, so the label field's `onblur`, firing DURING
+teardown, read `item.id` off nothing:
+
+```
+TypeError: Cannot read properties of null (reading 'id')
+```
+
+**The type said `ScheduleItem` and was telling the truth about the value and not
+about the getter.** That is the transferable part: a prop's declared type does not
+survive the parent revoking it, and any handler that can fire during teardown is
+reading a prop that may already be gone.
+
+Fixed by latching the row at mount -- `const row = untrack(() => item)` -- which
+fixes the whole class rather than that one handler. It is also honest about what
+the component already was: `detail` is a snapshot, the dialog is modal, and the two
+things that CAN change while it is open are read from their stores.
+
+**Found by `check:interaction`**, which fails on a console error. No unit test could
+have seen it: the suite runs in Node with no jsdom, so it has no focus model, and
+the throw needs a real blur during a real unmount. It only surfaced at all because
+something in that gate finally opened the dialog -- the same shape as 6b's
+`derived_inert`, where a warning sat in the production build until a gate performed
+the gesture.
+
+### Focus did not return to the control that opened the dialog
+
+**FIXED** · `d6c96c0` · **MEDIUM**
+
+`focusTrap` restores focus to whatever held it at mount. A POINTER press does not
+reliably leave focus on a button -- Chrome does it, Safari on macOS does not -- so a
+mouse user closing the dialog landed on `<body>` and the next Tab started at the top
+of the page. `ItemRow` now focuses its trigger before calling `onOpen`, which costs
+keyboard users nothing and makes the return deterministic.
+
+### `annotate`'s shortcut would have kept urgent on a done row
+
+**FIXED before shipping** · `d6c96c0` · latent, unreachable through today's mappers
+
+Moving the done-suppression into the shared `urgentFor` rule made the existing
+`if (!label && !isUrgent) return item` early return wrong: a row arriving urgent AND
+done, with no override, has two falsy resolved values, takes the shortcut, and keeps
+the flag the suppression exists to remove. Only custom events arrive carrying
+`urgent` and none of them is tickable, so it could not fire -- but "unreachable" was
+a property of the mappers, not of the function. The condition now asks whether
+anything actually differs. Pinned by a test that goes red on the old shortcut.
+
+### Two defects NOT reproduced from the Next source
+
+Both were read, understood, and built differently. Recorded so a future reader
+comparing the two trees does not "restore" them.
+
+- **Un-marking urgent in the dialog did nothing.** `AddItemForm.tsx` wrote label
+  and urgent onto the custom event AND into the annotation stores, and
+  `mergedSchedule` resolves `override ?? item.urgent` -- so clearing the override
+  fell straight back to the copy on the event. One source now: the annotation
+  stores, for all three kinds alike.
+- **The dialog read a stale snapshot.** `ItemDetail.tsx` rendered `item.urgent`
+  from the row it was handed, which never changes, so the checkbox did not move
+  until the dialog was reopened. Read live through `labelFor` / `urgentFor` here.
+
+### Resolved: the day's figure counts events that have no row
+
+**CLOSED** · `af7fb53` · was LOW, and lasted exactly the one phase it was given
+
+`DayEventsSection` is mounted, so every category the header counts has rows
+beneath it. Verified in a browser rather than argued: `check:interaction` walks
+every day in the month that has anything on it -- 36 days, 14 of them with events
+-- and asserts the figure equals the rows rendered, including after an add. The
+gap cannot reopen quietly.
+
+---
+
 ## 2026-08-21 — Phase 6b, task editing
 
 ### Every date converter threw a RangeError on a "Needs a date" row

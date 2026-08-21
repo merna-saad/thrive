@@ -4,6 +4,68 @@ Dated session summaries, most recent first.
 
 ---
 
+## 2026-08-21 — Phase 7c: the calendar's editing surfaces
+
+**HEAD:** `5b636f6` · 8 commits · 558 tests (was 507) · six gates green · green in
+all seven timezones. **The calendar is complete.**
+
+### What changed
+
+Three components, three supporting pure modules, one action, one primitive.
+
+- **`ItemDetail`** — a dialog with everything about one item plus every edit
+  control. Focus moves in, is trapped, and returns; Escape and an outside press
+  dismiss; delete asks first, with the safe control in the destructive one's old
+  position and holding focus.
+- **`AddItemForm`** — a task, a to-do or a custom event, routed to three different
+  stores. The routing lives in `calendarAdd.ts` so a gate can see it.
+- **`DayEventsSection`** — "Happening, register". Join, leave, .ics, ignore.
+- `calendarEvents.ts`, `calendarAdd.ts`, `ics.ts`, `actions/focusTrap.ts`,
+  `ui/UnIgnoreButton.svelte`.
+- `check:layout` extended to the week and agenda views (36 → 42 assertions).
+- `check:interaction` extended to the calendar (60 → 84 assertions).
+
+### The decision this phase was given
+
+**`thrive:event-joins` keys on the raw `Event.id`**, matching the ignore store. It
+was keyed on the calendar item id — the same defect fixed in the ignore store in
+7a, in a second store, invisible because it had one consumer. Decided with that
+consumer in front of us: one row offers join and ignore side by side, Home's
+inert "count me in" already holds `event.id`, and a join is a fact about an event
+rather than about a row on a day. Three key spaces still, not four. Old keys go
+stale and are left; no migration.
+
+### The 7a gap is closed
+
+Every day in the month with anything on it now shows a figure equal to the rows
+beneath it — 36 days checked in a browser, 14 of them with events, and again after
+an add.
+
+### PRs merged
+
+None. Direct to `main`, as ever: `22f6a7d` `f6dd1a9` `0d98632` `d6c96c0` `caf61ab`
+`af7fb53` `f74150f` `5b636f6`.
+
+### Known issues
+
+- **`ItemDetail` threw on close with focus in the label field.** Found and fixed
+  the same session, by the interaction gate. A prop is a getter, and the parent
+  nulls it before the subtree is torn down. See BUGS.
+- **Focus did not return to the opener** after a pointer-opened dialog. Fixed.
+- **`AddItemForm` and `DayEventsSection` are absent in agenda view**, matching the
+  source: the agenda spans thirty days and has no single selected day to add to.
+- **Home's "count me in" is still inert.** The key space is settled and wiring it
+  is now a one-line change on each side, left to the phase that owns Home.
+- **CONTEXT.md is owed.** §14 still describes 7c as pending. It is regenerated in
+  full rather than patched, so it is a job of its own.
+
+### Next priorities
+
+CONTEXT.md; wiring Home's join button; the real-phone list (touch drag, the month
+grid's 44px cells).
+
+---
+
 ## 2026-08-21 — session close: CONTEXT regenerated after two phases
 
 **HEAD:** `bac3fbf` · 15 commits this session · 507 tests · six gates green · green

@@ -1,12 +1,12 @@
-<!-- built-at: bac3fbf -->
+<!-- built-at: 5b636f6 -->
 <!-- updated: 2026-08-21 -->
 
 # CODEMAP
 
 Navigation map for the THRIVE rebuild. Read this before opening files.
 
-**Built:** 2026-08-21, refreshed after Phase 7b.
-**Size:** 147 files under `frontend/src` — ~22,933 lines, 16,625 source / 6,308 test.
+**Built:** 2026-08-21, refreshed after Phase 7c.
+**Size:** 157 files under `frontend/src` — ~25,614 lines, 18,435 source / 7,179 test.
 
 > The `built-at` comment above is machine-read by the codemap staleness hook.
 > Keep it as the first line, in that exact `<!-- built-at: <hash> -->` form.
@@ -19,7 +19,7 @@ Navigation map for the THRIVE rebuild. Read this before opening files.
 |---|---|
 | `CONTEXT.md` | The snapshot. What this is, where the port has got to, every standing decision. |
 | `MIGRATION.md` | The spec. The frozen Next prototype, inventoried in nine sections. |
-| `CONVENTIONS.md` | Five rules the tooling does not enforce. Review is the enforcement. |
+| `CONVENTIONS.md` | Seven rules the tooling does not enforce. Review is the enforcement. |
 | `HANDOFF.md` | The diary. What happened last session and what is still open. |
 
 ---
@@ -51,7 +51,8 @@ and why the `*View` types exist.
 ## The pure layer — `frontend/src/lib/`
 
 No framework surface, and all of it under test. Mostly ported in Phase 2;
-`buildSchedule`'s body and `calendarDay` landed in 7a, `calendarViews` in 7b.
+`buildSchedule`'s body and `calendarDay` landed in 7a, `calendarViews` in 7b, and
+`calendarEvents` / `calendarAdd` / `ics` in 7c.
 
 | File | Role |
 |---|---|
@@ -62,7 +63,10 @@ No framework surface, and all of it under test. Mostly ported in Phase 2;
 | `calendarDay.ts` | **The selected day's arithmetic**, extracted out of the components in 7a so a gate can see it: `sortDayItems`, `arrangeDay`, `squareGroupsFor`, `dayCountParts`, and the `SquareCell`/`SquareGroup` shapes. |
 | `calendarViews.ts` | Its 7b sibling, for questions about a VIEW rather than a day: `agendaRange` (thirty days, anchored on today), `showsRowDate`, `undatedTodoItem`, `visibleUndatedTodos`. |
 | `calendarSources.ts` | `taskToItem`, `todoToItem`, `mergedSchedule()`, `nowMinutes()`. **`nowMinutes()` still has no consumer** — the calendar takes its "next up" clock from the server; see `routes/calendar/+page.server.ts`. |
-| `calendarItems.ts` | Custom events, labels, urgent. Keyed by **calendar item id**. |
+| `calendarItems.ts` | Custom events, labels, urgent. Keyed by **calendar item id**. `labelFor`/`urgentFor` are the ONE resolution rule, shared by the merge and the dialog. |
+| `calendarEvents.ts` | **The calendar's event boundary.** `dayEventRows` sheds the `evt-` prefix once and hands the raw `Event.id` back with each row, for the join AND ignore stores. `DayEventsSection`'s only arithmetic. |
+| `calendarAdd.ts` | **Three kinds, three stores.** `addCalendarItem` is the whole of `AddItemForm` that can be wrong invisibly, so it lives out here where a gate can see it. |
+| `ics.ts` | The `.ics` export. `buildIcs` is pure and takes its `DTSTAMP` instant as an argument; `downloadIcs` reads the clock at the boundary. `icsFromItem` is one mapper for both callers. |
 | `calendarPrefs.ts` | `normalisePrefs` + the persisted store. |
 | `ignoredEvents.ts` | `eventIdOf()`, `canIgnore()`, and the store. Keyed on **raw `Event.id`**, and it now normalises **nothing** it is handed — the calendar sheds its own prefix at its boundary. That was the HIGH defect fixed in 7a. |
 | `tickItem.ts` | `tickItem()` and `isTickable()`. Dispatches on the **attached source row**, never by parsing an id. |
@@ -156,8 +160,8 @@ before changing it. (`/calendar` is built too, as of 7a — its own section belo
 
 ## The calendar — `routes/calendar/` + `lib/components/calendar/`
 
-**Phase 7a built the spine; 7b added the other two views and the filter bar.**
-Editing, the detail dialog, the add form and the events section are 7c.
+**Complete.** 7a built the spine, 7b added the other two views and the filter bar,
+7c added the three editing surfaces.
 
 | File | Role |
 |---|---|
@@ -173,7 +177,10 @@ Editing, the detail dialog, the add form and the events section are 7c.
 | `calendar/WeekView.svelte` | Seven columns, compact rows, **no checkboxes**. Not rendered below `48rem` — see rule 4 below. No min-width and no horizontal scroll, deliberately. |
 | `calendar/AgendaView.svelte` | A flat grouped list over 30 days. **The only view that can carry undated to-dos**, which is why it exists. Rows name their own date when the grouping is not by day. |
 | `calendar/KeyBar.svelte` | The key AND the filter. **Two dimensions that never merge** — see rule 3 below. |
-| `calendar/ItemRow.svelte` | One item in the shape every view renders it. Numeric tabular time, sans title, a real checkbox on tickable rows. No `compact`, no `onOpen` — those views do not exist yet. |
+| `calendar/ItemRow.svelte` | One item in the shape every view renders it. Numeric tabular time, sans title, a real checkbox on tickable rows, and the details control — which **focuses itself before opening**, so the dialog has somewhere definite to put focus back. Never in the week column. |
+| `calendar/ItemDetail.svelte` | **The dialog.** Everything about one item plus label, urgent and delete. Focus in / trapped / returned, Escape and outside-press dismissal, a two-step delete. **Latches its row at mount** — see the gotcha below. |
+| `calendar/AddItemForm.svelte` | Add a task, a to-do or a custom event. Markup only; the routing is `calendarAdd.ts`. |
+| `calendar/DayEventsSection.svelte` | "Happening, register". Join, leave, `.ics`, ignore. Its own section because opting in is a different act from ticking off. |
 
 ### Three things to know before touching it
 
@@ -197,9 +204,13 @@ Editing, the detail dialog, the add form and the events section are 7c.
    **48rem rather than the 40rem the Next comment names**, because 40rem measured
    at 71px and read as three short stacks. The knob is the breakpoint, never a
    min-width.
-5. **The header counts events; nothing renders them until 7c.** A day can read
-   "5" above three rows. Deliberate — the alternatives break rule 1 or ship events
-   without their register controls. See BUGS.md.
+5. **The header's figure and the rows beneath it agree, as of 7c.** For two phases
+   a day could read "5" above three rows, because the figure counts events and
+   nothing rendered them. `DayEventsSection` closed that, and `check:interaction`
+   walks every day in the month with anything on it and asserts the two match.
+6. **`eventIdOf` is called in exactly one place in the calendar**, `calendarEvents.ts`.
+   Both event-scoped stores — joins and ignores — key on the raw `Event.id`, so one
+   row must never hold two ids for one event. See CONVENTIONS.
 
 ---
 
@@ -207,7 +218,11 @@ Editing, the detail dialog, the add form and the events section are 7c.
 
 `Tag` · `Button` · `ProgressBar` · `EmptyState` · `SectionCard` · `ShowMore` ·
 `StatPill` · `StatPopover` · `StatusBadge` · `DueChip` · `IgnoreButton` ·
-`IgnoreUndoBar` · `Toast`
+`UnIgnoreButton` · `IgnoreUndoBar` · `Toast`
+
+`UnIgnoreButton` is `IgnoreButton`'s twin down to the last utility, because they
+share a slot and swap on one boolean. Only the calendar has one: Home is a
+recommendation feed and dismissing there is permanent by design.
 
 `Toast` is the app-wide confirmation line, mounted once in `AppShell`. It had no
 consumer until 6b's copy-to-list, which is why it is new here and the store is not.
@@ -232,12 +247,12 @@ control must not scroll away with the content it controls.
 
 | Command | What it proves |
 |---|---|
-| `npm test` | 507 tests. Pure logic and source scans. Nothing renders. |
-| `npm run check:interaction` | 60 assertions in a real browser: the popovers **and** 6b's editing — tick, undo, the undo arrival (including the hidden-row case), a drag between groups, rename-on-blur. **The only gate that can press a button.** Fails on a console warning too — but it drives the PRODUCTION build, so it cannot see `arriveAtRow`'s dev-only warn. |
+| `npm test` | 558 tests. Pure logic and source scans. Nothing renders. |
+| `npm run check:interaction` | 84 assertions in a real browser: the popovers, 6b's editing, **and 7c's calendar** — the day figure against its rows, the dialog's focus contract, the two-step delete, joining. **The only gate that can press a button**, and it found two real bugs the day it was widened. Fails on a console warning too — but it drives the PRODUCTION build, so it cannot see `arriveAtRow`'s dev-only warn. |
 | `npm run check` | Types agree. **Does NOT prove the page renders** — see BUGS.md. |
 | `npm run build` | It compiles. |
 | `python3 scripts/check-contrast.py` | 58 assertions. **Parses `app.css`**, so tokens cannot drift from their checks. |
-| `npm run check:layout` | 12 routes x 3 viewports in a real browser: the page cannot scroll further than it paints. Skips if no browser. |
+| `npm run check:layout` | 14 targets x 3 viewports in a real browser: the page cannot scroll further than it paints. The calendar counts three times — its view is a persisted preference, not a URL. Skips if no browser. |
 
 ---
 
@@ -272,7 +287,8 @@ Four properties and three key spaces: see `CONTEXT.md` §8.
 | `SectionHeading.svelte` | Mono eyebrow + bold title + mono count. `as` → `<svelte:element>`. Ported, no call sites yet. |
 | `Avatar.svelte` | Image with an initials fallback. Hand-rolled; shadcn-svelte is later. |
 | `actions/escapeKey.ts` | Svelte action. Escape-to-dismiss, scoped to the element's lifetime. **Caller: `StatPopover`.** |
-| `actions/clickOutside.ts` | Its sibling. Capture-phase `pointerdown`, with an `alsoInside` list for the trigger that opened the thing. |
+| `actions/clickOutside.ts` | Its sibling. Capture-phase `pointerdown`, with an `alsoInside` list for the trigger that opened the thing. **Callers: `StatPopover`, `DueDateEditor`, `ItemDetail`.** |
+| `actions/focusTrap.ts` | The third. Move focus in, keep it in, put it back — one action because they are one contract. Queries the focusable set LIVE on every Tab, since a dialog's controls can change while it is up. **Caller: `ItemDetail`.** |
 
 ---
 
@@ -286,14 +302,14 @@ Home card but will not be built (owner) — the card IS the feature.
 | Route | State |
 |---|---|
 | `/` | **Built.** The dashboard, and editable. |
-| `/calendar` | **Built (7a).** Month view, the selected day, that day's items. The other two views, the filter bar, editing and events are 7b/7c. |
+| `/calendar` | **Built and complete (7a–7c).** Three views, the filter bar, the detail dialog, the add form, and the day's events. |
 | `/classes` `/syllabi` `/events` `/resources` `/settings` `/assignments` `/appointments` | `PagePlaceholder` |
 | `/degree` `/career` | Placeholder body. Both are *partial* in the prototype and need providers. |
 | `/swatch` | **Throwaway.** Every token, type step, border weight, both faces. Delete before Release 1. |
 
 ---
 
-## Tests — 507, 23 files
+## Tests — 558, 26 files
 
 `npm test`. Vitest, **Node environment, no jsdom**, so nothing renders.
 
@@ -310,9 +326,12 @@ logic left in a `.svelte` file is logic no gate can see.
 | `format.spec.ts` (89) | `describeDue` across every branch, field and boundary; both private helpers via their public surfaces; both DST transitions |
 | `providers.spec.ts` (47) | The provider boundary: copies out, no randomness, the three stores |
 | `taskBoard.spec.ts` (43) | `resolveRows` identity and reclassification, the date converters including every unparseable-date path, `reorderedIds` |
-| `calendarStores.spec.ts` (37) | Prefs, quick list, annotations, `tickItem`, the three key spaces, and **the cross-surface ignore test** |
+| `calendarStores.spec.ts` (42) | Prefs, quick list, annotations, `tickItem`, the three key spaces, and **the cross-surface ignore test** |
 | `schedule.spec.ts` (27) | Grid arithmetic, filtering, grouping, the collapsed `dayKeyOf` |
-| `userEdits.spec.ts` (27) | Property 4 one setter at a time, added tasks, the undo slot |
+| `userEdits.spec.ts` (28) | Property 4 one setter at a time, added tasks, the undo slot, the join store keying on exactly what it is handed |
+| `calendarAdd.spec.ts` (18) | Each kind in its own store **and in neither other**; day and time per kind; the annotations on the item id; what it refuses |
+| `ics.spec.ts` (13) | CRLF, UTC stamps, the four escaped characters, the stamp as an argument, a row with no instant |
+| `calendarEvents.spec.ts` (8) | The prefix shed once; **the stored key, read as a literal**; the same key as the ignore store from the same row; the cross-surface read |
 | `ignoredEvents.spec.ts` (22) | Id normalisation **and what it mangles**, eligibility, month-dot arithmetic |
 | `overrideStore.spec.ts` (21) | All four store properties |
 | `calendarDay.spec.ts` (20) | The day's arithmetic: the re-sort across two slices, `DAY_GROUPS` order, squares that never mark a class done, "1 class" not "1 classes" |
@@ -326,7 +345,7 @@ logic left in a `.svelte` file is logic no gate can see.
 | `taskNotes.spec.ts` (13) | Hydration, corrupt input, forget-on-empty |
 | `nav.spec.ts` (12) | The two lists disjoint and duplicate-free; `isBuiltRoute` exact rather than prefix; `isKnownRoute` separating parked from mistyped |
 | `calendarPrefs.spec.ts` (11) | Defaults and migration |
-| `calendarItems.spec.ts` (9) | Custom-event mapping, label and urgent filtering |
+| `calendarItems.spec.ts` (16) | Custom-event mapping and its attached source row, `labelFor`/`urgentFor`, label and urgent filtering |
 | `toast.spec.ts` (6) | The single slot and its clock |
 | `programStrip.spec.ts` (5) | `abbreviateTerm`, `phaseStatusWord` |
 | `designSystem.spec.ts` (4) | No hex, no font names, no undefined `.thrive-*`, over a corpus proved non-empty |
@@ -400,6 +419,19 @@ lives exactly as long as the drag.
 `button[aria-expanded="true"]` to find an open popover will match an expanded
 card's own control. Query `.thrive-popover` instead.
 
+**A prop's declared type does not survive the parent revoking it.** A Svelte 5
+prop is a GETTER over the parent's state. `ItemDetail` declares `item:
+ScheduleItem`; the parent nulls `detail` on close and the `{#if}` tears the subtree
+down a tick later, so any handler that fires DURING teardown — a blur, most
+obviously — reads null off a non-nullable type. It threw. `ItemDetail` latches its
+row at mount; where a prop really does change, guard the handler instead. See
+FINDINGS and BUGS.
+
+**Both event-scoped stores key on the raw `Event.id`.** Joins and ignores. The
+calendar sheds its `evt-` prefix in `calendarEvents.ts` and nowhere else, so a row
+never holds two ids for one event. Settled in 7c with the consumer in front of us;
+the item-id shape was MIGRATION §9 defect 13.
+
 **The old Next repo is read-only.** `~/Desktop/Test 1/Thrive-msba-brain`.
 
 ---
@@ -412,11 +444,11 @@ npm run dev -- --open      # dev server, :5173
 npm run build              # production build
 node build/index.js        # run the build, :3000
 npm run check              # svelte-check
-npm test                   # vitest run — 507 tests
+npm test                   # vitest run — 558 tests
 
 python3 scripts/check-contrast.py    # 58 assertions: 42 pairs, 6 ceilings, 10 structural
-npm run check:layout                 # 12 routes x 3 viewports, in a real browser
-npm run check:interaction            # 60 assertions: the popovers and task editing
+npm run check:layout                 # 14 targets x 3 viewports, in a real browser
+npm run check:interaction            # 84 assertions: the popovers, task editing, the calendar
 ```
 
 If a page looks stale locally, something is holding the port:
