@@ -6,7 +6,7 @@ Dated session summaries, most recent first.
 
 ## 2026-08-21 — click only, an arrival cue, and check:interaction
 
-**HEAD:** `d3621b9` · 3 commits, all pushed · **389 tests, 18 files, all green**
+**HEAD:** `3c27158` · 4 commits, all pushed · **389 tests, 18 files, all green**
 · `svelte-check` 0/0 over 374 files · build clean · contrast **58/58** · layout
 **36/36** · interaction **37/37**.
 
@@ -31,14 +31,23 @@ gate in the repo that can press a button. Verified to fail three ways.
 **`designSystem.spec.ts` now scans `.ts`** as well as markup for the treatment
 vocabulary, because `.thrive-arrived` is applied from JavaScript.
 
-**`CONTEXT.md` regenerated in full** at `d3621b9`. Sections 5, 6, 7, 13, 14, 15
-and 17 all moved.
+**`arriveAtRow` promoted to the standard** way anything on Home reaches a row, and
+moved to `$lib/arrive`. Splits "I know which row" from "something else has to find
+it", and stops DOM code living in a `.svelte.ts` that declares no runes.
+CONVENTIONS gains the rule and the two cases that are NOT arrivals. No behaviour
+change.
+
+**`CONTEXT.md` regenerated in full** at `d3621b9`, then patched in four spots for
+the `arrive` split. Sections 5, 6, 7, 13, 14, 15 and 17 all moved.
 
 ### Known issues
 
-- `/swatch` does not show the popover or the arrival ring.
-- `check:interaction` covers one widget on one page. Component tests in general
-  are still an open question.
+- `/swatch` does not show the popover or the arrival ring. Left alone by decision:
+  it is slated for deletion before Release 1.
+- `check:interaction` covers one widget on one page, by decision. Component tests
+  in general are still an open question.
+- `CONTEXT.md` was patched rather than regenerated for the `arrive` split. Four
+  spots, grep-verified, flagged in HANDOFF.
 
 ### Next priorities
 

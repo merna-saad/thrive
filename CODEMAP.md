@@ -6,7 +6,7 @@
 Navigation map for the THRIVE rebuild. Read this before opening files.
 
 **Built:** 2026-08-21, refreshed after the popovers went click-only.
-**Size:** 119 files under `frontend/src` — ~16,826 lines, 11,910 source / 4,916 test.
+**Size:** 120 files under `frontend/src` — ~16,894 lines, 11,978 source / 4,916 test.
 
 > The `built-at` comment above is machine-read by the codemap staleness hook.
 > Keep it as the first line, in that exact `<!-- built-at: <hash> -->` form.
@@ -19,7 +19,7 @@ Navigation map for the THRIVE rebuild. Read this before opening files.
 |---|---|
 | `CONTEXT.md` | The snapshot. What this is, where the port has got to, every standing decision. |
 | `MIGRATION.md` | The spec. The frozen Next prototype, inventoried in nine sections. |
-| `CONVENTIONS.md` | Four rules the tooling does not enforce. Review is the enforcement. |
+| `CONVENTIONS.md` | Five rules the tooling does not enforce. Review is the enforcement. |
 | `HANDOFF.md` | The diary. What happened last session and what is still open. |
 
 ---
@@ -65,6 +65,7 @@ No framework surface. All of it ported in Phase 2 and under test.
 | `tickItem.ts` | `tickItem()` and `isTickable()`. Dispatches on the **attached source row**, never by parsing an id. |
 | `quickList.ts` | The scratch list: `QuickItem` plus its store and panel store. |
 | `reveal.ts` | **"Show me the row behind this number", as arithmetic.** `planReveal` is the one question a card asks. Read this before touching the popovers. |
+| `arrive.ts` | **`arriveAtRow` — the ONE way any surface moves a student to a row.** Focus, scroll, and the arrival mark. Never hand-roll a `scrollIntoView`; see CONVENTIONS. |
 | `nav.ts` | **One list drives the rail, the bottom bar, and every stub page.** |
 | `features.ts` | `FEATURES` — both floating widgets off. |
 | `title.ts` | `pageTitle()` — Next's `"%s · THRIVE"` template. |
@@ -138,7 +139,7 @@ The one fully-built page. Read Phase 6a's entry in HANDOFF before changing it.
 | `tones.ts` | Every place a meaning becomes a colour. |
 | `programStrip.ts` | `abbreviateTerm`, `phaseStatusWord`. |
 | `ignoreUndo.svelte.ts` | Ignore + six-second undo. Keys on **raw `Event.id`**, never a stripped prefix. |
-| `reveal.svelte.ts` | **The reveal channel**, created by `+page.svelte` and passed down through context. Carries an intent, one slot at a time, with a nonce. Plus `arriveAtRow` — focus, scroll, and the arrival mark. |
+| `reveal.svelte.ts` | **The reveal channel**, created by `+page.svelte` and passed down through context. Carries an intent, one slot at a time, with a nonce. The channel only — arriving is `$lib/arrive`. |
 
 ---
 
@@ -287,6 +288,10 @@ undid each other. Hover is gone and so is that state — but the lesson is why
 **`.thrive-arrived` is applied from TypeScript, not markup.** It is the reason
 `designSystem.spec.ts` now scans `.ts` as well as `.svelte` for the treatment
 vocabulary.
+
+**Asking is not doing.** `$lib/arrive` is "I know which row"; `$lib/reveal.svelte`
+is "something else has to find it". Two modules on purpose, and only the second
+declares runes.
 
 **`ShowMore` carries `aria-expanded` too.** Anything querying
 `button[aria-expanded="true"]` to find an open popover will match an expanded

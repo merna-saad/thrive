@@ -152,7 +152,7 @@ See DEPENDENCIES.md.
 Build clean. Contrast **58/58**. Layout **36/36**. Interaction **37/37**.
 38 commits, all pushed.
 
-**119 files under `frontend/src`** — ~16,826 lines, 11,910 source / 4,916 test.
+**120 files under `frontend/src`** — ~16,894 lines, 11,978 source / 4,916 test.
 
 ---
 
@@ -742,9 +742,22 @@ invisible** — everything on Home is already on one page, so a student choosing
 "Submit peer review" saw nothing change and concluded the click had failed. The
 focus ring is not the answer: a pointer user does not get one.
 
-So `arriveAtRow` focuses the row, scrolls it with `block: 'nearest'`, and marks it
-with **`.thrive-arrived`** — an indigo ring, solid for most of a 1200ms beat and
-then faded out.
+So **`arriveAtRow`** (`$lib/arrive`) focuses the row, scrolls it with
+`block: 'nearest'`, and marks it with **`.thrive-arrived`** — an indigo ring, solid
+for most of a 1200ms beat and then faded out.
+
+**It is the standard way anything on Home moves a student to a row**, decided
+2026-08-21 rather than left as the popovers' private helper. 6b's undo returning
+to a task just ticked, and the calendar's "next up" pointing at the item it names,
+both want exactly this — and two arrival treatments on one page would be worse
+than either alone, because a student learns the cue once. CONVENTIONS states the
+rule and what a caller owes it. **Not every focus move is an arrival:** navigation
+inside a widget is not, and neither is focus recovery onto a container after the
+row it was on stopped existing.
+
+`$lib/arrive` is a plain `.ts` and declares no runes. Asking is the separate half:
+`$lib/reveal.svelte` is the channel a surface writes into when it cannot know
+which card owns the row, and the card that answers calls `arriveAtRow` itself.
 
 - **Indigo** because indigo is the reserved "this is where you are now" colour and
   an arrival cue is that sentence exactly. Not coral: nothing has gone wrong. Not
@@ -911,6 +924,9 @@ destructuring, and an unknown identifier in a Svelte template is not a type erro
   through Phase 4 with no caller and that was the right call — but it was kept
   against two named surfaces, not against the general chance that something might.
 - **Durations are either motion or dwell**, and they do not share tokens.
+- **Moving a student to a row goes through `arriveAtRow`.** One function, never a
+  hand-rolled `scrollIntoView`. Two arrival treatments on one page is worse than
+  either of them, because the cue is learned once.
 - **`@lucide/svelte`, not `lucide-svelte`** (the latter is pinned to Svelte 3/4).
 - **`cn()` survives** for the `class`-override case only.
 - **Vitest in Node, no jsdom.** Matches the prototype, where rendering was

@@ -6,9 +6,9 @@ Session log, newest first. What happened, what was decided, what is still open.
 
 ## 2026-08-21 — click only, an arrival cue, and a gate that can press a button
 
-**HEAD:** `d3621b9` · 3 commits, all pushed · 389 tests green · all six gates green.
+**HEAD:** `3c27158` · 4 commits, all pushed · 389 tests green · all six gates green.
 
-Three pieces, all follow-ons from the popovers landing earlier the same day.
+Four pieces, all follow-ons from the popovers landing earlier the same day.
 
 ### 1. Hover removed. Click only.
 
@@ -68,6 +68,28 @@ from choosing the popover's own items and reading where focus landed. One check
 reports SKIP rather than passing when the fixture cannot produce a reveal target
 past a collapsed slice.
 
+### 4. `arriveAtRow` is the standard, not the popovers' helper
+
+Promoted and moved to `$lib/arrive`. Three things want it and only one exists
+yet: the popover jumping to a task, 6b's undo returning to a task just ticked,
+and the calendar's "next up" pointing at the item it names. Each could hand-roll
+a `scrollIntoView` and each would arrive differently, and two arrival treatments
+on one page is worse than either — a student learns the cue once.
+
+The move also splits two halves that were only sharing a file: **`$lib/arrive`**
+is "I know which row", **`$lib/reveal.svelte`** is "something else has to find
+it". Reach for the channel only when the asker cannot know which card owns the
+row. And the new file declares no runes, which is what a plain `.ts` should mean
+here.
+
+CONVENTIONS carries the rule plus the part that is easy to get wrong: **not every
+focus move is an arrival.** Navigation inside a widget is not one, and neither is
+focus recovery onto a container after the row it was on stopped existing —
+marking that would tell the student they had been taken somewhere when they had
+just lost their place. Both cases are live in the tree.
+
+No behaviour change; same 37 assertions.
+
 ### Decisions made
 
 - **Hover is gone for good**, and its absence is asserted rather than assumed,
@@ -88,6 +110,13 @@ past a collapsed slice.
 - **No extra wording on the events card** (owner): the show-more label carries it.
 - **Keep the honest 21-item popover** (owner); revisit a cap only if it gets very
   long.
+- **`arriveAtRow` is the standard way anything on Home reaches a row** (owner).
+  One treatment, one function, never a hand-rolled `scrollIntoView`.
+- **`/swatch` stays as it is** (owner): the popover and the arrival ring are
+  missing from it, and it is slated for deletion, so not worth the time.
+- **`check:interaction` stays scoped to the widget that broke** (owner). Extend it
+  when something else proves it needs one, not on principle.
+- **1200ms stands** until a real student says otherwise (owner).
 
 ### What broke
 
@@ -98,11 +127,15 @@ matched `ShowMore`.
 
 ### Loose ends carried forward
 
-- **`/swatch` does not show the popover or the arrival ring.** Two treatments
-  missing from the design system's own display page. Small; it is throwaway.
-- **`check:interaction` covers one widget on one page.** The general
-  component-test question is still open, and 6b's editing is the next thing that
-  wants a rendered assertion.
+- **`CONTEXT.md` was PATCHED for item 4, not regenerated.** Four spots: the file
+  counts, the arrival paragraph in §13, one standing decision, and the
+  CONVENTIONS rule count in CODEMAP. Grep-verified that no stale claim survives.
+  Flagged because the standing rule is full regeneration and this is a deliberate
+  deviation on a file that was thirty minutes old — say the word and it gets a
+  clean regeneration.
+- **`check:interaction` covers one widget on one page.** Scoped there by decision.
+  The general component-test question is still open, and 6b's editing is the next
+  thing that wants a rendered assertion.
 - **The done-group branch in `TasksCard`'s reveal effect is still unreachable**
   from Home — no pill counts a done task. 6b's undo wants it.
 - **`CONTEXT.md` regenerated in full** at `d3621b9`. No longer a loose end.
