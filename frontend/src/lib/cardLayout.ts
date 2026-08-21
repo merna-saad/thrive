@@ -32,11 +32,34 @@
  * Four, and four fits only because the collapsed view is FLAT -- no group
  * headings, and the progress bar moved into the card's header band. With those
  * in the body the card carried ~190px of furniture before its first row, and at
- * any cap that let the grid fit a laptop it showed one task. Measured: 299px of
- * content for four rows plus the Done heading, against a 304px cap.
+ * any cap that let the grid fit a laptop it showed one task.
  *
  * The headings come back on expand, where they are worth their height. See the
  * note in `TasksCard`.
+ *
+ * ## The collapsed card scrolls now, and that is the trade
+ *
+ * 6a measured 299px of content for four rows plus the Done heading, against the
+ * 300px cap -- collapsed, it fit exactly, with nothing to scroll. **That is no
+ * longer true and the number above is 6a's, kept only as history.**
+ *
+ * Re-measured at 1512x1052 once the rows became editable: a desktop row is 61-81px
+ * rather than 54px, and the collapsed body holds 424px of content. The cause is
+ * arithmetic, not styling: a row carries five 44px controls (WCAG 2.5.8, and
+ * shrinking them would trade a layout problem for an accessibility one), so it
+ * cannot be shorter than 44px plus its padding whatever else changes. Four of
+ * those plus the Done heading plus the 44px "Add a task" button does not fit 300px,
+ * and no arrangement of them will.
+ *
+ * So the collapsed card scrolls about 124px inside its own body. **The guarantee
+ * that actually matters is untouched:** `.thrive-card-body` is a FIXED height, so
+ * the overflow can only ever scroll and the 2x2 grid is still immovable --
+ * asserted by `check:interaction` ("editing did not move the grid") and by
+ * `check:layout` on every route and viewport.
+ *
+ * The alternative is three rows, which would fit. It is not taken here because it
+ * is a visible change to Home's densest card and belongs to whoever owns that
+ * decision, not to this constant. Flagged in HANDOFF.
  */
 export const COLLAPSED_TASK_ROWS = 4;
 

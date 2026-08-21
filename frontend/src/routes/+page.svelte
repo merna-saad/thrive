@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { pageTitle } from '$lib/title';
 	import { createRevealChannel, setRevealChannel } from '$lib/reveal.svelte';
+	import { resolveRows } from '$lib/taskBoard';
+	import { addedTasks, taskDues, taskPriorities, taskTitles } from '$lib/userEdits.svelte';
 	import HomeHeader from '$lib/components/home/HomeHeader.svelte';
 	import MyClasses from '$lib/components/home/MyClasses.svelte';
 	import TasksCard from '$lib/components/home/TasksCard.svelte';
@@ -52,10 +54,39 @@
 	 * more importantly context dies with this component -- so "collapse resets on
 	 * navigation" stays true because of where the channel lives rather than because
 	 * something remembers to reset it.
+	 *
+	 * ## The page also resolves the task rows, once
+	 *
+	 * `resolveRows` merges the tasks the student created and applies their title,
+	 * priority and due-date edits, reclassifying anything whose date moved. It runs
+	 * HERE, at the one point that can see both the stat pills in the header and the
+	 * Tasks card in the grid, and the same array goes to both.
+	 *
+	 * That is not tidiness, it is the pills' honesty. Each pill's number is
+	 * `items.length` of the list it opens, counted from `due.urgency` -- so if the
+	 * card resolved its own rows and the header did not, moving a due date would
+	 * restyle the list while the coral pill above it went on counting the server's
+	 * answer. Two views of one list, contradicting each other, which is the exact
+	 * bug that moved the counting to the client in 6a. One expression, two
+	 * consumers, and they cannot disagree.
+	 *
+	 * `data.nowISO` is the server's instant, so nothing here asks the browser what
+	 * day it is -- see CONVENTIONS.md on the narrowed exception.
 	 */
 	let { data }: { data: PageData } = $props();
 
 	setRevealChannel(createRevealChannel());
+
+	const taskRows = $derived(
+		resolveRows(
+			data.taskItems,
+			addedTasks(),
+			taskTitles(),
+			taskPriorities(),
+			taskDues(),
+			data.nowISO
+		)
+	);
 </script>
 
 <svelte:head><title>{pageTitle()}</title></svelte:head>
@@ -67,12 +98,12 @@
 		timeline={data.timeline}
 		dateLabel={data.dateLabel}
 		greeting={data.greeting}
-		taskItems={data.taskItems}
+		taskItems={taskRows}
 		eventRows={data.eventRows}
 	/>
 
 	<div class="grid grid-cols-1 gap-2 lg:grid-cols-2">
-		<TasksCard rows={data.taskItems} />
+		<TasksCard rows={taskRows} nowISO={data.nowISO} />
 		<TodaysClasses rows={data.todaysClasses} dateLabel={data.dateLabel} />
 		<MyClasses rows={data.courseRows} />
 		<UpcomingEvents rows={data.eventRows} />
