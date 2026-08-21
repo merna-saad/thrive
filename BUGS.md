@@ -491,6 +491,83 @@ input is a browser nobody can inspect is worse than the one-time reappearance.
 
 ---
 
+## 2026-08-21 — Phase 7b: fixed while building
+
+### `line-clamp-3` was doing nothing next to `block` — **found and fixed**
+
+`ItemRow`'s compact variant is the week column's shape: time above title, clamped
+to three lines. The clamp did not clamp. Measured at a 71px column: "MGT 142 ·
+Machine Learning for Business" rendered **140px tall — seven lines**.
+
+`line-clamp-3` works by setting `display: -webkit-box`, so a `display` utility
+beside it wins the cascade and the clamp silently stops applying. The class string
+was `'... line-clamp-3 block ...'`, carried over from the Next source where the
+same pair sits together and has the same effect.
+
+**Nothing warns about an unclamped clamp.** It is not an error, the text is all
+there, and it only looks wrong if you happen to be measuring row heights in a
+narrow column. Found by measuring the week columns at the tightest width the
+40rem fallback still renders them at, which was not what that probe was for.
+
+Fixed by dropping `block`. Verified: nothing exceeds 60px now, at 640px and at
+1330px, which is exactly three lines of `text-xs`.
+
+**Pattern to watch:** a utility that works by setting `display` is in silent
+conflict with every `display` utility. `line-clamp-*`, `truncate` and `sr-only`
+are the ones in this codebase.
+
+### The Next source never had the 40rem week fallback — **built, per instruction**
+
+MIGRATION §4 says week view is "not rendered below `40rem` — the parent falls back
+to agenda", and `WeekView.tsx`'s own doc comment says the same. **Neither is true
+of the code.** `CalendarView.tsx` renders `<WeekView>` whenever the view is week,
+at every width, and `WeekView` handles narrow screens with `overflow-x-auto` and
+`min-w-[42rem]` — a horizontal scroll, which is the exact thing its own comment
+calls the wrong answer ("a view that technically renders and cannot be read is
+worse than a view that admits it does not fit... rather than papered over with a
+scroll").
+
+So this is not a MIGRATION-versus-source disagreement to resolve in the source's
+favour: the source has no behaviour here, only a contradiction between its comment
+and its markup. The owner's 7b brief said to preserve the fallback, so it is built
+for the first time — in CSS, and the port drops the min-width and the scroll, since
+a scrollbar would mean the fallback was doing nothing.
+
+Boundary measured: 641px and 640px render seven columns, 639px and 375px render the
+agenda plus a note. Zero horizontal overflow at all four.
+
+---
+
+## 2026-08-21 — Phase 7b: accepted, with a reason
+
+### Week columns are 71px at the fallback breakpoint — **LOW, owner's call**
+
+At 640px — the narrowest width that still renders the week grid — the seven columns
+measure 71-72px each. A three-line clamped title fits without overflowing, and
+nothing scrolls sideways, but "MGT 142 · Machine Learning for Business" reads as
+three short stacks rather than a phrase.
+
+**Not changed, because 40rem is the owner's stated breakpoint.** The honest
+alternative is a higher one — 48rem would give ~86px columns — and that is a
+decision about where "readable" sits rather than a defect. Recorded with the
+measurement so it can be decided rather than rediscovered.
+
+### `check:layout` only ever sees the calendar's DEFAULT view — **gap, not a defect**
+
+The gate visits `/calendar` with an empty `localStorage`, so `normalisePrefs`
+returns `view: 'month'` and the week and agenda views are **unvisited by every
+gate**. That matters most for the agenda, which is 13,764px tall on a phone over a
+30-day range — a long list is exactly where a vertical-overflow gate earns its
+keep.
+
+Covered by hand this phase instead, at 375, 639, 640, 641 and 1330px: zero
+horizontal overflow in every view at every width, and the page never scrolls past
+what it paints. **Recommended for 7c**, when the calendar is feature-complete and
+the view dimension is worth adding to a shared gate script; doing it mid-phase
+would be surgery on gate infrastructure for a surface still being built.
+
+---
+
 ## 2026-08-21 — Phase 7a: accepted, with a reason
 
 ### The day's figure counts events that have no row yet — **LOW, one phase only**

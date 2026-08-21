@@ -140,6 +140,36 @@ so there is no finite set of months a `load` could pre-format. Both format a day
 key already built from local parts by `fromDayKey`, so what varies between server
 and client is locale wording, never which day it is.
 
+7b adds two more of the same shape, both formatting a day key the browser chose:
+`WeekView`'s weekday abbreviations, and the agenda's per-row date when its groups
+are not days. Same reasoning — the week and the range are walked client-side, so no
+`load` could have pre-formatted them, and what varies is locale wording rather than
+which day it is.
+
+### A viewport question that CSS can answer belongs in CSS
+
+The same rule as hover-to-reveal, and 7b is where it was first tested on something
+other than hover.
+
+Week view needs seven readable columns, so below `40rem` the agenda answers
+instead. That fallback is **two media-gated wrappers**, not a `matchMedia` read:
+
+- CSS has an exact equivalent, so the JS form buys nothing. The reserved case is
+  the one with no CSS equivalent — `TaskNotes`' autofocus gate decides whether to
+  move FOCUS, and no media query can do that.
+- A `matchMedia` read has to GUESS during SSR. One width of student would watch the
+  wrong view paint and be replaced a beat after hydration, which is the quiet drift
+  this whole file is about.
+- It costs building both subtrees. Stated rather than discovered: a desktop pays
+  for one `groupAgenda` over thirty days it will not show, a phone pays for one week
+  grid. Both are cheap, and `display: none` keeps the hidden one out of the
+  accessibility tree, so nothing is announced twice.
+
+**If a fallback ever hides a view the student explicitly chose, say so on screen.**
+The switcher still shows "week" selected, because that is their choice and it is
+honoured the moment the screen is wide enough — so the page owes them a reason
+rather than appearing to have ignored the click.
+
 What that list does NOT license: reading the clock. `nowMinutes` for the "next
 up" line is computed in `+page.server.ts` from the same `new Date()` as
 `todayKey`, and `calendarSources.nowMinutes()` — sanctioned read #1 above — has
@@ -311,6 +341,33 @@ This makes the old failure — a dot on a day with no row beneath it —
 structurally impossible rather than something to remember. If a new consumer
 needs filtered data, give it the filtered `ScheduleData`; do not filter again
 downstream.
+
+**Still true with three views.** 7b added week and agenda and neither filters for
+itself: `CalendarView` calls `filterSchedule` once and hands the result to the
+month grid, the week columns and the agenda alike. The property that falls out of
+it is worth naming, because it is the one a reviewer can check in a browser:
+**switching view does not change what a day counts.** The header figure, the
+`n of m done` fraction and the month dots are all derived from the same filtered
+data, independent of `prefs.view`. Measured across a view switch: 5 and 5.
+
+### The one collection `filterSchedule` cannot reach
+
+Undated to-dos. They are not in `ScheduleData` — they have no day to be in — so
+they travel beside it as `MergedSchedule.undatedTodos` and only the agenda renders
+them.
+
+`visibleUndatedTodos` in `$lib/calendarViews` applies the two dimensions that CAN
+apply to them, **by the same rules**, and it is the only place that is allowed to.
+`showDone` is obvious. `urgentOnly` hides all of them, and that is not an
+invention: urgent is applied by `mergedSchedule`'s `annotate`, which runs over
+`data.dated` only, so an undated to-do can never carry the flag. Leaving them in
+meant switching urgent-only on emptied the whole page except that one section,
+which reads as a broken filter.
+
+**This is `filterSchedule`'s own recurring-classes rule finished, not a new one.**
+It drops recurring classes under `urgentOnly` for exactly the same reason, and says
+so at that line. Nothing in `filterSchedule` changed, and nothing may: it is one of
+the two things this project does not guess at.
 
 ---
 

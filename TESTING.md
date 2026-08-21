@@ -1,8 +1,8 @@
 # TESTING
 
-**Last verified:** 2026-08-21, after Phase 7a. **487 tests, 22 files, all
-passing.** Verified green in all seven timezones of the sweep below — and the
-sweep **caught a real failure this time**, which is recorded there.
+**Last verified:** 2026-08-21, after Phase 7b. **507 tests, 23 files, all
+passing.** Verified green in all seven timezones of the sweep below — and in 7a
+the sweep **caught a real failure**, which is recorded there.
 
 ```bash
 cd frontend
@@ -59,15 +59,18 @@ rather than being appended to the pure-logic ones.
 | `homeGroups.spec.ts` | 19 | Home's grouping: the four groups in order with `unknown` first, "this week" held to a week, done pulled out, a student's override outranking the fixture BOTH ways, and an unparseable date landing in its own group rather than vanishing. Plus ordering (6b): the student's own keys, an explicit placement outranking an implicit one, reordering inside the dateless group, and a stale key for a row that is gone |
 | `nav.spec.ts` | 12 | The nav lists disjoint and duplicate-free, and the two questions a card asks them: `isBuiltRoute` (exact, never a prefix — a prefix match would call `/calendar/2026` built and send someone to a 404) and `isKnownRoute`, which exists only to separate "parked on purpose" from "mistyped". Written to survive a route being BUILT: the relationship is pinned, not today's four hrefs |
 | `taskBoard.spec.ts` | 43 | The editing half. `resolveRows` returning an untouched row BY REFERENCE (so an open note panel is not torn down by a sibling's tick), reclassifying only when the date moved, created tasks described against the same instant; the date converters in LOCAL time with a full round-trip; **every path through a due date that will not parse**, each of which threw a RangeError before this existed; `reorderedIds` and the drop-below-me off-by-one; and `isDatedGroup` pinning "Needs a date" as a source, never a destination |
-| `taskView.spec.ts` | 14 | `rowPriorityOf` (deadline outranks stated priority; done strips the tint), `taskLabels` (two-label cap, course code over source word, Done replaces rather than joins), and the tone maps — including that `standingTone` never lands on `primary` |
+| `taskView.spec.ts` | 15 | `rowPriorityOf` (deadline outranks stated priority; done strips the tint), `taskLabels` (two-label cap, course code over source word, Done replaces rather than joins), and the tone maps — including that `standingTone` never lands on `primary` |
 | `programStrip.spec.ts` | 5 | `abbreviateTerm` on all four seasons, an unexpected shape passed through unchanged, and every phase status having a spoken form |
 | `designSystem.spec.ts` | 4 | The two rules nothing else enforces: no hardcoded colour in a component, no component naming a font, every `.thrive-*` class in the known vocabulary |
 | `format.spec.ts` | 89 | `describeDue` across all four branches with every field asserted; the boundaries rather than the middles (day 0/−1, 1/2, 6/7, exact midnight, ±1s across a rollover); `calendarDaysBetween` and `countdownPhrase` through their public surfaces; both DST transitions; month, year and leap-day spans; both countdown thresholds from both directions; every other exported helper |
-| `calendarStores.spec.ts` | 35 | Calendar prefs store, quick list, labels/urgent/custom events, ignored events, `tickItem` writing back through the attached row, and **the three key spaces staying separate** |
+| `calendarStores.spec.ts` | 37 | Calendar prefs store, quick list, labels/urgent/custom events, ignored events, `tickItem` writing back through the attached row, and **the three key spaces staying separate** |
+| `buildSchedule.spec.ts` | 13 | The server half: classes staying weekday RULES rather than being expanded, every dated row's `dayKey` agreeing with its own `startISO`, an event all-day in all three fields or none, the `evt-evt-` double prefix recovered by `eventIdOf`, and nothing the server built claiming to be tickable |
+| `calendarDay.spec.ts` | 20 | The selected day: the re-sort across two filtered slices (two sorted lists joined end to end are not sorted), `DAY_GROUPS` order rather than time order, squares that never mark a class done, and "1 class" not "1 classes" |
+| `calendarViews.spec.ts` | 20 | The views: the agenda's 30-day range across month, year and leap boundaries and with no duplicates; when a row must name its own date; the source row attached to an undated to-do, asserted as the MECHANISM; and urgent-only emptying that section because none of them can be urgent |
 | `schedule.spec.ts` | 27 | Grid arithmetic, `isVisible`/`filterSchedule`, `nextUpItem`, `groupAgenda`, `groupDayItems`, `weekGrid`, and the collapsed `dayKeyOf` agreeing across both signatures |
 | `userEdits.spec.ts` | 27 | Property 4 one setter at a time, `isTaskDone`, `applyTaskEdits`, added tasks, `removeAddedTask` cleanup, `reorderWithin`, the undo slot and its clock |
 | `overrideStore.spec.ts` | 21 | All four store properties, including corrupt input in five shapes and a failing write |
-| `ignoredEvents.spec.ts` | 21 | Id normalisation, eligibility across every legend category, the never-hide-an-obligation guard, month-dot and `+n` arithmetic, undo restoring position |
+| `ignoredEvents.spec.ts` | 22 | Id normalisation **and what it mangles**, eligibility across every legend category, the never-hide-an-obligation guard, month-dot and `+n` arithmetic, undo restoring position |
 | `calendarSources.spec.ts` | 18 | `taskToItem`/`todoToItem`, and that every tickable row carries its source object |
 | `taskNotes.spec.ts` | 13 | Hydration gate, corrupt input, forget-on-empty, merge-not-replace |
 | `calendarPrefs.spec.ts` | 11 | Defaults and migration. Has caught four separate new-field omissions in its life |
@@ -201,6 +204,22 @@ types, correct classes, and no page-level overflow. Phase 6b's editing behaviour
 is the first thing that will genuinely want a rendered assertion, and it is worth
 deciding then whether jsdom or Playwright covers it.
 
+### The calendar's gate blind spot, named
+
+**`check:layout` only ever visits `/calendar` in its DEFAULT view.** The gate opens
+each route with an empty `localStorage`, so `normalisePrefs` returns
+`view: 'month'` and **the week and agenda views are unvisited by every gate.**
+
+That matters most for the agenda: over a 30-day range it is 13,764px tall on a
+phone, and a long list is exactly where a "does the document scroll further than it
+paints" gate earns its keep.
+
+Covered by hand in 7b instead, at 375 / 639 / 640 / 641 / 1330px in all three
+views: zero horizontal overflow everywhere, and nothing scrolls past what it
+paints. **Recommended for 7c**, when the calendar is feature-complete and adding a
+view dimension to a shared gate script is worth the surgery. Doing it mid-phase
+would be rebuilding gate infrastructure around a surface still being built.
+
 ### The calendar, and why `check:interaction` did NOT grow
 
 Phase 7a's answer to "nothing renders" was **to move the decisions out of the
@@ -228,6 +247,18 @@ month, a trailing cell click pulling the view forward, and no console output.
 That is the honest state: a by-hand verification, not a gate. If the grid grows a
 second keyboard behaviour, this is the first thing in the calendar that should
 argue for extending the interaction gate.
+
+**7b did not change that answer.** Its four new components put their decisions in
+`calendarViews.ts` where the suite can see them, and what is left is again
+browser-only: the 40rem boundary, the week columns' measured width, the focus ring
+that `sr-only` inputs make necessary, and whether a filter chip really removes a
+month dot. All driven by hand, all recorded in HANDOFF with numbers.
+
+One reading from that pass is worth carrying: **wait past the longest transition
+on an element before reading a computed style.** `transition-colors` includes
+`outline-color`, so a probe that reads a focus ring the instant focus lands
+measures the fade, not the colour. It nearly produced a fix for a bug that did not
+exist. See FINDINGS.
 
 ### Testing the provider layer
 

@@ -4,6 +4,144 @@ Session log, newest first. What happened, what was decided, what is still open.
 
 ---
 
+## 2026-08-21 — Phase 7b: the other two views and the filter bar
+
+**507 tests · six gates green · green in all seven timezones · all three views
+render.**
+
+Worked end to end without stopping, at the owner's instruction. Every call I made
+in their absence is below with the options weighed, so any of them can be reversed.
+
+### The discrepancy to know about first
+
+**The Next source never had the 40rem week fallback.** MIGRATION §4 says week view
+is "not rendered below `40rem` — the parent falls back to agenda", and
+`WeekView.tsx`'s own doc comment says it too. Neither is true of the code:
+`CalendarView.tsx` renders `<WeekView>` at every width, and `WeekView` handles
+narrow screens with `overflow-x-auto` + `min-w-[42rem]` — a horizontal scroll,
+which is exactly what its own comment calls the wrong answer.
+
+So "the source wins" does not apply: the source has no behaviour here, only a
+contradiction between its comment and its markup. The 7b brief said to preserve the
+fallback, so it is **built for the first time**, and the port drops the min-width
+and the scroll — a scrollbar would mean the fallback was doing nothing.
+
+### Decisions made in the owner's absence
+
+1. **The fallback is CSS, not `matchMedia`.** Weighed three ways. CSS (two
+   media-gated wrappers) has no hydration guess and no flash, and CONVENTIONS is
+   explicit that a viewport question CSS can answer belongs in CSS — the JS form is
+   reserved for cases with no CSS equivalent, like moving focus. `matchMedia` would
+   have to guess during SSR, so one width of student watches the wrong view paint
+   and get replaced after hydration. Doing nothing (matching the source's actual
+   scroll) was rejected because the brief asked for the fallback. **Cost, stated:**
+   both subtrees build, so a desktop pays for one unused 30-day `groupAgenda` and a
+   phone for one unused week grid. Both cheap; `display: none` keeps the hidden one
+   out of the a11y tree.
+2. **Below 40rem, week renders exactly what agenda renders** — list, no day panel.
+   The alternative was list + day panel, which is a shape no view has. Plus a line
+   saying why, because the switcher still shows "week" selected and the page owes a
+   reason rather than appearing to ignore the click.
+3. **Agenda rows name their own date when the grouping is not by day.** The
+   prototype rendered all three groupings identically, so grouped by type, thirty
+   days of rows each read "9:30 AM" with nothing anywhere saying which 9:30 AM. A
+   time without a date, in a list spanning a month, is the wrong half of the
+   information rather than less of it. Not shown when grouped by day, where the
+   heading already is the date. `showsRowDate` is the decision, in the pure layer.
+4. **`urgentOnly` hides undated to-dos.** They can never be urgent — urgent is
+   applied by `mergedSchedule`'s `annotate`, which runs over `data.dated` only — so
+   switching it on emptied the page EXCEPT that section, which reads as broken.
+   This is `filterSchedule`'s own recurring-classes rule finished, not a new one;
+   it drops recurring classes under the same switch for the same reason.
+   **`filterSchedule` itself is untouched.**
+5. **Compact week rows carry no checkbox.** A 17px control in a 71px column under a
+   three-line title is a mis-tap waiting to happen. The week answers "what does my
+   week look like"; selecting a day lands in the day panel where the rows are fully
+   tickable.
+6. **Undated to-dos are `allDay: false` with an empty time**, departing from the
+   source's `allDay: true`. `ItemRow` renders `allDay ? "all day" : timeLabel`, so
+   every undated to-do was labelled "all day" — a claim about a DAY, when having no
+   day is precisely what puts them in their own section.
+7. **The day panel is a snippet.** Two views render it and only agenda replaces it.
+   The source's `view === "agenda" ? agenda : dayPanel` reads as "agenda is the odd
+   one out" and hides that the panel is shared.
+8. **Chips get `min-h-11` below `lg` only.** A filter nobody can hit is not a
+   filter, but eleven 44px chips on a phone is most of a screen and spending that
+   on a pointer device buys nothing. Same shape `ShowMore` already uses.
+9. **`check:layout` was NOT extended** to the new views. It is shared gate
+   infrastructure and the brief did not ask; covered by hand at five widths instead
+   and recommended for 7c. Recorded as a gap rather than quietly left.
+
+### Fixed while building
+
+**`line-clamp-3` was doing nothing.** It works by setting `display: -webkit-box`,
+so the `block` beside it won the cascade — carried over from the source, where the
+same pair sits together with the same effect. Measured at a 71px column: "MGT 142 ·
+Machine Learning for Business" rendered **140px tall, seven lines**. Nothing warns
+about an unclamped clamp: the text is all there and it only looks wrong if you
+happen to be measuring row heights. Found while measuring the week columns for a
+different reason. Fixed by dropping `block`; nothing exceeds 60px now.
+
+**TESTING.md's coverage table was three specs short and three counts stale** —
+`buildSchedule`, `calendarDay` and `calendarViews` were missing entirely and
+`taskView`, `calendarStores` and `ignoredEvents` were behind. It sums to 507 across
+23 rows now, checked programmatically rather than by eye.
+
+### How streams and labels are kept apart
+
+Structurally, not by styling, so an edit cannot flatten them by accident: separate
+headings, separate `<ul>`s with their own `aria-labelledby`, separate prefs fields
+(`hidden` / `hiddenLabels`), separate helpers (`toggleCategory` / `toggleLabel`),
+different accessible-name shapes ("Hide Class" vs "Hide items labelled thesis"), a
+dot on a stream and never on a label, and the labels section absent entirely when
+nothing is labelled. **Nothing iterates a merged array.**
+
+`allLabels` runs on the UNFILTERED merge, and that is load-bearing: from `filtered`,
+hiding a label would remove its own chip and leave no way to switch it back on.
+Verified — hiding "thesis" removed the row and left the chip, struck through.
+
+### The by-hand browser pass
+
+`check:layout` only ever sees month view, so week and agenda are unvisited by every
+gate. Driven against the production build instead:
+
+| Checked | Result |
+|---|---|
+| the 40rem boundary | 641px and 640px → 7 columns; 639px and 375px → agenda + the note. 0px horizontal overflow at all four |
+| week columns | 132px at 1330, **71px at 640** — the tightest width that still renders them |
+| the clamp | max 60px (3 lines) at both widths, after the fix |
+| a day's counts across a view switch | 5 → 5, unchanged |
+| streams vs labels | 11 stream chips, labels absent until seeded, then a separate list |
+| hiding a stream | 57 month dots → 40, persisted, survived a reload, restored by "show all" |
+| hide all | the warning appears rather than the page silently emptying |
+| urgent only | 114 agenda rows → 0, undated section gone too |
+| show ignored | the toggle reads "(1)", 114 rows → 115 |
+| an undated to-do | real checkbox, empty time column, tick wrote `thrive:quicklist`, survived a reload |
+| a chip by keyboard | focus on the `sr-only` input, ring on the chip, `rgb(24,43,73)` = `--thrive-primary`, Space toggles |
+| console | no warnings or errors anywhere |
+
+### The measurement trap that cost twenty minutes
+
+Reading `outlineColor` the instant after focus landed returned `--thrive-body`, and
+I nearly replaced `outline-primary` with an arbitrary-property form, justified by a
+comment stating a measurement that was wrong. **Tailwind v4's `transition-colors`
+includes `outline-color`** — the probe was reading 0ms into a 120ms fade. Wait past
+the longest transition before reading a computed style. In FINDINGS, because the
+wrong reading was specific and self-consistent and looked nothing like an artefact.
+
+### Still open
+
+- **CONTEXT.md is still not regenerated**, per the owner's decision — after 7c.
+- **Week columns at 71px** at the 40rem breakpoint. Readable, tight. 48rem would
+  give ~86px. The breakpoint is the owner's; recorded with the measurement so it is
+  a decision rather than a rediscovery.
+- **`check:layout` blind to two of three views.** Recommended for 7c.
+- **`thrive:event-joins`** is still queued for 7c, unchanged.
+- Nothing needed a new `RevealKind`, and nothing touched `filterSchedule` or an id
+  key space. Neither hard stop was reached.
+
+---
+
 ## 2026-08-21 — Phase 7a: the calendar's spine
 
 **487 tests · six gates green · green in all seven timezones · `/calendar` renders.**

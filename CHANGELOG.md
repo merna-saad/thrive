@@ -4,6 +4,57 @@ Dated session summaries, most recent first.
 
 ---
 
+## 2026-08-21 — Phase 7b: the other two views and the filter bar
+
+**507 tests · six gates green · green in all seven timezones.**
+
+`/calendar` now has all three views and a working filter. 7c is editing, the
+detail dialog, the add form and the events section.
+
+### What changed
+
+- **`ViewSwitcher`** — month / week / agenda as a radiogroup, plus the
+  agenda-only grouping select.
+- **`WeekView`** — seven columns, compact rows, no checkboxes. No min-width and no
+  horizontal scroll, because the fallback is what guarantees the room.
+- **`AgendaView`** — a flat grouped list over 30 days, and the only view that can
+  carry undated to-dos.
+- **`KeyBar`** — the key and the filter, with streams and labels kept structurally
+  apart.
+- **`calendarViews.ts`** — `agendaRange`, `showsRowDate`, `undatedTodoItem`,
+  `visibleUndatedTodos`. 20 tests.
+- **`ItemRow`** gained `compact` and an optional `dateLabel`.
+- **The 40rem week→agenda fallback**, in CSS. It did not exist in the Next source.
+
+### Fixed while building
+
+- **`line-clamp-3` was doing nothing** beside `block` — a 71px week column rendered
+  a course title 140px tall, seven lines instead of three. Nothing warns about an
+  unclamped clamp.
+- **The agenda's rows now name their own date** when grouped by type or course. The
+  prototype rendered all three groupings identically, so thirty days of rows each
+  read "9:30 AM" with nothing saying which.
+- **`urgentOnly` now hides undated to-dos**, which can never be urgent. It used to
+  empty the page except that one section.
+- **TESTING.md's coverage table was three specs short and three counts stale.** It
+  sums to 507 across 23 rows now.
+
+### Known issues
+
+- Week columns are 71px at the 40rem breakpoint. Readable, tight; the breakpoint is
+  the owner's call and is recorded with the measurement.
+- **`check:layout` only ever visits `/calendar` in month view**, so week and agenda
+  are unvisited by every gate. Covered by hand at five widths; recommended for a
+  gate in 7c.
+- **CONTEXT.md is still not regenerated**, by decision — after 7c.
+
+### Next priorities
+
+Phase 7c: `ItemDetail`, `AddItemForm`, `DayEventsSection`, and the
+`thrive:event-joins` key space with its consumer finally on screen.
+
+---
+
 ## 2026-08-21 — Phase 7a: the calendar's spine
 
 **487 tests · six gates green · green in all seven timezones.**

@@ -4,6 +4,50 @@ Reusable patterns and lessons. Things worth knowing again.
 
 ---
 
+## 2026-08-21 — a computed style read at t=0 is a reading of the transition, not the value
+
+Cost about twenty minutes and nearly produced a "fix" for a bug that did not
+exist.
+
+`KeyBar`'s stream chips hide their checkbox with `sr-only` and move the focus ring
+out to the chip with `has-[:focus-visible]:outline-primary`. Driven in the built
+page, `getComputedStyle(label).outlineColor` came back `rgb(58, 59, 66)` —
+`--thrive-body`, the chip's own text colour, i.e. `currentColor`. The reading said
+the colour utility had not applied.
+
+It had. The CSS rule was in the bundle, correctly generated, and the class was on
+the element — both checked. **Tailwind v4's `transition-colors` includes
+`outline-color`**, so the probe was reading 0ms into a 120ms fade from
+`currentColor` to navy. A `waitForTimeout(400)` returns `rgb(24, 43, 73)`, which
+is `--thrive-primary` exactly.
+
+### What to do instead
+
+**Wait past the longest transition on the element before reading a computed
+style**, or read the CSS rule rather than the computed value. Both probes in this
+repo's by-hand passes now do the former.
+
+### Two things this nearly cost
+
+A replacement of `outline-primary` with an arbitrary-property form that would have
+been permanent noise in the class string, justified by a comment stating a
+measurement that was wrong. And the near-miss is the point: **the wrong reading
+was self-consistent and specific** — a plausible colour, from a plausible source,
+on the one element in the component with an unusual focus mechanism. Nothing about
+it looked like an artefact.
+
+### The sibling worth knowing
+
+`transition-colors` animating `outline-color` also means every focusable element
+carrying it has a focus ring that FADES IN over 120ms rather than appearing. Minor
+— and `Button.svelte` already avoids it by enumerating
+`transition-[background-color,color,border-color,opacity]` instead of reaching for
+`transition-colors`. That enumeration is now known to be load-bearing rather than
+fussy. Not swept repo-wide; recorded so the next person choosing between the two
+knows what the shorthand includes.
+
+---
+
 ## 2026-08-21 — a cross-surface test can be vacuous in one direction
 
 Sibling of the lesson below, and the sharper version of it.

@@ -1,12 +1,12 @@
-<!-- built-at: 90d2d7e -->
+<!-- built-at: 0676f2f -->
 <!-- updated: 2026-08-21 -->
 
 # CODEMAP
 
 Navigation map for the THRIVE rebuild. Read this before opening files.
 
-**Built:** 2026-08-21, refreshed after Phase 7a.
-**Size:** 141 files under `frontend/src` — ~21,733 lines, 15,652 source / 6,081 test.
+**Built:** 2026-08-21, refreshed after Phase 7b.
+**Size:** 147 files under `frontend/src` — ~22,933 lines, 16,625 source / 6,308 test.
 
 > The `built-at` comment above is machine-read by the codemap staleness hook.
 > Keep it as the first line, in that exact `<!-- built-at: <hash> -->` form.
@@ -51,7 +51,7 @@ and why the `*View` types exist.
 ## The pure layer — `frontend/src/lib/`
 
 No framework surface, and all of it under test. Mostly ported in Phase 2;
-`buildSchedule`'s body and `calendarDay` landed in 7a.
+`buildSchedule`'s body and `calendarDay` landed in 7a, `calendarViews` in 7b.
 
 | File | Role |
 |---|---|
@@ -60,6 +60,7 @@ No framework surface, and all of it under test. Mostly ported in Phase 2;
 | `schedule.ts` | **The calendar's vocabulary.** Category maps, the three category sets and their guards, grid arithmetic, `filterSchedule`/`isVisible` (the one filter), grouping, `nextUpItem`. Read this first for anything calendar-shaped. |
 | `buildSchedule.ts` | **The server half of the calendar's data.** `buildScheduleData()` reads five providers and returns two shapes: dated rows, and classes as weekday RULES so the grid pages to any month without a round trip. Plus `todayKey()` and `nowMinutesAt(now)`. `load` functions only. |
 | `calendarDay.ts` | **The selected day's arithmetic**, extracted out of the components in 7a so a gate can see it: `sortDayItems`, `arrangeDay`, `squareGroupsFor`, `dayCountParts`, and the `SquareCell`/`SquareGroup` shapes. |
+| `calendarViews.ts` | Its 7b sibling, for questions about a VIEW rather than a day: `agendaRange` (thirty days, anchored on today), `showsRowDate`, `undatedTodoItem`, `visibleUndatedTodos`. |
 | `calendarSources.ts` | `taskToItem`, `todoToItem`, `mergedSchedule()`, `nowMinutes()`. **`nowMinutes()` still has no consumer** — the calendar takes its "next up" clock from the server; see `routes/calendar/+page.server.ts`. |
 | `calendarItems.ts` | Custom events, labels, urgent. Keyed by **calendar item id**. |
 | `calendarPrefs.ts` | `normalisePrefs` + the persisted store. |
@@ -155,8 +156,8 @@ before changing it. (`/calendar` is built too, as of 7a — its own section belo
 
 ## The calendar — `routes/calendar/` + `lib/components/calendar/`
 
-**Phase 7a: the spine.** Month view, the selected day, that day's items. 7b adds
-the other two views and the filter bar; 7c adds editing and events.
+**Phase 7a built the spine; 7b added the other two views and the filter bar.**
+Editing, the detail dialog, the add form and the events section are 7c.
 
 | File | Role |
 |---|---|
@@ -168,6 +169,10 @@ the other two views and the filter bar; 7c adds editing and events.
 | `calendar/SquareGrid.svelte` | A day's items as squares. Re-exports `SquareCell`/`SquareGroup` from `calendarDay`. **Uses `outline`, not `ring`** — MIGRATION §9 defect 10 built correctly. |
 | `calendar/DaySection.svelte` | One titled group. **Its count is `done/TICKABLE`**, bare total when nothing is tickable. That was a fixed bug; the doc comment says so. |
 | `calendar/DayGroupToggle.svelte` | Arrange the day by type (default) or time. Writes `dayGroupBy`. |
+| `calendar/ViewSwitcher.svelte` | month / week / agenda as a `radiogroup`, plus the **agenda-only** grouping select. |
+| `calendar/WeekView.svelte` | Seven columns, compact rows, **no checkboxes**. Not rendered below `40rem` — see rule 4 below. No min-width and no horizontal scroll, deliberately. |
+| `calendar/AgendaView.svelte` | A flat grouped list over 30 days. **The only view that can carry undated to-dos**, which is why it exists. Rows name their own date when the grouping is not by day. |
+| `calendar/KeyBar.svelte` | The key AND the filter. **Two dimensions that never merge** — see rule 3 below. |
 | `calendar/ItemRow.svelte` | One item in the shape every view renders it. Numeric tabular time, sans title, a real checkbox on tickable rows. No `compact`, no `onOpen` — those views do not exist yet. |
 
 ### Three things to know before touching it
@@ -178,7 +183,18 @@ the other two views and the filter bar; 7c adds editing and events.
 2. **Ticking dispatches on the attached source row**, never on a parsed id.
    `mergedSchedule` puts the resolved `Task` / `QuickItem` on the item and
    `tickItem` reads it. `isTickable` asks the same question the checkbox does.
-3. **The header counts events; nothing renders them until 7c.** A day can read
+3. **`KeyBar`'s two dimensions never merge.** STREAMS are a fixed list in
+   `legendOrder`; LABELS are open-ended, from `allLabels` on the UNFILTERED merge.
+   Separate headings, separate lists, separate prefs fields (`hidden` /
+   `hiddenLabels`), separate helpers (`toggleCategory` / `toggleLabel`). Nothing
+   iterates a merged array, so an edit cannot flatten them by accident. The labels
+   coming from the unfiltered merge is load-bearing: filtered, hiding a label would
+   remove its own chip and there would be no way back.
+4. **The 40rem week fallback is CSS, and the Next source never had it.** Two
+   media-gated wrappers, not a `matchMedia` read — a viewport question CSS can
+   answer belongs in CSS, and a JS read would have to guess during SSR. Boundary
+   measured at 640px (week) / 639px (agenda + a note saying why).
+5. **The header counts events; nothing renders them until 7c.** A day can read
    "5" above three rows. Deliberate — the alternatives break rule 1 or ship events
    without their register controls. See BUGS.md.
 
@@ -213,7 +229,7 @@ control must not scroll away with the content it controls.
 
 | Command | What it proves |
 |---|---|
-| `npm test` | 487 tests. Pure logic and source scans. Nothing renders. |
+| `npm test` | 507 tests. Pure logic and source scans. Nothing renders. |
 | `npm run check:interaction` | 60 assertions in a real browser: the popovers **and** 6b's editing — tick, undo, the undo arrival (including the hidden-row case), a drag between groups, rename-on-blur. **The only gate that can press a button.** Fails on a console warning too — but it drives the PRODUCTION build, so it cannot see `arriveAtRow`'s dev-only warn. |
 | `npm run check` | Types agree. **Does NOT prove the page renders** — see BUGS.md. |
 | `npm run build` | It compiles. |
@@ -274,7 +290,7 @@ Home card but will not be built (owner) — the card IS the feature.
 
 ---
 
-## Tests — 487, 22 files
+## Tests — 507, 23 files
 
 `npm test`. Vitest, **Node environment, no jsdom**, so nothing renders.
 
@@ -297,6 +313,7 @@ logic left in a `.svelte` file is logic no gate can see.
 | `ignoredEvents.spec.ts` (22) | Id normalisation **and what it mangles**, eligibility, month-dot arithmetic |
 | `overrideStore.spec.ts` (21) | All four store properties |
 | `calendarDay.spec.ts` (20) | The day's arithmetic: the re-sort across two slices, `DAY_GROUPS` order, squares that never mark a class done, "1 class" not "1 classes" |
+| `calendarViews.spec.ts` (20) | The agenda's 30-day range across month, year and leap boundaries; when a row names its own date; the attached source row on an undated to-do; urgent-only emptying that section |
 | `homeGroups.spec.ts` (19) | Grouping, counting, ordering; `unknown` first |
 | `calendarSources.spec.ts` (18) | The mappers, and that each item carries its source row |
 | `reveal.spec.ts` (16) | `planReveal` at the boundaries; the reveal path against the list `TasksCard` really builds; the event prefix argument |
@@ -392,7 +409,7 @@ npm run dev -- --open      # dev server, :5173
 npm run build              # production build
 node build/index.js        # run the build, :3000
 npm run check              # svelte-check
-npm test                   # vitest run — 487 tests
+npm test                   # vitest run — 507 tests
 
 python3 scripts/check-contrast.py    # 58 assertions: 42 pairs, 6 ceilings, 10 structural
 npm run check:layout                 # 12 routes x 3 viewports, in a real browser
