@@ -247,8 +247,8 @@ control must not scroll away with the content it controls.
 
 | Command | What it proves |
 |---|---|
-| `npm test` | 558 tests. Pure logic and source scans. Nothing renders. |
-| `npm run check:interaction` | 92 assertions in a real browser: the popovers, 6b's editing, **and 7c's calendar** — the day figure against its rows, the dialog's focus contract, the two-step delete, and the join round trip from the calendar to Home. **The only gate that can press a button**, and it found two real bugs the day it was widened. Fails on a console warning too — but it drives the PRODUCTION build, so it cannot see `arriveAtRow`'s dev-only warn. |
+| `npm test` | 563 tests. Pure logic and source scans. Nothing renders. |
+| `npm run check:interaction` | 97 assertions in a real browser: the popovers, 6b's editing, **and 7c's calendar** — the day figure against its rows, the dialog's focus contract, the two-step delete, and the join round trip from the calendar to Home. **The only gate that can press a button**, and it found two real bugs the day it was widened. Fails on a console warning too — but it drives the PRODUCTION build, so it cannot see `arriveAtRow`'s dev-only warn. |
 | `npm run check` | Types agree. **Does NOT prove the page renders** — see BUGS.md. |
 | `npm run build` | It compiles. |
 | `python3 scripts/check-contrast.py` | 58 assertions. **Parses `app.css`**, so tokens cannot drift from their checks. |
@@ -309,7 +309,7 @@ Home card but will not be built (owner) — the card IS the feature.
 
 ---
 
-## Tests — 558, 26 files
+## Tests — 563, 26 files
 
 `npm test`. Vitest, **Node environment, no jsdom**, so nothing renders.
 
@@ -330,7 +330,7 @@ logic left in a `.svelte` file is logic no gate can see.
 | `schedule.spec.ts` (27) | Grid arithmetic, filtering, grouping, the collapsed `dayKeyOf` |
 | `userEdits.spec.ts` (28) | Property 4 one setter at a time, added tasks, the undo slot, the join store keying on exactly what it is handed |
 | `calendarAdd.spec.ts` (18) | Each kind in its own store **and in neither other**; day and time per kind; the annotations on the item id; what it refuses |
-| `ics.spec.ts` (13) | CRLF, UTC stamps, the four escaped characters, the stamp as an argument, a row with no instant |
+| `ics.spec.ts` (18) | CRLF, UTC stamps, the four escaped characters, the stamp as an argument, a row with no instant, and **both mappers against the one rule they share** |
 | `calendarEvents.spec.ts` (8) | The prefix shed once; **the stored key, read as a literal**; the same key as the ignore store from the same row; the cross-surface read |
 | `ignoredEvents.spec.ts` (22) | Id normalisation **and what it mangles**, eligibility, month-dot arithmetic |
 | `overrideStore.spec.ts` (21) | All four store properties |
@@ -444,11 +444,11 @@ npm run dev -- --open      # dev server, :5173
 npm run build              # production build
 node build/index.js        # run the build, :3000
 npm run check              # svelte-check
-npm test                   # vitest run — 558 tests
+npm test                   # vitest run — 563 tests
 
 python3 scripts/check-contrast.py    # 58 assertions: 42 pairs, 6 ceilings, 10 structural
 npm run check:layout                 # 14 targets x 3 viewports, in a real browser
-npm run check:interaction            # 92 assertions: the popovers, task editing, the calendar
+npm run check:interaction            # 97 assertions: the popovers, task editing, the calendar
 ```
 
 If a page looks stale locally, something is holding the port:

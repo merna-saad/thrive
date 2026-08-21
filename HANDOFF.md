@@ -4,10 +4,80 @@ Session log, newest first. What happened, what was decided, what is still open.
 
 ---
 
+## 2026-08-21 — session close: the last inert control, and the doc system
+
+**HEAD:** `99fd968` · **563 tests · 97 interaction assertions · six gates green ·
+green in all seven timezones.** 89 commits, all pushed.
+
+Three answers came in during the handoff. Two were work and are done; the third is
+a note.
+
+### Home's "Add to calendar" — the last inert control in the app
+
+Nothing had been blocking it since `$lib/ics` was ported; an `Event` already carries
+everything an `IcsEvent` needs. **There is now no inert control anywhere in THRIVE.**
+Four have been removed in total: the parked "View all", copy-to-list with nowhere to
+copy to, "count me in", and this.
+
+**`icsFromEvent` is a second mapper rather than a shared one**, and that is the only
+real decision. An `Event` has a real `location` and a required `start`; a
+`ScheduleItem` has a `detail` meaning two different things by stream and an optional
+`startISO`, because a recurring class is a weekday rule. Collapsing them means
+widening one type or narrowing the other, plus a discriminant, plus a nullable
+return one path never needs. **The one rule they share is asserted on both**, which
+is what stops parallel mappers drifting and is cheaper than the abstraction.
+
+### The gate reads the file, not the download
+
+92 → 97. Asserting that a download FIRED would prove the button is wired and nothing
+else, and "wired" is not the interesting claim: **the output is read by a calendar
+client rather than by a person**, and an unescaped comma or a placeholder DTSTART
+imports "successfully" and is wrong.
+
+So the page's `createObjectURL` is wrapped before load and the blob text kept. Five
+assertions on CONTENT. **The UID one earns its place**: it must be the raw
+`Event.id`, or importing the same event from Home and from the calendar would put
+two entries in the student's real calendar instead of updating one — a key-space bug
+whose consequence lands outside the app, where no test can reach it.
+
+### The README's Node line
+
+Loosened from "Node 24 and npm 11 are what this is developed against" to **Node 20
+or newer**, naming 24 as what it is developed on and saying plainly that nothing
+below 24 has been tested. A version that happens to be installed is not a
+requirement, and reading it as one blocks a teammate for no reason.
+
+### Docs updated this session
+
+CONTEXT (regenerated in full, then patched twice for same-session deltas — see the
+note below), CODEMAP, CONVENTIONS, HANDOFF, CHANGELOG, BUGS, FINDINGS, TESTING,
+setup_info, README. DEPENDENCIES untouched: **no package changed in 7c or in any
+follow-on**, verified by diffing `package.json` and the lockfile across the session.
+
+**A note on the CONTEXT patches.** The file was regenerated in full at `695dbb2`
+from a complete read of all 1,809 lines. The two later edits were same-session
+patches under the exception §16 already records, and every delta was enumerated in
+its commit message rather than left to be discovered. If that reads as too loose,
+the regeneration is cheap to redo now that the tree has settled.
+
+### Loose ends
+
+1. **The real-phone pass**, now three items: touch drag on Home's task rows, the
+   month grid at 375px, and **the 8px dot against an actual thumb** — it was chosen
+   against a measurement in 46px cells and should be confirmed by a finger.
+2. **`/assignments`** — the same `TaskRow` with no `reorder` prop. Owes it a
+   `role="list"` container.
+3. **Appointments**, then the two Django-dependent features.
+4. **Teal and amber cannot be made more vivid** without moving lightness, which the
+   contrast floor forbids. Recorded so it is not rediscovered.
+
+---
+
 ## 2026-08-21 — 7c follow-ons: Home's join, the dots, and the doc pass
 
 **HEAD:** `e743232` · 6 commits · 558 tests · six gates green · green in all seven
-timezones. `check:interaction` **84 → 92**.
+timezones. `check:interaction` **84 → 92**. (Superseded by the session-close entry
+above, which carries the final counts.)
 
 Four answers acted on, in the order that avoided doing the same work twice — code
 first, then CONTEXT, so the regeneration described the final tree.

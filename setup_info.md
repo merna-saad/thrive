@@ -54,7 +54,7 @@ npm run build            # production build
 node build/index.js      # run the build, :3000
 npm run preview          # vite's preview of the build, :4173
 npm run check            # svelte-check
-npm test                 # vitest run, 507 tests
+npm test                 # vitest run, 563 tests
 npm run test:unit        # vitest watch
 ```
 
@@ -201,6 +201,6 @@ npm test                              # 451 tests, Node, no jsdom
 npm run check                         # svelte-check
 npm run build                         # vite build, adapter-node
 npm run check:layout                  # 12 routes x 3 viewports, real browser
-npm run check:interaction             # 60 assertions: popovers + editing, real browser
+npm run check:interaction             # 97 assertions: popovers, editing, calendar, Home
 cd .. && python3 scripts/check-contrast.py   # 58 assertions, no dependencies
 ```

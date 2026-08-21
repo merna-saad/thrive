@@ -1,7 +1,7 @@
 # TESTING
 
-**Last verified:** 2026-08-21, after Phase 7c. **558 tests, 26 files, all
-passing.** Verified green in all seven timezones of the sweep below — and in 7a
+**Last verified:** 2026-08-21, after Phase 7c and its follow-ons. **563 tests,
+26 files, all passing.** Verified green in all seven timezones of the sweep below — and in 7a
 the sweep **caught a real failure**, which is recorded there.
 
 ```bash
@@ -16,7 +16,7 @@ Plus two gates that are tests in everything but name:
 ```bash
 python3 scripts/check-contrast.py    # 58 assertions: 42 pairs, 6 ceilings, 10 structural
 npm run check:layout                 # 14 targets x 3 viewports, in a real browser
-npm run check:interaction            # 84 assertions: the popovers, task editing, the calendar
+npm run check:interaction            # 97 assertions: popovers, task editing, calendar, Home
 ```
 
 `check-contrast.py` PARSES `app.css` rather than mirroring it, so a token edited
@@ -140,7 +140,7 @@ rather than being appended to the pure-logic ones.
 
 ### The interaction gate
 
-`npm run check:interaction` · `scripts/check-interaction.mjs` · 84 assertions.
+`npm run check:interaction` · `scripts/check-interaction.mjs` · 97 assertions.
 
 **Why it exists.** The other five gates were ALL green on a version of the stat
 pill popovers where pressing a pill did nothing at all. Hover had already opened
@@ -453,7 +453,8 @@ reveal, and the clamped panel at 375px. Those assertions were a **throwaway
 probe**, run once, and they do not exist in the repo.
 
 **It is now a gate.** `npm run check:interaction` — 60 assertions when it was
-decided and built the same day, 84 since 7c widened it to the calendar. No new dependency, and see its own section below.
+decided and built the same day, 84 when 7c widened it to the calendar, and 97 once
+Home's two register controls were wired. No new dependency, and see its own section below.
 
 The gap it closes is no longer one widget: 6b's editing is gated through the same
 script, which is where "the next thing that wants a rendered assertion" landed. The

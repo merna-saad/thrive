@@ -4,6 +4,106 @@ Reusable patterns and lessons. Things worth knowing again.
 
 ---
 
+## 2026-08-21 — raising chroma moves a colour toward its NEIGHBOURS, not just away from grey
+
+The dots pass. The brief was "push chroma, hold luminance", which is the right
+instruction and is only half the constraint.
+
+Holding lightness keeps the contrast ratio, so a saturation bump looks free. It is
+not: in a perceptual space, chroma is a radius and every hue has two neighbours at
+the same radius. Pushing a colour out moves it AWAY from grey and TOWARD whatever
+sits either side of it in hue.
+
+Concretely: `needs-help` violet sat at H 288, between the reserved indigo at 273 and
+civic plum at 323, and was already only dE 0.072 from indigo. Raising its chroma
+along its own hue took that to **0.047 — worse than the worst pair on the grid
+before the pass** — and indigo and the Rady dot both appear on the month grid at
+once. The gate could not see it: every contrast ratio stayed green, because contrast
+against the BACKGROUND was never the problem.
+
+**Re-centring the hue in the corridor between its two neighbours bought the
+saturation for nothing.** 288 → 296, 1.37× the chroma, and separation from both
+neighbours marginally BETTER than before.
+
+Two things to carry:
+
+- **Check a saturation change against every RESERVED colour**, not only against the
+  one you are trying to separate from. Contrast is a relationship with the surface;
+  distinguishability is a relationship with the rest of the palette, and nothing
+  measures the second automatically.
+- **Compute the pairwise distances before and after.** It takes ten lines in oklab
+  and it is the only way to know whether a palette change helped or moved the
+  problem.
+
+---
+
+## 2026-08-21 — the cheapest legibility lever is often size, not colour
+
+Same pass, reported honestly because the conclusion was not the one being looked
+for: **6px → 8px did more for the dots than five retuned colour tokens did.**
+
+1.8× the area is 1.8× as much of any colour to see, and it costs one token.
+
+The colour work had a hard ceiling nobody could have guessed without measuring:
+**teal and amber were already at the sRGB gamut boundary for their lightness.**
+Available chroma was 1.07× and 1.15×, and the only route to more is to move
+lightness, which is exactly what the contrast floor forbids. Two of the eight
+streams simply cannot be made more vivid.
+
+**Measure the headroom before spending the effort.** A ten-line script that reports
+"maximum in-gamut chroma at this L and H" would have said in one run that three
+tokens had room and two did not.
+
+---
+
+## 2026-08-21 — capture the artefact, not the event
+
+The `.ics` gate could have asserted that clicking "Add to calendar" fired a
+download. That proves the button is wired and nothing else — and "wired" was never
+the interesting claim, because **the output is read by software rather than by a
+person.** A calendar file with an unescaped comma, a bare LF, or a placeholder
+DTSTART imports "successfully" and is wrong, and a download-fired assertion is green
+for every one of those.
+
+So the gate wraps `URL.createObjectURL` before the page loads, keeps the blob's
+text, and asserts the CONTENT: one valid VCALENDAR, the event the row is showing, a
+real DTSTART, and the UID.
+
+**The UID assertion is the one that earns its place.** It must be the raw
+`Event.id` — the same id the join store keys on. If Home exported the calendar's
+doubly-prefixed form, importing the same event from the two surfaces would create
+two entries in the student's real calendar instead of updating one. That is a
+key-space bug whose consequence is outside the app entirely, where no test can
+reach it.
+
+Generalises past `.ics`: whenever a control produces a FILE, a request body, or a
+clipboard payload, assert the payload. "Something happened" is the weakest possible
+form of the check and it is usually the easiest one to write.
+
+---
+
+## 2026-08-21 — two small mappers beat one function with a discriminant
+
+`icsFromItem` and `icsFromEvent` do the same job from two inputs, and the instinct
+was to share them.
+
+They should not be shared. An `Event` has a real `location` and a REQUIRED `start`.
+A `ScheduleItem` has a `detail` that means a location on an event row and a course
+code on a task, and an OPTIONAL `startISO` because a recurring class is a weekday
+rule with no instant — so one mapper can fail and the other cannot. Sharing means
+widening one type or narrowing the other to a lowest common shape, plus a
+discriminant, plus a nullable return the `Event` path never needs.
+
+Five lines each, and the duplication is the honest description of two genuinely
+different shapes.
+
+**What makes it safe is testing the shared RULE on both.** The single thing they
+have in common — no distinct end means a marker at the start — is asserted in both
+suites. That is what stops parallel mappers drifting, and it is cheaper than the
+abstraction would have been.
+
+---
+
 ## 2026-08-21 — a prop's declared type does not survive the parent revoking it
 
 Phase 7c, and the most transferable thing in it.

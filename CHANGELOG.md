@@ -4,6 +4,35 @@ Dated session summaries, most recent first.
 
 ---
 
+## 2026-08-21 — session close: the last inert control
+
+**HEAD:** `99fd968` · 563 tests · six gates green · green in all seven timezones ·
+89 commits, all pushed.
+
+### What changed
+
+- **Home's "Add to calendar" is live.** `icsFromEvent` is a second mapper rather
+  than a shared one — two genuinely different input shapes needing different
+  fallbacks, with the one rule they share asserted on both. **No inert control is
+  left anywhere in the app.**
+- **The gate reads the `.ics` rather than catching the download** (92 → 97). The
+  output is consumed by software, so the assertions are about content: one valid
+  VCALENDAR, the right event, a real DTSTART, and a UID on the raw `Event.id`.
+- **The README states a Node floor** (20+) instead of the version it happens to be
+  developed on.
+- CONTEXT, CODEMAP, CONVENTIONS, TESTING, setup_info, FINDINGS, HANDOFF updated.
+
+### Known issues
+
+None new. Teal and amber remain at their gamut ceiling; the real-phone list has
+gained a third item.
+
+### Next priorities
+
+`/assignments`, then Appointments. The real-phone pass whenever a handset is to hand.
+
+---
+
 ## 2026-08-21 — 7c follow-ons: Home's join, the dots, and the doc pass
 
 **HEAD:** `e743232` · 6 commits · 558 tests · six gates green · green in all seven

@@ -1,4 +1,4 @@
-<!-- updated-at: 4a05fdb -->
+<!-- updated-at: 99fd968 -->
 
 # CONTEXT
 
@@ -69,7 +69,7 @@ thrive/
 └── scripts/
     ├── check-contrast.py       58 assertions over the palette and app.css
     ├── check-layout.mjs        14 targets x 3 viewports, in a real browser
-    └── check-interaction.mjs   92 assertions: the popovers, task editing, the calendar
+    └── check-interaction.mjs   97 assertions: the popovers, task editing, the calendar
 ```
 
 `MIGRATION.md` is also the **only surviving copy** of the prototype inventory —
@@ -211,9 +211,9 @@ See DEPENDENCIES.md.
 | later | **Group Projects — a fifth nav item, and the first shared surface** | scoped, not built |
 | later | Floating widgets, behind `FEATURES` | not started |
 
-**558 tests, 26 spec files, all passing**, and green in **all seven timezones** of
+**563 tests, 26 spec files, all passing**, and green in **all seven timezones** of
 the sweep. `svelte-check` clean over 425 files, 0 warnings. Build clean. Contrast
-**58/58**. Layout **42/42**. Interaction **92/92**. 83 commits, all pushed.
+**58/58**. Layout **42/42**. Interaction **97/97**. 89 commits, all pushed.
 
 **157 files under `frontend/src`** — ~25,614 lines, 18,435 source / 7,179 test.
 
@@ -1298,10 +1298,19 @@ the register vocabulary moved to `messages.common.events`, because two live surf
 rendering the identical words for the identical act should not be two strings for a
 translator to keep in step.
 
-**An inert control is a dead affordance, and this is the third one removed.** The
-first two were "View all" pointing at a parked route and copy-to-list with nowhere
-to copy to. **"Add to calendar" beside it is still visual only** — not blocked on
-anything now that `$lib/ics` is ported, simply not what that follow-on was for.
+**An inert control is a dead affordance, and Home has none left.** Four have been
+removed: "View all" pointing at a parked route, copy-to-list with nowhere to copy
+to, "count me in", and **"Add to calendar"** — which downloads an `.ics` through
+`icsFromEvent`, Home's own mapper. Nothing leaves the browser: the student imports
+the file or does not.
+
+**`icsFromEvent` is a SECOND mapper rather than a shared one**, and that is the
+decision worth recording. An `Event` has a real `location` and a required `start`; a
+`ScheduleItem` has a `detail` that means a location on an event row and a course
+code on a task, and an OPTIONAL `startISO` because a recurring class is a weekday
+rule. Collapsing them means widening one type or narrowing the other, and the
+fallbacks differ. The one rule they DO share — no distinct end means a marker at the
+start — is asserted on both, which is what stops them drifting.
 
 ### The reveal channel: the page owns the intent, the cards own their state
 
@@ -1506,7 +1515,7 @@ gate can see.**
 | `calendarViews.ts` (7b) | The views: `agendaRange`, `showsRowDate`, `undatedTodoItem`, `visibleUndatedTodos` |
 | `calendarEvents.ts` (7c) | **The event boundary.** `dayEventRows`, `joinedCount` |
 | `calendarAdd.ts` (7c) | **The routing.** `addCalendarItem`, `instantFor` |
-| `ics.ts` (7c) | `buildIcs` (pure, clock as an argument), `icsFromItem`, `downloadIcs` |
+| `ics.ts` (7c) | `buildIcs` (pure, clock as an argument), `icsFromItem`, `icsFromEvent`, `downloadIcs`. **Two mappers, not one** — see §14 |
 | `calendarPrefs.ts` | `normalisePrefs` + the persisted store |
 | `calendarItems.ts` | Custom events, labels, urgent — keyed by calendar item id. Plus `labelFor` / `urgentFor`, the ONE resolution rule |
 | `ignoredEvents.ts` | `eventIdOf`, `canIgnore`, the store — keyed on raw `Event.id` |
@@ -1796,12 +1805,12 @@ No console warnings or errors at any width, in any view.
 
 | Command | What it proves |
 |---|---|
-| `npm test` | 558 tests. Pure logic and source scans. **Nothing renders.** |
+| `npm test` | 563 tests. Pure logic and source scans. **Nothing renders.** |
 | `npm run check` | Types agree. **Does NOT prove the page renders** |
 | `npm run build` | It compiles |
 | `python3 scripts/check-contrast.py` | 58 assertions: 42 pairs, 6 ceilings, 10 structural |
 | `npm run check:layout` | 14 targets × 3 viewports in a real browser |
-| `npm run check:interaction` | 92 assertions in a real browser: the popovers, task editing, the calendar |
+| `npm run check:interaction` | 97 assertions in a real browser: the popovers, task editing, the calendar |
 | the timezone sweep | The suite in seven zones, UTC+14 to UTC−11 |
 
 **Four properties every gate here has.**
@@ -1997,8 +2006,15 @@ that threw `ReferenceError` on every request. **And it is held at 0 warnings.**
   presence.**
 - **Extract strings as you build**, not afterwards. **And promote a string to
   `common` the moment a second surface renders it for the same act.**
+- **No personal names in any doc.** Roles instead — "a teammate", "the faculty
+  lead", "the owner". Fixture data is out of scope. Removing a name must not remove
+  information: rewrite the sentence rather than dropping the fact.
+- **Capture the artefact, not the event.** A gate asserting that a download FIRED
+  proves a button is wired and nothing else. The `.ics` gate wraps
+  `createObjectURL` and reads the file, because the output is consumed by software
+  and a wrong DTSTART imports "successfully" and is wrong.
 - **No Claude/Anthropic attribution anywhere** — commits, PRs, file headers.
-  Verified clean across all 83 commits.
+  Verified clean across all 89 commits.
 
 ---
 
@@ -2129,10 +2145,8 @@ Calm, plain, honest about what is simulated.
     rather than silent. `/assignments` is where it lives (owner: accepted).
 19. **`prefs.view` can hold a stale `week` or `agenda`** from a hand-edited store.
     Harmless — nothing but `ViewSwitcher` writes it.
-20. **Home's "Add to calendar" is still inert**, and is now the only such control in
-    the app. `$lib/ics` is ported and `Event` carries everything `IcsEvent` needs, so
-    it is one small mapper away. Left because it was not what the join follow-on was
-    for.
+20. *(closed this session)* Home's "Add to calendar" is wired. **There is no inert
+    control left in the app.**
 21. **Teal and amber cannot be made more vivid** without moving lightness, which the
     contrast floor forbids (§6). If the dots still read muted, the next lever is size
     or the surface behind them, not the tokens.
@@ -2154,6 +2168,8 @@ Calm, plain, honest about what is simulated.
 - **`ItemDetail` became the third caller** for `escapeKey` and `clickOutside`, and
   the first for `focusTrap`.
 - **Home's "count me in"** — live, and its round trip to the calendar is gated.
+- **Home's “Add to calendar”** — live, and the gate reads the FILE rather than
+  asserting that a download fired.
 - **The agenda's add form** — settled as deliberately absent (owner).
 - **The calendar's "next up" arrival** — settled as NOT an arrival.
 - **Agenda rows naming their own date** — kept on review (owner).
