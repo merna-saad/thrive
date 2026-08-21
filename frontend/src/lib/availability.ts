@@ -8,20 +8,31 @@ import { addDays, fromDayKey, toDayKey } from "$lib/schedule";
  * All pure, all clock-free. Every function takes "today" as a day key rather
  * than reading it, for the same reason `describeDue` takes `now`: the server
  * decides what today is, once, and this module answers questions against that
- * answer. A `new Date()` in here would put a second opinion behind the month
- * grid and let it disagree with the header above it.
+ * answer. A `new Date()` in here would put a second opinion behind the day list
+ * and let it disagree with the header above it.
  *
  * ## The rule this module owns
  *
  * Booking runs ONE CALENDAR MONTH ahead. That is a product rule and it lives
- * here, not in the fixture. `mock/appointments.ts` publishes 23 business days
+ * here, not in the fixture. `mock/appointments.ts` publishes 25 business days
  * of slots, which exists only to be long enough that the fixture never runs out
  * before this rule does -- the spec asserts that coupling in both directions.
  *
  * A day is bookable when BOTH hold: the advisor has something open on it, and
- * it falls inside the window. Two independent reasons to refuse, and the grid
- * renders both the same way, because "they are away that week" and "that is too
- * far out to book" are the same answer to a student: not that day.
+ * it falls inside the window.
+ *
+ * ## What the surface does with the days it CANNOT offer
+ *
+ * Phase 8 rendered a month grid, so every refusal had to be drawn: past days,
+ * days beyond the window and fully-booked days were all grey cells, and 26 of 35
+ * read as "this system is broken" rather than as three different facts.
+ *
+ * The redesign shows a LIST of the days this advisor actually works inside the
+ * window, so two of those three refusals stop being drawn at all -- a past day
+ * and a day beyond the window are simply not options, and the list's own bounds
+ * say so. The third, a working day whose slots are all taken, IS listed and says
+ * "fully booked" in words. `publishedByDay` beside `availabilityByDay` is what
+ * makes that distinction possible.
  */
 
 export type ModeFilter = MeetingMode | "any";
@@ -76,6 +87,26 @@ export function availabilityByDay(slots: readonly SlotView[]): OpenByDay {
   }
 
   return open;
+}
+
+/**
+ * How many slots each day publishes AT ALL, taken or not.
+ *
+ * The companion to `availabilityByDay`, and the two together are what let the day
+ * list tell "fully booked" apart from "not a working day". Open alone cannot: both
+ * are zero.
+ *
+ * A day the advisor does not work is absent from BOTH maps, which is what the day
+ * list uses to leave weekends out entirely rather than listing them as refusals.
+ */
+export function publishedByDay(slots: readonly SlotView[]): OpenByDay {
+  const published: Record<string, number> = {};
+
+  for (const slot of slots) {
+    published[slot.dayKey] = (published[slot.dayKey] ?? 0) + 1;
+  }
+
+  return published;
 }
 
 /** Every open slot inside the window, for the count on a service card. */
@@ -151,27 +182,4 @@ export function slotsForDay(
     (slot) =>
       slot.dayKey === dayKey && (mode === "any" || slot.mode === mode),
   );
-}
-
-/**
- * Is any part of this month inside the window?
- *
- * The month grid pages freely on `/calendar`; here it must not wander into
- * months it can never offer a day in. Answered on the month's own bounds rather
- * than by walking its days, so it stays O(1) and cannot disagree with
- * `isBookableDay` about an edge.
- */
-export function monthTouchesWindow(
-  monthKey: string,
-  todayKey: string,
-  windowEnd: string,
-): boolean {
-  const first = fromDayKey(monthKey);
-  const lastKey = toDayKey(
-    first.getFullYear(),
-    first.getMonth(),
-    new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate(),
-  );
-
-  return lastKey >= todayKey && monthKey <= windowEnd;
 }

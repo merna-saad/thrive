@@ -6,8 +6,8 @@ import {
   bookingWindowEnd,
   firstBookableDay,
   isBookableDay,
-  monthTouchesWindow,
   openCountInWindow,
+  publishedByDay,
   slotsForDay,
 } from "$lib/availability";
 
@@ -21,7 +21,7 @@ import {
  *
  * The one exception is the last block, which freezes the clock on purpose to
  * check the FIXTURE against the window. That coupling is the reason
- * `BOOKING_WINDOW_DAYS` is 23 and not 5, and it is the thing that would break
+ * `BOOKING_WINDOW_DAYS` is 25 and not 5, and it is the thing that would break
  * silently if either number moved alone.
  */
 
@@ -108,6 +108,44 @@ describe("availabilityByDay", () => {
   });
 });
 
+describe("publishedByDay", () => {
+  it("counts every slot, taken or not", () => {
+    const published = publishedByDay([
+      slot("a", "2026-08-21", { available: false }),
+      slot("b", "2026-08-21"),
+      slot("c", "2026-08-24"),
+    ]);
+
+    expect(published).toEqual({ "2026-08-21": 2, "2026-08-24": 1 });
+  });
+
+  it("is what tells a fully booked day from a day not worked", () => {
+    /*
+     * The pair is the point. A Saturday and a fully-booked Tuesday both have an
+     * open count of zero; only `publishedByDay` separates them, and the day list
+     * needs that separation to say "Fully booked" about one and leave the other
+     * out entirely. Calling a Saturday fully booked would be a lie.
+     */
+    const slots = [
+      slot("a", "2026-08-25", { available: false }),
+      slot("b", "2026-08-25", { available: false }),
+    ];
+
+    const open = availabilityByDay(slots);
+    const published = publishedByDay(slots);
+
+    expect(open["2026-08-25"]).toBeUndefined();
+    expect(published["2026-08-25"]).toBe(2);
+    // A Saturday: absent from both.
+    expect(open["2026-08-29"]).toBeUndefined();
+    expect(published["2026-08-29"]).toBeUndefined();
+  });
+
+  it("leaves a day with no slots absent rather than zero", () => {
+    expect(publishedByDay([])).toEqual({});
+  });
+});
+
 describe("openCountInWindow", () => {
   const open = {
     "2026-08-20": 3, // before today
@@ -165,8 +203,8 @@ describe("firstBookableDay", () => {
 
   it("skips past a closed today and a closed weekend", () => {
     // Friday 21 August 2026 is closed, Saturday and Sunday publish nothing, so
-    // the panel should open on the Monday. Opening on today instead would show
-    // an empty times list beside a calendar full of marks.
+    // the flow should open on the Monday. Opening on today instead would show an
+    // empty times column beside a day list full of options.
     expect(firstBookableDay({ "2026-08-24": 3 }, today, end)).toBe("2026-08-24");
   });
 
@@ -208,35 +246,6 @@ describe("slotsForDay", () => {
     // morning look like an advisor who does not work mornings.
     expect(slotsForDay(slots, "2026-08-21", "any").map((s) => s.id)).toContain(
       "c",
-    );
-  });
-});
-
-describe("monthTouchesWindow", () => {
-  const today = "2026-08-21";
-  const end = "2026-09-21";
-
-  it("accepts the month today is in", () => {
-    expect(monthTouchesWindow("2026-08-01", today, end)).toBe(true);
-  });
-
-  it("accepts the month the window ends in", () => {
-    expect(monthTouchesWindow("2026-09-01", today, end)).toBe(true);
-  });
-
-  it("refuses the month before, whose last day is behind today", () => {
-    expect(monthTouchesWindow("2026-07-01", today, end)).toBe(false);
-  });
-
-  it("refuses the month after the window ends", () => {
-    expect(monthTouchesWindow("2026-10-01", today, end)).toBe(false);
-  });
-
-  it("accepts a month that only overlaps at its last day", () => {
-    // Today is the 31st, so July's last day IS today and paging back to July
-    // still offers one bookable day.
-    expect(monthTouchesWindow("2026-07-01", "2026-07-31", "2026-08-31")).toBe(
-      true,
     );
   });
 });

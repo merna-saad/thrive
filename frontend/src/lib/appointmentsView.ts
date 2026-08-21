@@ -1,7 +1,7 @@
 import type { Advisor, Appointment, MeetingMode } from "$lib/data";
 import { formatTime, formatWeekdayDate } from "$lib/format";
 import { messages } from "$lib/messages";
-import { dayKeyOf } from "$lib/schedule";
+import { dayKeyOf, fromDayKey } from "$lib/schedule";
 
 /**
  * View models for the booking surface.
@@ -10,15 +10,23 @@ import { dayKeyOf } from "$lib/schedule";
  * builds these, so no component ever parses a timestamp and "what day is it"
  * stays one server-side decision -- the rule CONVENTIONS.md opens with.
  *
- * ## What is NOT here any more
+ * ## `DayOption` left and came back, and the round trip is the useful part
  *
  * The Next tree carried a `DayOption` -- `{ key, weekday, date, relative }` --
- * one per day in a strip of five business-day chips. Phase 8 replaced the chips
- * with a month calendar, and the calendar builds its own cell labels from a day
- * key (the documented client-format exception, see `MiniCalendar`). So there is
- * nothing left for a pre-formatted day option to carry, and carrying one anyway
- * would mean the page shipped a second answer to "what does this day look like"
- * that only one surface read.
+ * one per day in a strip of five business-day chips. Phase 8 deleted it, because
+ * a month grid builds its own cell labels from a day key and pages to months no
+ * `load` could pre-format.
+ *
+ * The redesign brings the shape back as `BookingDayView`, with two more fields.
+ * **What changed is not the data, it is who has to explain itself.** A grid cell
+ * is 40px and leans on a legend; a list row has room to say "4 times" or "fully
+ * booked" in its own words and should not want a legend at all. Once the rows
+ * carry copy, the copy has to be formatted somewhere, and that somewhere is the
+ * server.
+ *
+ * The bounded list also gives back something the grid had to spend: with a
+ * finite set of days there is no client-side date formatting on this page at
+ * all.
  */
 
 export interface SlotView {
@@ -77,6 +85,50 @@ export interface AppointmentView {
   endISO: string;
 }
 
+/**
+ * One offerable day, as the day list renders it.
+ *
+ * ## Why this exists and `DayOption` did not survive
+ *
+ * Phase 8 deleted the Next tree's `DayOption` because a month grid built its own
+ * cell labels from a day key. The redesign brings a pre-formatted day view back,
+ * and the reason is the interesting part: **a list row has to say its own state
+ * in words**, and "4 times" / "fully booked" / "Today" are copy, not geometry.
+ * A grid cell could get away with a dot because it had a legend; a row cannot,
+ * and should not want one.
+ *
+ * Every field here is a finished string except the two counts, and the counts are
+ * counts rather than dates.
+ */
+export interface BookingDayView {
+  /** Local calendar day, "YYYY-MM-DD". The selection value, never displayed. */
+  dayKey: string;
+  /** "Mon" */
+  weekdayLabel: string;
+  /** "Aug 24" */
+  dateLabel: string;
+  /**
+   * "Today" or "Tomorrow", else empty.
+   *
+   * Empty rather than absent so a caller never has to decide what a missing
+   * field means. The row prints it only when it is non-empty.
+   */
+  relativeLabel: string;
+  /**
+   * "August" on the FIRST row of each month, else empty.
+   *
+   * The list's only structural heading, and it is what replaces the month grid's
+   * paging: the window spans at most two months, so scrolling past this heading
+   * IS looking further ahead. Decided on the server because it depends on the row
+   * before it, which is exactly the sort of off-by-one that hides in a component.
+   */
+  monthHeading: string;
+  /** Slots still free. Zero means fully booked, never "no such day". */
+  openCount: number;
+  /** Slots published at all. Always > 0 — a day with none is not in this list. */
+  publishedCount: number;
+}
+
 export interface ServiceView {
   advisor: Advisor;
   /** "Academic Advising". Decided on the server, from the advisor's service. */
@@ -85,6 +137,16 @@ export interface ServiceView {
   openByDay: OpenByDay;
   /** Still-bookable slots inside the window. Shown on the service card. */
   openCount: number;
+  /**
+   * The days this advisor works inside the window, ascending.
+   *
+   * Days with nothing published are ABSENT — a weekend is not a refusal, it is
+   * not a day this advisor works, and listing it as unavailable would be the
+   * mostly-grey month grid in a taller shape.
+   */
+  days: BookingDayView[];
+  /** "Mon, Sep 21" — the last day the window reaches, for the list's footer. */
+  windowEndLabel: string;
 }
 
 /**
@@ -146,4 +208,71 @@ export function toAppointmentView(
     startISO: appointment.start,
     endISO: appointment.end,
   };
+}
+
+/**
+ * The day list, formatted, from the two count maps.
+ *
+ * ## Server-side, and this is one of the reasons the rule exists
+ *
+ * Four of the six fields on each row are locale-formatted dates, and the fifth
+ * is a relative word that depends on what "today" is. Formatting them here means
+ * `DayPicker` receives finished strings and holds no opinion about the calendar
+ * at all -- it cannot disagree with the header above it about which day is today,
+ * because it was never told an instant.
+ *
+ * Note what that buys over the month grid it replaces: `MiniCalendar` had to
+ * format two things on the CLIENT, because a grid that pages to any month has no
+ * finite set of months a `load` could pre-render. A list bounded by the window
+ * has exactly one set of days, so nothing here needs the exception.
+ *
+ * `todayKey` and `windowEnd` come in as arguments. Nothing reads a clock.
+ */
+export function toBookingDayViews(
+	openByDay: OpenByDay,
+	publishedByDay: OpenByDay,
+	todayKey: string,
+	windowEnd: string,
+	tomorrowKey: string,
+): BookingDayView[] {
+	const dayKeys = Object.keys(publishedByDay)
+		.filter((dayKey) => dayKey >= todayKey && dayKey <= windowEnd)
+		.sort();
+
+	let lastMonth = "";
+
+	return dayKeys.map((dayKey) => {
+		const date = fromDayKey(dayKey);
+		const month = date.toLocaleDateString("en-US", { month: "long" });
+
+		/*
+		 * The heading prints only when the month CHANGES, which is why this is a
+		 * fold rather than a map over an independent predicate: the answer depends
+		 * on the row before it. Index 0 always prints -- the first row has nothing
+		 * behind it to be the same as -- which falls out of `lastMonth` starting
+		 * empty rather than needing its own branch.
+		 */
+		const monthHeading = month === lastMonth ? "" : month;
+		lastMonth = month;
+
+		const relativeLabel =
+			dayKey === todayKey
+				? messages.appointments.days.today
+				: dayKey === tomorrowKey
+					? messages.appointments.days.tomorrow
+					: "";
+
+		return {
+			dayKey,
+			weekdayLabel: date.toLocaleDateString("en-US", { weekday: "short" }),
+			dateLabel: date.toLocaleDateString("en-US", {
+				month: "short",
+				day: "numeric",
+			}),
+			relativeLabel,
+			monthHeading,
+			openCount: openByDay[dayKey] ?? 0,
+			publishedCount: publishedByDay[dayKey] ?? 0,
+		};
+	});
 }
