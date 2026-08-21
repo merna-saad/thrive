@@ -1486,7 +1486,7 @@ saying why tracking them would overwrite what the student is typing), and two
   test-only export is permanent.
 - **Extract strings as you build**, not afterwards.
 - **No Claude/Anthropic attribution anywhere** — commits, PRs, file headers.
-  Verified clean across all 48 commits.
+  Verified clean across all 51 commits.
 
 ---
 
