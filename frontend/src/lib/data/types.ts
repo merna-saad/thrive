@@ -332,6 +332,18 @@ export interface Appointment {
   id: string;
   advisorId: string;
   studentId: string;
+  /**
+   * The slot this appointment claimed.
+   *
+   * Not in the Next version, and added deliberately. `cancelAppointment` there
+   * released a slot by scanning the claimed set for one whose `start` matched
+   * the appointment's, because it had no other way back to the slot. That is
+   * correct only while no advisor ever publishes two simultaneous slots, and
+   * releases the wrong one the moment somebody does -- MIGRATION.md section 9
+   * defect 8. Holding the id makes the release exact, and it is the shape the
+   * Django model has anyway.
+   */
+  slotId: string;
   start: ISODateTime;
   end: ISODateTime;
   mode: MeetingMode;
