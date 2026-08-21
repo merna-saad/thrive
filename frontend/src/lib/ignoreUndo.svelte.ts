@@ -31,14 +31,19 @@ import { ignoredEvents, isEventIgnored, setEventIgnored } from '$lib/ignoredEven
  * `isIgnored` takes an `Event.id` and passes it to the store unchanged. The Next
  * version did `eventId.replace(/^evt-/, "")` inline, one of the three places
  * that stripped the prefix while the docs claimed `eventIdOf()` was the only
- * one -- MIGRATION.md section 9 defect 12, and the reason Home and the calendar
- * disagreed about what was ignored.
+ * one -- MIGRATION.md section 9 defect 12.
  *
  * There is nothing to strip here: Home holds `Event` objects and their ids are
- * already raw. `eventIdOf()` exists for CALENDAR ITEM ids (`evt-evt-3-1`), which
- * is a different key space and not one Home ever touches. Calling it here would
- * be normalising something that is already normal, which is how a second
- * normaliser gets added.
+ * already raw. `eventIdOf()` is for CALENDAR ITEM ids (`evt-evt-3-1`), and
+ * calling it on a raw id does not normalise it -- it MANGLES it, because a raw
+ * event id begins with `evt-` too.
+ *
+ * That was the live defect until Phase 7a, and dropping the inline strip here
+ * did not fix it: `setEventIgnored` was still normalising downstream, so this
+ * module's raw `evt-3-1` was stored under `3-1` while the calendar used
+ * `evt-3-1`. The store no longer normalises what it is handed, so the id that
+ * arrives here is the id that gets written, and both surfaces finally share one
+ * key space. See `ignoredEvents.ts`.
  */
 
 const UNDO_MS = 6000;

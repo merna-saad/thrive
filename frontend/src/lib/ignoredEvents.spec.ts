@@ -41,16 +41,33 @@ describe("eventIdOf", () => {
     expect(eventIdOf("evt-evt-3-1")).toBe("evt-3-1");
   });
 
-  it("leaves a raw id alone, so passing one through twice is safe", () => {
+  it("MANGLES a raw id, which is why only the calendar may call it", () => {
+    /*
+     * The correction to what this test used to claim. The old case asserted the
+     * same value under the heading "leaves a raw id alone, so passing one
+     * through twice is safe" -- and that sentence is false, which is how
+     * BUGS.md's HIGH ignore-store defect got written.
+     *
+     * A raw `Event.id` already starts with `evt-`, so this function cannot see
+     * that there is no calendar prefix to remove. `3-1` is not a key any surface
+     * uses. The one caller allowed to reach for this is a calendar surface
+     * holding an item id, at its own boundary; the store itself no longer
+     * normalises anything.
+     */
     expect(eventIdOf("evt-3-1")).toBe("3-1");
     expect(eventIdOf("plain")).toBe("plain");
   });
 
-  it("is what lets both surfaces key the same event identically", () => {
-    // Home holds `event.id`. The calendar holds `evt-${event.id}`.
-    const fromHome = eventIdOf("evt-3-1");
-    const fromCalendar = eventIdOf(eventIdOf("evt-evt-3-1"));
-    expect(fromHome).toBe(fromCalendar);
+  it("is applied ONCE, and applying it twice leaves the shared key space", () => {
+    // Home holds `event.id` and calls nothing. The calendar holds
+    // `evt-${event.id}` and calls this exactly once. Both then hold `evt-3-1`.
+    const fromHome = "evt-3-1";
+    const fromCalendar = eventIdOf("evt-evt-3-1");
+    expect(fromCalendar).toBe(fromHome);
+
+    // The second application is the bug, spelled out so it cannot be
+    // reintroduced as a tidy-up.
+    expect(eventIdOf(fromCalendar)).not.toBe(fromHome);
   });
 });
 
@@ -83,13 +100,20 @@ describe("canIgnore", () => {
 });
 
 describe("isEventIgnored", () => {
-  it("matches whether given a raw id or a calendar item id", () => {
-    const ignored = { "3-1": true } as const;
-    expect(isEventIgnored("evt-3-1", ignored)).toBe(true);
+  it("looks up a raw Event.id unchanged", () => {
+    // The map is keyed on exactly what Home holds. No stripping on the way in
+    // and none on the way out -- that symmetry IS the shared key space.
+    expect(isEventIgnored("evt-3-1", { "evt-3-1": true })).toBe(true);
   });
 
   it("is false for anything not in the map", () => {
-    expect(isEventIgnored("evt-9-9", { "3-1": true })).toBe(false);
+    expect(isEventIgnored("evt-9-9", { "evt-3-1": true })).toBe(false);
+  });
+
+  it("does not match the mangled key the old normaliser produced", () => {
+    // The regression guard. If a normaliser reappears anywhere on this path,
+    // this is the assertion that goes red.
+    expect(isEventIgnored("evt-3-1", { "3-1": true })).toBe(false);
   });
 });
 

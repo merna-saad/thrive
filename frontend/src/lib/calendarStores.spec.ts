@@ -321,69 +321,118 @@ describe("calendarItems stores", () => {
 // ---------------------------------------------------------------------------
 
 describe("ignoredEvents store", () => {
-	it("keys on the raw Event.id, not the calendar item id", async () => {
+	it("keys on exactly the id it is handed, and normalises nothing", async () => {
 		const ignored = await fresh(ignoredModule);
 
-		ignored.setEventIgnored("evt-evt-3-1", true);
+		// A raw `Event.id`, which is what Home holds. Stored verbatim: the store
+		// used to strip a prefix here, turning this into "3-1".
+		ignored.setEventIgnored("evt-3-1", true);
 
-		// Stored normalised, so Home and the calendar agree.
 		expect(ignored.ignoredEvents()).toEqual({ "evt-3-1": true });
 	});
 
-	it("DEFECT: the two surfaces do NOT share a key space", async () => {
-		/*
-		 * PORTED BEHAVIOUR, NOT DESIRED BEHAVIOUR. Recorded so the defect cannot
-		 * be lost, and deliberately not fixed here -- picking the canonical key
-		 * space is a decision with consequences for already-stored data.
-		 *
-		 * The module's own headline says "ONE store, read by both surfaces. Ignore
-		 * something on Home and it is gone from the calendar." That is not what
-		 * the code does.
-		 *
-		 * `eventIdOf` strips exactly one leading `evt-`. But the raw `Event.id` in
-		 * the fixtures is ITSELF `evt-3-1`, and the calendar prefixes it again to
-		 * `evt-evt-3-1`. So the function cannot tell the two apart, and each
-		 * surface ends up in its own space:
-		 *
-		 *   calendar  evt-evt-3-1  -> eventIdOf -> "evt-3-1"
-		 *   Home      evt-3-1      -> eventIdOf -> "3-1"
-		 *
-		 * Self-consistent within a surface, invisible across them. Ignoring an
-		 * event on Home leaves it showing on the calendar and vice versa.
-		 *
-		 * No existing test caught this because each exercises one side only, and
-		 * the two Phase 2 cases encode CONTRADICTORY conventions: one asserts the
-		 * map is keyed "3-1", the other feeds `filterSchedule` ids keyed
-		 * "evt-3-1". Both pass. Together they cannot both be right.
-		 */
-		const ignored = await fresh(ignoredModule);
+	/*
+	 * -----------------------------------------------------------------------
+	 * THE CROSS-SURFACE TEST. Phase 7a, closing BUGS.md's HIGH defect.
+	 *
+	 * The bug this replaces hid behind TWO ONE-SIDED TESTS THAT BOTH PASSED:
+	 * one asserted the map was keyed "3-1", the other fed `filterSchedule` ids
+	 * keyed "evt-3-1". Each was true of its own surface. Together they could not
+	 * both be right, and nothing was looking at both at once.
+	 *
+	 * So these cases deliberately do not test the store against itself. Each one
+	 * writes through the path ONE surface really uses and reads through the path
+	 * the OTHER really uses:
+	 *
+	 *   Home      writes `ignoreEvents.ignore(event.id)`  -- a raw Event.id
+	 *             reads  `isEventIgnored(event.id, map)`
+	 *   Calendar  writes `setEventIgnored(eventIdOf(item.id))` at its boundary
+	 *             reads  `filterSchedule(data, { ignoredEventIds: keys })`
+	 *
+	 * A test that only round-trips one of those pairs cannot fail on a key-space
+	 * split, however carefully it is written.
+	 * -----------------------------------------------------------------------
+	 */
+	describe("one key space, asserted across BOTH surfaces", () => {
+		/** The calendar item id for raw event `evt-3-1`. Doubly prefixed. */
+		const ITEM_ID = "evt-evt-3-1";
+		/** The raw `Event.id`, which is what Home holds. */
+		const RAW_ID = "evt-3-1";
 
-		// The calendar ignores it, storing the once-stripped calendar id.
-		ignored.setEventIgnored("evt-evt-3-1", true);
-		expect(Object.keys(ignored.ignoredEvents())).toEqual(["evt-3-1"]);
+		/** The row the calendar renders for that event. */
+		const row: ScheduleItem = {
+			id: ITEM_ID,
+			category: "club",
+			title: "Product Club Mixer",
+			timeLabel: "5:00 PM",
+			detail: "Rady Commons",
+			sortMinutes: 1020,
+			allDay: false
+		};
 
-		// Home, holding the raw Event.id, strips again and misses it.
-		expect(ignored.isEventIgnored("evt-3-1", ignored.ignoredEvents())).toBe(false);
+		/** Exactly what `CalendarView` does: keys straight into the filter. */
+		async function calendarSeesIt(ignoredMap: Record<string, true>) {
+			const { filterSchedule } = await import("$lib/schedule");
+			const result = filterSchedule(
+				{ dated: [{ ...row, dayKey: "2026-08-17" }], recurring: [] },
+				{ hidden: [], showDone: true, ignoredEventIds: Object.keys(ignoredMap) }
+			);
+			return result.dated.length > 0;
+		}
 
-		// And the reverse: Home's write lands in a key the calendar never looks up.
-		ignored.clearIgnoredEvents();
-		ignored.setEventIgnored("evt-3-1", true);
-		expect(Object.keys(ignored.ignoredEvents())).toEqual(["3-1"]);
-		// `isVisible` strips the calendar item id to "evt-3-1", which is not "3-1".
-		expect("evt-evt-3-1".replace(/^evt-/, "")).toBe("evt-3-1");
-	});
+		it("Home ignoring an event hides it on the calendar", async () => {
+			const ignored = await fresh(ignoredModule);
+			const { ignoreEvents } = await import("$lib/ignoreUndo.svelte");
 
-	it("is self-consistent within one surface, which is why it went unnoticed", async () => {
-		const ignored = await fresh(ignoredModule);
+			expect(await calendarSeesIt(ignored.ignoredEvents())).toBe(true);
 
-		// Calendar to calendar: fine.
-		ignored.setEventIgnored("evt-evt-3-1", true);
-		expect(ignored.isEventIgnored("evt-evt-3-1", ignored.ignoredEvents())).toBe(true);
+			// Home's real write path, with the raw id off an `Event`.
+			ignoreEvents.ignore(RAW_ID, "Product Club Mixer");
 
-		// Home to Home: also fine.
-		ignored.clearIgnoredEvents();
-		ignored.setEventIgnored("evt-3-1", true);
-		expect(ignored.isEventIgnored("evt-3-1", ignored.ignoredEvents())).toBe(true);
+			expect(await calendarSeesIt(ignored.ignoredEvents())).toBe(false);
+			ignoreEvents.clear();
+		});
+
+		it("the calendar ignoring an event hides it on Home", async () => {
+			const ignored = await fresh(ignoredModule);
+
+			// The calendar's real write path: normalise the item id ONCE, at the
+			// boundary, then store. This is the only sanctioned `eventIdOf` call.
+			ignored.setEventIgnored(ignored.eventIdOf(ITEM_ID), true);
+
+			// Home's real read path, with the raw id and no stripping.
+			expect(ignored.isEventIgnored(RAW_ID, ignored.ignoredEvents())).toBe(true);
+		});
+
+		it("both surfaces write the SAME key, so undo on either reaches the other", async () => {
+			const ignored = await fresh(ignoredModule);
+			const { ignoreEvents } = await import("$lib/ignoreUndo.svelte");
+
+			// Home ignores...
+			ignoreEvents.ignore(RAW_ID, "Product Club Mixer");
+			const fromHome = Object.keys(ignored.ignoredEvents());
+
+			// ...and the calendar's un-ignore, built from the item id, clears it.
+			// If the two keys differed this would leave the original behind.
+			ignored.setEventIgnored(ignored.eventIdOf(ITEM_ID), false);
+
+			expect(fromHome).toEqual([RAW_ID]);
+			expect(ignored.ignoredEvents()).toEqual({});
+			expect(await calendarSeesIt(ignored.ignoredEvents())).toBe(true);
+			ignoreEvents.clear();
+		});
+
+		it("neither surface can write the mangled key the old code produced", async () => {
+			const ignored = await fresh(ignoredModule);
+			const { ignoreEvents } = await import("$lib/ignoreUndo.svelte");
+
+			ignoreEvents.ignore(RAW_ID, "Product Club Mixer");
+			ignored.setEventIgnored(ignored.eventIdOf(ITEM_ID), true);
+
+			// One key, not two. "3-1" was Home's old key and is now unreachable.
+			expect(Object.keys(ignored.ignoredEvents())).toEqual([RAW_ID]);
+			ignoreEvents.clear();
+		});
 	});
 
 	it("un-ignoring deletes rather than storing false", async () => {
@@ -449,10 +498,28 @@ describe("the three key spaces stay separate", () => {
 
 		expect(edits.taskDoneOverrides()).toEqual({ "evt-3-1": true });
 		expect(items.itemLabels()).toEqual({ "evt-3-1": "a label on a calendar row" });
-		// Normalised on the way in, which is what makes this a different space.
-		expect(ignored.ignoredEvents()).toEqual({ "3-1": true });
+		expect(ignored.ignoredEvents()).toEqual({ "evt-3-1": true });
 
-		// Four distinct localStorage keys, no overlap.
+		/*
+		 * All three now hold the identical STRING, and that is the point rather
+		 * than a problem.
+		 *
+		 * This case used to lean on the ignore store's normaliser as the thing
+		 * separating the spaces -- it asserted `{"3-1": true}` under the comment
+		 * "normalised on the way in, which is what makes this a different space".
+		 * That was the defect wearing the costume of a design. A key space is
+		 * separate because it is a different localStorage key holding a different
+		 * KIND of fact, not because one of the three mangles its input.
+		 *
+		 * What actually distinguishes the calendar's space from the event space is
+		 * that ONE event yields two different strings -- `evt-evt-3-1` as a
+		 * calendar item id, `evt-3-1` as a raw `Event.id` -- and the boundary
+		 * converts between them exactly once. Asserted below.
+		 */
+		expect(ignored.eventIdOf("evt-evt-3-1")).toBe("evt-3-1");
+		expect(items.itemLabels()["evt-evt-3-1"]).toBeUndefined();
+
+		// Three distinct localStorage keys, no overlap.
 		expect(Object.keys(storage.dump()).sort()).toEqual([
 			"thrive:ignored-events",
 			"thrive:item-labels",
