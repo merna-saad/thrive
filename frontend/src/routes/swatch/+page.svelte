@@ -23,6 +23,31 @@
 		}
 	];
 
+	/*
+	 * The two-face rule, as worked pairs. Left column is what the thing is;
+	 * right column is the treatment it gets and why. Rendered side by side so
+	 * the wrong choice is visible rather than argued about.
+	 */
+	const twoFace = [
+		{ value: '11:00 AM', words: 'Thursday, August 20', why: 'a time is a value; the date around it is words' },
+		{ value: '6/21', words: 'phase 0', why: 'a fraction lines up in a column; a slot label does not' },
+		{ value: '38/52 units', words: 'degree progress', why: 'unit totals are compared; the label naming them is read' },
+		{ value: '72%', words: 'on track', why: 'a percentage is scanned; a status is read' },
+		{ value: 'apt-001', words: 'Amber Hanna', why: 'an id is machine truth; a name is not' },
+		{ value: 'in 10 days', words: 'due soon', why: 'a countdown ticks and must not reflow' }
+	];
+
+	// Words that USED to be mono and are not any more. The regression this pass
+	// fixed, kept visible so it is not quietly reintroduced.
+	const demoted = [
+		'CALENDAR · FALL 2026',
+		'month  week  agenda',
+		'next up',
+		'career · rady · ucsd',
+		'MGT 253',
+		'Urgent'
+	];
+
 	const inks = [
 		{ name: 'ink', cls: 'text-ink', hex: '#17181c', note: 'headings, 16.8:1 on cream' },
 		{ name: 'body', cls: 'text-body', hex: '#3a3b42', note: 'body copy, 10.6:1' },
@@ -42,12 +67,12 @@
 
 	// Solid fills that carry white or near-white text.
 	const fills = [
-		{ name: 'primary', cls: 'bg-primary', on: 'text-on-primary', hex: '#3f6b4f', note: 'action accent, 6.13:1 on white' },
-		{ name: 'primary-hover', cls: 'bg-primary-hover', on: 'text-on-primary', hex: '#355c43', note: '' },
-		{ name: 'primary-active', cls: 'bg-primary-active', on: 'text-on-primary', hex: '#2b4a37', note: '' },
-		{ name: 'mint', cls: 'bg-mint', on: 'text-on-mint', hex: '#6aab84', note: 'light fill, always ringed' },
+		{ name: 'primary', cls: 'bg-primary', on: 'text-on-primary', hex: '#182b49', note: 'UC San Diego navy, PMS 2767 · 14.18:1' },
+		{ name: 'primary-hover', cls: 'bg-primary-hover', on: 'text-on-primary', hex: '#22395e', note: 'hover LIFTS · 11.57:1' },
+		{ name: 'primary-active', cls: 'bg-primary-active', on: 'text-on-primary', hex: '#101d33', note: 'active PRESSES · 16.86:1' },
+		{ name: 'primary-fill', cls: 'bg-primary-fill', on: 'text-on-primary-fill', hex: '#9dbcdb', note: 'light fill, ALWAYS ringed — 1.97:1, cannot hold its own edge' },
 		{ name: 'indigo', cls: 'bg-indigo', on: 'text-on-primary', hex: '#4c5bd4', note: 'RESERVED: "you are here", nothing else' },
-		{ name: 'on-track', cls: 'bg-on-track', on: 'text-on-primary', hex: '#3d6fb0', note: 'RESERVED: status only' },
+		{ name: 'on-track', cls: 'bg-on-track', on: 'text-on-primary', hex: '#14706b', note: 'RESERVED: status only · moved off blue for navy' },
 		{ name: 'watch', cls: 'bg-watch', on: 'text-on-primary', hex: '#8f6220', note: 'RESERVED: status only' },
 		{ name: 'needs-help', cls: 'bg-needs-help', on: 'text-on-primary', hex: '#6a5fb0', note: 'RESERVED: status only' },
 		{ name: 'urgent', cls: 'bg-urgent', on: 'text-on-primary', hex: '#b8462f', note: 'RESERVED hardest: overdue + urgent only' },
@@ -58,7 +83,7 @@
 	// Derived tints. Every one is a color-mix() against white, so they cannot
 	// drift from the base hue.
 	const tints = [
-		{ name: 'primary-soft', cls: 'bg-primary-soft', on: 'text-primary', note: 'literal #e7eee9, not a mix' },
+		{ name: 'primary-soft', cls: 'bg-primary-soft', on: 'text-primary', note: 'literal #e9edf3, not a mix' },
 		{ name: 'indigo-soft', cls: 'bg-indigo-soft', on: 'text-indigo', note: 'oklab 8%' },
 		{ name: 'on-track-soft', cls: 'bg-on-track-soft', on: 'text-on-track', note: 'oklab 9%' },
 		{ name: 'watch-soft', cls: 'bg-watch-soft', on: 'text-watch', note: 'oklab 10%' },
@@ -112,9 +137,7 @@
 
 <main class="mx-auto w-full max-w-4xl space-y-8 p-6">
 	<header>
-		<p class="font-mono text-3xs tracking-wider text-muted-ink uppercase">
-			design system · port verification
-		</p>
+		<p class="thrive-eyebrow">design system · port verification</p>
 		<h1 class="mt-1 text-3xl font-bold text-ink">Swatch</h1>
 		<p class="mt-1.5 max-w-prose text-sm text-body">
 			Every colour token, every type step, both border weights, both faces. Throwaway route
@@ -122,37 +145,190 @@
 		</p>
 	</header>
 
-	<!-- ── Fonts ────────────────────────────────────────────────────────── -->
+	<!-- ── Brand ────────────────────────────────────────────────────────── -->
 	<section class="thrive-panel space-y-4">
-		<h2 class="text-lg font-bold text-ink">Fonts</h2>
+		<h2 class="text-lg font-bold text-ink">Brand — UC San Diego</h2>
+		<p class="max-w-prose text-xs text-body">
+			Official values from
+			<code class="font-mono text-3xs">brand.ucsd.edu/visual-brand/color</code>, not
+			approximations. Navy replaced forest green as primary on 2026-08-22.
+		</p>
 
-		<div class="space-y-1">
-			<p class="font-mono text-3xs text-muted-ink uppercase">
-				DM Sans — what a person wrote
+		<div class="grid gap-2 sm:grid-cols-3">
+			<div class="rounded-lg bg-primary p-3">
+				<p class="thrive-numeric text-2xs font-medium text-on-primary">#182B49</p>
+				<p class="mt-0.5 text-3xs text-on-primary opacity-90">Navy · PMS 2767</p>
+				<p class="mt-1 text-3xs text-on-primary opacity-75">primary · 14.18:1 on card</p>
+			</div>
+			<!-- Yellow gets navy text, not white: white on yellow is 1.4:1. -->
+			<div class="rounded-lg p-3" style="background-color: var(--thrive-yellow)">
+				<p class="thrive-numeric text-2xs font-medium text-primary">#FFCD00</p>
+				<p class="mt-0.5 text-3xs text-primary">Yellow · PMS 116</p>
+				<p class="mt-1 text-3xs text-primary">accent · 1.50:1 on card</p>
+			</div>
+			<div class="rounded-lg border border-line bg-surface p-3">
+				<p class="thrive-numeric text-2xs font-medium text-ink">#C69214</p>
+				<p class="mt-0.5 text-3xs text-muted-ink">Gold · PMS 1245</p>
+				<p class="mt-1 text-3xs text-muted-ink">NOT adopted · 2.79:1, fails 3:1</p>
+			</div>
+		</div>
+	</section>
+
+	<!-- ── The yellow accent ────────────────────────────────────────────── -->
+	<section class="thrive-panel space-y-4">
+		<h2 class="text-lg font-bold text-ink">
+			The yellow accent — constrained by measurement, not taste
+		</h2>
+		<p class="max-w-prose text-xs text-body">
+			Yellow is 1.50:1 on card, 1.43:1 on cream, 1.31:1 on sunken. WCAG 1.4.11 asks 3:1 of any
+			graphic that carries meaning, so on every light surface in this system yellow is
+			<strong class="font-medium text-ink">decoration</strong> and cannot be the only thing
+			saying something — the same standing as the hairline. Three ceilings in the contrast gate
+			enforce it.
+		</p>
+
+		<div class="grid gap-3 sm:grid-cols-2">
+			<div class="space-y-2">
+				<p class="thrive-eyebrow">legible — on navy, 9.45:1</p>
+				<div class="rounded-lg bg-primary p-3">
+					<div
+						class="mb-2 h-0.5 w-12 rounded-pill"
+						style="background-color: var(--thrive-yellow)"
+					></div>
+					<p class="text-2xs text-on-primary">
+						A rule or a marker on a navy ground is a real graphic. This is the campus
+						pairing anyway.
+					</p>
+				</div>
+				<div class="flex items-center gap-2 rounded-lg bg-primary p-3">
+					<span
+						class="size-2 shrink-0 rounded-pill"
+						style="background-color: var(--thrive-yellow)"
+					></span>
+					<p class="text-2xs text-on-primary">A small highlight, on navy.</p>
+				</div>
+			</div>
+
+			<div class="space-y-2">
+				<p class="thrive-eyebrow">decorative only — on cream, 1.43:1</p>
+				<div class="rounded-lg border border-line bg-surface p-3">
+					<div
+						class="mb-2 h-0.5 w-12 rounded-pill"
+						style="background-color: var(--thrive-yellow)"
+					></div>
+					<p class="text-2xs text-body">
+						A thin rule here is a flourish. If removing it made the layout ambiguous, the
+						layout would be wrong.
+					</p>
+				</div>
+				<div class="rounded-lg border border-line bg-surface p-3">
+					<p class="text-2xs text-urgent">
+						Never a panel fill, a button background, a large area, or an active
+						indicator. “You are here” stays indigo — two colours meaning “here” is how a
+						reservation dies.
+					</p>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- ── Fonts ────────────────────────────────────────────────────────── -->
+	<section class="thrive-panel space-y-5">
+		<h2 class="text-lg font-bold text-ink">
+			Two faces — sans for words, mono for numbers
+		</h2>
+		<p class="max-w-prose text-xs text-body">
+			Tightened 2026-08-22. The old rule ended “…and any label that is a system value”, and
+			almost any label can be argued into that, so mono spread to eyebrows, switchers, chips
+			and tags. A face used for a third of the interface is not an accent, it is a second body
+			font.
+		</p>
+
+		<!-- The rule, worked. Left is a value, right is words. -->
+		<div class="space-y-2">
+			<p class="thrive-eyebrow">the rule, side by side</p>
+			<div class="overflow-x-auto">
+				<table class="w-full min-w-lg border-collapse text-left">
+					<thead>
+						<tr class="border-b border-line">
+							<th class="py-1.5 pr-4 text-2xs font-medium text-ink">
+								mono — a value
+							</th>
+							<th class="py-1.5 pr-4 text-2xs font-medium text-ink">
+								sans — words
+							</th>
+							<th class="py-1.5 text-2xs font-medium text-ink">why</th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each twoFace as row (row.value)}
+							<tr class="border-b border-hairline-soft">
+								<td class="thrive-numeric py-1.5 pr-4 text-sm text-ink">
+									{row.value}
+								</td>
+								<td class="py-1.5 pr-4 text-sm text-ink">{row.words}</td>
+								<td class="py-1.5 text-3xs text-muted-ink">{row.why}</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+			<p class="max-w-prose text-3xs text-muted-ink">
+				The test when it is genuinely unclear: would you ever want this to line up in a column
+				with the thing above it? Column → mono. Sentence → sans.
 			</p>
-			<p class="font-sans text-base font-normal text-ink">400 · Regular prose sits here.</p>
-			<p class="font-sans text-base font-medium text-ink">500 · Row titles and emphasis.</p>
-			<p class="font-sans text-base font-bold text-ink">700 · Page and section headings.</p>
+		</div>
+
+		<!-- What lost mono this pass. -->
+		<div class="space-y-2 border-t border-hairline-soft pt-4">
+			<p class="thrive-eyebrow">demoted — these were mono and are not any more</p>
+			<div class="flex flex-wrap gap-2">
+				{#each demoted as item (item)}
+					<span class="rounded-xs bg-sunken px-2 py-1 text-2xs text-body">{item}</span>
+				{/each}
+			</div>
+			<p class="max-w-prose text-3xs text-muted-ink">
+				All words. Eyebrows, view switchers, stream and filter chips, “next up”, class and
+				task tags.
+			</p>
+		</div>
+
+		<!-- The two treatments a component actually reaches for. -->
+		<div class="grid gap-3 border-t border-hairline-soft pt-4 sm:grid-cols-2">
+			<div class="space-y-1">
+				<p class="thrive-eyebrow">.thrive-numeric</p>
+				<p class="thrive-numeric text-base text-ink">0123456789 · 12/34 · 38/52</p>
+				<p class="text-3xs text-muted-ink">
+					Carries the mono face <em>and</em> tabular figures, so
+					<code class="font-mono">tabular-nums</code> is not a separate thing to remember.
+				</p>
+			</div>
+			<div class="space-y-1">
+				<p class="thrive-eyebrow">.thrive-eyebrow</p>
+				<p class="thrive-eyebrow">calendar · fall 2026</p>
+				<p class="text-3xs text-muted-ink">
+					Size, case, tracking and weight in one class. The uppercase-and-tracked treatment
+					was always doing the work here; mono was along for the ride.
+				</p>
+			</div>
+		</div>
+
+		<!-- Weights, unchanged this pass. -->
+		<div class="space-y-1 border-t border-hairline-soft pt-4">
+			<p class="thrive-eyebrow">DM Sans weights — set at the call site</p>
+			<p class="text-base font-normal text-ink">400 · Regular prose sits here.</p>
+			<p class="text-base font-medium text-ink">500 · Row titles and emphasis.</p>
+			<p class="text-base font-bold text-ink">700 · Page and section headings.</p>
 			<p class="text-3xs text-muted-ink">
 				600 is deliberately not loaded, so <code class="font-mono">font-semibold</code>
 				synthesises. Do not use it.
 			</p>
 		</div>
 
-		<div class="space-y-1">
-			<p class="font-mono text-3xs text-muted-ink uppercase">
-				JetBrains Mono — machine truth
-			</p>
-			<p class="font-mono text-base font-normal text-ink">400 · 0123456789 · apt-001</p>
-			<p class="font-mono text-base font-medium text-ink">500 · 12/34 · 2026-08-21</p>
-			<p class="text-3xs text-muted-ink">
-				Numerals, counts, fractions, IDs, compact dates, eyebrows. Prose never in mono.
-			</p>
-		</div>
-
 		<p class="text-2xs text-body" data-tabular>
-			Tabular numerals, so a row does not reflow: <span class="font-mono">in 3 days</span> →
-			<span class="font-mono">in 10 days</span>
+			Tabular numerals, so a row does not reflow:
+			<span class="thrive-numeric">in 3 days</span> →
+			<span class="thrive-numeric">in 10 days</span>
 		</p>
 	</section>
 
@@ -168,7 +344,7 @@
 
 		<div class="grid gap-3 sm:grid-cols-2">
 			<div class="space-y-2">
-				<p class="font-mono text-3xs text-muted-ink uppercase">
+				<p class="thrive-eyebrow">
 					1px decorative hairline
 				</p>
 				<div class="rounded-lg border border-line bg-surface p-3">
@@ -190,7 +366,7 @@
 			</div>
 
 			<div class="space-y-2">
-				<p class="font-mono text-3xs text-muted-ink uppercase">
+				<p class="thrive-eyebrow">
 					1.5px control boundary
 				</p>
 				<div
@@ -218,7 +394,7 @@
 		</div>
 
 		<div class="space-y-2 border-t border-hairline-soft pt-3">
-			<p class="font-mono text-3xs text-muted-ink uppercase">
+			<p class="thrive-eyebrow">
 				The only consumers of the 1.5px stroke
 			</p>
 			<label class="flex items-center gap-2 text-2xs text-body">
@@ -321,7 +497,7 @@
 			</div>
 		{/each}
 		<div class="border-t border-hairline-soft pt-2">
-			<p class="font-mono text-3xs text-muted-ink uppercase">
+			<p class="thrive-eyebrow">
 				the same step, weight set at the call site
 			</p>
 			<p class="text-xl font-normal text-ink">400 — text-xl font-normal</p>
@@ -335,7 +511,7 @@
 		<h2 class="text-lg font-bold text-ink">CSS components</h2>
 
 		<div class="space-y-2">
-			<p class="font-mono text-3xs text-muted-ink uppercase">.thrive-panel, by data-tone</p>
+			<p class="thrive-eyebrow">.thrive-panel, by data-tone</p>
 			<div class="thrive-panel"><p class="text-2xs text-body">default — white surface</p></div>
 			<div class="thrive-panel" data-tone="sunken">
 				<p class="text-2xs text-body">data-tone="sunken"</p>
@@ -355,7 +531,7 @@
 		</div>
 
 		<div class="space-y-1 border-t border-hairline-soft pt-3">
-			<p class="font-mono text-3xs text-muted-ink uppercase">
+			<p class="thrive-eyebrow">
 				.thrive-row — transparent at rest, sunken on hover
 			</p>
 			<div class="thrive-row p-2"><p class="text-2xs text-body">Hover me</p></div>
@@ -366,7 +542,7 @@
 		</div>
 
 		<div class="space-y-2 border-t border-hairline-soft pt-3">
-			<p class="font-mono text-3xs text-muted-ink uppercase">
+			<p class="thrive-eyebrow">
 				.thrive-strike — scaleX, not line-through
 			</p>
 			<label class="flex items-center gap-2">
@@ -387,7 +563,7 @@
 		<h2 class="text-lg font-bold text-ink">Radii, motion, layout</h2>
 
 		<div class="space-y-2">
-			<p class="font-mono text-3xs text-muted-ink uppercase">radii</p>
+			<p class="thrive-eyebrow">radii</p>
 			<div class="flex flex-wrap gap-2">
 				{#each radii as r (r.name)}
 					<div class="border border-line-strong bg-sunken px-3 py-2 {r.cls}">
@@ -399,7 +575,7 @@
 		</div>
 
 		<div class="space-y-1 border-t border-hairline-soft pt-3">
-			<p class="font-mono text-3xs text-muted-ink uppercase">motion</p>
+			<p class="thrive-eyebrow">motion</p>
 			{#each motion as m (m.name)}
 				<p class="font-mono text-3xs text-body">
 					<span class="text-primary">{m.name}</span> · {m.value}
@@ -417,7 +593,7 @@
 		</div>
 
 		<div class="space-y-1 border-t border-hairline-soft pt-3">
-			<p class="font-mono text-3xs text-muted-ink uppercase">layout constants</p>
+			<p class="thrive-eyebrow">layout constants</p>
 			{#each layout as l (l.name)}
 				<p class="font-mono text-3xs text-body">
 					<span class="text-primary">{l.name}</span> · {l.value} ·
@@ -455,7 +631,7 @@
 			/>
 		</div>
 		<div class="animate-rise border-t border-hairline-soft pt-3">
-			<p class="font-mono text-3xs text-muted-ink uppercase">.animate-rise</p>
+			<p class="thrive-eyebrow">.animate-rise</p>
 			<p class="text-2xs text-body">
 				This block faded and rose on load. Reload to replay.
 			</p>
