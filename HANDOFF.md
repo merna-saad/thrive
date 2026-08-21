@@ -117,6 +117,15 @@ No behaviour change; same 37 assertions.
 - **`check:interaction` stays scoped to the widget that broke** (owner). Extend it
   when something else proves it needs one, not on principle.
 - **1200ms stands** until a real student says otherwise (owner).
+- **The CONTEXT patch is accepted** (owner). Full regeneration is for accumulated
+  drift across a session, not a four-spot delta inside one. The rule stands for
+  the normal case.
+- **The calendar's "next up" uses `arriveAtRow` directly** (owner), unless it has
+  to reach a row inside a collapsed day group — settle that when the calendar
+  lands, not now.
+- **`arriveAtRow`'s single `tick()` gets checked explicitly in 6b** (owner), and
+  if one tick is not enough it must **fail loudly rather than quietly**. A silent
+  no-op is the failure mode the owner most wants caught.
 
 ### What broke
 
@@ -138,6 +147,11 @@ matched `ShowMore`.
   thing that wants a rendered assertion.
 - **The done-group branch in `TasksCard`'s reveal effect is still unreachable**
   from Home — no pill counts a done task. 6b's undo wants it.
+- **`arriveAtRow` awaits ONE `tick()` and returns silently on a missing row.**
+  Enough for every caller today (expanding a card is one state write). 6b's undo
+  is the first case that might need two, and the failure would be invisible. It is
+  named at the definition, in CONVENTIONS, and in CONTEXT §17 so 6b cannot miss
+  it.
 - **`CONTEXT.md` regenerated in full** at `d3621b9`. No longer a loose end.
 
 ### Still open from earlier phases

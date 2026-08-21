@@ -147,6 +147,23 @@ A caller owes it two things:
   expanded, a filter cleared. `arriveAtRow` returns silently on a missing row; it
   is a courtesy on top of the real change, not the change itself.
 
+### The known sharp edge
+
+**`arriveAtRow` awaits exactly one `tick()`.** If the row needs more than one
+flush to exist, the arrival silently does nothing — no error, no mark, no focus
+move, and a student who sees no change concludes the click failed. Which is the
+bug the arrival mark was built to fix, arriving by a different route.
+
+One tick is enough for every caller today: expanding a card is one state write.
+**6b's undo is the first case that might not be** — unticking a task moves it
+between groups, and if the regrouping takes two flushes the arrival lands on a row
+that does not exist yet.
+
+**Check it explicitly when 6b lands** (decided 2026-08-21), and if one tick is not
+enough, **make it fail loudly rather than quietly.** A silent no-op here is the
+single failure mode this whole cue exists to prevent, so it is the last place that
+should have one.
+
 ### What is NOT an arrival
 
 Not every focus move. The distinction matters because the wrong cases would look

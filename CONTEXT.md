@@ -927,6 +927,15 @@ destructuring, and an unknown identifier in a Svelte template is not a type erro
 - **Moving a student to a row goes through `arriveAtRow`.** One function, never a
   hand-rolled `scrollIntoView`. Two arrival treatments on one page is worse than
   either of them, because the cue is learned once.
+- **A silent no-op is the worst failure mode this app has.** It is what made the
+  reveal read as a dead click, it is what an id-parsing row lookup did before
+  `tickItem` dispatched on the attached source row, and it is what a hover-swallowed
+  press looked like. Where a courtesy can silently not happen, prefer it failing
+  loudly — and where it currently cannot, say so at the definition.
+- **Full CONTEXT regeneration is for accumulated drift across a session**, not for
+  a four-spot delta inside one. Confirmed by the owner 2026-08-21 after this file
+  was patched thirty minutes after being written. The rule stands for the normal
+  case.
 - **`@lucide/svelte`, not `lucide-svelte`** (the latter is pinned to Svelte 3/4).
 - **`cn()` survives** for the `class`-override case only.
 - **Vitest in Node, no jsdom.** Matches the prototype, where rendering was
@@ -984,6 +993,13 @@ Calm, plain, honest about what is simulated.
    that hook is what 6b needs. The done-group branch in `TasksCard`'s reveal
    effect is unreachable from Home today — no pill counts a done task — and was
    built because 6b's undo wants exactly that path.
+
+   **And `arriveAtRow`'s single `tick()` needs checking there.** Unticking moves a
+   task between groups; if that regrouping takes two flushes, the arrival lands on
+   a row that does not exist yet and returns silently — no error, no mark, no focus
+   move. That is the failure the cue exists to prevent, arriving by another route.
+   Decided 2026-08-21: check it explicitly in 6b, and if one tick is not enough,
+   **make it fail loudly rather than quietly.**
 3. **Then, in order:** the calendar (15 components, largest surface; needs
    `buildScheduleData()`, still unported), appointments, then the **Ask THRIVE
    page** — three tabs (chat, class recommender, job recommender), a chat window,
@@ -1017,9 +1033,13 @@ Calm, plain, honest about what is simulated.
 16. **`/swatch` does not show the popover or the arrival ring.** It is the design
     system's display page and two treatments are now missing from it. Small, and
     it is throwaway anyway.
-17. **`matchesWide()` is still unported** — listed in CONVENTIONS as a sanctioned
+17. **The calendar's "next up" uses `arriveAtRow` directly**, not the reveal
+    channel — it knows its own item, so there is nothing to ask. **Unless** it has
+    to reach a row inside a collapsed day group, which is the channel's shape
+    again. Decided 2026-08-21: settle it when the calendar lands, not before.
+18. **`matchesWide()` is still unported** — listed in CONVENTIONS as a sanctioned
     client read for a surface that does not exist yet.
-18. **21 items is a long popover.** It scrolls at `max-h-60`. Decision
+19. **21 items is a long popover.** It scrolls at `max-h-60`. Decision
     (2026-08-21): **keep the honest number**, revisit a cap with a "see all in
     /events" tail only if the list gets very long.
 
