@@ -16,12 +16,15 @@
 		id,
 		title,
 		items,
-		onTick
+		onTick,
+		onOpen
 	}: {
 		id: string;
 		title: string;
 		items: ScheduleItem[];
 		onTick?: (item: ScheduleItem, done: boolean) => void;
+		/** Passed straight through to the row. See `ItemRow`. */
+		onOpen?: (item: ScheduleItem) => void;
 	} = $props();
 
 	/*
@@ -57,7 +60,7 @@
 		<ul class="mt-2 space-y-0.5">
 			{#each items as item (item.id)}
 				<li>
-					<ItemRow {item} {onTick} />
+					<ItemRow {item} {onTick} {onOpen} />
 				</li>
 			{/each}
 		</ul>

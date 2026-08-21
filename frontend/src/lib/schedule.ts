@@ -2,6 +2,17 @@ import type { EventType, Task } from "$lib/data";
 // Type-only, so it is erased at build and this module stays usable from the
 // server despite `quickList` being a client module.
 import type { QuickItem } from "$lib/quickList";
+/*
+ * Also type-only, and also erased -- which is what makes it safe despite
+ * `calendarItems` importing back from here. A value import either way round
+ * would be a real cycle and would drag a store into a server-rendered module;
+ * this one leaves nothing behind at build time.
+ *
+ * The local name shadows the DOM's `CustomEvent` inside this file. Deliberate:
+ * nothing in `schedule.ts` touches a DOM event, and renaming the domain type to
+ * avoid a global it never meets would be the wrong thing to bend.
+ */
+import type { CustomEvent } from "$lib/calendarItems";
 
 /**
  * The merge layer behind the mini calendar.
@@ -163,6 +174,17 @@ export interface ScheduleItem {
    */
   task?: Task;
   quickItem?: QuickItem;
+  /**
+   * The custom event this row was built from, attached the same way and for the
+   * same reason as the two above.
+   *
+   * Not a tickable source -- `isTickable` asks only about `task` and
+   * `quickItem`, and a student-created event is a thing that happens rather than
+   * a thing you complete. This one exists so DELETING it does not have to parse
+   * `custom-` off the front of an id, which is doubly hazardous here because the
+   * prefix genuinely appears twice.
+   */
+  customEvent?: CustomEvent;
 }
 
 /**

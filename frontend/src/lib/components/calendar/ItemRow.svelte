@@ -1,5 +1,6 @@
 <script lang="ts">
 	import AlertTriangle from '@lucide/svelte/icons/triangle-alert';
+	import Info from '@lucide/svelte/icons/info';
 
 	import Tag from '$lib/components/ui/Tag.svelte';
 	import { messages } from '$lib/messages';
@@ -32,16 +33,18 @@
 	 * A row is also only tickable if a handler was passed. A read-only view gets
 	 * the spacer, not a dead control.
 	 *
-	 * ## Not here yet
+	 * ## The details control
 	 *
-	 * `onOpen`, the details dialog's trigger. `ItemDetail` is Phase 7c and an
-	 * unused prop reads as a feature that exists.
+	 * `onOpen` arrived in 7c with `ItemDetail`. It is optional for the same reason
+	 * `onTick` is: a view that has nowhere to put a dialog must not render a button
+	 * that does nothing. The WEEK column never gets one — see `compact`.
 	 */
 	let {
 		item,
 		compact = false,
 		dateLabel,
-		onTick
+		onTick,
+		onOpen
 	}: {
 		item: ScheduleItem;
 		/**
@@ -69,6 +72,14 @@
 		 */
 		dateLabel?: string;
 		onTick?: (item: ScheduleItem, done: boolean) => void;
+		/**
+		 * Open the detail dialog on this item.
+		 *
+		 * Absent in the week column and in any view that has no dialog to open.
+		 * `CalendarView` is the only thing that can supply it, because `detail` is
+		 * one of the three pieces of state that node owns.
+		 */
+		onOpen?: (item: ScheduleItem) => void;
 	} = $props();
 
 	const done = $derived(item.done === true);
@@ -204,6 +215,39 @@
 		<span class={cn('rounded-xs px-1.5 py-0.5 text-3xs', categoryTag[item.category])}>
 			{categoryLabel[item.category].toLowerCase()}
 		</span>
+
+		<!-- The details control, LAST in the strip and right-anchored with it.
+		     A conditional control appearing at the leading edge of a right-anchored
+		     group is the one arrangement that does not move anything already on
+		     screen — the same rule TaskRow's control strip follows.
+
+		     Its accessible name carries the title. "Details" on every row means a
+		     screen reader hears the same word twelve times with no way to tell which
+		     row it is on. -->
+		{#if onOpen}
+			<button
+				type="button"
+				onclick={(event) => {
+					/*
+					 * Focus the trigger before opening, so the dialog has somewhere
+					 * definite to put focus back.
+					 *
+					 * `focusTrap` restores to whatever held focus at mount, and a POINTER
+					 * press does not reliably leave focus on a button — Chrome does it,
+					 * Safari on macOS does not. Without this, a mouse user closing the
+					 * dialog lands on `<body>` and the next Tab starts at the top of the
+					 * page, which is the failure focus restoration exists to prevent.
+					 * Keyboard users already have it focused; this costs them nothing.
+					 */
+					event.currentTarget.focus();
+					onOpen(item);
+				}}
+				aria-label={messages.calendar.detail.open(item.title)}
+				class="shrink-0 rounded-xs p-1 text-muted-ink transition-colors duration-(--motion-fast) ease-standard hover:bg-surface hover:text-ink"
+			>
+				<Info aria-hidden="true" class="size-3.5" />
+			</button>
+		{/if}
 	</span>
 	</div>
 {/if}

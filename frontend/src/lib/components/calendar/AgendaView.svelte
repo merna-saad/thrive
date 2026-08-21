@@ -41,7 +41,8 @@
 		dayKeys,
 		mode,
 		undatedTodos,
-		onTick
+		onTick,
+		onOpen
 	}: {
 		data: ScheduleData;
 		dayKeys: string[];
@@ -55,6 +56,14 @@
 		 */
 		undatedTodos: QuickItem[];
 		onTick?: (item: ScheduleItem, done: boolean) => void;
+		/**
+		 * Passed straight through to every row, dated and undated alike.
+		 *
+		 * The agenda is the ONLY place an undated to-do is reachable, so it is also
+		 * the only place one can be labelled or flagged urgent. Withholding the
+		 * control from that section would make a whole class of row uneditable.
+		 */
+		onOpen?: (item: ScheduleItem) => void;
 	} = $props();
 
 	const copy = messages.calendar.agenda;
@@ -106,6 +115,7 @@
 								{item}
 								dateLabel={withRowDates ? rowDate(item.dayKey) : undefined}
 								{onTick}
+								{onOpen}
 							/>
 						</li>
 					{/each}
@@ -131,7 +141,7 @@
 
 				<ul class="mt-1.5 space-y-0.5">
 					{#each undatedTodos as todo (todo.id)}
-						<li><ItemRow item={undatedTodoItem(todo)} {onTick} /></li>
+						<li><ItemRow item={undatedTodoItem(todo)} {onTick} {onOpen} /></li>
 					{/each}
 				</ul>
 			</section>

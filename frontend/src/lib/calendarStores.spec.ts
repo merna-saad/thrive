@@ -317,6 +317,82 @@ describe("calendarItems stores", () => {
 });
 
 // ---------------------------------------------------------------------------
+// The annotations, applied over a real merge
+// ---------------------------------------------------------------------------
+
+describe("mergedSchedule applies the annotations over every row", () => {
+	/** A server row the student does not own, so the annotations have to reach it. */
+	function assignment(over: Partial<ScheduleItem> = {}) {
+		return {
+			id: "asg-12",
+			category: "assignment" as const,
+			title: "Case memo",
+			dayKey: "2026-08-17",
+			timeLabel: "11:59 PM",
+			detail: "MGT 253",
+			sortMinutes: 1439,
+			allDay: false,
+			...over,
+		};
+	}
+
+	async function merge(row: ReturnType<typeof assignment>) {
+		const { mergedSchedule } = await import("$lib/calendarSources");
+		return mergedSchedule({ dated: [row], recurring: [] }, []).data.dated[0];
+	}
+
+	it("puts a label on a row the student does not own", async () => {
+		const items = await fresh(itemsModule);
+		items.setItemLabel("asg-12", "capstone");
+
+		expect((await merge(assignment())).label).toBe("capstone");
+	});
+
+	it("puts urgent on one too", async () => {
+		const items = await fresh(itemsModule);
+		items.setItemUrgent("asg-12", true);
+
+		expect((await merge(assignment())).urgent).toBe(true);
+	});
+
+	it("suppresses urgent on a done row", async () => {
+		// A finished thing is not urgent, and a coral pill on a struck-through row
+		// is the contradiction the reserved palette exists to prevent.
+		const items = await fresh(itemsModule);
+		items.setItemUrgent("asg-12", true);
+
+		expect((await merge(assignment({ done: true }))).urgent).toBeUndefined();
+	});
+
+	it("suppresses urgent a row ARRIVED with, when that row is done", async () => {
+		/*
+		 * The case the old `if (!label && !isUrgent) return item` shortcut got wrong
+		 * once the done-suppression moved into `urgentFor`: nothing is overridden, so
+		 * both resolved values are falsy, so the row was returned untouched -- still
+		 * carrying the flag the suppression exists to remove.
+		 *
+		 * Unreachable through today's mappers, since only custom events arrive
+		 * carrying `urgent` and none of them is tickable. Pinned anyway, because
+		 * that is a property of the mappers rather than of this function.
+		 */
+		await fresh(itemsModule);
+
+		const result = await merge(assignment({ urgent: true, done: true }));
+
+		expect(result.urgent).toBeUndefined();
+	});
+
+	it("returns the row itself when nothing was said about it", async () => {
+		// The identity case, and the reason for the shortcut in the first place:
+		// most rows on a day carry no annotation and should not be copied.
+		await fresh(itemsModule);
+		const row = assignment();
+
+		expect(await merge(row)).toBe(row);
+	});
+});
+
+// ---------------------------------------------------------------------------
 // ignoredEvents -- the third key space
 // ---------------------------------------------------------------------------
 

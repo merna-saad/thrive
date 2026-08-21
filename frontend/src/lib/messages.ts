@@ -311,8 +311,9 @@ export const messages = {
 	},
 
 	/**
-	 * The calendar. Phase 7a covers the page, the month grid and the selected day;
-	 * the filter bar, the other two views, editing and events land in 7b and 7c.
+	 * The calendar, complete as of Phase 7c: the page and the month grid (7a), the
+	 * other two views and the filter bar (7b), and the detail dialog, the add form
+	 * and the events section (7c).
 	 *
 	 * Two things here are worth naming because they are easy to get wrong on a
 	 * retrofit:
@@ -389,8 +390,8 @@ export const messages = {
 			 * Says what changed and how much is in it, because a student moving
 			 * through the grid with arrow keys never sees the panel below repaint.
 			 */
-			announcement: (heading: string, schedule: number, personal: number) =>
-				`${heading}. ${schedule} on your schedule, ${personal} on your list.`
+			announcement: (heading: string, schedule: number, personal: number, events: number) =>
+				`${heading}. ${schedule} on your schedule, ${personal} on your list, ${events} to register for.`
 		},
 
 		/* --- The day's sections --------------------------------------------- */
@@ -482,6 +483,107 @@ export const messages = {
 			/** Shown only when there are some, so flipping it has a visible effect. */
 			ignoredCount: (count: number) => `(${count})`,
 			allHidden: 'Everything is hidden — nothing will show below.'
+		},
+
+		/* --- The detail dialog ---------------------------------------------- */
+		detail: {
+			headingId: 'item-detail-title',
+			close: 'Close',
+			/** Says what the dialog is about, since the heading is just a title. */
+			dialogLabel: (title: string) => `Details for ${title}`,
+			/** The control on a row that opens it. One word would name every row alike. */
+			open: (title: string) => `Details for ${title}`,
+			allDay: 'all day',
+			urgent: 'urgent',
+			/** Field labels in the read half. Each names a value beside it. */
+			course: 'course',
+			priority: 'priority',
+			editEyebrow: 'edit',
+			labelField: 'label',
+			labelPlaceholder: 'none',
+			markUrgent: 'Mark urgent',
+			/** Why the urgent control is disabled. Stated, not just greyed out. */
+			urgentDisabled: 'Done items are never urgent.',
+			addToCalendar: 'Add to calendar',
+			/** The download is unavailable on a row with no instant — a class rule. */
+			noInstant: 'This one repeats weekly, so there is no single date to export.',
+			delete: 'Delete',
+			/*
+			 * The second step. Destructive and irreversible -- there is no undo slot
+			 * for a deleted event -- so it asks, and the question names the thing
+			 * rather than saying "are you sure".
+			 */
+			deleteConfirm: (title: string) => `Delete “${title}”? This cannot be undone.`,
+			deleteGoAhead: 'Delete for good',
+			deleteKeep: 'Keep it',
+			deleted: (title: string) => `“${title}” deleted`,
+			/*
+			 * The standing promise, on the one surface where a student is typing
+			 * things into a browser and could reasonably assume otherwise.
+			 */
+			localOnlyLabel: 'Local only.',
+			localOnly:
+				'Labels, urgent flags and anything you add here are stored in this browser. Nothing is sent anywhere and nobody is notified.'
+		},
+
+		/* --- Adding to a day ------------------------------------------------ */
+		add: {
+			/** Collapsed to one button until wanted, the same shape as Home's. */
+			open: 'Add to this day',
+			eyebrow: 'add',
+			cancel: 'Cancel',
+			kindLegend: 'What kind',
+			/** The three kinds. The hint says what each one MEANS, not what it does. */
+			kindTask: 'task',
+			kindTaskHint: 'work with a deadline',
+			kindTodo: 'to-do',
+			kindTodoHint: 'a scratch item',
+			kindEvent: 'event',
+			kindEventHint: 'something happening',
+			titleField: 'Title',
+			titlePlaceholder: 'What is it?',
+			timeField: 'at',
+			labelField: 'label',
+			labelPlaceholder: 'optional',
+			markUrgent: 'Mark urgent',
+			/** Names the kind, because the button IS the routing decision. */
+			submit: (kind: string) => `Add ${kind}`,
+			/** Where it went. Confirming the STORE is the point: three kinds, three lists. */
+			addedTask: (title: string) => `“${title}” added to your tasks`,
+			addedTodo: (title: string) => `“${title}” added to your to-do list`,
+			addedEvent: (title: string) => `“${title}” added to this day`
+		},
+
+		/* --- The events section --------------------------------------------- */
+		events: {
+			headingId: 'calendar-happening',
+			title: 'Happening',
+			/**
+			 * A locator, not an instruction.
+			 *
+			 * "register" read as a verb attached to the title — "register Happening".
+			 * The prefix says which slot this is; the buttons say what to do.
+			 */
+			prefix: 'optional',
+			joinedCount: (joined: number, total: number) => `${joined}/${total} joined`,
+			empty: 'Nothing to sign up for this day.',
+			countMeIn: 'Count me in',
+			/** Appended so a screen reader hears which event, not four identical buttons. */
+			subject: (title: string) => ` for ${title}`,
+			/**
+			 * State and exit, deliberately two things.
+			 *
+			 * Joining used to be one toggle: the button read "You're in" and pressing
+			 * it again removed you, which nobody could discover. A control whose
+			 * off-switch is invisible is a control students are afraid to press.
+			 */
+			joined: 'You’re in',
+			leave: 'Remove from my list',
+			addToCalendar: 'Add to calendar',
+			relevanceBadge: 'For you',
+			unIgnore: 'Un-ignore',
+			/** Said once per joined row, because the button implies otherwise. */
+			joinedNote: 'Saved in THRIVE only. Nobody was notified.'
 		}
 	},
 

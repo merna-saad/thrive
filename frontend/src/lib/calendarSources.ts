@@ -2,7 +2,9 @@ import {
 	customEventToItem,
 	itemLabels,
 	itemUrgent,
-	customEvents
+	customEvents,
+	labelFor,
+	urgentFor
 } from '$lib/calendarItems';
 import { quickItems, type QuickItem } from '$lib/quickList';
 import {
@@ -214,17 +216,32 @@ export function mergedSchedule(server: ScheduleData, serverTasks: Task[]): Merge
 	 * Urgent is suppressed on a done item. A finished thing is not urgent, and
 	 * a coral pill on a struck-through row is the sort of contradiction the
 	 * reserved palette exists to prevent.
+	 *
+	 * Both rules come from `calendarItems` rather than being written here, because
+	 * `ItemDetail` has to answer the same two questions about the row it is showing
+	 * and a second copy would drift the day either of them grows a case.
 	 */
 	const annotate = (item: DatedScheduleItem): DatedScheduleItem => {
-		const label = labels[item.id] ?? item.label;
-		const isUrgent = (urgent[item.id] ?? item.urgent) === true;
+		const label = labelFor(item.id, item.label, labels);
+		const isUrgent = urgentFor(item.id, item.urgent, urgent, item.done);
 
-		if (!label && !isUrgent) return item;
+		/*
+		 * Return the original only when NOTHING differs, rather than when neither
+		 * value is set.
+		 *
+		 * The `!label && !isUrgent` shortcut this replaces is subtly wrong once the
+		 * done-suppression moved into `urgentFor`: a row arriving urgent AND done,
+		 * with no label, would take the shortcut and keep the flag the suppression
+		 * exists to remove. Only custom events can arrive carrying `urgent`, and
+		 * they are never done, so it was unreachable -- but "unreachable" is a
+		 * property of today's mappers, not of this function.
+		 */
+		if (label === item.label && isUrgent === (item.urgent === true)) return item;
 
 		return {
 			...item,
 			label,
-			urgent: isUrgent && item.done !== true ? true : undefined
+			urgent: isUrgent ? true : undefined
 		};
 	};
 

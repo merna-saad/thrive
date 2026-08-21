@@ -122,6 +122,45 @@ export function deleteCustomEvent(id: string) {
 	urgentStore.set(`custom-${id}`, undefined);
 }
 
+/* --- Resolving an annotation over a row --------------------------------- */
+
+/**
+ * The label a row actually shows: the student's, or whatever it came with.
+ *
+ * ONE rule, in one place, because it now has two callers that must not
+ * disagree. `mergedSchedule` applies it to every row on the calendar;
+ * `ItemDetail` applies it to the row it is showing, so the field a student
+ * types into reflects the same answer the row behind the dialog does.
+ *
+ * Written inline in both places, this is the kind of pair that stays in step
+ * until someone adds a third state to one of them.
+ */
+export function labelFor(
+	itemId: string,
+	base: string | undefined,
+	labels: Readonly<Record<string, string>>,
+): string | undefined {
+	return labels[itemId] ?? base;
+}
+
+/**
+ * Is this row urgent?
+ *
+ * The student's flag wins over whatever the row arrived with, and DONE
+ * SUPPRESSES IT outright. A finished thing is not urgent, and a coral pill on a
+ * struck-through row is the sort of contradiction the reserved palette exists to
+ * prevent -- which is why the suppression lives in the shared rule rather than
+ * in the merge, where the dialog could not see it.
+ */
+export function urgentFor(
+	itemId: string,
+	base: boolean | undefined,
+	urgent: Readonly<Record<string, true>>,
+	done: boolean | undefined,
+): boolean {
+	return (urgent[itemId] ?? base) === true && done !== true;
+}
+
 /* --- Mapping ------------------------------------------------------------ */
 
 /** "9:30 AM" from wall-clock "HH:mm". Local by construction, no timezone. */
@@ -167,5 +206,22 @@ export function customEventToItem(event: CustomEvent): DatedScheduleItem | null 
 		label: event.label,
 		urgent: event.urgent,
 		custom: true,
+		/*
+		 * THE SOURCE ROW TRAVELS WITH THE ITEM, exactly as `taskToItem` and
+		 * `todoToItem` attach theirs.
+		 *
+		 * `ItemDetail` needs the event's own id to delete it, and the calendar item
+		 * id is not it: this line builds `custom-${event.id}` and `event.id` is
+		 * itself `custom-<timestamp>`, so the item id carries the prefix twice
+		 * (MIGRATION.md §9 defect 14 -- cosmetic, internally consistent, and not
+		 * being changed here because existing stores would go stale for nothing).
+		 *
+		 * The Next version recovered the event id with
+		 * `item.id.replace(/^custom-/, "")`, which is resolving a row by parsing its
+		 * id -- the one thing CONVENTIONS.md says never to do, and the thing that
+		 * silently broke ticking for self-added tasks. Attaching the row means the
+		 * delete button cannot be wrong about which event it deletes.
+		 */
+		customEvent: event,
 	};
 }
