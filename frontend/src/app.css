@@ -1,0 +1,687 @@
+@import 'tailwindcss';
+
+/* Fonts, self-hosted via @fontsource. Latin subset and weight-pinned to match
+   what the Next app loaded through next/font:
+     DM Sans        400 prose, 500 row titles and emphasis, 700 headings
+     JetBrains Mono 400, 500 -- mono marks machine truth and never carries a
+                    heading, so it has no use for 700.
+   @fontsource ships `font-display: swap` in each of these files already.
+   Self-hosted on purpose: no Google Fonts link anywhere. */
+@import '@fontsource/dm-sans/latin-400.css';
+@import '@fontsource/dm-sans/latin-500.css';
+@import '@fontsource/dm-sans/latin-700.css';
+@import '@fontsource/jetbrains-mono/latin-400.css';
+@import '@fontsource/jetbrains-mono/latin-500.css';
+
+/* THRIVE is light-only by decision. Left undefined, Tailwind v4 would fall
+   back to its stock `dark:` variant (prefers-color-scheme). Pinning the variant
+   to a class nothing ever applies keeps any vendored `dark:` rules inert
+   without editing vendored files. Kept from the Next app: shadcn-svelte lands
+   in a later phase and will bring `dark:` rules with it. */
+@custom-variant dark (&:is(.dark *));
+
+/* ==========================================================================
+   THRIVE DESIGN TOKENS
+   --------------------------------------------------------------------------
+   Single source of truth. Never hardcode a color, size, radius, or duration
+   in a component -- reach for a Tailwind utility backed by one of these.
+
+   Layer 1  :root            raw THRIVE tokens (--thrive-*)
+   Layer 2  :root            shadcn semantic vars mapped onto layer 1
+   Layer 3  @theme inline    exposes both as Tailwind utilities
+
+   DIRECTION -- soft cream, hairline, mono-accent.
+   Adopted 2026-08-15, a deliberate reversal of the bordered direction of
+   2026-08-12. See CONTEXT.md decision 15 for the full reasoning.
+
+   The previous direction made the border the structural device: 2px strokes at
+   3.88:1, hard offset shadows, tight radii. This one takes the structure out of
+   the ink entirely. Panels are white on cream, separated by a 1px hairline that
+   is frankly decorative. What holds the layout together is whitespace, type
+   hierarchy, and a row that fills on hover.
+
+   The new rule, replacing "a border below ~3:1 is not a border":
+
+       Hairlines are decorative. If removing a border would make the layout
+       ambiguous, the layout is wrong, not the border.
+
+   ONE EXCEPTION, and it is not negotiable: interactive control boundaries --
+   checkbox, radio, input, select, the resize grips -- still owe 3:1 under WCAG
+   1.4.11, because they are the only thing marking where the control is. Those
+   draw in --thrive-control-line at 1.5px, never in --thrive-hairline.
+
+   All contrast pairs below were computed before being written, not after.
+   Verified by scripts/check-contrast.py, 43 assertions, three of them ceilings.
+   ========================================================================== */
+
+:root {
+  /* --- Layer 1: raw palette ------------------------------------------- */
+
+  /* Surfaces. Cream rather than off-white: with the borders gone, the page has
+     to do the separating, and a warmer ground makes a plain white card read as
+     raised without any shadow under it.
+     `sunken` is no longer just a recessed well -- it is now the row hover fill,
+     which is the main way a list signals that a row is interactive. */
+  --thrive-bg: #faf9f5;
+  --thrive-surface: #ffffff;
+  --thrive-sunken: #f1efea;
+
+  /* Ink. Four steps, and only the first three may carry text. */
+  --thrive-ink: #17181c; /* headings          16.8:1 on cream */
+  --thrive-body: #3a3b42; /* body copy         10.6:1 on cream */
+  --thrive-muted: #6b6c72; /* ALL secondary and metadata text
+                                                 4.97:1 on cream
+                                                 4.55:1 on sunken (the floor) */
+  --thrive-faint: #85868c; /* DECORATIVE TEXT AND CONTROL BOUNDARIES ONLY.
+                              Enforced by value: it clears 3:1 and stops well
+                              short of 4.5, so words placed in it fail a check
+                              rather than quietly shipping.
+                              3.45 cream / 3.63 card / 3.16 sunken.
+                              Spec'd as #8a8b91; that lands at 2.96 on sunken,
+                              which fails the 3:1 a control boundary owes, and
+                              sunken is now the row hover fill -- so a checkbox
+                              on a hovered row sat under the bar. Darkened one
+                              step. See CHANGELOG. */
+
+  /* Lines. Decorative, and that is the point. Two tiers:
+       hairline       1.22:1  panel edges and dividers
+       hairline-soft  1.12:1  inner dividers inside an already-hairlined panel
+     Neither is a meaningful graphic under WCAG, and neither needs to be --
+     nothing in this direction depends on a line to be legible. */
+  --thrive-hairline: #e6e3dc;
+  --thrive-hairline-soft: #efece6;
+
+  /* Control boundaries are the exception. A checkbox edge is the only thing
+     saying where the checkbox is, so it owes 3:1 and draws in faint.
+     TWO SEPARATE CONCEPTS, deliberately never merged into one token: the
+     colour (--thrive-control-line) and the width (--thrive-control-stroke).
+     A 1px decorative hairline and a 1.5px control boundary are different
+     things; collapsing them is silent -- the layout looks fine and the
+     accessibility guarantee is gone. */
+  --thrive-control-line: var(--thrive-faint);
+  --thrive-control-stroke: 1.5px;
+
+  /* Action accent. Forest green, replacing the sage. Deeper and less grey, so
+     it still separates from the cream now that no stroke helps it.
+       primary       6.13:1 on white -- safe for text and for solid fills
+       primary-soft  the partial-progress fill
+       mint          the light fill, retuned into the forest family; still
+                     always ringed, since the fill alone cannot hold an edge
+     Keeping the text-safe value on `primary` is why every existing
+     `text-primary` / `bg-primary` / `bg-primary-soft` retunes for free. */
+  --thrive-primary: #3f6b4f;
+  --thrive-primary-hover: #355c43;
+  --thrive-primary-active: #2b4a37;
+  --thrive-on-primary: #ffffff;
+  --thrive-primary-soft: #e7eee9;
+  --thrive-mint: #6aab84;
+  --thrive-on-mint: #0f2117;
+
+  /* RESERVED: indigo marks "this is where you are now" and nothing else.
+     Not a status, not an action colour. Current phase on the timeline, today
+     on the calendar, the next thing up in a list. If it starts decorating,
+     it stops locating. */
+  --thrive-indigo: #4c5bd4;
+  --thrive-indigo-soft: color-mix(in oklab, var(--thrive-indigo) 8%, white);
+
+  /* Status. RESERVED: signals status, never decoration.
+
+     on-track moved off green this pass. Green now means "an action you can
+     take", and a green status chip beside a green button would read as the
+     same signal. Calm blue still says steady without competing. */
+  --thrive-on-track: #3d6fb0;
+  --thrive-watch: #8f6220;
+  --thrive-needs-help: #6a5fb0;
+
+  /* Urgency. RESERVED harder than the rest: overdue and genuinely urgent
+     only. If coral shows up for anything else it stops meaning "act now". */
+  --thrive-urgent: #b8462f;
+
+  /* Priority ramp, straight from the reference's urgent / soon / later.
+     `soon` aliases watch and `later` is a neutral slate, so a low-priority
+     row is tinted without being colored. */
+  --thrive-soon: var(--thrive-watch);
+  --thrive-later: #64748b;
+
+  /* Categorical only, never status. Plum rather than the old teal: teal sat
+     between the new sage and the on-track blue and stopped reading apart. */
+  --thrive-civic: #8a5f8f;
+
+  /* Soft tints, derived so they can never drift from the base hue. */
+  --thrive-on-track-soft: color-mix(in oklab, var(--thrive-on-track) 9%, white);
+  --thrive-watch-soft: color-mix(in oklab, var(--thrive-watch) 10%, white);
+  --thrive-needs-help-soft: color-mix(
+    in oklab,
+    var(--thrive-needs-help) 9%,
+    white
+  );
+  --thrive-urgent-soft: color-mix(in oklab, var(--thrive-urgent) 9%, white);
+  --thrive-civic-soft: color-mix(in oklab, var(--thrive-civic) 9%, white);
+  --thrive-later-soft: color-mix(in oklab, var(--thrive-later) 9%, white);
+
+  /* Elevation: none. Deleted 2026-08-15 along with the borders.
+     There is no drop shadow anywhere in THRIVE and no blurred replacement for
+     the old hard offsets. A white card on cream paper with a hairline is the
+     entire elevation system. Nothing floats.
+
+     DROPPED IN THE SVELTEKIT PORT: --thrive-shadow-card and
+     --thrive-shadow-lifted, plus their `--shadow-card` / `--shadow-lifted`
+     @theme entries. Both resolved to `none` and the Next comment claimed six
+     components still referenced them -- a grep of the Next tree at 4e0a65b
+     found ZERO `shadow-card` / `shadow-lifted` call sites in any .tsx. The
+     sweep had already removed them, so the names were carrying nothing.
+     See MIGRATION.md section 5, "Dead or unused". */
+
+  /* Motion. Quick and settled, matching the reference's 120-260ms band. The
+     standard curve decelerates and never overshoots; `pop` is the single
+     exception, used only for the tick landing in a checkbox. */
+  --thrive-motion-fast: 120ms;
+  --thrive-motion-base: 160ms;
+  --thrive-motion-slow: 260ms;
+  --thrive-ease-standard: cubic-bezier(0.2, 0.8, 0.3, 1);
+  --thrive-ease-pop: cubic-bezier(0.2, 1.4, 0.4, 1);
+
+  /* Layout constants for the app shell */
+  --thrive-rail-width: 15rem;
+  --thrive-topbar-height: 3.5rem;
+  --thrive-bottomnav-height: 3.75rem;
+
+  /* Typography stack. Both faces are self-hosted via @fontsource above; these
+     two variables are what the Next app's next/font call produced, kept under
+     the same names so the --font-sans / --font-mono chains below are unchanged.
+
+     Mono is not decoration. It marks MACHINE TRUTH: numerals, counts and
+     fractions, IDs and task numbers, compact dates, status eyebrows, and any
+     label that is a system value rather than something a person wrote.
+     Prose never goes in mono. */
+  --font-dm-sans: 'DM Sans';
+  --font-jetbrains-mono: 'JetBrains Mono';
+
+  --font-sans:
+    var(--font-dm-sans), ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+    sans-serif;
+  --font-mono:
+    var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* --- Layer 2: shadcn semantic vars -> THRIVE tokens ------------------
+     Kept even though shadcn-svelte is a later phase. Two reasons: the
+     @layer base `body` rule below resolves through --background and
+     --foreground, and remapping these here is what will make stock
+     shadcn-svelte primitives come out in THRIVE's palette with no patching. */
+  --background: var(--thrive-bg);
+  --foreground: var(--thrive-body);
+
+  --card: var(--thrive-surface);
+  --card-foreground: var(--thrive-body);
+  --popover: var(--thrive-surface);
+  --popover-foreground: var(--thrive-body);
+
+  --primary: var(--thrive-primary);
+  --primary-foreground: var(--thrive-on-primary);
+
+  --secondary: var(--thrive-bg);
+  --secondary-foreground: var(--thrive-ink);
+
+  --muted: var(--thrive-bg);
+  --muted-foreground: var(--thrive-muted);
+
+  --accent: var(--thrive-primary-soft);
+  --accent-foreground: var(--thrive-primary-hover);
+
+  --destructive: var(--thrive-urgent);
+
+  /* Panel edges are decorative, so they take the hairline. `--input` is a
+     control boundary and takes faint instead -- shadcn uses it for the edge of
+     inputs and selects, which is exactly the WCAG 1.4.11 case. */
+  --border: var(--thrive-hairline);
+  --input: var(--thrive-control-line);
+  --ring: var(--thrive-primary);
+
+  --radius: 1rem;
+
+  --sidebar: var(--thrive-surface);
+  --sidebar-foreground: var(--thrive-body);
+  --sidebar-primary: var(--thrive-primary);
+  --sidebar-primary-foreground: var(--thrive-on-primary);
+  --sidebar-accent: var(--thrive-primary-soft);
+  --sidebar-accent-foreground: var(--thrive-primary-hover);
+  --sidebar-border: var(--thrive-hairline);
+  --sidebar-ring: var(--thrive-primary);
+
+  --chart-1: var(--thrive-primary);
+  --chart-2: var(--thrive-on-track);
+  --chart-3: var(--thrive-watch);
+  --chart-4: var(--thrive-needs-help);
+  --chart-5: var(--thrive-muted);
+}
+
+/* --- Layer 3: expose tokens as Tailwind utilities ---------------------- */
+@theme inline {
+  /* Color utilities: bg-surface, text-ink, text-on-track, ... */
+  --color-bg: var(--thrive-bg);
+  --color-surface: var(--thrive-surface);
+  --color-sunken: var(--thrive-sunken);
+  --color-ink: var(--thrive-ink);
+  --color-body: var(--thrive-body);
+  --color-muted-ink: var(--thrive-muted);
+  --color-faint: var(--thrive-faint);
+  /* `line` and `line-strong` are kept as names because 123 call sites in the
+     Next app use them. They are repointed rather than deleted: `line` is the
+     decorative hairline, and `line-strong` is the control boundary. What they
+     do NOT carry is stroke width -- a call site written `border-2 border-line`
+     still draws 2px, just in a much lighter colour. The Next tree still has
+     ~20 such call sites; they are a component-sweep concern, not a token one. */
+  --color-line: var(--thrive-hairline);
+  --color-line-strong: var(--thrive-control-line);
+  --color-hairline-soft: var(--thrive-hairline-soft);
+
+  --color-indigo: var(--thrive-indigo);
+  --color-indigo-soft: var(--thrive-indigo-soft);
+
+  --color-primary: var(--thrive-primary);
+  --color-primary-hover: var(--thrive-primary-hover);
+  --color-primary-active: var(--thrive-primary-active);
+  --color-primary-soft: var(--thrive-primary-soft);
+  --color-on-primary: var(--thrive-on-primary);
+  --color-mint: var(--thrive-mint);
+  --color-on-mint: var(--thrive-on-mint);
+
+  --color-on-track: var(--thrive-on-track);
+  --color-on-track-soft: var(--thrive-on-track-soft);
+  --color-watch: var(--thrive-watch);
+  --color-watch-soft: var(--thrive-watch-soft);
+  --color-needs-help: var(--thrive-needs-help);
+  --color-needs-help-soft: var(--thrive-needs-help-soft);
+  --color-urgent: var(--thrive-urgent);
+  --color-urgent-soft: var(--thrive-urgent-soft);
+  --color-civic: var(--thrive-civic);
+  --color-civic-soft: var(--thrive-civic-soft);
+  --color-later: var(--thrive-later);
+  --color-later-soft: var(--thrive-later-soft);
+
+  /* shadcn semantic colors */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Type scale. Sizes unchanged; WEIGHT IS NOT BAKED IN.
+     Every step used to carry its own 500-700 font-weight, which made
+     `font-semibold` on a 700 step actively *lighten* it. That worked under a
+     two-weight rule. Under the three-weight rule it fights, so weight is set
+     independently at the call site and the scale only sets size, leading, and
+     tracking.
+
+       400  body prose
+       500  row titles and emphasis inside a list
+       700  page titles and section headings, used sparingly
+
+     Consequence, deliberate: a call site that sets no weight renders 400.
+     Only 400/500/700 load, so `font-semibold` (600) synthesises -- do not
+     use it. */
+  --text-3xs: 0.75rem; /* 12 -- meta, counts, timers */
+  --text-3xs--line-height: 1rem; /* 16 */
+
+  --text-2xs: 0.8125rem; /* 13 -- section labels, chips */
+  --text-2xs--line-height: 1.125rem; /* 18 */
+
+  --text-xs: 0.875rem; /* 14 -- secondary copy */
+  --text-xs--line-height: 1.25rem; /* 20 */
+
+  --text-sm: 1rem; /* 16 -- body default */
+  --text-sm--line-height: 1.4375rem; /* 23 -- 1.44 */
+
+  --text-base: 1.125rem; /* 18 -- task titles, lead copy */
+  --text-base--line-height: 1.5625rem; /* 25 -- 1.39 */
+
+  --text-lg: 1.375rem; /* 22 */
+  --text-lg--line-height: 1.75rem; /* 28 */
+
+  --text-xl: 1.6875rem; /* 27 */
+  --text-xl--line-height: 2.0625rem; /* 33 */
+
+  --text-2xl: 2.125rem; /* 34 */
+  --text-2xl--line-height: 2.4375rem; /* 39 */
+
+  --text-3xl: 2.5rem; /* 40 -- page titles only */
+  --text-3xl--line-height: 2.75rem; /* 44 -- 1.10 */
+
+  /* Tracking on the top three steps only. Large type at default tracking is
+     the single most common tell of an unconsidered interface; body sizes are
+     left alone, where negative tracking costs readability rather than buying
+     polish. `lg` (22) lost its tracking this pass -- it is a section heading,
+     not display type. */
+  --text-xl--letter-spacing: -0.025em;
+  --text-2xl--letter-spacing: -0.03em;
+  --text-3xl--letter-spacing: -0.035em;
+
+  /* Spacing: 4px base step -> p-1 = 4, p-2 = 8, p-4 = 16, p-6 = 24 ... */
+  --spacing: 0.25rem;
+
+  /* Radii, softened. The old 2/4/6/8/10 was sized so a 2px stroke could state
+     an edge without the corner fighting it. With the stroke gone, tight
+     corners just read as unfinished, so every step moves up and the top step
+     moves a long way up: a 16px corner is most of what separates "soft
+     product" from "admin form" once there is no border doing the work. */
+  --radius-xs: 0.25rem; /* 4  -- small chips */
+  --radius-sm: 0.375rem; /* 6  -- controls, tiny glyph buttons */
+  --radius-md: 0.5rem; /* 8  -- inline elements */
+  --radius-lg: 0.625rem; /* 10 -- rows */
+  --radius-xl: 1rem; /* 16 -- cards and panels */
+  --radius-pill: 999px;
+
+  /* Elevation: intentionally absent. See the note in layer 1 -- the
+     `--shadow-card` / `--shadow-lifted` entries that used to sit here were
+     dropped in this port because nothing referenced them. */
+
+  /* Hairline exposed as a colour, for divide-* and every panel edge. */
+  --color-hairline: var(--thrive-hairline);
+
+  /* Motion. Use as: duration-(--motion-base) ease-standard */
+  --motion-fast: var(--thrive-motion-fast);
+  --motion-base: var(--thrive-motion-base);
+  --motion-slow: var(--thrive-motion-slow);
+  --ease-standard: var(--thrive-ease-standard);
+  --ease-pop: var(--thrive-ease-pop);
+
+  /* Layout */
+  --spacing-rail: var(--thrive-rail-width);
+  --spacing-topbar: var(--thrive-topbar-height);
+  --spacing-bottomnav: var(--thrive-bottomnav-height);
+
+  /* Fonts */
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-heading: var(--font-sans);
+}
+
+@layer base {
+  /* Any border that does get drawn is a hairline by default. Components opt
+     into the stronger --border only where a line has to hold its own. */
+  * {
+    @apply border-hairline;
+  }
+
+  html {
+    @apply font-sans;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    /* Light-only by decision. Without this, a machine set to dark gets
+       auto-darkened scrollbars and native form widgets on a warm-white page. */
+    color-scheme: light;
+  }
+
+  /* Phones get one notch more.
+     A 15px body is comfortable at desk distance and marginal on a handset,
+     where the readability floor is 16px. Nudging the root rather than any
+     individual token scales the whole system -- type, spacing, and the shell's
+     rem-based heights -- by the same 6.25%, so proportions are untouched and
+     nothing needs a per-component breakpoint. Delete this one rule to revert. */
+  @media (width < 40rem) {
+    html {
+      font-size: 106.25%;
+    }
+  }
+
+  /* Kills the 300ms double-tap-zoom delay on touch, and replaces the default
+     grey flash with a tint drawn from the palette. */
+  button,
+  a,
+  label,
+  [role='button'],
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: color-mix(
+      in oklab,
+      var(--thrive-primary) 12%,
+      transparent
+    );
+  }
+
+  body {
+    @apply bg-background text-foreground text-sm;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply text-ink;
+    text-wrap: balance;
+  }
+
+  /* Counts, timers, and anything that ticks holds its width, so a row does
+     not reflow as "in 3 days" becomes "in 10 days". */
+  time,
+  [data-tabular] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* One visible focus treatment for the whole app. Keyboard users always get
+     a ring; pointer users don't see it on click. */
+  :focus-visible {
+    outline: 2px solid var(--thrive-primary);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+}
+
+@layer components {
+  /* ── The panel ──────────────────────────────────────────────────────────
+     Every card, section, and box in THRIVE. One class so the treatment is a
+     system decision made once, not a Tailwind string copied into 30 files.
+
+     A white surface on cream, a 1px decorative hairline, a 16px corner, and
+     no shadow at all. Separation comes from the fill difference and the
+     corner; the hairline just tidies the edge.
+
+     Padding is set here, because whitespace is the structural device and it
+     should not be a per-component guess. NOTE: a Tailwind utility on the
+     element still wins (utilities layer beats components layer), so a panel
+     that carries an explicit `p-3` keeps its tighter padding. */
+  .thrive-panel {
+    border: 1px solid var(--thrive-hairline);
+    border-radius: var(--radius-xl);
+    background-color: var(--thrive-surface);
+    padding: 1.25rem;
+  }
+
+  .thrive-panel[data-tone='sunken'] {
+    background-color: var(--thrive-sunken);
+  }
+  .thrive-panel[data-tone='paper'] {
+    background-color: var(--thrive-bg);
+  }
+
+  /* Emphasis. There is no heavier stroke to reach for any more, so the
+     containers that lead a page take the control-boundary grey instead -- the
+     one line in the system that is actually visible at 3.45:1. Used sparingly;
+     if every panel is emphasised, none is. Note this is the control-boundary
+     COLOUR at 1px, not the 1.5px control stroke: it is decorative here. */
+  .thrive-panel[data-emphasis='strong'] {
+    border-color: var(--thrive-control-line);
+  }
+
+  /* A panel inside a panel does not need an edge at all. */
+  .thrive-panel[data-flush='true'] {
+    border-color: transparent;
+  }
+
+  /* ── The row ────────────────────────────────────────────────────────────
+     Transparent at rest, filling with `sunken` on hover. No border, no wash,
+     no coloured left edge.
+
+     PRIORITY IS NOT CARRIED BY COLOUR. The `data-priority` hook exists in the
+     Next markup but draws nothing. This is not an information loss: every row
+     states its own priority and due state in text -- taskView.ts builds up to
+     two labels per row, state first ("Urgent", "Due soon", "Done"). The colour
+     was the redundant channel, not the only one.
+
+     DROPPED IN THE SVELTEKIT PORT: `.thrive-priority-label`, the mono eyebrow
+     that was defined as the replacement carrier. A grep of the Next tree at
+     4e0a65b found ZERO usages in any .tsx -- it was written for a sweep that
+     never adopted it. See MIGRATION.md section 5, "Dead or unused". */
+  .thrive-row {
+    border-radius: var(--radius-lg);
+    background-color: transparent;
+    transition:
+      background-color var(--thrive-motion-base) var(--thrive-ease-standard),
+      opacity var(--thrive-motion-base) var(--thrive-ease-standard);
+  }
+
+  .thrive-row:hover {
+    background-color: var(--thrive-sunken);
+  }
+
+  /* Done recedes rather than disappears. */
+  .thrive-row[data-done='true'] {
+    opacity: 0.62;
+  }
+
+  /* ── The checkbox ───────────────────────────────────────────────────────
+     The one control whose boundary is load-bearing: nothing else says where
+     it is. 1.5px of faint, which clears the 3:1 WCAG 1.4.11 asks of a control
+     boundary on all three surfaces including the sunken hover fill.
+
+     This and `--input` in layer 2 are the only consumers of the 1.5px stroke.
+
+     `ease-pop` on the tick is the single sanctioned overshoot in the system. */
+  .thrive-checkbox {
+    appearance: none;
+    flex-shrink: 0;
+    width: 17px;
+    height: 17px;
+    border: var(--thrive-control-stroke) solid var(--thrive-control-line);
+    border-radius: 5px;
+    background-color: var(--thrive-surface);
+    display: inline-grid;
+    place-content: center;
+    cursor: pointer;
+    transition:
+      background-color var(--thrive-motion-fast) var(--thrive-ease-standard),
+      border-color var(--thrive-motion-fast) var(--thrive-ease-standard);
+  }
+
+  .thrive-checkbox::after {
+    content: '';
+    width: 9px;
+    height: 5px;
+    border-left: 2px solid var(--thrive-on-primary);
+    border-bottom: 2px solid var(--thrive-on-primary);
+    transform: rotate(-45deg) scale(0);
+    transform-origin: center;
+    transition: transform var(--thrive-motion-base) var(--thrive-ease-pop);
+  }
+
+  .thrive-checkbox:checked {
+    background-color: var(--thrive-primary);
+    border-color: var(--thrive-primary);
+  }
+
+  .thrive-checkbox:checked::after {
+    transform: rotate(-45deg) scale(1);
+  }
+
+  /* ── Strike-through ─────────────────────────────────────────────────────
+     Drawn as a growing pseudo-element rather than `line-through`, so
+     completing a task reads as an action rather than a re-render. */
+  .thrive-strike {
+    position: relative;
+    transition: color var(--thrive-motion-slow) var(--thrive-ease-standard);
+  }
+  /* Scaled, not widened. Animating `width` forces layout on every frame of a
+     260ms transition; a transform runs on the compositor and looks identical.
+     1.5px, back from 2px -- the heavier rule was sized against the bordered
+     direction's heavier type. */
+  .thrive-strike::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    height: 1.5px;
+    width: 100%;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform var(--thrive-motion-slow) var(--thrive-ease-standard);
+  }
+  .thrive-strike[data-done='true'] {
+    color: var(--thrive-faint);
+  }
+  .thrive-strike[data-done='true']::after {
+    transform: scaleX(1);
+  }
+}
+
+@layer utilities {
+  /* Day and month changes swap content in place. A short fade-and-rise makes
+     that read as a transition rather than a flicker. Keyed on the selection,
+     so it replays each time the day changes. */
+  @keyframes thrive-rise {
+    from {
+      opacity: 0;
+      transform: translateY(3px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .animate-rise {
+    animation: thrive-rise var(--motion-base) var(--ease-standard) both;
+  }
+
+  /* Skip link: offscreen until focused. */
+  .skip-link:not(:focus-visible) {
+    @apply sr-only;
+  }
+  /* The skip link used to rely on `shadow-card` to separate from the page.
+     That shadow is gone, which would have left a white box on cream with no
+     edge at all -- so it takes an explicit control-weight border instead.
+     It is a focused control; it owes a visible boundary. */
+  .skip-link:focus-visible {
+    @apply fixed top-4 left-4 z-50 rounded-md border border-line-strong bg-surface px-4 py-2 text-sm font-medium text-ink;
+  }
+}
+
+/* Honor the OS setting. The reference strips animation and transition
+   outright; state changes still land, they just land instantly. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
