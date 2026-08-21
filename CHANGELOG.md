@@ -4,6 +4,58 @@ Dated session summaries, most recent first.
 
 ---
 
+## 2026-08-21 — the stat pill popovers, and a reveal channel
+
+**HEAD:** `ae48473` · 3 commits, all pushed · **389 tests, 18 files, all green**
+· `svelte-check` 0 errors / 0 warnings over 375 files · build clean · contrast
+**58/58** · layout **36/36** · 27 browser assertions over the interaction.
+
+### What changed
+
+**The three stat pills on Home now open the list behind the number.** Click
+always; hover also, on a device that has a cursor. Items jump to the task or the
+event, expanding the card first if the row is collapsed behind "show more".
+
+**A reveal channel, owned by the page.** `$lib/reveal.ts` (pure, tested) plus
+`$lib/reveal.svelte.ts` (the channel, in page context). A pill REQUESTS a reveal;
+each card decides whether the request is about one of its rows and sets its own
+collapse state. No card's state is written from outside, and `ShowMore` is
+untouched. Context rather than a module singleton, so collapse still resets on
+navigation because of where the channel lives.
+
+**`escapeKey` finally has a caller**, alongside two new siblings:
+`clickOutside` (with an `alsoInside` list, because a disclosure's trigger is not
+inside its panel but is inside its widget) and `hoverIntent` (which holds the one
+`(hover: hover)` gate).
+
+**Upcoming Events gained a show-more, reversing a deliberate decision.** The
+events pill counts 21 events this week; the card showed the next four upcoming,
+so 17 of the popover's items had no row on the page. Collapsed is still four,
+expanded is the week, `/events` is still the rest.
+
+**`weekEventIds` replaced by a `thisWeek` flag on each event row.** Two shapes of
+one fact were travelling down; one flag answers both and cannot drift.
+
+**A zero-count pill is not a control** — no button, no `aria-expanded`, nothing
+to press.
+
+### Known issues
+
+- **`CONTEXT.md` is stale at `f8593b7`.** It is regenerated in full by rule, not
+  patched, so it was left for a deliberate pass rather than half-updated.
+- Home's phone height grew 2878 → 2949px: 44px touch targets on the pills plus
+  the new footer band. Desktop is unchanged at 1238px.
+- Nothing in the popover's interaction is covered by `npm test`, which does not
+  render. The 27 browser assertions were a throwaway probe, not a gate.
+
+### Next priorities
+
+1. Regenerate `CONTEXT.md`.
+2. Decide whether the browser probe becomes a real gate.
+3. Phase 6b — task editing.
+
+---
+
 ## 2026-08-21 — Phase 6a, Home; the navy repalette; the nav trim
 
 **HEAD:** `f8593b7` · 10 commits, all pushed · **373 tests, 17 files, all green**

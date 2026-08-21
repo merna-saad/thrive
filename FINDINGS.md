@@ -4,6 +4,65 @@ Reusable patterns and lessons. Things worth knowing again.
 
 ---
 
+## 2026-08-21 — hover-plus-click is two states, and only a browser says so
+
+### A hover-opened popover swallows its own click
+
+The first version of `StatPopover` held one boolean. Click toggled it, hover
+opened it, a pointer leaving closed it. Every gate passed — 389 tests,
+`svelte-check` clean, build clean — and **pressing the pill did nothing at all**.
+
+A mouse click is preceded by a pointer entering. Hover had already opened the
+panel, so the click arrived to find it open and closed it again. The same boolean
+had a second fault behind it: clicking to open and then moving the mouse closed
+it, because a pointer leaving cannot tell a hover it started from a click it did
+not.
+
+**The fix is to record WHY it is open, not just whether.** `openedBy: 'pointer' |
+'command' | null`. Hover opens only what is shut, hover closes only what hover
+opened, and a click on a hover-opened panel PINS it. Tabbing into one pins it
+too, or a mouse drifting away drags focus out of a list the student had just
+walked into with the keyboard.
+
+**Generalisable:** any control with two ways in has more states than it has
+booleans. If two input methods can produce the same visible state, the state has
+to remember which one produced it, or the second method will undo the first.
+
+### The gate that could not see it
+
+`npm test` renders nothing (a standing decision), `svelte-check` is not a render,
+and `check:layout` measures heights. None of the five gates can press a button.
+The bug was found in the first thirty seconds of driving the built page in
+Playwright, which is the same lesson as the layout work one session earlier:
+**measure the thing, not a model of it.**
+
+### A probe's own selectors need the companion assertion too
+
+Three of the browser probe's checks failed on correct code. The probe asked
+`document.querySelector('button[aria-expanded="true"]')` for "is a popover
+open" — and `ShowMore` carries `aria-expanded` as well, so once the reveal had
+expanded a card its own control matched. Scoping the query to `.thrive-popover`
+fixed it.
+
+Worth the note because the failure looked exactly like a product bug, and the
+instinct was to change the product. What settled it was a four-line probe that
+printed the state at each step instead of asserting on it.
+
+### Silencing an a11y check versus satisfying it
+
+`a11y_no_static_element_interactions` fires on a `<div>` carrying
+`onpointerenter`. The wrapper around a pill and its panel has no honest ARIA
+role, and `svelte-ignore` would have been the first in the repo. Moving the
+listeners into a `hoverIntent` action removed the warning because the check reads
+markup — which is, strictly, silencing it.
+
+It is defensible here on the merits: the interactive element is the button
+inside, correctly marked up, and hover is redundant with click. It is worth
+writing down as the reasoning rather than the outcome, because the same move
+would be wrong for a `<div>` whose click is the only way to do something.
+
+---
+
 ## 2026-08-21 — measuring layout, and the properties of a good gate
 
 ### Measure the page, do not reason about it

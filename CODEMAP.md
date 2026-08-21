@@ -1,12 +1,12 @@
-<!-- built-at: f8593b7 -->
+<!-- built-at: ae48473 -->
 <!-- updated: 2026-08-21 -->
 
 # CODEMAP
 
 Navigation map for the THRIVE rebuild. Read this before opening files.
 
-**Built:** 2026-08-21, refreshed after Phase 6a (Home).
-**Size:** 115 files under `frontend/src` — ~15,453 lines, 10,802 source / 4,651 test.
+**Built:** 2026-08-21, refreshed after the stat pill popovers.
+**Size:** 120 files under `frontend/src` — ~16,742 lines, 11,851 source / 4,891 test.
 
 > The `built-at` comment above is machine-read by the codemap staleness hook.
 > Keep it as the first line, in that exact `<!-- built-at: <hash> -->` form.
@@ -64,6 +64,7 @@ No framework surface. All of it ported in Phase 2 and under test.
 | `ignoredEvents.ts` | `eventIdOf()`, `canIgnore()`, and the store. Keyed on **raw `Event.id`**. |
 | `tickItem.ts` | `tickItem()` and `isTickable()`. Dispatches on the **attached source row**, never by parsing an id. |
 | `quickList.ts` | The scratch list: `QuickItem` plus its store and panel store. |
+| `reveal.ts` | **"Show me the row behind this number", as arithmetic.** `planReveal` is the one question a card asks. Read this before touching the popovers. |
 | `nav.ts` | **One list drives the rail, the bottom bar, and every stub page.** |
 | `features.ts` | `FEATURES` — both floating widgets off. |
 | `title.ts` | `pageTitle()` — Next's `"%s · THRIVE"` template. |
@@ -118,11 +119,11 @@ The one fully-built page. Read Phase 6a's entry in HANDOFF before changing it.
 | `home/HomeHeader.svelte` | One panel holding the strip and the greeting. Exists to save a panel's padding and a stack gap. |
 | `home/ProgramTimelineCompact.svelte` | The program strip. Bare, not a panel. |
 | `home/GreetingPanel.svelte` | Greeting, standing sentence, and ONE row of pills + chips. |
-| `home/TaskStatPills.svelte` | The three counts. **Reads the stores**, so the counts see the student's own ticks and ignores. |
-| `home/TasksCard.svelte` | **Flat when collapsed, grouped when expanded.** The one real design decision in 6a — see its doc comment. |
+| `home/TaskStatPills.svelte` | The three counts, and the three lists behind them. **Reads the stores**, so the counts see the student's own ticks and ignores. Each pill's number IS `items.length` of the list it opens. |
+| `home/TasksCard.svelte` | **Flat when collapsed, grouped when expanded.** The one real design decision in 6a — see its doc comment. Also answers the reveal channel by writing its own collapse state, never anyone else's. |
 | `home/TaskRow.svelte` | One task. Read-only until 6b. Carries the `min-w-0` that fixes the 375px title collapse. |
 | `home/TodaysClasses.svelte` · `MyClasses.svelte` · `CourseCard.svelte` | Today's meetings; the course list; one course. |
-| `home/UpcomingEvents.svelte` · `EventRow.svelte` | **Filters ignored FIRST, then slices to four.** The order is the behaviour. |
+| `home/UpcomingEvents.svelte` · `EventRow.svelte` | **Filters ignored FIRST, then slices to four.** The order is the behaviour. Collapsed is four, **expanded is this week** — see the doc comment for the contradiction that forced it. |
 
 ### The pure layer behind it
 
@@ -137,13 +138,22 @@ The one fully-built page. Read Phase 6a's entry in HANDOFF before changing it.
 | `tones.ts` | Every place a meaning becomes a colour. |
 | `programStrip.ts` | `abbreviateTerm`, `phaseStatusWord`. |
 | `ignoreUndo.svelte.ts` | Ignore + six-second undo. Keys on **raw `Event.id`**, never a stripped prefix. |
+| `reveal.svelte.ts` | **The reveal channel**, created by `+page.svelte` and passed down through context. Carries an intent, one slot at a time, with a nonce. Plus `focusRevealedRow`. |
 
 ---
 
 ## The shared primitives — `lib/components/ui/`
 
 `Tag` · `Button` · `ProgressBar` · `EmptyState` · `SectionCard` · `ShowMore` ·
-`StatPill` · `StatusBadge` · `DueChip` · `IgnoreButton` · `IgnoreUndoBar`
+`StatPill` · `StatPopover` · `StatusBadge` · `DueChip` · `IgnoreButton` ·
+`IgnoreUndoBar`
+
+`StatPill` has two shapes and one look: given `items` it is a **button owning a
+popover**, given none it is a plain chip. A zero count gets the chip, on purpose.
+
+`StatPopover` tracks **why** it is open (`'pointer' | 'command' | null`), not just
+whether. That is not defensive — with one boolean, pressing the pill did nothing
+at all. See FINDINGS.
 
 `SectionCard` is the one to understand: three bands — header, capped body,
 pinned footer. The footer sits OUTSIDE the scroll area because the show-more
@@ -155,7 +165,7 @@ control must not scroll away with the content it controls.
 
 | Command | What it proves |
 |---|---|
-| `npm test` | 373 tests. Pure logic and source scans. Nothing renders. |
+| `npm test` | 389 tests. Pure logic and source scans. Nothing renders. |
 | `npm run check` | Types agree. **Does NOT prove the page renders** — see BUGS.md. |
 | `npm run build` | It compiles. |
 | `python3 scripts/check-contrast.py` | 58 assertions. **Parses `app.css`**, so tokens cannot drift from their checks. |
@@ -193,7 +203,9 @@ Four properties and three key spaces: see `CONTEXT.md` §8.
 | `PagePlaceholder.svelte` | Body for unbuilt routes. **Throws** on an href absent from `nav.ts`. |
 | `SectionHeading.svelte` | Mono eyebrow + bold title + mono count. `as` → `<svelte:element>`. Ported, no call sites yet. |
 | `Avatar.svelte` | Image with an initials fallback. Hand-rolled; shadcn-svelte is later. |
-| `actions/escapeKey.ts` | Svelte action. Escape-to-dismiss, scoped to the element's lifetime. |
+| `actions/escapeKey.ts` | Svelte action. Escape-to-dismiss, scoped to the element's lifetime. **Caller: `StatPopover`.** |
+| `actions/clickOutside.ts` | Its sibling. Capture-phase `pointerdown`, with an `alsoInside` list for the trigger that opened the thing. |
+| `actions/hoverIntent.ts` | **The one `(hover: hover)` gate.** Hover in/out, but only where a cursor exists. |
 
 ---
 
@@ -211,9 +223,14 @@ Four properties and three key spaces: see `CONTEXT.md` §8.
 
 ---
 
-## Tests — 277, 11 files
+## Tests — 389, 18 files
 
 `npm test`. Vitest, **Node environment, no jsdom**, so nothing renders.
+
+**Which is why the popovers' interaction has no test.** Nothing in the suite can
+press a button, and the one real bug in that feature was invisible to all five
+gates. It was found by driving the built page in Playwright by hand. See the note
+in TESTING.md.
 
 | Spec | Holds down |
 |---|---|
@@ -228,6 +245,7 @@ Four properties and three key spaces: see `CONTEXT.md` §8.
 | `calendarPrefs.spec.ts` (11) | Defaults and migration |
 | `calendarItems.spec.ts` (9) | Custom-event mapping, label and urgent filtering |
 | `toast.spec.ts` (6) | The single slot and its clock |
+| `reveal.spec.ts` (16) | `planReveal` at the boundaries; the reveal path against the list `TasksCard` really builds; the event prefix argument |
 
 **Three tests are defect records**, named as such, pinning current behaviour
 rather than desired behaviour. See `BUGS.md`.
@@ -260,6 +278,13 @@ version failed silently for self-added tasks and undated to-dos.
 **`eventIdOf` is ambiguous by construction** — the raw `Event.id` is itself
 `evt-`-prefixed. This is a live defect; see `BUGS.md`.
 
+**A control with two ways in has more states than it has booleans.** `StatPopover`
+records which input opened it, because hover and click otherwise undo each other.
+
+**`ShowMore` carries `aria-expanded` too.** Anything querying
+`button[aria-expanded="true"]` to find an open popover will match an expanded
+card's own control. Query `.thrive-popover` instead.
+
 **The old Next repo is read-only.** `~/Desktop/Test 1/Thrive-msba-brain`.
 
 ---
@@ -272,9 +297,10 @@ npm run dev -- --open      # dev server, :5173
 npm run build              # production build
 node build/index.js        # run the build, :3000
 npm run check              # svelte-check
-npm test                   # vitest run — 277 tests
+npm test                   # vitest run — 389 tests
 
-python3 scripts/check-contrast.py    # 43 palette assertions, 3 of them ceilings
+python3 scripts/check-contrast.py    # 58 assertions: 42 pairs, 6 ceilings, 10 structural
+npm run check:layout                 # 12 routes x 3 viewports, in a real browser
 ```
 
 If a page looks stale locally, something is holding the port:

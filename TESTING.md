@@ -1,6 +1,6 @@
 # TESTING
 
-**Last verified:** 2026-08-21 at `f8593b7`. **373 tests, 17 files, all passing.**
+**Last verified:** 2026-08-21 at `ae48473`. **389 tests, 18 files, all passing.**
 Verified green in all seven timezones of the sweep below.
 
 ```bash
@@ -69,6 +69,7 @@ rather than being appended to the pure-logic ones.
 | `calendarPrefs.spec.ts` | 11 | Defaults and migration. Has caught four separate new-field omissions in its life |
 | `calendarItems.spec.ts` | 9 | Custom-event mapping, rejecting malformed and non-existent dates, label/urgent filtering |
 | `toast.spec.ts` | 6 | The single slot, its 3000ms clock, and that it persists nothing |
+| `reveal.spec.ts` | 16 | `planReveal` at the boundaries (last row of the slice vs first row past it; not-found kept distinct from found-and-visible; a zero limit); the reveal path run against the list `TasksCard` really builds, so an undated row pushing the overdue task past the cap is asserted rather than imagined; that no overdue or due-today task can be filtered out of the card's list; and `expandedEventLimit`'s prefix argument, including that a quiet week never loses rows |
 
 ### The layout gate
 
@@ -195,6 +196,25 @@ and it does not run again.
 pending: whether to add `vitest-browser-svelte` / jsdom for component tests, and
 whether Playwright becomes a dependency. The prototype deliberately kept
 Playwright out and ran it from a scratch directory twice.
+
+**2026-08-21: this gap produced a real shipping bug and caught it by luck.** The
+first `StatPopover` held one boolean, and pressing the pill did nothing at all —
+a mouse click is preceded by a pointer entering, so hover had already opened the
+panel and the click closed it again. `npm test` (389), `npm run check` (0/0),
+`npm run build`, `check-contrast.py` (58/58) and `check:layout` (36/36) were ALL
+green on that version. **None of the five gates can press a button.**
+
+It was found by driving the built page in the machine's Playwright chromium — 27
+assertions over opening, keyboard navigation, all four dismissal paths, the
+reveal, and the clamped panel at 375px. Those assertions were a **throwaway
+probe**, run once, and they do not exist in the repo.
+
+So the question is now narrower than "should we add component tests". It is:
+**should the probe become `check:interaction`, beside `check:layout`?** It would
+need no new dependency (`playwright-core` is already here for the layout gate),
+it measures the thing rather than a model of it, and it has already been verified
+to fail on the bug it was written for — which is all three properties the other
+gates have. Recorded in HANDOFF as a decision, not made here.
 
 ### Nothing exercises hydration for real
 

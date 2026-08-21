@@ -68,7 +68,17 @@ Exactly two, both deliberate, both documented at their definition:
    server render, and only when the selected day *is* today. On any other day
    the caller passes `0`, which yields the first timed item.
 2. **`matchesWide()`** in the floating-panel geometry — a `matchMedia` read, not
-   a clock, but the same hydration shape and gated the same way.
+   a clock, but the same hydration shape and gated the same way. (Not yet ported;
+   the floating panels are a later phase.)
+
+A third `matchMedia` read landed on 2026-08-21 and is deliberately NOT in this
+list, because it does not have the shape the list is about:
+**`hoverIntent`** (`src/lib/actions/hoverIntent.ts`) reads `(hover: hover)`
+inside a pointer event handler. An event handler only ever runs after hydration,
+so there is no first-paint answer to get wrong and nothing for the server and the
+client to disagree about. The rule that applies to it is a different one: it is
+the ONE place that media feature is expressed in JavaScript, so a component asks
+for the behaviour rather than re-deciding what a hovering device is.
 
 Anything else reading the clock on the client is a bug until argued otherwise
 in review.

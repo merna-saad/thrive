@@ -4,6 +4,107 @@ Session log, newest first. What happened, what was decided, what is still open.
 
 ---
 
+## 2026-08-21 — the stat pill popovers
+
+**HEAD:** `ae48473` · 3 commits, all pushed · 389 tests green.
+
+### What was done
+
+The loose end the previous entry called "queued, specified, NOT built". Designed
+before building, as that entry asked, and the design is the part worth reading.
+
+**The shape: the page owns an intent, the cards own their state.** A pill's
+popover calls `reveal.request({ kind, id })` and knows nothing else. Each card
+reads the channel, asks `planReveal(itsOwnList, itsLimit, id)`, and if the answer
+is "mine, and hidden" it sets its OWN `$state`. `ShowMore` is untouched, so a
+student can collapse the card again immediately.
+
+Rejected: lifting all four cards' collapse into a page-level store (inverts
+ownership for four cards to serve one feature), prop-drilling the channel (three
+components in between have no interest in it), and a `<details>`-based disclosure
+(the show-more control lives in the footer band, outside the disclosure content).
+
+**Context, not a module singleton.** The channel is created in `+page.svelte`, so
+it dies with the page — which is what keeps "collapse resets on navigation" true
+by construction rather than by a `reset()` somebody has to remember.
+
+**Grid immobility needed nothing added.** `.thrive-card-body` was already a fixed
+height rather than a maximum, so expanding can only scroll. Verified: card tops
+at 162,162,672,672 before and after a reveal, body still 300px.
+
+### The measured contradiction, and the decision it forced
+
+**The events pill counts 21 events this week. The card showed the next four
+upcoming. Seventeen of the popover's items had no row on the page to jump to.**
+Not a collapse problem — the pill's set and the card's set were different sets.
+
+Asked, and answered by the owner: **collapsed is the next four, expanded is the
+week, `/events` is still the rest.** It rests on both sets being prefixes of the
+same ascending list, so `max(collapsedLimit, weekCount)` contains everything the
+pill can list. `expandedEventLimit` carries the argument and a test asserts the
+prefix property rather than trusting it. On a quiet week the `max` holds its floor
+at four, so nothing changes at all.
+
+### Decisions made
+
+- **A zero-count pill is not a control.** No button, no `aria-expanded`, nothing
+  to press. `statTones.calm` already made the number calm; this is the same idea
+  applied to the interaction. Verified in a browser: a `<div>`, and neither hover
+  nor a forced click opens anything.
+- **A list, not a menu.** `role="menu"` brings a single tab stop and Tab-to-exit,
+  which is right for a command menu and wrong for jump targets. Every item is an
+  ordinary tab stop; arrows are a convenience.
+- **`openedBy`, not `open`.** Two ways in is more than one boolean of state — see
+  FINDINGS. This is the bug of the session.
+- **Hover never moves focus.** Three pills in a row would fling focus about as a
+  cursor crossed them. Focus moves in on click or keyboard only.
+- **One focus-return rule:** restore to the pill if and only if focus is currently
+  inside the panel. Covers Escape, click-outside and pointer-leave. Choosing an
+  item hands off instead, because focus is about to land on the row.
+- **`weekEventIds` deleted in favour of `thisWeek` on each event row.** Two shapes
+  of one fact were going down; the pill had ids with no titles and the card had
+  titles with no window.
+- **`hoverIntent` holds the `(hover: hover)` gate**, rather than each component
+  writing `matchMedia`. Same reasoning as `.thrive-numeric`: one expression of a
+  rule, or it spreads.
+- **Pills are 44px touch targets on mobile**, all three, including an inert one. A
+  row of pills at two heights reads as a rendering fault.
+
+### What broke
+
+- **The pill did nothing when pressed.** Every gate green. See FINDINGS.
+- **Three browser-probe checks failed on correct code** — the probe's own
+  selector matched `ShowMore`, which also carries `aria-expanded`.
+- **Two `svelte-check` a11y warnings**, both fixed structurally rather than
+  suppressed: the arrow-key handler moved from the panel onto the items (where
+  focus actually is), and the hover listeners moved into an action.
+
+### Loose ends carried forward
+
+- **`CONTEXT.md` is stale at `f8593b7`.** It is regenerated in full by rule, never
+  patched, so it was deliberately left rather than half-updated. Sections 5, 6,
+  13 and 17 all move. **This is the first thing to do next session.**
+- **The 27 browser assertions are a throwaway probe, not a gate.** They caught the
+  only real bug in the phase, and nothing in the repo can catch it again. Worth
+  deciding whether they become `check:interaction` beside `check:layout`.
+- **Home's phone height grew 2878 → 2949px.** Desktop unchanged at 1238px.
+- **The done-group reveal branch in `TasksCard` is unreachable from Home today** —
+  no pill counts a done task. Built anyway; 6b's undo wants exactly that path.
+- **`aria-controls` names an id that is absent while the popover is closed.** The
+  accepted cost of mounting the panel only while open, which is what makes
+  `escapeKey` and `clickOutside` need no open state of their own.
+
+### Still open from earlier phases
+
+Unchanged: §9 defect 1 (process-global mock stores, **BLOCKING** a multi-person
+demo), shallow provider copies, `buildScheduleData()` unported, three dead
+providers, `requestTypeHelp` with no consumer, the calendar half of the ignore
+key-space defect, Home fitting 1238px rather than 1052px.
+
+`escapeKey` is no longer a loose end — it has a caller.
+
+---
+
 ## 2026-08-21 — Phase 6a: Home, plus the repalette and the nav trim
 
 **HEAD:** `f8593b7` · 10 commits, all pushed · 373 tests green.
