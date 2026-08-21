@@ -98,6 +98,43 @@ export function icsFromEvent(event: Event): IcsEvent {
 }
 
 /**
+ * The same, from a booked appointment. The appointments page's path.
+ *
+ * A third mapper, on the same reasoning as the second: an `AppointmentView`
+ * carries a REQUIRED `endISO` -- a slot is thirty minutes by construction -- so
+ * unlike `icsFromItem` there is no missing-instant case to return null for, and
+ * unlike `icsFromEvent` there is no `end ?? start` fallback to get wrong. What
+ * it does have that neither other source does is a `mode`: a Zoom meeting's
+ * LOCATION is the word "Zoom", not the advisor's office, and putting the office
+ * on a remote booking would send the student across campus.
+ *
+ * The title is passed in rather than built here. It is user-facing copy and
+ * lives in `messages.ts` with the rest; this module is imported by the calendar
+ * too and has no business holding a sentence.
+ */
+export function icsFromAppointment(
+	appointment: {
+		id: string;
+		startISO: string;
+		endISO: string;
+		location: string;
+		reason: string;
+	},
+	title: string,
+): IcsEvent {
+	return {
+		// The appointment id, so re-importing the same booking updates the entry
+		// rather than adding a second one to the student's real calendar.
+		id: appointment.id,
+		title,
+		start: appointment.startISO,
+		end: appointment.endISO,
+		location: appointment.location || undefined,
+		description: appointment.reason || undefined,
+	};
+}
+
+/**
  * The file's text.
  *
  * `stampISO` is the DTSTAMP instant -- when this file was produced. Passed in

@@ -34,6 +34,21 @@ export function formatShortDate(iso: string): string {
   });
 }
 
+/**
+ * "Tue, Aug 12"
+ *
+ * `formatShortDate`'s sibling, with the weekday. A booking is a commitment to
+ * be somewhere at an hour, and a student reads the weekday to know whether that
+ * collides with a class -- "Aug 12" alone does not answer that.
+ */
+export function formatWeekdayDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 /** "9:30 AM" */
 export function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("en-US", {

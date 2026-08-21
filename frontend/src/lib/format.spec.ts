@@ -8,6 +8,7 @@ import {
   formatMeetingPattern,
   formatShortDate,
   formatTime,
+  formatWeekdayDate,
   greetingFor,
   initialsOf,
   isToday,
@@ -530,6 +531,32 @@ describe("formatShortDate", () => {
     // Observed and flagged: two dates a year apart format identically.
     expect(formatShortDate(new Date(2026, 8, 21, 12).toISOString())).toBe("Sep 21");
     expect(formatShortDate(new Date(2027, 8, 21, 12).toISOString())).toBe("Sep 21");
+  });
+});
+
+describe("formatWeekdayDate", () => {
+  it("adds the weekday to formatShortDate's shape", () => {
+    // The booking surface's date. A student reads the weekday to know whether a
+    // slot collides with a class; "Aug 24" alone cannot answer that.
+    expect(formatWeekdayDate(new Date(2026, 7, 24, 12).toISOString())).toBe(
+      "Mon, Aug 24",
+    );
+    expect(formatWeekdayDate(new Date(2026, 0, 1, 12).toISOString())).toBe(
+      "Thu, Jan 1",
+    );
+  });
+
+  it("agrees with formatShortDate about the date half", () => {
+    // Two formatters over one instant. Asserting they agree is what stops them
+    // drifting into two different opinions about a month abbreviation.
+    const iso = new Date(2026, 8, 21, 12).toISOString();
+    expect(formatWeekdayDate(iso).endsWith(formatShortDate(iso))).toBe(true);
+  });
+
+  it("does not include a year either", () => {
+    expect(formatWeekdayDate(new Date(2026, 8, 21, 12).toISOString())).toBe(
+      "Mon, Sep 21",
+    );
   });
 });
 
