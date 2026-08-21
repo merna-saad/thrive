@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
 	allNav,
+	flattenNav,
 	isActiveRoute,
 	isBuiltRoute,
 	isKnownRoute,
@@ -31,18 +32,96 @@ describe("the nav lists", () => {
 		expect(hrefs.length).toBe(new Set(hrefs).size);
 	});
 
-	it("is the union, in primary-then-parked order", () => {
-		expect(allNav).toEqual([...primaryNav, ...parkedNav]);
+	it("is the FLATTENED union, in primary-then-parked order", () => {
+		/*
+		 * Flattened since Ask THRIVE grew children. This is the assertion that keeps
+		 * the tree a single source: `allNav` is DERIVED from the two lists rather
+		 * than maintained beside them, so a child cannot exist in the rail and be
+		 * missing from the lookup `PagePlaceholder` throws on.
+		 */
+		expect(allNav).toEqual(flattenNav([...primaryNav, ...parkedNav]));
+	});
+
+	it("carries more entries than there are top-level items", () => {
+		// Non-vacuous: with no children anywhere, the flatten assertion above would
+		// pass against a function that did nothing.
+		expect(allNav.length).toBeGreaterThan(primaryNav.length + parkedNav.length);
+	});
+});
+
+describe("flattenNav", () => {
+	it("puts a parent before its children", () => {
+		const hrefs = flattenNav(primaryNav).map((item) => item.href);
+		const parent = hrefs.indexOf("/ask");
+		const child = hrefs.indexOf("/ask/resources");
+
+		expect(parent).toBeGreaterThanOrEqual(0);
+		expect(child).toBeGreaterThan(parent);
+	});
+
+	it("finds every child of every item", () => {
+		const flat = flattenNav(primaryNav);
+
+		for (const item of primaryNav) {
+			for (const child of item.children ?? []) {
+				expect(flat, `${child.href} is missing from the flattened list`).toContain(child);
+			}
+		}
+	});
+
+	it("is the identity on a list with no children", () => {
+		expect(flattenNav(parkedNav)).toEqual(parkedNav);
+	});
+
+	it("returns an empty list for an empty one", () => {
+		expect(flattenNav([])).toEqual([]);
+	});
+});
+
+describe("a nav item's children", () => {
+	const ask = primaryNav.find((item) => item.href === "/ask");
+
+	it("hang off Ask THRIVE", () => {
+		expect(ask?.children).toHaveLength(3);
+	});
+
+	it("are real routes nested under their parent's href", () => {
+		/*
+		 * The property that makes the rail's disclosure honest: a child is a route,
+		 * not a filter. If one ever stopped living under `/ask`, `isActiveRoute`
+		 * would stop lighting the parent when the child was current and the group
+		 * would stop opening itself.
+		 */
+		for (const child of ask?.children ?? []) {
+			expect(child.href.startsWith("/ask/")).toBe(true);
+			expect(isActiveRoute("/ask", child.href)).toBe(true);
+		}
+	});
+
+	it("carry the same fields as any other item, so nothing special-cases them", () => {
+		for (const child of ask?.children ?? []) {
+			expect(typeof child.label).toBe("string");
+			expect(child.label.length).toBeGreaterThan(0);
+			expect(typeof child.description).toBe("string");
+			expect(child.description.length).toBeGreaterThan(0);
+			expect(child.icon).toBeTruthy();
+		}
 	});
 });
 
 describe("isBuiltRoute", () => {
-	it("accepts every primary route", () => {
+	it("accepts every primary route, children included", () => {
 		// Non-vacuous: if `primaryNav` were empty the loop below would assert nothing.
 		expect(primaryNav.length).toBeGreaterThan(0);
-		for (const item of primaryNav) {
-			expect(isBuiltRoute(item.href)).toBe(true);
+		for (const item of flattenNav(primaryNav)) {
+			expect(isBuiltRoute(item.href), `${item.href} should be built`).toBe(true);
 		}
+	});
+
+	it("accepts a child destination", () => {
+		// `/ask/career` is as real a page as `/calendar`. A card linking to one must
+		// not have its link withheld because the route happens to be nested.
+		expect(isBuiltRoute("/ask/career")).toBe(true);
 	});
 
 	it("rejects every parked route", () => {

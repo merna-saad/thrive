@@ -86,6 +86,15 @@
 	/** Saved first, then whatever was typed in this tab. */
 	const saved = $derived(conversation?.messages ?? []);
 
+	/**
+	 * Nothing in the log at all.
+	 *
+	 * One derived read by both the branch and the log's own classes, so the layout
+	 * and the content cannot disagree about whether there is anything to show —
+	 * which is how you get a centring grid wrapped around a full conversation.
+	 */
+	const empty = $derived(saved.length === 0 && sent.length === 0);
+
 	function send(event: SubmitEvent) {
 		event.preventDefault();
 
@@ -131,7 +140,17 @@
 	{@const mine = message.role === 'student'}
 
 	<div class={cn('flex', mine ? 'justify-end' : 'justify-start')}>
-		<div class={cn('max-w-[85%] min-w-0', mine && 'text-right')}>
+		<!--
+			`min(85%, --thrive-chat-measure)` — the bubble is capped by CHARACTERS, not
+			by the panel. The panel fills a 90rem page; a bubble allowed to fill it too
+			would run about 140 characters a line, roughly twice what a reader can track
+			without losing the start of the next one. The percentage still wins on a
+			phone, where 65ch is wider than the screen, and it is what keeps the inset
+			from the opposite edge that makes a conversation read as two voices.
+		-->
+		<div
+			class={cn('min-w-0 max-w-[min(85%,var(--thrive-chat-measure))]', mine && 'text-right')}
+		>
 			<p
 				class={cn(
 					'inline-block rounded-md border px-2.5 py-2 text-left text-sm break-words',
@@ -159,10 +178,21 @@
 	The height above `xl` is what makes the LOG the scroller rather than the
 	document. See `--thrive-chat-height` in `app.css` for why it is a fixed panel
 	and not a viewport calculation, and why a phone deliberately does not get one.
+
+	NO `flex-1` HERE, and it is load-bearing. This used to sit in a `flex-row`
+	beside the page rail, where `flex-1` made it take the remaining width. With the
+	rail gone it is a child of a `flex-col`, where `flex-1` sets `flex-basis: 0%`
+	and GROWS to fit the content — which silently beat the `h-` above it, so the
+	panel took its content's height, the log never overflowed, and the document
+	scrolled instead.
+
+	`check:interaction` caught it by skipping its own keyboard-scroll assertion
+	with "could not make the log overflow". A skip is the quietest possible failure
+	and it was still louder than the layout, which looked fine.
 -->
 <section
 	aria-labelledby="ask-destination-heading"
-	class="thrive-panel flex min-h-0 min-w-0 flex-1 flex-col p-0 xl:h-[var(--thrive-chat-height)]"
+	class="thrive-panel flex min-h-0 min-w-0 flex-col p-0 xl:h-[var(--thrive-chat-height)]"
 >
 	<div class="border-b border-line px-3 py-2.5">
 		<h2 id="ask-destination-heading" class="text-base font-medium text-ink">
@@ -205,15 +235,22 @@
 		aria-live="polite"
 		aria-label={copy.chat.logLabel(entry.label)}
 		tabindex="0"
-		class="min-h-0 flex-1 space-y-2.5 overflow-y-auto p-3"
+		class={cn(
+			'min-h-0 flex-1 overflow-y-auto p-3',
+			// Empty: CENTRE the prompt card in the space. Pinned to the top it left a
+			// tall void underneath it, which read as a panel that had failed to load
+			// rather than as an invitation. With messages in it, back to a normal
+			// top-anchored stack.
+			empty ? 'grid place-items-center' : 'space-y-2.5'
+		)}
 	>
-		{#if saved.length === 0 && sent.length === 0}
+		{#if empty}
 			<!--
 				The empty state says what THIS destination can help with. A blank box
 				would make the three surfaces indistinguishable, which is the whole
 				thing they are not.
 			-->
-			<div class="rounded-lg border border-line bg-sunken p-3">
+			<div class="max-w-prose rounded-lg border border-line bg-sunken p-3">
 				<p class="thrive-eyebrow flex items-center gap-1.5">
 					<Sparkles aria-hidden="true" class="size-3.5" />
 					{entry.emptyHeading}

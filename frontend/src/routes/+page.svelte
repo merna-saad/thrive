@@ -91,7 +91,7 @@
 
 <svelte:head><title>{pageTitle()}</title></svelte:head>
 
-<div class="space-y-2">
+<div class="mx-auto w-full max-w-page space-y-2">
 	<HomeHeader
 		student={data.student}
 		degree={data.degree}

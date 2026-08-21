@@ -40,10 +40,20 @@
 		     being a bare `pb-8`: 32px of desktop padding was buying nothing under a
 		     page whose last element is already a bordered panel, and it cost every
 		     route. -->
+		<!--
+			NO MAX-WIDTH HERE ANY MORE.
+
+			`max-w-6xl` used to live on this element, which made one number the measure
+			of every route in the app — so a page that wanted more room could not have
+			it without widening Home by accident. The shell now provides the gutters
+			and each page names its own measure with `max-w-page` (72rem, exactly what
+			this was) or `max-w-page-wide`. How wide a page should be is a property of
+			what is on it, not of the frame around it.
+		-->
 		<main
 			id="main-content"
 			tabindex="-1"
-			class="mx-auto w-full max-w-6xl px-3 pt-4 pb-[calc(var(--thrive-bottomnav-height)+var(--thrive-page-gutter-bottom))] sm:px-5 lg:pb-page-bottom"
+			class="w-full px-3 pt-4 pb-[calc(var(--thrive-bottomnav-height)+var(--thrive-page-gutter-bottom))] sm:px-5 lg:pb-page-bottom"
 		>
 			{@render children()}
 		</main>

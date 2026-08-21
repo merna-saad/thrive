@@ -56,6 +56,7 @@
 {/snippet}
 
 <nav
+	data-nav="bottom"
 	aria-label="Primary"
 	class="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface lg:hidden"
 >

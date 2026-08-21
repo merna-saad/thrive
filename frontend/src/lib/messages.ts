@@ -968,6 +968,18 @@ export const messages = {
 		needsHelp: 'Needs help'
 	},
 
+	/**
+	 * The navigation rail and bottom bar.
+	 *
+	 * The disclosure's labels say what pressing will DO, not which way the chevron
+	 * points -- the same rule the task checkbox follows. A student who cannot see
+	 * the rotation gets the verb.
+	 */
+	nav: {
+		expandGroup: (label: string) => `Show ${label} sections`,
+		collapseGroup: (label: string) => `Hide ${label} sections`
+	},
+
 	/** Names the scroll region a capped card becomes on desktop. */
 	cards: {
 		scrollRegion: (section: string) => `${section}, scrollable`

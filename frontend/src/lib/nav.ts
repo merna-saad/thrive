@@ -28,6 +28,29 @@ export interface NavItem {
 	icon: NavIcon;
 	/** Short description, used as the accessible hint and rail tooltip. */
 	description: string;
+	/**
+	 * Destinations nested under this one, rendered as a disclosure in the rail.
+	 *
+	 * ## Why children rather than a fifth top-level item per destination
+	 *
+	 * Ask THRIVE's three surfaces are one destination a student picks a subject
+	 * inside, not three things to navigate between. Four rail items plus three more
+	 * would have been seven, which is the eleven-item nav this project already
+	 * trimmed once.
+	 *
+	 * ## The rule that keeps this from splintering
+	 *
+	 * A child is a REAL route with its own href, label, icon and description --
+	 * exactly a `NavItem`, recursively. Nothing about a child is a special case, so
+	 * every consumer that walks the tree gets the same shape at every level, and
+	 * `PagePlaceholder`'s lookup keeps working without knowing that nesting exists.
+	 *
+	 * One level only, and deliberately: `flattenNav` recurses, so a second level
+	 * would WORK, but the rail's disclosure is designed for one and a nested
+	 * disclosure inside a 240px rail is a different design question. If a grandchild
+	 * is ever wanted, that is a conversation rather than an edit.
+	 */
+	children?: NavItem[];
 }
 
 /**
@@ -67,7 +90,39 @@ export const primaryNav: NavItem[] = [
 		href: '/ask',
 		label: 'Ask THRIVE',
 		icon: Sparkles,
-		description: 'Ask a question, or get class and job suggestions'
+		description: 'Ask a question, or get class and job suggestions',
+		/*
+		 * The three subjects, which used to live in a second rail on the page.
+		 *
+		 * They are here because they are NAVIGATION -- each is a route with its own
+		 * URL, its own empty state and its own saved conversations -- and navigation
+		 * belongs in the navigation. A page-level rail holding them meant two rails
+		 * on the left and a student having to learn which one meant what.
+		 *
+		 * `/ask` itself redirects to the first of these. So the parent is a real
+		 * destination AND a group, which is what lets one tap on a phone still go
+		 * somewhere useful.
+		 */
+		children: [
+			{
+				href: '/ask/resources',
+				label: 'Resources',
+				icon: LibraryBig,
+				description: 'Answers from the program’s own material'
+			},
+			{
+				href: '/ask/courses',
+				label: 'Course Recommender',
+				icon: GraduationCap,
+				description: 'Which classes and electives fit where you are going'
+			},
+			{
+				href: '/ask/career',
+				label: 'Career',
+				icon: Briefcase,
+				description: 'Job search, interviews, and the awkward parts of both'
+			}
+		]
 	}
 ];
 
@@ -164,6 +219,20 @@ export const parkedNav: NavItem[] = [
 ];
 
 /**
+ * Every entry in a tree, flattened depth-first, parents before children.
+ *
+ * THE reason the tree is still a single source. Every consumer that needs "is
+ * this a route" or "find me this href" walks a FLATTENED view derived from the
+ * same array the rail renders -- so adding a child cannot be forgotten in one
+ * place, because there is no second place to add it to.
+ *
+ * Recursive, though the rail only draws one level. See the note on `children`.
+ */
+export function flattenNav(items: NavItem[]): NavItem[] {
+	return items.flatMap((item) => [item, ...flattenNav(item.children ?? [])]);
+}
+
+/**
  * Every nav entry, visible or parked. THE LOOKUP LIST -- not for rendering.
  *
  * `PagePlaceholder` resolves its own href against this and throws when there is
@@ -174,7 +243,7 @@ export const parkedNav: NavItem[] = [
  *
  * If you are reaching for this to render something, you want `primaryNav`.
  */
-export const allNav: NavItem[] = [...primaryNav, ...parkedNav];
+export const allNav: NavItem[] = flattenNav([...primaryNav, ...parkedNav]);
 
 /**
  * Is this route a page worth sending someone to?
@@ -198,7 +267,10 @@ export const allNav: NavItem[] = [...primaryNav, ...parkedNav];
  * flag: make the failure impossible rather than something to remember.
  */
 export function isBuiltRoute(href: string): boolean {
-	return primaryNav.some((item) => item.href === href);
+	// Flattened, so a child destination counts as built. `/ask/career` is as real a
+	// page as `/calendar`, and a card linking to one must not be withheld because
+	// the route happens to be nested.
+	return flattenNav(primaryNav).some((item) => item.href === href);
 }
 
 /**

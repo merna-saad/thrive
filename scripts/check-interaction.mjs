@@ -2098,10 +2098,8 @@ try {
 		ask.url()
 	);
 
-	/** Both rails' boxes, so "side by side" can be measured rather than asserted. */
-	const readRails = () => {
-		const nav = document.querySelector('nav[aria-label="Primary"]');
-		const own = document.querySelector('aside[aria-label="Ask THRIVE sections"]');
+	/** Boxes, so "uses its width" can be measured rather than asserted. */
+	const readBoxes = () => {
 		const box = (el) => {
 			if (!el) return null;
 			const cs = getComputedStyle(el);
@@ -2109,34 +2107,107 @@ try {
 			const r = el.getBoundingClientRect();
 			return { left: Math.round(r.left), right: Math.round(r.right), width: Math.round(r.width) };
 		};
-		return { nav: box(nav), own: box(own) };
+		return {
+			nav: box(document.querySelector('[data-nav="rail"]')),
+			pageRail: box(document.querySelector('aside[aria-label="Ask THRIVE sections"]')),
+			chat: box(document.querySelector('[role="log"]')),
+			main: box(document.querySelector('#main-content')),
+			viewport: window.innerWidth
+		};
 	};
 
-	const rails = await ask.evaluate(readRails);
+	const boxes = await ask.evaluate(readBoxes);
 
 	check(
-		'the nav rail and the page rail are both on screen at 1512px',
-		rails.nav !== null && rails.own !== null,
-		`nav ${rails.nav?.width}px, page rail ${rails.own?.width}px`
+		'the second rail is gone',
+		boxes.pageRail === null,
+		'destinations moved into the nav rail; a rail holding only history is not worth a column'
 	);
 	check(
-		'they sit side by side rather than overlapping',
-		(rails.own?.left ?? 0) >= (rails.nav?.right ?? 0),
-		`nav ends at ${rails.nav?.right}, page rail starts at ${rails.own?.left}`
+		'the chat uses the width the page has',
+		boxes.chat !== null && boxes.chat.width > 800,
+		`chat ${boxes.chat?.width}px inside a ${boxes.viewport}px viewport (was ~640px behind a 224px rail)`
 	);
 	check(
-		'the page rail is a column, not a band, on a desktop',
-		(rails.own?.width ?? 0) < 400,
-		`${rails.own?.width}px wide`
+		'the page reaches close to the edges',
+		boxes.main !== null &&
+			boxes.viewport - (boxes.nav?.width ?? 0) - boxes.main.width < 140,
+		`${Math.round(boxes.viewport - (boxes.nav?.width ?? 0) - boxes.main.width)}px of margin beside the rail`
+	);
+	check(
+		'the message TEXT is still capped, so a wide panel does not mean a wide line',
+		await ask.evaluate(() => {
+			const bubble = document.querySelector('[role="log"] p.inline-block');
+			if (!bubble) return true;
+			return bubble.getBoundingClientRect().width <= 780;
+		}),
+		'--thrive-chat-measure caps the bubble, not the panel'
 	);
 
-	// ── The URL is the state ────────────────────────────────────────────────
-	const destinationLinks = 'nav[aria-label="Ask about"] a';
+	// ── The URL is the state, and the destinations are in the NAV rail ─────
+	const destinationLinks = '[data-nav="rail"] a[href^="/ask/"]';
 
 	check(
-		'the rail offers all three destinations',
+		'the nav rail offers all three destinations',
 		(await ask.locator(destinationLinks).count()) === 3,
-		'Resources, Course Recommender, Career'
+		'Resources, Course Recommender, Career — as a group under Ask THRIVE'
+	);
+	check(
+		'the group is a disclosure with a real aria-expanded',
+		await ask.evaluate(() => {
+			const toggle = document.querySelector(
+				'[data-nav="rail"] button[aria-expanded][aria-controls]'
+			);
+			return toggle?.getAttribute('aria-expanded') === 'true';
+		}),
+		'open, because a child is current'
+	);
+	check(
+		'the group expands itself when a child is current',
+		await ask.evaluate(() => {
+			const toggle = document.querySelector('[data-nav="rail"] button[aria-controls]');
+			const list = document.getElementById(toggle?.getAttribute('aria-controls') ?? '');
+			return list !== null && list.querySelectorAll('a').length === 3;
+		}),
+		'landing on a destination directly shows the group open'
+	);
+	check(
+		'the parent is not ALSO marked current when a child is',
+		await ask.evaluate(
+			() =>
+				document.querySelectorAll('[data-nav="rail"] a[aria-current="page"]').length === 1
+		),
+		'prefix matching would otherwise say the student is in two places'
+	);
+
+	// Collapse it, and the children must LEAVE THE DOM rather than hide.
+	await ask.click('[data-nav="rail"] button[aria-controls]');
+	await ask.waitForTimeout(SETTLE);
+
+	check(
+		'collapsing removes the children from the DOM, not just from view',
+		(await ask.locator(destinationLinks).count()) === 0,
+		'so they are genuinely out of the tab order — `hidden` is treated inconsistently'
+	);
+	check(
+		'the toggle reports itself collapsed',
+		await ask.evaluate(
+			() =>
+				document
+					.querySelector('[data-nav="rail"] button[aria-controls]')
+					?.getAttribute('aria-expanded') === 'false'
+		)
+	);
+
+	// Keyboard: Enter on the toggle must reopen it.
+	await ask.focus('[data-nav="rail"] button[aria-controls]');
+	await ask.keyboard.press('Enter');
+	await ask.waitForTimeout(SETTLE);
+
+	check(
+		'the disclosure is keyboard operable',
+		(await ask.locator(destinationLinks).count()) === 3,
+		'Enter on the toggle reopens the group'
 	);
 
 	await ask.click(`${destinationLinks}[href="/ask/career"]`);
@@ -2152,9 +2223,11 @@ try {
 		'the chosen destination is the current one in the rail',
 		await ask.evaluate(
 			() =>
-				document.querySelector('nav[aria-label="Ask about"] a[aria-current="page"]')?.getAttribute('href') ===
-				'/ask/career'
-		)
+				document
+					.querySelector('[data-nav="rail"] a[aria-current="page"]')
+					?.getAttribute('href') === '/ask/career'
+		),
+		'aria-current on the child, not on the group'
 	);
 	check(
 		'each destination has its own empty state rather than a blank box',
@@ -2247,8 +2320,13 @@ try {
 		 * most when it is not. Sending pushes real rows in until it overflows.
 		 */
 		let overflowing = log.scrollable;
-		for (let attempt = 0; attempt < 6 && !overflowing; attempt += 1) {
-			await ask.fill('#ask-composer', `Padding question number ${attempt}.`);
+		for (let attempt = 0; attempt < 14 && !overflowing; attempt += 1) {
+			// Long enough to wrap: the panel is 90rem wide now, so a short line takes
+			// many more sends to fill 34rem of height than it did behind a rail.
+			await ask.fill(
+				'#ask-composer',
+				`Padding question ${attempt}, long enough to wrap across the measure and add real height to the log.`
+			);
 			await ask.press('#ask-composer', 'Enter');
 			await ask.waitForTimeout(SETTLE);
 			overflowing = await ask.evaluate(() => {
@@ -2370,22 +2448,36 @@ try {
 	await askPhone.goto(BASE + '/ask/resources?c=conv-001', { waitUntil: 'networkidle' });
 	await askPhone.waitForTimeout(SETTLE);
 
-	const phoneRails = await askPhone.evaluate(readRails);
+	const phoneBoxes = await askPhone.evaluate(readBoxes);
 
 	check(
-		'the nav rail is gone at 375px, so two rails can never be side by side',
-		phoneRails.nav === null,
+		'the nav rail is gone at 375px',
+		phoneBoxes.nav === null,
 		'BottomNav has that job at this width'
 	);
 	check(
-		'the page rail is a full-width band rather than a column',
-		(phoneRails.own?.width ?? 0) > 300,
-		`${phoneRails.own?.width}px of 375`
+		'the destinations are still reachable where there is no nav rail',
+		(await askPhone.locator('nav[aria-label="Ask about"] a').count()) === 3,
+		'a page-level band, `lg:hidden`, driven by the SAME nav children'
 	);
 	check(
-		'the destinations are still all reachable in the band',
-		(await askPhone.locator(destinationLinks).count()) === 3,
-		'a horizontal scroller, not a truncated list'
+		'the band and the nav group never appear together',
+		await askPhone.evaluate(() => {
+			const band = document.querySelector('nav[aria-label="Ask about"]');
+			const rail = document.querySelector('[data-nav="rail"]');
+			const shown = (el) => el !== null && getComputedStyle(el).display !== 'none';
+			return shown(band) !== shown(rail);
+		}),
+		'so a student never sees the same three links twice'
+	);
+	check(
+		'the bottom bar shows the PARENT, highlighted, for a child destination',
+		await askPhone.evaluate(() => {
+			const bar = document.querySelector('[data-nav="bottom"]');
+			const link = bar?.querySelector('a[href="/ask"]');
+			return link !== null && link?.getAttribute('aria-current') === 'page';
+		}),
+		'four fixed slots, so the group cannot live there'
 	);
 
 	const phoneSideways = await askPhone.evaluate(() => {
@@ -2401,13 +2493,13 @@ try {
 		`${phoneSideways}px — the destination row scrolls, the document does not`
 	);
 	check(
-		'the saved history is capped so it cannot push the composer off screen',
+		'the saved history is a strip, not a column that pushes the chat down',
 		await askPhone.evaluate(() => {
 			const list = document.querySelector('ul[aria-label="Saved conversations"]');
 			if (!list) return true;
 			return list.getBoundingClientRect().height <= 200;
 		}),
-		'it scrolls inside itself instead'
+		'one row of cards, scrolling sideways'
 	);
 	await askPhone.close();
 
