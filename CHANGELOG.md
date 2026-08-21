@@ -4,6 +4,50 @@ Dated session summaries, most recent first.
 
 ---
 
+## 2026-08-21 — Phase 7a: the calendar's spine
+
+**487 tests · six gates green · green in all seven timezones.**
+
+`/calendar` renders for the first time: the month grid, the selected day, and that
+day's items. Month view only — 7b brings the other two views and the filter bar,
+7c brings editing and events.
+
+### What changed
+
+- **`buildScheduleData()` ported**, the gating piece since Phase 2. Five providers
+  in one `Promise.all`; classes stay weekday RULES so the grid pages to any month
+  without a round trip. `nowMinutesAt(now)` added beside it.
+- **`/calendar/+page.server.ts`** — one load, one `new Date()`, three values off
+  it: `todayKey`, `nowMinutes`, `nowISO`. Tasks fetched here and deliberately not
+  merged here.
+- **Eight components** under `lib/components/calendar/`: `CalendarView` (the only
+  stateful node), `MiniCalendar`, `CalendarHeader`, `SquareGrid`, `DaySection`,
+  `DayGroupToggle`, `ItemRow`.
+- **`calendarDay.ts`** extracted out of two components, because logic in a
+  `.svelte` file is logic no gate can see. 20 tests.
+- **The ignore store's HIGH key-space defect fixed.** Canonical key is the raw
+  `Event.id`; the store normalises nothing it is handed. Its defect-record test is
+  replaced by a real cross-surface one.
+- **MIGRATION §9 defect 10 built correctly:** `SquareGrid` uses `outline`, not
+  `ring`, so there is no offset colour to get wrong on cream.
+- **A pre-existing timezone bug in `reveal.spec.ts` fixed** — found by running the
+  sweep, which had never been run against that file.
+
+### Known issues
+
+- A day's figure counts events that have no row until 7c. Deliberate; BUGS.md
+  records why the two alternatives are worse.
+- `MiniCalendar`'s keyboard grid has no gate. Verified by hand; see HANDOFF.
+- Ignore keys written under the old shape are inert, so one ignored event
+  reappears once.
+- **CONTEXT.md is not regenerated** and its `updated-at` is behind.
+
+### Next priorities
+
+Phase 7b: `ViewSwitcher`, `WeekView`, `AgendaView`, `KeyBar`.
+
+---
+
 ## 2026-08-21 — session close: answers, and the road after Home
 
 **HEAD:** `bfa0ac3` · 11 commits this session · 451 tests · six gates green.

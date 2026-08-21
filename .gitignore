@@ -13,6 +13,10 @@ dist/
 .env.*
 !.env.example
 
+# Credentials. Listed before the file exists, on purpose -- the first thing
+# written into it is exactly when nobody checks.
+secret.md
+
 # Python (backend, and scripts/)
 __pycache__/
 *.py[cod]

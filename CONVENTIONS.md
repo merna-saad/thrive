@@ -132,6 +132,24 @@ group headings call `toLocaleDateString` on an already-safe day key, and
 source rows are `localStorage`-only. These produce locale-formatting
 differences, not date drift.
 
+Phase 7a adds two more of the same kind, both in `MiniCalendar`: the **month
+label** and each **day cell's accessible date**. The reason they cannot move to
+the server is structural rather than convenient — the grid pages to any month
+with no round trip, which is the whole point of keeping classes as weekday rules,
+so there is no finite set of months a `load` could pre-format. Both format a day
+key already built from local parts by `fromDayKey`, so what varies between server
+and client is locale wording, never which day it is.
+
+What that list does NOT license: reading the clock. `nowMinutes` for the "next
+up" line is computed in `+page.server.ts` from the same `new Date()` as
+`todayKey`, and `calendarSources.nowMinutes()` — sanctioned read #1 above — has
+no consumer as a result. It stays on the list for a caller that genuinely runs
+only in a handler. In Next, `CalendarView` was `"use client"` so its memo could
+only run in a browser; the Svelte component renders on the server first, where
+the same call would paint one "next up" row and let the browser silently swap it
+after hydration. The value freezes at page load either way, so the client read
+costs a visible flip and buys nothing.
+
 ---
 
 ## Moving a student to a row goes through `arriveAtRow`
@@ -249,9 +267,37 @@ never prefixed). Both failed the same way and **silently**: the guard found
 nothing and returned, the checkbox appeared to tick, and the next render put it
 back. No error, no log.
 
-Corollary: `eventIdOf()` is the single normaliser for the `evt-` prefix. The
-Next tree had two other sites stripping it inline while the docs claimed one —
-see MIGRATION.md §9 defect 12. Do not add a third.
+### Corollary: `eventIdOf()` takes a calendar item id, and nothing else
+
+**The store keys on exactly the id it is handed. The one surface holding a
+prefixed id sheds it at its own boundary.**
+
+`eventIdOf()` strips one leading `evt-`. Given a calendar item id
+(`evt-evt-3-1`) that recovers the raw `Event.id`. Given a raw `Event.id` — which
+already begins with `evt-` — it **mangles** it to `3-1`, a key nothing uses.
+
+The function cannot tell those two inputs apart, so no care at the call sites can
+make it safe to call twice. This was a HIGH defect until Phase 7a: the store
+normalised its own arguments, so Home's write to `evt-3-1` landed under `3-1`
+while the calendar's landed under `evt-3-1`. Each surface was self-consistent and
+neither could see the other.
+
+What to look for in a diff:
+
+- `eventIdOf` applied to anything that is not a calendar item id
+- `eventIdOf` applied twice on one path
+- a normaliser reintroduced inside `setEventIgnored` / `isEventIgnored`
+- a **one-sided** test for a cross-surface store. The original bug hid behind two
+  tests that each exercised one surface and both passed; `calendarStores.spec.ts`
+  now writes through one surface's real path and reads through the other's.
+  Even then, one direction of that pair still passes with the bug reintroduced,
+  because both sides share the same mangling — the other four assertions are what
+  catch it.
+
+`isVisible` in `schedule.ts` strips the same prefix inline, because importing the
+store into a module the server renders through would poison it. That is the one
+sanctioned sibling, stated in both places. MIGRATION.md §9 defect 12 is the
+record of what happens when a third copy appears.
 
 ---
 

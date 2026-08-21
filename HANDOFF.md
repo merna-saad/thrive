@@ -4,6 +4,146 @@ Session log, newest first. What happened, what was decided, what is still open.
 
 ---
 
+## 2026-08-21 — Phase 7a: the calendar's spine
+
+**487 tests · six gates green · green in all seven timezones · `/calendar` renders.**
+
+The first of three calendar phases. Month grid, selected day, that day's items.
+
+### The four decisions the owner made up front
+
+1. **"Next up" reads the SERVER's clock.** `nowMinutes` comes from
+   `+page.server.ts`, off the same `new Date()` as `todayKey`.
+   `calendarSources.nowMinutes()` — sanctioned client read #1 — consequently has
+   no consumer, which is a change from what the last handoff expected. The reason
+   is that Next's `CalendarView` was `"use client"` so its memo could only run in
+   a browser; the Svelte one renders on the server first, where the same call
+   paints one "next up" row and lets the browser swap it after hydration. The
+   value freezes at page load either way.
+2. **Old ignore keys are left inert, not migrated.** One ignored event reappears
+   once.
+3. **The day's figure keeps counting events** although nothing renders them until
+   7c. Both alternatives were worse; BUGS.md states why.
+4. Proceed as designed.
+
+### What porting `buildScheduleData` turned up
+
+Three things MIGRATION §2 does not say:
+
+- **The `evt-${event.id}` line is the ORIGIN of the ignore key-space defect.**
+  Fixture ids are `` `evt-${dayOffset}-${i}` `` (`mock/events.ts:287`, verified), so
+  the calendar's item id is `evt-evt-3-1`. Kept: every calendar item id names its
+  stream, and the label and urgent stores are keyed on that space. The fix belonged
+  at the store.
+- **A missing advisor yields a titleless-but-located appointment row.** `title`
+  falls back to `"Appointment"` while `detail` still reads
+  `advisor?.location ?? "In person"`. Unreachable with current fixtures; ported
+  as-is with the fallback documented.
+- **`timeOf` / `minutesFrom` duplicate what `taskToItem` already does.** Left
+  duplicated on purpose — one is server-side, one is `localStorage`-side, and
+  MIGRATION §3 records that split deliberately.
+
+### The ignore key space, and what actually fixed it
+
+`eventIdOf` strips one `evt-`. A raw `Event.id` starts with `evt-` too, so it
+cannot tell its inputs apart — and **the store was normalising its own
+arguments**, so Home's `evt-3-1` was stored as `3-1` while the calendar's
+`evt-evt-3-1` was stored as `evt-3-1`.
+
+The fix is two lines: `setEventIgnored` / `isEventIgnored` key on exactly the
+string given. The calendar sheds its prefix at its own boundary. **No Home
+component changed** — every call site there already passed `event.id` raw.
+`filterSchedule` was always in the raw space, so Home was the broken side.
+
+Verified to fail: reverting turns 7 assertions red. Verified live in one browser:
+ignoring on Home writes `{"evt-0-0":true}` and `/calendar` reads the same key.
+
+**And a lesson that outlived it.** One direction of the new cross-surface pair
+still passes with the bug reinstated, because both sides then share the same
+mangling. "Crosses two surfaces" is not the property that catches a key-space
+split — *not sharing a transformation* is. In FINDINGS.
+
+### The timezone sweep caught something that was not mine
+
+`reveal.spec.ts` had `NOW` as a `Z` instant with `Z` due dates beside it, which
+this repo's own rule forbids. `tsk-today` at `2026-08-21T23:00:00Z` is tomorrow
+anywhere east of UTC+2, so it failed in Asia/Tokyo, Asia/Kathmandu and
+Australia/Lord_Howe. **The bug was the fixture, not `describeDue`.** Fixed with a
+`local()` helper; nothing outside the fixture moved.
+
+The wider point: TESTING.md claimed the suite was green in all seven zones and it
+was not. That file was written before the test was. A verification claim decays
+like a comment does.
+
+### `MiniCalendar`'s keyboard grid — verified by hand, not by a gate
+
+`check:interaction` stays Home-scoped as instructed, and nothing in 7a argued for
+extending it. But 42 cells, a roving tabindex and six key bindings are not
+unit-testable, so it was driven against the production build. What was pressed and
+what came back:
+
+| Pressed | Result |
+|---|---|
+| — | 42 cells, exactly **1** tab stop, today selected and `aria-current="date"` |
+| Arrow Right / Down / Left / Up | 08-21 → 22 → 29 → 28 → 21, focus and selection agreeing at every step |
+| Home, End | 2026-08-16 and 2026-08-22 — six days apart |
+| PageDown | August → September, focus survives at 09-01, still 1 tab stop, **document did not scroll** |
+| PageUp | back to August |
+| six ArrowUps | August → July, focused cell on screen and selected |
+| click a trailing cell | August → September, 09-05 selected |
+| tick a row | `thrive:task-done` → `{"tsk-003":true}`, fraction 0/2 → 1/2, survives reload |
+| — | heading outline h1 → h2 → h3 with no skipped level; **no console warnings or errors** |
+
+The PageDown row is the one worth keeping: the Next version's shared
+`preventDefault()` sat *after* the branch that returns, so paging a month also
+scrolled the page. Measured at 0 → 0 here.
+
+### Deviations from the Next source, all deliberate
+
+- **No `font-mono` anywhere.** `designSystem.spec.ts` fails on it. Values take
+  `.thrive-numeric`; "next up:", the type/time toggle, the category tags and the
+  "today" chip are words and take DM Sans. This is the largest visual difference
+  from the prototype.
+- `ring` → `outline` in `SquareGrid` (MIGRATION §9 defect 10).
+- `border-2` → `border` on the month controls, matching `Button`'s 1px port.
+- `role="columnheader"` moved off the `<abbr>` onto a wrapping div — svelte-check
+  rejects a grid role on a non-interactive element, correctly.
+- `requestAnimationFrame` → `await tick()` for the focus move. **Not an arrival:**
+  navigation inside one widget, which CONVENTIONS carves out.
+- Urgent renders through `Tag tone="urgent"` rather than a second hand-rolled
+  urgent chip.
+- `SquareCell` / `SquareGroup` are declared in `calendarDay.ts` and **re-exported**
+  from `SquareGrid.svelte`, so the brief's "SquareGrid exports them" holds while
+  the shapes sit beside the function that builds them.
+
+### Not built, and not stubbed
+
+`ViewSwitcher`, `WeekView`, `AgendaView`, `KeyBar`, `ItemDetail`, `AddItemForm`,
+`DayEventsSection`. Nothing was stubbed to make anything compile. `ItemRow` has no
+`compact` and no `onOpen`; `eventItemsForDay` is not called. **The one thing that
+anticipates a later phase is `CalendarView`'s `detail` state**, which is declared
+and never written, because the brief names it as one of the three things that node
+owns.
+
+`prefs.view` is effectively pinned to month: nothing can change it until `KeyBar`
+and `ViewSwitcher` land.
+
+### Still open
+
+- **CONTEXT.md is NOT regenerated.** Its `updated-at` is behind and the hook will
+  say so. Deliberate: the rule is all-or-nothing, three calendar phases are coming,
+  and a stale-and-flagged file beats a half-patched one. **This is the largest
+  thing owed.**
+- Two `LOW` defects from the accepted list are still live and untouched:
+  MIGRATION §9 defect 13 (`thrive:event-joins` keyed on the calendar item id) and
+  defect 14 (`custom-custom-…` ids). Defect 13 becomes real the moment Home grows
+  a "count me in" button, and it is the same bug shape 7a just fixed — worth
+  deciding in 7c rather than discovering.
+- `/calendar` at 375px is 1513px tall and passes the layout gate, but the grid's
+  cells are ~44px wide there and have not been eyeballed on a real phone.
+
+---
+
 ## 2026-08-21 — session close: four questions answered, two features scoped
 
 **HEAD:** `bfa0ac3` · 11 commits this session, all pushed · 451 tests · all six

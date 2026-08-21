@@ -4,6 +4,37 @@ Reusable patterns and lessons. Things worth knowing again.
 
 ---
 
+## 2026-08-21 — a cross-surface test can be vacuous in one direction
+
+Sibling of the lesson below, and the sharper version of it.
+
+The ignore store's HIGH defect hid behind **two one-sided tests that both
+passed**: one asserted the map was keyed `"3-1"`, the other fed `filterSchedule`
+ids keyed `"evt-3-1"`. Each was true of its own surface. Together they could not
+both be right, and nothing looked at both at once.
+
+So the fix came with a deliberately cross-surface test: write through the path one
+surface really uses, read through the path the other really uses. Home writes
+`ignoreEvents.ignore(event.id)`; the calendar reads
+`filterSchedule(data, { ignoredEventIds })`. And back the other way.
+
+**One direction of that pair still passes with the bug reintroduced.** Reverting
+the fix leaves `"the calendar ignoring an event hides it on Home"` green, because
+`setEventIgnored(eventIdOf(itemId))` and `isEventIgnored(rawId)` then apply the
+*same* mangling — write `"3-1"`, read `"3-1"`. Self-consistent, and wrong.
+
+### The rule
+
+**"Crosses two surfaces" is not the property that makes a test catch a key-space
+split. Not sharing a transformation is.**
+
+A test is only load-bearing here if one side's path applies a normalisation the
+other's does not. Measure it the same way as the lesson below: revert the fix and
+count which assertions actually go red. Seven did, across two files — the four
+that mattered were the ones asserting the *stored key* rather than a round trip.
+
+---
+
 ## 2026-08-21 — an assertion whose expected value came from the thing under test
 
 The gate check for "copy-to-list only renders when `FEATURES.floatingTodo` is on"

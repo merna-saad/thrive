@@ -452,13 +452,84 @@ a one-digit hour (`"9:30"` already worked); strict on the minute, because
 
 ---
 
+## 2026-08-21 — Phase 7a: fixed
+
+### The ignore store's two surfaces do not share a key space — **FIXED (was HIGH)**
+
+Recorded below on the same day and fixed in Phase 7a. The canonical key is the
+**raw `Event.id`** (`evt-3-1`), which is the space `filterSchedule` had always
+expected — so Home was the broken side, exactly as the entry below predicted.
+
+**The fix was not in the calendar.** `setEventIgnored` / `isEventIgnored` were
+normalising their own arguments through `eventIdOf`, so a raw id handed in got
+mangled to `3-1`. They now key on precisely the string given, and the one surface
+holding a prefixed id — the calendar — calls `eventIdOf` once at its own
+boundary. No Home component changed: every call site there already passed
+`event.id` raw.
+
+**The honest fix was the one the entry below called honest:** stop deriving the
+key from a prefix at all. The doc comment claiming "passing a raw id through
+twice is safe" was the false sentence that let the bug be written twice, and it
+is gone.
+
+**Verified to fail.** Reverting the two lines turns 7 assertions red across
+`calendarStores.spec.ts` and `ignoredEvents.spec.ts`. Also driven in one real
+browser: ignoring an event on Home writes `{"evt-0-0":true}`, and `/calendar`
+reads the same key.
+
+**A lesson that outlived the bug.** One direction of the new cross-surface pair —
+"the calendar ignoring an event hides it on Home" — still PASSES with the
+normaliser reinstated, because both sides then share the same mangling. A
+cross-surface test is not automatically non-vacuous; the other four assertions are
+what actually catch it. Recorded in FINDINGS.
+
+**Accepted, not migrated:** keys written under the old shape stay in
+`localStorage` and are inert, so an event ignored on Home before this change
+reappears once. Absence means "never touched" in this store, so a stale key is
+harmless rather than corrupt. Mock data, dev-only, and a migration shim whose only
+input is a browser nobody can inspect is worse than the one-time reappearance.
+
+---
+
+## 2026-08-21 — Phase 7a: accepted, with a reason
+
+### The day's figure counts events that have no row yet — **LOW, one phase only**
+
+`CalendarHeader` counts every item on the selected day and the month grid dots
+every category on it, events included — but `DayEventsSection` is Phase 7c, so a
+day can read "5" above three rendered rows. Confirmed live: 1 class + 2 tasks
+render, 2 events do not.
+
+**Why not fixed:** the two alternatives are worse. Filtering events out of the
+count and the dots would break "one filter, applied once" and change what the
+month grid shows twice — once now and once when 7c puts it back. Folding events
+into a generic day group would ship them without their register controls, blurb
+and relevance badge, which is the whole reason `DAY_GROUPS` excludes them.
+
+Pinned by `calendarDay.spec.ts` → `"counts events too, because the figure beside
+it does"`, which states the reason in the test rather than leaving it to be
+rediscovered as a bug.
+
+### `SquareGrid`'s white halo — **built correctly, not ported**
+
+MIGRATION.md §9 defect 10. The Next version rings the "next up" cell with
+`ring-2 ring-indigo ring-offset-1` and never sets `ring-offset-color`, so it takes
+Tailwind's default white — right only because the strip has so far only ever sat
+inside a white panel.
+
+Built as `outline-2 outline-offset-1 outline-indigo` instead. An outline's offset
+region is transparent, so there is no colour to set or to get wrong, and the two
+indigo markers in the app (`.thrive-arrived` and this) are now drawn the same way.
+
+---
+
 ## 2026-08-21 — found, recorded, NOT fixed
 
 Each of these is pinned by a test named as a defect record, with a comment
 saying it captures current behaviour rather than desired behaviour. The fix
 arrives as a failing test, which is the right signal.
 
-### The ignore store's two surfaces do not share a key space — **HIGH**
+### The ignore store's two surfaces do not share a key space — **HIGH · FIXED in 7a, see above**
 
 `calendarStores.spec.ts` → `"DEFECT: the two surfaces do NOT share a key space"`
 
@@ -482,11 +553,14 @@ conventions — one asserts the map is keyed `"3-1"`, the other feeds
 `filterSchedule` ids keyed `"evt-3-1"`. Both pass. Together they cannot both be
 right.
 
-**Why not fixed:** picking the canonical key changes which already-stored data
-stays valid. My read is that the raw `Event.id` should win, making Home the
-broken side — but the honest fix is probably to stop *deriving* the key from a
-prefix at all, since `evt-`-prefixed raw ids make the normaliser ambiguous by
-construction.
+**Why not fixed at the time:** picking the canonical key changes which
+already-stored data stays valid. My read is that the raw `Event.id` should win,
+making Home the broken side — but the honest fix is probably to stop *deriving*
+the key from a prefix at all, since `evt-`-prefixed raw ids make the normaliser
+ambiguous by construction.
+
+**Both reads turned out right.** Fixed in Phase 7a exactly that way; the entry at
+the top of this file records it.
 
 **Pattern to watch:** a normaliser that cannot distinguish its input cases. Also:
 three copies of one id rule (MIGRATION §9 defect 12 flagged the copies without

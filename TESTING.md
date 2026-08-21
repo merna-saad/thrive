@@ -1,7 +1,8 @@
 # TESTING
 
-**Last verified:** 2026-08-21 at `df72ad1`. **451 tests, 20 files, all passing.**
-Verified green in all seven timezones of the sweep below.
+**Last verified:** 2026-08-21, after Phase 7a. **487 tests, 22 files, all
+passing.** Verified green in all seven timezones of the sweep below — and the
+sweep **caught a real failure this time**, which is recorded there.
 
 ```bash
 cd frontend
@@ -200,6 +201,34 @@ types, correct classes, and no page-level overflow. Phase 6b's editing behaviour
 is the first thing that will genuinely want a rendered assertion, and it is worth
 deciding then whether jsdom or Playwright covers it.
 
+### The calendar, and why `check:interaction` did NOT grow
+
+Phase 7a's answer to "nothing renders" was **to move the decisions out of the
+components** rather than to widen the browser gate. `calendarDay.ts` exists for
+that reason alone: `sortDayItems`, `arrangeDay`, `squareGroupsFor` and
+`dayCountParts` were all inline in `CalendarView` or `CalendarHeader`, where no
+gate could see them, and each has a branch that has been got wrong once already
+(the two-slice concatenation, the tickable denominator, "1 classes").
+
+`check:interaction` stays scoped to Home, as instructed, and **nothing in 7a
+proved it needed extending**. What that gate can uniquely do is press a button,
+and the calendar's two button-shaped behaviours this phase — ticking a row, and
+arranging the day by type or time — are both thin wrappers over logic that is now
+unit-tested: `tickItem` dispatching on an attached source row is covered in
+`calendarStores.spec.ts`, and `arrangeDay` in `calendarDay.spec.ts`.
+
+**What is genuinely uncovered is `MiniCalendar`'s keyboard grid** — 42 cells, a
+roving tabindex, and six key bindings that no unit test can press. It was verified
+by hand against the production build instead, and the results are recorded in
+HANDOFF: arrows in all four directions with focus and selection agreeing, Home and
+End landing six days apart, PageDown/PageUp moving the month while focus survives
+the swap **and the document does not scroll**, six ArrowUps pulling the view back a
+month, a trailing cell click pulling the view forward, and no console output.
+
+That is the honest state: a by-hand verification, not a gate. If the grid grows a
+second keyboard behaviour, this is the first thing in the calendar that should
+argue for extending the interaction gate.
+
 ### Testing the provider layer
 
 **Properties, not fixture contents.** The fixtures are demo data and will be
@@ -259,13 +288,41 @@ Every fixture instant is built from **local parts** and only then serialised.
 Run this sweep after touching anything date-shaped — it caught a
 timezone-dependent assertion in a test written this session.
 
-### Three tests are defect records, not assertions of intent
+#### It caught a second one in Phase 7a, and this is the useful part
+
+`reveal.spec.ts` had **`NOW` as `new Date("2026-08-21T12:00:00Z")` and its due
+dates as `Z` instants beside it** — exactly the shape the paragraph above forbids.
+`tsk-today` was `2026-08-21T23:00:00Z`, and 23:00 UTC is already **tomorrow**
+anywhere east of UTC+2, so `describeDue` classified it `upcoming` and the "every
+overdue and due-today task stays reachable" property counted one row instead of
+two. Red in Asia/Tokyo, Asia/Kathmandu and Australia/Lord_Howe; green in the other
+four, including both extremes.
+
+Two things worth keeping:
+
+- **The bug was in the FIXTURE, not in `describeDue`.** A task due at 23:00 local
+  on the 21st really is due today. Reaching for the classifier would have broken
+  correct behaviour to make a wrong test pass.
+- **It was written before Phase 7a and had never been swept.** The doc line at the
+  top of this file claimed the suite was green in all seven zones, and it was not.
+  A verification claim decays exactly like a comment does — the sweep is cheap
+  (~14s) and it is now run on any date-shaped change, not just on date-shaped
+  *new* code.
+
+Fixed by a `local(y, m, d, h)` helper in that file. Nothing outside the fixture
+moved.
+
+### Two tests are defect records, not assertions of intent
 
 Named `DEFECT:` or `DOCUMENTS A GAP:`, each commented with why it was not fixed.
 They pin current behaviour so the defect cannot be lost, and so the eventual fix
 arrives as a **failing test**. See `BUGS.md`.
 
-1. The ignore store's two surfaces not sharing a key space.
+There were three. The first one below was **retired in Phase 7a** when the defect
+it pinned was fixed, and replaced by a real cross-surface test — which is the
+mechanism working as designed.
+
+1. ~~The ignore store's two surfaces not sharing a key space.~~ **Fixed in 7a.**
 2. A rolled-over date (`"2026-02-30"`) passing `describeDue`.
 3. `eventIdOf`'s asymmetry being self-consistent within one surface, which is
    why it went unnoticed.
