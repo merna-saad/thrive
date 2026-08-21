@@ -4,6 +4,7 @@
 	import BottomNav from '$lib/components/shell/BottomNav.svelte';
 	import SideRail from '$lib/components/shell/SideRail.svelte';
 	import TopBar from '$lib/components/shell/TopBar.svelte';
+	import Toast from '$lib/components/ui/Toast.svelte';
 	import { FEATURES } from '$lib/features';
 	import type { Student } from '$lib/data/types';
 
@@ -49,6 +50,11 @@
 	</div>
 
 	<BottomNav />
+
+	<!-- Mounted always, on every route, and its text is the only thing that
+	     changes. A live region populated in the same tick it is created announces
+	     unreliably -- see the note in the component. -->
+	<Toast />
 
 	<!--
 		Floating widgets mount here, last in the DOM so they land above the page
