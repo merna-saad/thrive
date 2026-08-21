@@ -54,7 +54,9 @@ real CSS parser and so cannot live in the test suite.
 
 ## Running it
 
-Node 24 and npm 11 are what this is developed against; anything modern should work.
+**Node 20 or newer.** Developed on Node 24 with npm 11, but 20 is the floor the
+toolchain actually needs and nothing below 24 has been tested — so if you are on
+22, expect it to work and say so if it does not.
 
 ```bash
 git clone git@github.com:rsm-msaad/thrive.git
