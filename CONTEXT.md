@@ -25,7 +25,7 @@ This repo is the **rebuild**. A working Next.js prototype already exists and is
 now frozen; this is the SvelteKit + Django version of it.
 
 - **Repo:** `rsm-msaad/thrive`, private, GitHub. Default branch `main`.
-- **Owner:** Merna (`rsm-msaad`, `mesaad@ucsd.edu`). Solo developer.
+- **Owner:** one developer, working solo. There is no second maintainer yet.
 - **Local path:** `~/code/thrive`
 - **No PRs.** Everything goes direct to `main` — solo, no review gate yet. Commit
   hashes stand in for PR links throughout the docs.
@@ -1101,12 +1101,15 @@ in one `Promise.all` — see §14 for what it does with them.
 
 ### The fixture student
 
-`mock/student.ts`. Merna · MSBA · **17 month** track · goal "Data Scientist" ·
+`mock/student.ts`. One MSBA student · **17 month** track · goal "Data Scientist" ·
 Fall 2026 · `programStart: 2026-08-03` · standing `onTrack`. `programStart` is a
 **start** date; the finish term and the percentage are both derived.
 
-Advisors: **Amber Hanna** (Graduate Student Advisor, Rady 2S111) and **Nelitza
-Morales** (Career Coach, CMC / Zoom).
+Two advisors, and the pair matters rather than the people: **a graduate student
+advisor** (an on-campus room in Rady) and **a career coach** (the CMC, or Zoom). One
+in-person-only and one with a remote mode, which is what the booking panel's mode
+filter exists to distinguish. Their names are fixture data and live in
+`mock/appointments.ts`.
 
 **There is exactly one student, and Group Projects is the first thing that breaks
 that assumption** — see §18.
@@ -2062,7 +2065,7 @@ Calm, plain, honest about what is simulated.
    Two things to settle before building:
    - **Saved chat history cannot live in `localStorage`.** Too large, too long-lived,
      and the first persisted thing that is not a small override keyed by id. Needs
-     **Django or Shankar's service**.
+     **Django, or the RAG service a teammate is building**.
    - **Two rails and one `nav` landmark.** §10 keeps exactly one `nav` in the a11y
      tree at a time.
 
@@ -2070,7 +2073,7 @@ Calm, plain, honest about what is simulated.
    And `FEATURES.floatingAssistant` still exists — a floating assistant plus a page
    with chat and history is two homes for one conversation.
 
-   Wired to **Shankar's RAG** later.
+   Wired to **a teammate's RAG service** later.
 
 5. **Group Projects — a future FIFTH nav item.** Group members, a project holding
    tasks and subtasks, assigning a task to a person.

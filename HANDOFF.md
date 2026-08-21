@@ -671,7 +671,7 @@ Two constraints to design against rather than discover:
 
 - **Saved chat history cannot live in `localStorage`.** It is the first persisted
   thing that is not a small override keyed by id, and it needs **Django or
-  Shankar's service**.
+  the RAG service a teammate is building**.
 - **Two rails, one `nav` landmark.** The shell keeps exactly one `nav` in the a11y
   tree at a time; a second rail must not become a second competing landmark.
 
@@ -1346,7 +1346,8 @@ of that hook is what 6b needs.
 **Then, in order:** the calendar (15 components, the largest surface), then
 appointments, then the **Ask THRIVE page** — three tabs (chat, class recommender,
 job recommender), a chat window, and a saved chat history rail on the LEFT beside
-the nav rail, so two rails sit side by side. Wired to Shankar's RAG later. `/ask`
+the nav rail, so two rails sit side by side. Wired to a teammate's RAG service
+later. `/ask`
 exists as a placeholder route with the nav entry already in place.
 
 **Strings keep being extracted** into `$lib/messages` as each surface is built.

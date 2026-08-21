@@ -37,7 +37,9 @@ untouched after every phase. Everything worth knowing about it is in
 `gh` is authenticated as `rsm-msaad`, git protocol **ssh**, token scopes
 `gist, read:org, repo`.
 
-Git identity for commits: `rsm-msaad <mesaad@ucsd.edu>`.
+Git identity for commits is the repo owner's, set in the local `git config`.
+Check it with `git config user.name` and `git config user.email` rather than
+assuming — a wrong identity on a commit is not worth fixing after the fact.
 
 ---
 
