@@ -177,6 +177,48 @@ export const parkedNav: NavItem[] = [
 export const allNav: NavItem[] = [...primaryNav, ...parkedNav];
 
 /**
+ * Is this route a page worth sending someone to?
+ *
+ * **`primaryNav` membership IS the definition**, which is the whole point: the
+ * visible navigation already encodes "this is a real destination", so a card
+ * linking out asks the same list rather than carrying its own opinion. Parked
+ * routes still render — they return `PagePlaceholder`, a title and a note — and
+ * a "View all" landing on one reads as broken rather than unfinished.
+ *
+ * ## Why this is derived rather than a flag on each card
+ *
+ * Four cards on Home link out and three of them point at parked routes today.
+ * The alternative was each card deciding for itself whether to show its link,
+ * which is four places to edit when a route is built and four chances to forget
+ * one. Asking `primaryNav` means **moving a route out of `parkedNav` brings its
+ * card's link back with no further edit** — the same one-list-drives-everything
+ * property the rail and the bottom bar already have.
+ *
+ * Same reasoning as `parkedNav` being a separate list rather than a `hidden`
+ * flag: make the failure impossible rather than something to remember.
+ */
+export function isBuiltRoute(href: string): boolean {
+	return primaryNav.some((item) => item.href === href);
+}
+
+/**
+ * Is this href in either nav list?
+ *
+ * The companion to `isBuiltRoute`, and it exists because those two questions
+ * have the same answer for very different reasons. A parked route answers
+ * "false, deliberately"; a mistyped one answers "false, because it does not
+ * exist" — and silently hiding a link because somebody fat-fingered an href is
+ * the silent no-op this repo treats as its worst failure mode.
+ *
+ * `SectionCard` warns in development on the second case. Not a throw:
+ * `PagePlaceholder` can throw because it IS the page, whereas taking Home down
+ * over a "View all" would be worse than the broken link.
+ */
+export function isKnownRoute(href: string): boolean {
+	return allNav.some((item) => item.href === href);
+}
+
+/**
  * True when `href` is the section the user is currently in. Exact match for
  * Home so it doesn't stay lit on every route; prefix match elsewhere so
  * nested routes still highlight their section.
