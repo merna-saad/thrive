@@ -80,6 +80,25 @@ const TARGETS = [
 	{ route: '/calendar', label: '/calendar week', prefs: { view: 'week' } },
 	{ route: '/calendar', label: '/calendar agenda', prefs: { view: 'agenda' } },
 	{ route: '/appointments', label: '/appointments' },
+	/*
+	 * The booking area OPEN, which is the state with something to measure.
+	 *
+	 * Closed, `/appointments` is two cards and a list -- it measured 1079px on a
+	 * phone and could not have overflowed. The risk is entirely in the expanded
+	 * state: a month grid, a slot list, a textarea and the day pane, stacked in one
+	 * column at 375px. MIGRATION.md section 9 defect 6 is an overflow on THIS
+	 * route at THIS width, on the do-not-reproduce list.
+	 *
+	 * A preference could not reach it -- which advisor is open is component state,
+	 * not a persisted key -- so this is the first target that has to press
+	 * something. `click` is a selector waited for and clicked after the reload,
+	 * before anything is measured.
+	 */
+	{
+		route: '/appointments',
+		label: '/appointments booking',
+		click: '[data-service]:not([disabled])'
+	},
 	{ route: '/ask', label: '/ask' },
 	{ route: '/classes', label: '/classes' },
 	{ route: '/syllabi', label: '/syllabi' },
@@ -168,9 +187,24 @@ if (!existsSync(ENTRY)) {
 	process.exit(1);
 }
 
+/*
+ * `ORIGIN` is not optional once the app has a form action.
+ *
+ * `adapter-node` cannot know the public URL it is served on, so without this it
+ * guesses -- and SvelteKit's CSRF check compares a POST's `Origin` header against
+ * that guess. Every form submission comes back **403 "Cross-site POST form
+ * submissions are forbidden"**, which is what happened the first time this gate
+ * tried to book an appointment.
+ *
+ * Nothing before Phase 8 posted anything: Home and the calendar write to
+ * `localStorage`, so the whole app was GET-only and the omission was invisible.
+ * Setting it here is not a workaround for the gate -- it is the same variable a
+ * real deployment has to set, so the gate now drives the app the way it must
+ * actually be run. See setup_info.md.
+ */
 const server = spawn(process.execPath, [ENTRY], {
 	cwd: FRONTEND,
-	env: { ...process.env, PORT: String(PORT) },
+	env: { ...process.env, PORT: String(PORT), ORIGIN: BASE },
 	stdio: 'ignore'
 });
 
@@ -207,8 +241,8 @@ try {
 		browser = await chromium.launch({ executablePath });
 	}
 
-	console.log(`${'target'.padEnd(20)}${'viewport'.padEnd(14)}${'renders'.padStart(9)}${'scrolls to'.padStart(12)}   result`);
-	console.log('-'.repeat(69));
+	console.log(`${'target'.padEnd(22)}${'viewport'.padEnd(14)}${'renders'.padStart(9)}${'scrolls to'.padStart(12)}   result`);
+	console.log('-'.repeat(71));
 
 	for (const vp of VIEWPORTS) {
 		const page = await browser.newPage({ viewport: { width: vp.w, height: vp.h } });
@@ -235,6 +269,19 @@ try {
 				{ key: PREFS_KEY, value: target.prefs ?? null }
 			);
 			await page.reload({ waitUntil: 'networkidle' });
+
+			/*
+			 * Open whatever this target needs open, then let the layout settle.
+			 *
+			 * The wait is on the SELECTOR rather than a timeout: the button only
+			 * exists once the page has hydrated, and a fixed sleep would either be
+			 * too short on a cold run or waste a second on every other target.
+			 */
+			if (target.click) {
+				await page.waitForSelector(target.click, { state: 'visible' });
+				await page.click(target.click);
+				await page.waitForLoadState('networkidle');
+			}
 
 			const measured = await page.evaluate(() => {
 				/*
@@ -287,7 +334,7 @@ try {
 			if (!passed) failures += 1;
 
 			console.log(
-				`${target.label.padEnd(20)}${vp.label.padEnd(14)}` +
+				`${target.label.padEnd(22)}${vp.label.padEnd(14)}` +
 					`${String(measured.rendersTo).padStart(9)}${String(measured.scrollsTo).padStart(12)}   ` +
 					`${passed ? 'PASS' : `FAIL  ${slack}px of empty scroll`}`
 			);
@@ -301,7 +348,7 @@ try {
 	server.kill();
 }
 
-console.log('-'.repeat(69));
+console.log('-'.repeat(71));
 const total = TARGETS.length * VIEWPORTS.length;
 console.log(`${total - failures}/${total} pass`);
 if (failures > 0) {
