@@ -30,9 +30,15 @@
    Layer 2  :root            shadcn semantic vars mapped onto layer 1
    Layer 3  @theme inline    exposes both as Tailwind utilities
 
-   DIRECTION -- soft cream, hairline, mono-accent.
-   Adopted 2026-08-15, a deliberate reversal of the bordered direction of
-   2026-08-12. See CONTEXT.md decision 15 for the full reasoning.
+   DIRECTION -- soft cream, hairline, Rady navy with a yellow accent.
+   Adopted 2026-08-15 as a deliberate reversal of the bordered direction of
+   2026-08-12; repaletted to the campus brand on 2026-08-22.
+
+   The 2026-08-22 pass changed TWO things and nothing else: the accent moved
+   from forest green to UC San Diego navy with a yellow accent, and the two-face
+   type rule was tightened to "sans for words, mono for numbers". Cream,
+   spacing, radii, motion, layout constants, the panel treatment, and the 1px
+   hairline vs 1.5px control boundary distinction are all untouched.
 
    The previous direction made the border the structural device: 2px strokes at
    3.88:1, hard offset shadows, tight radii. This one takes the structure out of
@@ -51,7 +57,9 @@
    draw in --thrive-control-line at 1.5px, never in --thrive-hairline.
 
    All contrast pairs below were computed before being written, not after.
-   Verified by scripts/check-contrast.py, 43 assertions, three of them ceilings.
+   Verified by scripts/check-contrast.py, which as of 2026-08-22 PARSES THIS
+   FILE rather than mirroring it by hand -- so a token edited here is checked
+   here, and the two cannot drift.
    ========================================================================== */
 
 :root {
@@ -101,35 +109,101 @@
   --thrive-control-line: var(--thrive-faint);
   --thrive-control-stroke: 1.5px;
 
-  /* Action accent. Forest green, replacing the sage. Deeper and less grey, so
-     it still separates from the cream now that no stroke helps it.
-       primary       6.13:1 on white -- safe for text and for solid fills
-       primary-soft  the partial-progress fill
-       mint          the light fill, retuned into the forest family; still
-                     always ringed, since the fill alone cannot hold an edge
+  /* Action accent. UC SAN DIEGO NAVY, replacing the forest green (2026-08-22).
+     Official brand value, PMS 2767, from brand.ucsd.edu/visual-brand/color.
+     Not an approximation.
+
+       primary       14.18:1 on white -- safe for text and for solid fills,
+                     with more than twice the headroom the green had (6.13)
+       primary-soft  the partial-progress fill, navy-tinted
+       primary-fill  the light fill; 1.97:1 on card, so it CANNOT hold its own
+                     edge and stays ringed. That is a property of the fill, not
+                     an oversight -- see the alias note in layer 3.
+
+     The hover/active ramp INVERTS the green's direction, deliberately. Green
+     sat mid-range at 6.13:1, so both states went darker. Navy starts at
+     14.18:1; darkening it twice heads to black and throws the brand away. So
+     hover LIFTS (11.57:1) and active PRESSES darker (16.86:1), which is also
+     the more conventional read of the two gestures. Both keep white text far
+     clear of 4.5:1.
+
      Keeping the text-safe value on `primary` is why every existing
      `text-primary` / `bg-primary` / `bg-primary-soft` retunes for free. */
-  --thrive-primary: #3f6b4f;
-  --thrive-primary-hover: #355c43;
-  --thrive-primary-active: #2b4a37;
+  --thrive-primary: #182b49;
+  --thrive-primary-hover: #22395e;
+  --thrive-primary-active: #101d33;
   --thrive-on-primary: #ffffff;
-  --thrive-primary-soft: #e7eee9;
-  --thrive-mint: #6aab84;
-  --thrive-on-mint: #0f2117;
+  --thrive-primary-soft: #e9edf3;
+  --thrive-primary-fill: #9dbcdb;
+  --thrive-on-primary-fill: #0d1b2e;
+
+  /* RESERVED, and reserved by ratio rather than by convention:
+     UC SAN DIEGO YELLOW, PMS 116, official value from the same brand page.
+
+     ACCENT ONLY -- thin rules, small highlights, a marker on a navy ground.
+     Never a panel fill, never a button background, never a large area.
+
+     The constraint is not taste, it is measurement. Yellow is 1.50:1 on card,
+     1.43:1 on cream and 1.31:1 on the sunken hover fill. WCAG 1.4.11 asks 3:1
+     of any graphic that carries meaning, so on every light surface in this
+     system yellow is DECORATION and cannot be the only thing saying something.
+     Same standing as the hairline: if removing it makes the layout ambiguous,
+     the layout is wrong.
+
+     Its one legible home is against navy, at 9.45:1 -- which is the classic
+     campus pairing anyway. A yellow rule or marker on a navy ground is a real
+     graphic; the same rule on cream is a flourish.
+
+     Enforced by a CEILING in scripts/check-contrast.py, exactly as `faint` is:
+     if yellow ever clears 3:1 on a light surface, someone will promote it to
+     an indicator and get away with it. The gate fails instead.
+
+     UC San Diego also publishes Gold #C69214 (PMS 1245). Not adopted: it is
+     2.79:1 on card, so it fails the same bar while adding a second warm token
+     to reason about. Where a warm accent must be legible, `watch` (#8f6220,
+     5.34:1) already exists and already means something. */
+  --thrive-yellow: #ffcd00;
 
   /* RESERVED: indigo marks "this is where you are now" and nothing else.
      Not a status, not an action colour. Current phase on the timeline, today
      on the calendar, the next thing up in a list. If it starts decorating,
-     it stops locating. */
+     it stops locating.
+
+     KEPT UNCHANGED through the navy repalette, considered and decided rather
+     than overlooked. Indigo and navy are both blue, which is a fair worry, but
+     they separate on two axes at once: lightness (5.59:1 vs 14.18:1 on card)
+     and saturation (indigo is vivid, navy is nearly desaturated). They also
+     never take the same form -- navy is a solid fill with white on it, indigo
+     is a marker, a rule, or a word. Retuning the single most-reserved token in
+     the system to fix a collision that measurement does not show would cost
+     more than it buys.
+
+     Note what indigo did NOT give up: "an active indicator" stays indigo's
+     job. Yellow is an accent, not a locator. Two colours both meaning "here"
+     is how a reservation dies. */
   --thrive-indigo: #4c5bd4;
   --thrive-indigo-soft: color-mix(in oklab, var(--thrive-indigo) 8%, white);
 
   /* Status. RESERVED: signals status, never decoration.
 
-     on-track moved off green this pass. Green now means "an action you can
-     take", and a green status chip beside a green button would read as the
-     same signal. Calm blue still says steady without competing. */
-  --thrive-on-track: #3d6fb0;
+     on-track moved off green on 2026-08-15, because green had become "an
+     action you can take" and a green status chip beside a green button read as
+     the same signal. It moved to a calm blue.
+
+     THAT EXACT ARGUMENT NOW APPLIES TO THE BLUE. Primary is navy as of
+     2026-08-22, so a blue status chip beside a navy button repeats the
+     collision the last move was made to avoid -- same hue family, and
+     `on-track` is the one status that sits closest to a primary action in the
+     UI. So it moves once more, to a deep teal: still cool, still reads as
+     "steady", 5.90:1 on card, and 2.40:1 against navy, which is far enough
+     apart to be a different statement rather than a lighter navy.
+
+     Teal was rejected on 2026-08-15 for sitting between the sage and the blue.
+     Both of those are gone, so the slot is free again.
+
+     This is the ONLY reserved colour this repalette touched. Every other one
+     keeps its value as well as its meaning. */
+  --thrive-on-track: #14706b;
   --thrive-watch: #8f6220;
   --thrive-needs-help: #6a5fb0;
 
@@ -190,10 +264,35 @@
      two variables are what the Next app's next/font call produced, kept under
      the same names so the --font-sans / --font-mono chains below are unchanged.
 
-     Mono is not decoration. It marks MACHINE TRUTH: numerals, counts and
-     fractions, IDs and task numbers, compact dates, status eyebrows, and any
-     label that is a system value rather than something a person wrote.
-     Prose never goes in mono. */
+     THE TWO-FACE RULE, tightened 2026-08-22:
+
+         DM Sans for everything. JetBrains Mono for NUMBERS ONLY.
+
+     The previous wording ended "...compact dates, status eyebrows, and any
+     label that is a system value rather than something a person wrote", and
+     that last clause is what went wrong. Almost any label can be argued into
+     being "a system value", so mono spread to eyebrows, view switchers, filter
+     chips, stream names and tags. The app has two faces and read as though it
+     had more than two, because mono had stopped marking anything -- a face
+     used for a third of the interface is not an accent, it is a second body
+     font.
+
+     Mono KEEPS: clock times, counts, unit totals, percentages, fractions,
+     IDs -- values a person SCANS or compares, where a digit lining up under
+     another digit is the point.
+
+     Mono LOSES: anything made of words. Eyebrows ("CALENDAR · FALL 2026"),
+     view switchers, chips, tags, "next up", stream and filter names. Dates
+     written out in prose ("Thursday, August 20") are words and take DM Sans;
+     the time inside one ("11:00 AM") is a value and stays mono.
+
+     The test, when it is genuinely unclear: would you ever want this to line
+     up in a column with the thing above it? Column -> mono. Sentence -> sans.
+
+     Components ask for the treatment, not the face: `.thrive-numeric` and
+     `.thrive-eyebrow` in @layer components. A component that writes
+     `font-mono` directly is asserting a font, which is the design system's
+     call and not its own. */
   --font-dm-sans: 'DM Sans';
   --font-jetbrains-mono: 'JetBrains Mono';
 
@@ -283,8 +382,25 @@
   --color-primary-active: var(--thrive-primary-active);
   --color-primary-soft: var(--thrive-primary-soft);
   --color-on-primary: var(--thrive-on-primary);
-  --color-mint: var(--thrive-mint);
-  --color-on-mint: var(--thrive-on-mint);
+  --color-primary-fill: var(--thrive-primary-fill);
+  --color-on-primary-fill: var(--thrive-on-primary-fill);
+
+  /* Yellow accent. `border-yellow` for a thin rule, `text-yellow` only ever on
+     a navy ground. Not `bg-yellow` across an area -- see layer 1. */
+  --color-yellow: var(--thrive-yellow);
+
+  /* DEPRECATED ALIASES, kept on purpose for one phase.
+     `mint` / `on-mint` were the green light-fill pair. The fill is navy-family
+     now, and a blue token called "mint" is a lie that would survive in the
+     codebase far longer than the rename would take. Renamed to
+     `primary-fill` / `on-primary-fill`.
+
+     The aliases stay because the frozen Next tree has 13 `bg-mint` /
+     `text-on-mint` call sites (TaskRow, ProgramTimeline, QuickListWidget) and
+     the component sweep that ports them has not happened yet. Whoever does
+     that sweep should write `bg-primary-fill` and delete these two lines. */
+  --color-mint: var(--thrive-primary-fill);
+  --color-on-mint: var(--thrive-on-primary-fill);
 
   --color-on-track: var(--thrive-on-track);
   --color-on-track-soft: var(--thrive-on-track-soft);
@@ -495,6 +611,45 @@
 }
 
 @layer components {
+  /* ── The two type treatments ────────────────────────────────────────────
+     The whole of the two-face rule, as two classes. A component asks for a
+     TREATMENT and the system decides the face; see the rule in layer 1.
+
+     Why classes rather than `font-mono` at the call site: the old rule was
+     stated only in a comment, so every call site re-decided it and mono drifted
+     onto eyebrows, chips and switchers. A name that means "this is a value"
+     cannot drift the same way -- putting `.thrive-numeric` on the word
+     "agenda" reads as obviously wrong in review, where `font-mono` on it read
+     as a style choice. */
+
+  /* MACHINE TRUTH. Clock times, counts, unit totals, percentages, fractions,
+     IDs -- values a person scans or compares.
+     Tabular by construction: the reason these are mono is that digits line up,
+     and a proportional-figure mono defeats the point. This is also why a row
+     does not reflow as "in 3 days" becomes "in 10 days". */
+  .thrive-numeric {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* The small label above a heading. WORDS, therefore DM Sans.
+     The uppercase-and-tracked treatment is what was actually doing the work
+     here; mono was along for the ride. Bundling size, tracking, case and weight
+     into one class is also what stops the next eyebrow being assembled from
+     four utilities and coming out slightly different.
+     Tracking is wide because uppercase at 12px needs the air -- this is the one
+     place in the system that tracks a small size, and it is why the type scale
+     leaves tracking to the top three steps and to here. */
+  .thrive-eyebrow {
+    font-family: var(--font-sans);
+    font-size: var(--text-3xs);
+    line-height: var(--text-3xs--line-height);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--thrive-muted);
+  }
+
   /* ── The panel ──────────────────────────────────────────────────────────
      Every card, section, and box in THRIVE. One class so the treatment is a
      system decision made once, not a Tailwind string copied into 30 files.
