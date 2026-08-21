@@ -480,3 +480,57 @@ export interface ResourceLink {
   /** Owning office or team, e.g. "Rady Career Management". */
   owner?: string;
 }
+
+// ---------------------------------------------------------------------------
+// Ask THRIVE
+// ---------------------------------------------------------------------------
+
+/**
+ * The three surfaces Ask THRIVE is split into.
+ *
+ * A closed union, and load-bearing in the same way `EventType` is: the route
+ * parameter is validated against exactly this set, so an unknown destination is
+ * a 404 rather than an empty page. `ASK_DESTINATIONS` in `$lib/ask` is the
+ * ordered rendering list built from it.
+ *
+ * `courses` rather than `recommender`: the slug is what a student sees in the
+ * address bar, and "what do I want to ask about" is answered by the subject, not
+ * by the name of the machine answering.
+ */
+export type AskDestination = "resources" | "courses" | "career";
+
+/** Who said it. Two participants, so this never needs to be a string. */
+export type ChatRole = "student" | "thrive";
+
+export interface ChatMessage {
+  id: string;
+  role: ChatRole;
+  body: string;
+  sentAt: ISODateTime;
+}
+
+/**
+ * One saved conversation.
+ *
+ * ## Why this is provider data and not a store
+ *
+ * A conversation cannot live in `localStorage`. They are large, they grow
+ * without bound, and a student who opens THRIVE on a different laptop would
+ * find an empty history with no way to tell that from never having asked
+ * anything. So this is server data reached through a provider, mocked for now
+ * exactly like every other surface in this app was built.
+ *
+ * Note what that means for the id: `conv-001` is a SERVER id, and nothing
+ * client-side is keyed by it. It is not a fourth persisted key space -- the
+ * three (raw `Event.id`, calendar item id, task id) are all `localStorage`
+ * spaces, and this adds no store at all.
+ */
+export interface Conversation {
+  id: string;
+  destination: AskDestination;
+  /** Short label for the history list. Written by the fixture, later derived. */
+  title: string;
+  messages: ChatMessage[];
+  /** When the last message landed. Drives the history list's order. */
+  updatedAt: ISODateTime;
+}

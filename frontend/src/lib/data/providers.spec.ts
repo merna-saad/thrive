@@ -105,12 +105,16 @@ describe("the provider surface", () => {
     "getCurrentResume",
     "generateNewVersion",
     "setCurrentVersion",
+    "getConversations",
+    "getConversation",
   ] as const;
 
-  it("exports all 25 providers and SlotUnavailableError from $lib/data", async () => {
+  it("exports all 27 providers and SlotUnavailableError from $lib/data", async () => {
     const data = await freshData();
 
-    expect(PROVIDERS).toHaveLength(25);
+    // 25 through Phase 7; the two Ask THRIVE conversation reads landed in
+    // Phase 9. The literal is the pin -- widening the seam should be a decision.
+    expect(PROVIDERS).toHaveLength(27);
     for (const name of PROVIDERS) {
       expect(typeof data[name], `${name} is missing from the barrel`).toBe(
         "function",
@@ -144,6 +148,7 @@ describe("the provider surface", () => {
       "mockAdvisors",
       "mockSkills",
       "buildMockCourses",
+      "buildMockConversations",
       "buildProgramTimeline",
       "resolveAfterDelay",
       "setMockLatencyMs",
@@ -185,9 +190,11 @@ describe("the provider surface", () => {
       data.getCurrentResume(),
       data.generateNewVersion(),
       data.setCurrentVersion("res-001"),
+      data.getConversations(),
+      data.getConversation("conv-001"),
     ];
 
-    expect(calls).toHaveLength(25);
+    expect(calls).toHaveLength(27);
     for (const call of calls) {
       expect(call).toBeInstanceOf(Promise);
     }

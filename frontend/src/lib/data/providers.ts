@@ -41,6 +41,7 @@ import type {
   AppointmentSlot,
   Assignment,
   Course,
+  Conversation,
   CourseRequest,
   CourseRequestInput,
   CourseRequestPrefill,
@@ -74,6 +75,7 @@ import {
 } from "./mock/resume";
 
 import { buildMockAssignments } from "./mock/assignments";
+import { buildMockConversations } from "./mock/conversations";
 import { buildMockCourses } from "./mock/courses";
 import { mockDegreeProgress } from "./mock/degree";
 import { buildMockEvents } from "./mock/events";
@@ -512,4 +514,66 @@ export function setCurrentVersion(
   }
 
   return resolveAfterDelay({ ...target });
+}
+
+// ---------------------------------------------------------------------------
+// Ask THRIVE
+// ---------------------------------------------------------------------------
+//
+// SIMULATED, and more thoroughly than anything else here. There is no retrieval
+// service, no index of program material, and no model behind these -- they read
+// a fixture and stop. What they are is the SHAPE the real thing has to arrive
+// in: a promise of conversations, newest first, and a promise of one by id.
+//
+// ## Why these are providers rather than a client-side store
+//
+// A conversation cannot live in `localStorage`. They are large, they grow
+// without bound, and a student opening THRIVE on a second laptop would find an
+// empty history indistinguishable from never having asked anything. So the
+// history is server data from the start, mocked exactly the way every other
+// surface in this app was, and the body of each function is the only thing that
+// changes when there is something real to call.
+//
+// Nothing here mutates. See the note in `mock/conversations.ts` for why there
+// is deliberately no fourth module-scope store.
+
+/**
+ * Saved conversations, newest first.
+ *
+ * Sorted here rather than in the page for the usual reason: every consumer
+ * would otherwise redo it, and two consumers sorting independently is how a
+ * rail and a list come to disagree about which conversation is the recent one.
+ *
+ * NOT filtered by destination. The filter is one predicate over a list the
+ * caller already holds -- see `conversationsFor` in `$lib/ask` -- and a
+ * per-destination provider would mean three round trips to render one rail that
+ * shows a count for each.
+ */
+export function getConversations(): Promise<Conversation[]> {
+  const conversations = buildMockConversations()
+    .slice()
+    .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
+    // Copies out, and the message arrays too: a shallow spread would hand the
+    // caller the fixture's own array, and this is the one provider whose nested
+    // collection a UI has an obvious reason to want to append to.
+    .map((conversation) => ({
+      ...conversation,
+      messages: conversation.messages.map((message) => ({ ...message })),
+    }));
+
+  return resolveAfterDelay(conversations);
+}
+
+/**
+ * One conversation by id, or null when there is no such thing.
+ *
+ * Null rather than a throw: a stale link to a conversation is an ordinary thing
+ * to hold, and the page turns it into a 404 itself. Built on `getConversations`
+ * so the copying rule has exactly one implementation.
+ */
+export async function getConversation(
+  conversationId: string,
+): Promise<Conversation | null> {
+  const conversations = await getConversations();
+  return conversations.find((entry) => entry.id === conversationId) ?? null;
 }
