@@ -1,4 +1,4 @@
-<!-- updated-at: ad38970 -->
+<!-- updated-at: 105d50c -->
 
 # CONTEXT
 
@@ -8,8 +8,8 @@ without asking anyone.
 **Regenerated in full every handoff.** Never patch it — a partial edit leaves
 stale claims sitting beside fresh ones with no way to tell them apart.
 
-This pass covers **the dark theme** and **two fixture bugs on Home**, in six
-commits. The theme was the larger piece of work; the fixture bugs are the more
+This pass covers **the dark theme**, **two fixture bugs on Home**, and **the deletion
+of the two fields those bugs were hiding in**, in nine commits. The theme was the larger piece of work; the fixture bugs are the more
 interesting record, because they are what a second theme flushed out of a
 codebase that had been green on every gate for days.
 
@@ -1310,6 +1310,10 @@ read only happens at runtime. Declaration order in a `<script>` is not a suggest
   against `allNav` and **throws** when there is no match.
 - **The top bar is 48px above `lg`, 56px below.** The CONTROLS change size and the
   bar's height follows from them: **44px on touch, 30.375px above `lg`.**
+- **It renders the current term from the TIMELINE**, not from a field on the student.
+  `Student.currentTerm` was deleted on 2026-08-22 for drifting a term out of step; the
+  bar takes `ProgramTimeline.currentTerm` as a prop from the root layout, and drops the
+  separator along with it when there is no current phase.
 - **`--thrive-page-gutter-bottom`** is the page's bottom breathing room, used twice:
   on mobile added to the bottom nav's height, and above `lg` it is the whole padding.
 - **Icons are component references held as values.** Not `<svelte:component>`,
@@ -1673,8 +1677,9 @@ exactly its shape. See below.
 ### The fixture student
 
 `mock/student.ts`. One MSBA student · **17 month** track · goal "Data Scientist" ·
-**Summer 2026** · `programStart: 2026-08-03` · standing `onTrack`. `programStart` is a
-**start** date; the finish term and the percentage are both derived.
+`programStart: 2026-08-03` · standing `onTrack`. **There is no `currentTerm` field** —
+`programStart` plus `track` is the whole input, and the current term, the finish term
+and the percentage are all derived from them.
 
 Two advisors, and the pair matters rather than the people: **a graduate student
 advisor** (an on-campus room in Rady) and **a career coach** (the CMC, or Zoom). One
@@ -1752,10 +1757,29 @@ one contradicting both.**
 > duplicates what the timeline and the catalogue already imply. **When a field can be
 > derived, deriving it is not a refactor — it is the only way it cannot drift.**
 
-**`currentTerm` should probably not exist.** It is corrected rather than deleted only
-because `TopBar` renders it as a prop and removing it is a behaviour change. The right
-fix is to delete the field and have the bar read the timeline's current phase.
-`degree.track` is kept because the type is part of the backend contract, and flagged.
+**BOTH FIELDS ARE GONE AS OF 2026-08-22** (owner, approved as a behaviour change),
+which is the actual fix rather than the correction. `ProgramTimeline.currentTerm`
+replaced the first — derived from the same `current` phase as `currentPhaseId`, so the
+two cannot disagree — and `TopBar` takes it as a prop from the root layout.
+`DegreeProgress.track` was simply deleted; `Student.track` owns it.
+
+> **Correcting a duplicated truth buys one release. Deleting it is the only thing that
+> stops it drifting again.** Three fields have now gone this way, and each survived
+> review by rendering nowhere.
+
+**Not everything could be deleted, and the difference is the useful part.**
+`standingSummary` is prose a human or a model writes about this student; it is not
+derivable from anything, so it is corrected and then GATED. **Derive what you can; gate
+what you cannot.**
+
+**THE TIMELINE MOVED TO THE ROOT LAYOUT**, and that is the part of this change worth
+reviewing. `TopBar` renders the term on every route, and `getProgramTimeline` reads the
+clock itself — so a second call in Home's load would be two clock reads and two
+timelines in one request, and at a phase boundary the bar could name one term while the
+strip named another. The same bug, rebuilt one layer up. The layout owns the one call;
+Home reads it through `await parent()`. `getStudent()` is still called in both, and
+that is fine rather than inconsistent: it reads no clock, so two calls cannot disagree.
+**The rule is about derived values, not duplicate fetches.**
 
 #### `fixtureConsistency.spec.ts` pins relationships, not numbers
 
@@ -1767,9 +1791,13 @@ expected value from the OTHER fixture and letting the two argue:
 - `unitsCompleted` ≤ the units a `complete` phase could have awarded — **and** today
   that ceiling is 0, **and** a companion assertion at a later date proves the ceiling
   can be non-zero, so the zero is not vacuous.
-- `student.currentTerm` == the timeline's `current` phase term.
-- the enrolments' terms == exactly `[student.currentTerm]`.
-- `degree.track` == `student.track` == `timeline.track`.
+- the timeline's `currentTerm` and `currentPhaseId` name the same phase — a coherence
+  check on the derivation, now that there is no second field left to disagree.
+- the enrolments' terms == exactly `[timeline.currentTerm]`. **This is the assertion
+  that now carries the weight**, because the term the bar renders IS that value rather
+  than a copy of it.
+- `timeline.track` == `student.track`. One clause shorter than it was, which is the
+  right direction for a test like this.
 - `coreRequired` == `CORE_CODES.length`; `core + elective` == `catalogue.length`;
   `unitsRequired` == the catalogue's summed units.
 - `coreDone + electiveDone` × per-course units == `unitsCompleted`.
@@ -2892,10 +2920,17 @@ that prose in this repo has to describe the offending utility rather than quote 
 - **`unitsCompleted` is 0 and is DERIVED from the timeline and the enrolments.** So are
   `coreRequired` (5), `electiveRequired` (7) and `unitsRequired` (48), from the
   catalogue. The 48 rests on placeholder unit values and says so.
-- **`student.currentTerm` should be deleted and read from the timeline instead.**
-  Corrected rather than deleted this pass only because `TopBar` renders it as a prop.
-- **`degree.track` is a second answer to `student.track`** and is kept only because the
-  type is the backend's contract. If it ever renders, delete it.
+- **`Student.currentTerm` and `DegreeProgress.track` are DELETED**, not corrected
+  (owner, approved as a behaviour change). `ProgramTimeline.currentTerm` replaces the
+  first and `TopBar` takes it as a prop; `Student.track` owns the second.
+- **The root layout owns the one `getProgramTimeline()` call** and Home reads it via
+  `await parent()`, so there is one clock read and one timeline per request.
+- **Summer 2027 and Fall 2027 stay empty.** The catalogue covers four terms and the
+  timeline has six phases; the empty state is honest and inventing two terms of courses
+  would put fabricated codes on the page that tells a student what they are taking.
+- **`check:interaction` is NEVER pinned to a fixed date.** Catching a Saturday bug on a
+  Saturday is worth more than a gate that never surprises us. When it goes red, check
+  the DAY before the diff.
 - **Fixture prose names a course by its CODE**, because that is checkable and a title is
   not.
 
@@ -3091,9 +3126,8 @@ Calm, plain, honest about what is simulated.
    contrast gate will not evaluate. Left that way (owner). The dark seven are measured.
 8. **`prefers-contrast` and forced-colors have never been considered.** Neither was in
    scope for the theme.
-9. **`student.currentTerm` and `degree.track` are still second answers to derived
-   questions.** Both corrected, neither deleted. Deleting `currentTerm` means `TopBar`
-   reads the timeline instead, which is a behaviour change.
+9. ~~`student.currentTerm` and `degree.track` are still second answers to derived
+   questions.~~ **Closed 2026-08-22** — both deleted, `TopBar` reads the timeline.
 10. **The catalogue's `units: 4` is a placeholder that now has a consumer.**
     `unitsRequired: 48` is derived from it, so correcting the units means re-deriving
     the total.

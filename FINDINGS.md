@@ -4,6 +4,69 @@ Reusable patterns and lessons. Things worth knowing again.
 
 ---
 
+## 2026-08-22 (sixth pass) — correcting a duplicate buys one release
+
+### Deleting is the fix; correcting is a deferral
+
+`Student.currentTerm` and `DegreeProgress.track` were both *corrected* one day and
+*deleted* the next, and the second day is the one that fixed anything. Both were stored
+answers to questions a pure function already answered, and a corrected duplicate is
+still a duplicate — it drifts again the next time somebody edits one side.
+
+Three fields have now gone this way: `expectedCompletion`, `Student.currentTerm`,
+`DegreeProgress.track`. **All three survived review by rendering nowhere**, and all three
+were noticed only when something finally read them.
+
+> **When a field can be derived, correcting it is a deferral and deleting it is the
+> fix.** The test is whether a pure function already has every input it needs — if it
+> does, the stored copy has no job except to be wrong eventually.
+
+### But some things cannot be derived, and those get gated instead
+
+`standingSummary` named a deleted course. It could not be deleted the way the other two
+were: it is prose a human or a model writes about this student, and nothing derives it.
+
+So it was corrected and then **gated** — the consistency spec requires it to name a
+course the student is actually enrolled in.
+
+> **Derive what you can; gate what you cannot.** Those are the only two durable answers.
+> A third — "correct it and be careful" — is the one that produced all of this.
+
+### Removing a duplicate can rebuild it one layer up if you are not careful
+
+Deleting `currentTerm` meant `TopBar` had to read the timeline, which meant the shell
+needed the timeline, which meant a `getProgramTimeline()` call in the root layout.
+
+**Home already called it.** And that provider reads the clock itself — so two calls in
+one request are two clock reads and two timelines, and at a phase boundary the bar could
+name one term while the strip named another. **Exactly the bug being removed, rebuilt at
+the layout/page seam.** The fix was for the layout to own the one call and Home to read
+it through `await parent()`.
+
+> **When you delete a duplicated value, check that the plumbing you add to replace it
+> does not duplicate its SOURCE.** The second copy moves up a level and is harder to see
+> there, because it looks like ordinary data loading.
+
+**And the converse, so the rule does not overreach:** `getStudent()` is still called in
+both the layout and Home, deliberately. It reads no clock, so two calls cannot disagree.
+**The rule is about derived values, not duplicate fetches.**
+
+### The best outcome for a consistency test is that it gets shorter
+
+`fixtureConsistency.spec.ts` lost a whole assertion (`degree.track` vs `student.track`)
+and had another weaken into a coherence check, because the fields it was comparing no
+longer both exist.
+
+That reads like losing coverage and is the opposite. **A test asserting that two things
+agree is insurance against a design that lets them disagree.** Remove the second thing
+and the insurance is not needed. Coverage went down; the number of ways the app can be
+wrong went down further.
+
+> Be suspicious of a consistency suite that only ever grows. Each new assertion is also
+> a report that another duplicate was accepted.
+
+---
+
 ## 2026-08-21 (fifth pass) — a number is only checkable against something else
 
 ### Test the relationship, because a literal pins whatever was there when you looked

@@ -4,6 +4,52 @@ Session log, newest first. What happened, what was decided, what is still open.
 
 ---
 
+## 2026-08-22 (sixth pass) — deleting the fields the fixture bugs were hiding in
+
+**HEAD:** `105d50c` · **694 tests · 261 interaction assertions (1 unproven) · 51 layout
+targets · 127 contrast assertions · six gates green · green in all seven timezones.**
+134 commits.
+
+Two commits. Detail in CHANGELOG; CONTEXT §12 has the reasoning and §16 the decisions.
+
+### What was decided
+
+- **`Student.currentTerm` and `DegreeProgress.track` are DELETED**, not corrected
+  (owner, approved as a behaviour change). Three fields have now gone this way counting
+  `expectedCompletion`, and each survived review by rendering nowhere.
+- **`ProgramTimeline.currentTerm` is the replacement** — derived beside `currentPhaseId`
+  from the same variable, so they cannot disagree.
+- **The root layout owns the one `getProgramTimeline()` call.** Home reads it through
+  `await parent()`, so there is one clock read and one timeline per request. Two calls
+  would have rebuilt the same bug one layer up.
+- **`getStudent()` stays duplicated on purpose** — no clock, so no drift. The rule is
+  about derived values, not duplicate fetches.
+- **Summer 2027 and Fall 2027 stay empty** (owner). The empty state is honest.
+- **`check:interaction` is never pinned to a fixed date** (owner). When it goes red,
+  check the day before the diff.
+- **`catalogue.ts`'s `units: 4` is flagged as having a consumer now** — `unitsRequired`
+  derives from it, so a change there moves the degree total.
+
+### Still open
+
+1. **`/assignments` is the next real page**, and it owes `TaskRow` a `role="list"`
+   container.
+2. **Nobody has seen the dark theme on a real screen.** Every claim about it is a
+   measurement. `later`/`indigo` at dE 0.0759 and `urgent` at `#ff6343` are the two most
+   likely complaints.
+3. **The seven light `*-soft` tints remain unmeasured**, by decision.
+4. **`prefers-contrast` and forced-colors have never been considered.**
+5. **The catalogue's placeholder units** now move the degree total when corrected.
+6. **Django, Group Projects, the recommender** — unchanged, and on the critical path.
+7. **Release 1 dates still need re-setting.**
+
+### Carried forward
+
+The fifth pass's list below still stands except its item 1 (both fields now deleted) and
+items 2–3, which were the owner's answers and are applied.
+
+---
+
 ## 2026-08-21/22 (fifth pass) — two fixture bugs on Home, four answers, and a Saturday
 
 **HEAD:** `ad38970` · **694 tests · 261 interaction assertions · 51 layout targets ·

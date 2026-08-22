@@ -4,6 +4,71 @@ Dated session summaries, most recent first.
 
 ---
 
+## 2026-08-22 (sixth pass) — deleting the fields the fixture bugs were hiding in
+
+**HEAD:** `105d50c` · **694 tests · 261 interaction assertions (1 unproven) · 51 layout
+targets · 127 contrast assertions across both themes · six gates green · green in all
+seven timezones.** 134 commits.
+
+Two commits. Yesterday both of these fields were *corrected*; today they are gone.
+
+### `fe00e53` — the two fields that duplicated the timeline
+
+- **`Student.currentTerm` deleted.** It said "Fall 2026" while the timeline put the
+  student in Summer 2026, so the top bar named one term and the strip three lines below
+  it named another — which is what "Home is showing the wrong Summer courses" turned out
+  to be. **`ProgramTimeline.currentTerm` replaces it**, derived from the same `current`
+  phase as `currentPhaseId` so the two cannot disagree.
+- **`DegreeProgress.track` deleted.** "11 month" against the student's "17 month",
+  surviving because nothing rendered it. A degree audit does not own the student's track.
+- **Three fields have now gone the same way**, counting `expectedCompletion`. Each was a
+  stored answer to a derived question, and each survived review by rendering nowhere.
+
+> **Correcting a duplicated truth buys one release. Deleting it is the only thing that
+> stops it drifting again.**
+
+**THE TIMELINE MOVED TO THE ROOT LAYOUT, and that is the part worth reviewing.** TopBar
+renders the term on every route, and `getProgramTimeline` reads the clock itself — so a
+second call in Home's load would be two clock reads and two timelines in one request,
+and at a phase boundary the bar could name one term while the strip named another. **The
+same bug, rebuilt one layer up.** So the layout owns the one call and Home reads it
+through `await parent()`. Home's load now waits for the layout's rather than running
+fully in parallel, which on a mock layer is nothing.
+
+`getStudent()` is still called in both, deliberately: it reads no clock, so two calls
+cannot disagree. **The rule is about derived values, not duplicate fetches.**
+
+**Not everything could be deleted.** `standingSummary` is prose a human or a model
+writes; it is not derivable from anything, so it is corrected and then gated. **Derive
+what you can; gate what you cannot.**
+
+**And the consistency spec got shorter**, which is the right direction for a test like
+it: the `currentTerm`-versus-timeline assertion became a coherence check on the
+derivation, and the `degree.track` one is simply gone.
+
+### `105d50c` — three decisions recorded so they are not relitigated
+
+- **`catalogue.ts`'s placeholder `units: 4` now HAS a consumer**, and the note said the
+  opposite. `unitsRequired` is 48 because it is 12 × 4, so changing a unit value moves
+  the degree total and the gate goes red rather than letting them drift. The note also
+  named the wrong file — `unitsRequired` has always been on `mock/degree.ts`.
+- **Summer 2027 and Fall 2027 stay empty.** The catalogue covers four terms, the
+  timeline has six phases. The empty state is honest; inventing two terms of courses to
+  make six pips look uniform would put fabricated codes on the one page that tells a
+  student what they are actually taking.
+- **`check:interaction` is never pinned to a fixed date.** Catching a Saturday bug on a
+  Saturday is worth more than a gate that never surprises us. A pinned clock would have
+  hidden both of yesterday's reds indefinitely. The cost is written down: when it goes
+  red, **check the day before the diff.**
+- **BACKEND.md marks both deleted fields "do not add one"**, with the reason, because a
+  backend author would otherwise reinstate them as obvious.
+
+**Known issues / next priorities:** `/assignments` is next, and owes `TaskRow` a
+`role="list"` container. The dark theme still has not been seen on a real screen by a
+person. `prefers-contrast` and forced-colors remain unconsidered.
+
+---
+
 ## 2026-08-21/22 (fifth pass) — two fixture bugs on Home, four answers, and a Saturday
 
 **HEAD:** `ad38970` · **694 tests · 261 interaction assertions · 51 layout targets ·

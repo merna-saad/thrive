@@ -1,9 +1,27 @@
 # TESTING
 
-**Last verified:** 2026-08-22 at `ad38970`. **694 tests, 33 files, all
-passing. 261 interaction assertions, 51 layout targets, 127 contrast assertions
+**Last verified:** 2026-08-22 at `105d50c`. **694 tests, 33 files, all
+passing. 261 interaction assertions (1 unproven on a weekend), 51 layout targets,
+127 contrast assertions
 across BOTH THEMES.** Verified green in **all seven timezones**, re-run this pass rather
 than assumed — and in 7a the sweep **caught a real failure**, which is recorded below.
+
+### What the field deletions changed (2026-08-22)
+
+`fixtureConsistency.spec.ts` **got shorter**, and that is the right direction. The
+`degree.track` vs `student.track` assertion is gone because `DegreeProgress.track` is
+gone, and the `currentTerm` one became a coherence check on the derivation
+(`currentTerm` and `currentPhaseId` must name the same phase) because there is no second
+field left to disagree with.
+
+**A test asserting that two things agree is insurance against a design that lets them
+disagree.** Removing the second thing removes the need for the insurance. Coverage went
+down; the number of ways the app can be wrong went down further.
+
+Still 15 assertions — the two that changed were replaced rather than dropped, and the
+one carrying the weight now is *the enrolments' terms == exactly
+`[timeline.currentTerm]`*, because the term the top bar renders IS that value rather
+than a copy of it.
 
 ### What the fixture pass added (2026-08-21)
 
