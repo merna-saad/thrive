@@ -2050,7 +2050,7 @@ try {
 		};
 		return {
 			nav: box(document.querySelector('[data-nav="rail"]')),
-			pageRail: box(document.querySelector('aside[aria-label="Ask THRIVE sections"]')),
+			history: box(document.querySelector('nav[aria-label="Saved conversations"]')),
 			chat: box(document.querySelector('[role="log"]')),
 			main: box(document.querySelector('#main-content')),
 			viewport: window.innerWidth
@@ -2060,14 +2060,38 @@ try {
 	const boxes = await ask.evaluate(readBoxes);
 
 	check(
-		'the second rail is gone',
-		boxes.pageRail === null,
-		'destinations moved into the nav rail; a rail holding only history is not worth a column'
+		'the page reads nav rail, history rail, chat — left to right',
+		boxes.nav !== null &&
+			boxes.history !== null &&
+			boxes.chat !== null &&
+			boxes.history.left >= boxes.nav.right &&
+			boxes.chat.left >= boxes.history.right,
+		`nav ends ${boxes.nav?.right}, history ${boxes.history?.left}-${boxes.history?.right}, chat starts ${boxes.chat?.left}`
 	);
 	check(
-		'the chat uses the width the page has',
-		boxes.chat !== null && boxes.chat.width > 800,
-		`chat ${boxes.chat?.width}px inside a ${boxes.viewport}px viewport (was ~640px behind a 224px rail)`
+		'the history rail is a column, not a strip, on a desktop',
+		(boxes.history?.width ?? 0) > 180 && (boxes.history?.width ?? 0) < 320,
+		`${boxes.history?.width}px`
+	);
+	check(
+		'the chat still uses the width the page has',
+		boxes.chat !== null && boxes.chat.width > 700,
+		`chat ${boxes.chat?.width}px inside a ${boxes.viewport}px viewport`
+	);
+	check(
+		'the history and the chat scroll independently',
+		await ask.evaluate(() => {
+			const list = document.querySelector('nav[aria-label="Saved conversations"] ul');
+			const log = document.querySelector('[role="log"]');
+			if (!list || !log) return false;
+			const scrolls = (el) => {
+				const o = getComputedStyle(el).overflowY;
+				return o === 'auto' || o === 'scroll';
+			};
+			// Two separate scroll containers, and neither contains the other.
+			return scrolls(list) && scrolls(log) && !list.contains(log) && !log.contains(list);
+		}),
+		'so scrolling one cannot move the other'
 	);
 	check(
 		'the page reaches close to the edges',
@@ -2188,7 +2212,7 @@ try {
 	);
 
 	// ── A saved conversation is linkable ───────────────────────────────────
-	const historyLinks = 'ul[aria-label="Saved conversations"] a';
+	const historyLinks = 'nav[aria-label="Saved conversations"] ul a';
 	const savedCount = await ask.locator(historyLinks).count();
 
 	if (savedCount === 0) {
@@ -2208,6 +2232,21 @@ try {
 			'opening a saved conversation puts it in the URL',
 			/^\?c=conv-/.test(opened.search),
 			opened.search
+		);
+		check(
+			'the open conversation is marked current in the history rail',
+			await ask.evaluate(
+				() =>
+					document.querySelectorAll(
+						'nav[aria-label="Saved conversations"] a[aria-current="page"]'
+					).length === 1
+			),
+			'one row, and it is the one named in the URL'
+		);
+		check(
+			'there is always a way to start a new conversation',
+			(await ask.locator('nav[aria-label="Saved conversations"] a[href="/ask/resources"]').count()) === 1,
+			'a link to the bare destination, which IS a new conversation here'
 		);
 		check(
 			'the saved messages render',
@@ -2434,13 +2473,18 @@ try {
 		`${phoneSideways}px — the destination row scrolls, the document does not`
 	);
 	check(
-		'the saved history is a strip, not a column that pushes the chat down',
+		'on a phone the history is a strip rather than a second rail',
 		await askPhone.evaluate(() => {
-			const list = document.querySelector('ul[aria-label="Saved conversations"]');
-			if (!list) return true;
-			return list.getBoundingClientRect().height <= 200;
+			const rail = document.querySelector('nav[aria-label="Saved conversations"]');
+			const log = document.querySelector('[role="log"]');
+			if (!rail || !log) return true;
+			const r = rail.getBoundingClientRect();
+			const l = log.getBoundingClientRect();
+			// Above the chat, not beside it, and capped so it cannot push the composer
+			// off the bottom.
+			return r.bottom <= l.top + 1 && r.height <= 240;
 		}),
-		'one row of cards, scrolling sideways'
+		'two rails plus a chat cannot fit 375px, so this one flips axis'
 	);
 	await askPhone.close();
 

@@ -8,28 +8,50 @@
 	import { cn } from '$lib/utils';
 
 	/**
-	 * Saved conversations, as a strip above the chat.
+	 * The conversation history, as a rail beside the chat.
 	 *
-	 * ## Why this is not a rail any more
+	 * So the page reads, left to right: navigation rail, history rail, chat.
 	 *
-	 * It used to be the bottom half of a second left rail whose top half was the
-	 * three destinations. Those moved into the navigation rail, which left a 224px
-	 * column holding one list — and an almost-empty rail kept out of inertia is
-	 * exactly what the brief said not to do.
+	 * ## It has one job, and that is the point
 	 *
-	 * The width it was spending is the width the chat log wanted. So the history
-	 * became a horizontal strip and the chat panel got the whole page.
+	 * An earlier version of this rail held the three destinations AND the history.
+	 * The destinations moved into the navigation rail as a group — they are routes,
+	 * and routes belong in the navigation — which for a while left this holding one
+	 * list, and a one-list rail was dropped rather than kept out of inertia.
 	 *
-	 * **The trade, stated:** a vertical list is easier to SCAN than a horizontal
-	 * one, and this is worse for that. It is worth it because scanning is not what
-	 * a student does here — they are continuing the current conversation almost
-	 * always and reopening an old one occasionally, and the fixtures carry one to
-	 * three per destination. If a term's worth ever accumulates, this wants to
-	 * become a "see all" surface rather than a longer strip.
+	 * It comes back because a history rail is a different thing from a leftover: it
+	 * is the shape a chat app uses, a vertical column of past conversations is far
+	 * easier to SCAN than a horizontal strip of cards, and the width it costs comes
+	 * from the page's empty margins rather than from the chat.
 	 *
-	 * Scoped to the destination in view, for the same reason it always was: opening
-	 * a Career conversation from inside the Course Recommender would move the
-	 * destination underneath the student.
+	 * ## One destination's history, not all three
+	 *
+	 * Deliberate, and the reason is the URL rather than the layout. A conversation
+	 * belongs to a destination, and `/ask/[destination]/+page.server.ts` returns 404
+	 * for a real conversation opened under the wrong one — a Career exchange under
+	 * the Course Recommender heading would be a page contradicting its own address.
+	 * So a mixed list would be a list where most rows are 404s.
+	 *
+	 * Grouping all three under headings was the alternative. It was rejected on
+	 * shape: the fixtures carry one to three conversations per destination, so three
+	 * headings would be roughly one heading per row inside a 240px column. And
+	 * switching subject is now one click in the navigation rail, with the history
+	 * following it.
+	 *
+	 * ## Rail above `xl`, strip below it, ONE tree
+	 *
+	 * Two rails plus a chat cannot fit a phone, and the navigation rail already
+	 * solves its own half by being `hidden lg:flex`. So below `xl` this becomes a
+	 * horizontal scroller above the chat — the same list, the same links, a
+	 * different axis. CSS on one DOM tree rather than two media-gated subtrees,
+	 * because it is one list in a different direction and duplicating it would put
+	 * two copies of every link in the accessibility tree.
+	 *
+	 * ## The two scroll containers are independent
+	 *
+	 * This one scrolls inside itself, capped at the chat's own height token, and the
+	 * chat's log scrolls inside the chat. Neither moves the other, and neither moves
+	 * the document.
 	 */
 	let {
 		conversations,
@@ -43,43 +65,70 @@
 
 	const visible = $derived(conversationsFor(conversations, destination));
 
-	/** Which conversation is open, from the URL rather than from local state. */
+	/**
+	 * Which conversation is open, read from the URL rather than held locally.
+	 *
+	 * So a reload, a shared link and the back button all agree with the rail about
+	 * what is current, with nothing to synchronise.
+	 */
 	const openId = $derived(page.url.searchParams.get('c'));
 </script>
 
-<section aria-labelledby="ask-history-heading">
-	<div class="mb-1.5 flex flex-wrap items-baseline justify-between gap-2">
-		<p class="thrive-eyebrow" id="ask-history-heading">{copy.rail.historyHeading}</p>
+<!--
+	A `<nav>` landmark, because this IS navigation: every row is a link to a URL.
+	Named, so a screen reader user can tell it from the two other navigations on the
+	page.
+-->
+<nav
+	aria-label={copy.rail.historyLabel}
+	class="flex shrink-0 flex-col gap-1.5 xl:w-60 xl:border-r xl:border-line xl:pr-4"
+>
+	<div class="flex flex-wrap items-baseline justify-between gap-2">
+		<p class="thrive-eyebrow">{copy.rail.historyHeading}</p>
 
 		<!--
 			"New conversation" is a link to the bare destination, which is exactly what
-			a new conversation IS here: the same page with nothing open. A button
-			holding client state would be a second way to express what the URL already
-			says, and it would not survive a reload.
+			a new conversation IS here: this page with nothing open. A button holding
+			client state would be a second way to express what the URL already says,
+			and it would not survive a reload.
+
+			Always present, not only when something is open, because "start a new one"
+			is a thing a student looks for rather than a thing that appears.
 		-->
-		{#if openId}
-			<a
-				href={`/ask/${destination}`}
-				class="inline-flex min-h-11 items-center gap-1 rounded-sm px-1 text-3xs text-muted-ink hover:text-ink"
-			>
-				<MessageSquarePlus aria-hidden="true" class="size-3.5 shrink-0" />
-				{copy.rail.newConversation}
-			</a>
-		{/if}
+		<a
+			href={`/ask/${destination}`}
+			aria-current={openId ? undefined : 'page'}
+			class={cn(
+				'inline-flex min-h-11 items-center gap-1 rounded-sm px-1 text-3xs',
+				openId ? 'text-muted-ink hover:text-ink' : 'text-ink'
+			)}
+		>
+			<MessageSquarePlus aria-hidden="true" class="size-3.5 shrink-0" />
+			{copy.rail.newConversation}
+		</a>
 	</div>
 
 	{#if visible.length === 0}
+		<!--
+			An empty state that says what WOULD be here, not "no data". This is the
+			first thing a student sees on a destination they have never used, so it has
+			to read as a beginning rather than as a failure.
+		-->
 		<p class="text-3xs text-muted-ink">{copy.rail.historyEmpty}</p>
 	{:else}
-		<!-- Cards in a sideways scroller. Each is capped so three fit on a laptop and
-		     a long title truncates rather than setting the strip's width. -->
+		<!--
+			Scrolls inside itself. Above `xl` the cap is the chat's own height, so the
+			two columns end level and the chat cannot be pushed down by a long history;
+			below it the cap is short, because this sits ABOVE the chat there and the
+			composer is what the page is for.
+		-->
 		<ul
-			aria-label={copy.rail.historyLabel}
-			class="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
+			class="-mx-1 flex max-h-40 min-h-0 gap-2 overflow-x-auto overflow-y-hidden px-1 pb-1 xl:mx-0 xl:max-h-[var(--thrive-chat-height)] xl:flex-col xl:gap-1 xl:overflow-x-hidden xl:overflow-y-auto xl:px-0"
 		>
 			{#each visible as conversation (conversation.id)}
 				{@const open = conversation.id === openId}
-				<li class="w-56 shrink-0">
+
+				<li class="w-56 shrink-0 xl:w-auto xl:shrink">
 					<a
 						href={`/ask/${destination}?c=${conversation.id}`}
 						aria-current={open ? 'page' : undefined}
@@ -89,16 +138,20 @@
 						)}
 						class={cn(
 							'block h-full rounded-md border px-2.5 py-2 transition-colors duration-(--motion-fast) ease-standard',
+							// The open conversation keeps the control-weight stroke as well as
+							// the tint. The stroke is the part that survives not being able to
+							// separate the fill from the surface behind it, and `aria-current`
+							// carries it non-visually.
 							open
 								? 'border-line-strong bg-primary-soft'
-								: 'border-line bg-surface hover:border-line-strong hover:bg-primary-soft'
+								: 'border-transparent hover:border-line hover:bg-surface'
 						)}
 					>
 						<span class="line-clamp-2 text-2xs text-ink">{conversation.title}</span>
 
-						<!-- When and how long, both values, both on the numeric face so a
-						     row of them lines up. -->
-						<span class="thrive-numeric mt-1 block text-3xs text-muted-ink">
+						<!-- When and how long. Both values, both on the numeric face, so a
+						     column of them lines up. -->
+						<span class="thrive-numeric mt-0.5 block text-3xs text-muted-ink">
 							{conversation.updatedLabel} · {copy.rail.messageCount(
 								conversation.messageCount
 							)}
@@ -108,4 +161,4 @@
 			{/each}
 		</ul>
 	{/if}
-</section>
+</nav>

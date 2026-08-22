@@ -82,7 +82,19 @@
 	<!-- Only below `lg`, where the navigation rail is not on screen. -->
 	<DestinationTabs />
 
-	<AskHistory conversations={data.conversations} {destination} />
+	<!--
+		The history rail and the chat, side by side above `xl`.
 
-	{@render children()}
+		`items-start` rather than stretch: the two are independent scroll containers
+		with their own heights, and stretching would make the shorter one grow to the
+		taller and defeat both caps.
+
+		Below `xl` this stacks, and `AskHistory` flips to a horizontal strip — see the
+		note there for why two rails plus a chat cannot fit a phone.
+	-->
+	<div class="flex min-h-0 flex-col gap-4 xl:flex-row xl:items-start xl:gap-4">
+		<AskHistory conversations={data.conversations} {destination} />
+
+		{@render children()}
+	</div>
 </div>

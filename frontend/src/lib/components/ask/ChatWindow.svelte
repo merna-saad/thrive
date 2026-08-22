@@ -179,20 +179,24 @@
 	document. See `--thrive-chat-height` in `app.css` for why it is a fixed panel
 	and not a viewport calculation, and why a phone deliberately does not get one.
 
-	NO `flex-1` HERE, and it is load-bearing. This used to sit in a `flex-row`
-	beside the page rail, where `flex-1` made it take the remaining width. With the
-	rail gone it is a child of a `flex-col`, where `flex-1` sets `flex-basis: 0%`
-	and GROWS to fit the content — which silently beat the `h-` above it, so the
-	panel took its content's height, the log never overflowed, and the document
-	scrolled instead.
+	`flex-1` IS GATED ON `xl`, and that is load-bearing rather than fussy.
 
-	`check:interaction` caught it by skipping its own keyboard-scroll assertion
-	with "could not make the log overflow". A skip is the quietest possible failure
-	and it was still louder than the layout, which looked fine.
+	Above `xl` this sits in a `flex-row` beside the history rail, where `flex-1`
+	governs WIDTH and is exactly what makes the chat take the room the rail does
+	not. Below `xl` it is a child of a `flex-col`, where `flex-1` would govern
+	HEIGHT instead: `flex-basis: 0%` plus grow silently beats the `h-` beside it, so
+	the panel would take its content's height, the log would never overflow, and the
+	document would scroll in its place.
+
+	That exact mistake shipped for one commit when the rail was removed and this
+	became a column child with an ungated `flex-1`. `check:interaction` caught it by
+	SKIPPING its own keyboard-scroll assertion — "could not make the log overflow" —
+	which is the quietest possible failure and still louder than the layout, which
+	looked fine.
 -->
 <section
 	aria-labelledby="ask-destination-heading"
-	class="thrive-panel flex min-h-0 min-w-0 flex-col p-0 xl:h-[var(--thrive-chat-height)]"
+	class="thrive-panel flex min-h-0 min-w-0 flex-col p-0 xl:h-[var(--thrive-chat-height)] xl:flex-1"
 >
 	<div class="border-b border-line px-3 py-2.5">
 		<h2 id="ask-destination-heading" class="text-base font-medium text-ink">
