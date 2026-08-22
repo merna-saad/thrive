@@ -923,15 +923,47 @@
     color-scheme: light;
   }
 
-  /* Phones get one notch more.
-     A 15px body is comfortable at desk distance and marginal on a handset,
-     where the readability floor is 16px. Nudging the root rather than any
-     individual token scales the whole system -- type, spacing, and the shell's
-     rem-based heights -- by the same 6.25%, so proportions are untouched and
-     nothing needs a per-component breakpoint. Delete this one rule to revert. */
-  @media (width < 40rem) {
+  /* THE ROOT SIZE, and the bug that made the whole app render one notch large.
+     Rewritten 2026-08-21.
+
+     The rule that used to live here bumped phones to 106.25% and explained
+     itself as: "A 15px body is comfortable at desk distance and marginal on a
+     handset, where the readability floor is 16px."
+
+     That is the right design intent and it was never actually implemented.
+     `--text-sm` -- the body default -- is `1rem`, so at a 16px root the desk
+     body was **16px, not 15**, and the phone bump then stacked on top of an
+     already-correct-for-mobile base and produced **17px**. Every rem in the app
+     inherited the error: type, spacing, control heights, the rail's width. That
+     is what "the whole site renders too large" was.
+
+     Fixed at the root rather than by editing tokens, for exactly the reason the
+     old comment gave: it moves type, spacing and the shell's rem-based heights
+     by one factor, so every proportion in the system is untouched.
+
+       below 64rem   100%     -> 16px body. Phone and tablet, unchanged in
+                                spirit: the handset floor the old comment named,
+                                now reached by not bumping rather than by
+                                bumping past it.
+       64rem and up  93.75%   -> 15px body. The size the design was drawn for.
+
+     64rem, not 40rem, because that is where the desktop shell appears -- the
+     rail replaces the bottom bar, and it is the same breakpoint
+     `--thrive-topbar-height` already switches on. It also keeps every touch
+     target at a full 44px on every width that has a bottom bar, which a 40rem
+     boundary would not: `min-h-11` is 2.75rem, and 2.75 x 15 is 41.25px.
+
+     On desktop `min-h-11` does land at 41.25px, which is fine -- WCAG 2.5.8
+     asks 24px of a pointer target and this repo's own floor for one is 36px.
+
+     THE ONE STEP TO WATCH: `--text-3xs` (0.75rem) lands at 11.25px on desktop.
+     It is used for meta, counts, timers and `.thrive-eyebrow`, which is uppercase
+     and tracked and so reads larger than its measurement. If it turns out too
+     small, raise that single token -- do not undo this rule, because doing so
+     brings back the 6.25% error on everything. */
+  @media (width >= 64rem) {
     html {
-      font-size: 106.25%;
+      font-size: 93.75%;
     }
   }
 

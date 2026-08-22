@@ -1746,6 +1746,11 @@ try {
 		/* The gutter on the RIGHT, which is the side with no rail beside it and
 		   therefore the side where "against the edge" is visible. */
 		const gutterRight = content ? Math.round(window.innerWidth - content.right) : null;
+		/* The ROOT SIZE, so a cap can be asserted in the unit it is written in.
+		   `--container-page` is 80rem, not 1280px, and the root is 15px on desktop
+		   and 16px below 64rem -- so a px expectation here silently encodes the
+		   root and breaks the day it changes. It did exactly that. */
+		const root = parseFloat(getComputedStyle(document.documentElement).fontSize);
 		let prose = 0;
 		for (const el of document.querySelectorAll('p')) {
 			const r = el.getBoundingClientRect();
@@ -1757,6 +1762,7 @@ try {
 			main: main ? Math.round(main.width) : null,
 			content: content ? Math.round(content.width) : null,
 			gutterRight,
+			root,
 			prose
 		};
 	};
@@ -1766,10 +1772,30 @@ try {
 		await wide.waitForTimeout(SETTLE);
 		const m = await wide.evaluate(readMeasure);
 
+		/*
+		 * The real invariant, which the earlier version of this check got wrong.
+		 *
+		 * It asserted `main - content <= 4` -- "the page always fills its gutter
+		 * box" -- which was true only while the caps were wider than any viewport
+		 * this runs at. The moment the root font-size dropped to 15px the caps
+		 * (80rem / 96rem) shrank with it and started biting at 1512, and three
+		 * routes went red for being CORRECTLY capped.
+		 *
+		 * What actually has to hold is: the content never overflows its gutter box,
+		 * and it is narrower than that box only because a cap said so -- never for
+		 * some third reason nobody chose.
+		 */
+		const capped = m.content !== null && m.root !== null && [80, 96].some(
+			(rem) => Math.abs(m.content - rem * m.root) <= 4
+		);
 		check(
-			`${route} fills the room the gutter leaves it`,
-			m.content !== null && m.main !== null && m.main - m.content <= 4,
-			`content ${m.content}px inside ${m.main}px of gutter box`
+			`${route} is limited by its gutter or by its cap, and nothing else`,
+			m.content !== null &&
+				m.main !== null &&
+				m.content <= m.main + 4 &&
+				(m.main - m.content <= 4 || capped),
+			`content ${m.content}px in a ${m.main}px gutter box at root ${m.root}px` +
+				(capped ? ' — at its cap' : ' — gutter-limited')
 		);
 		check(
 			`${route} keeps a visible gutter`,
@@ -1794,27 +1820,33 @@ try {
 	 */
 	await wide.setViewportSize({ width: 1920, height: 1052 });
 
-	for (const [route, ceiling] of [
-		['/', 1280],
-		['/appointments', 1280],
-		['/ask/resources', 1280],
-		['/calendar', 1536]
+	/*
+	 * Ceilings in REM, resolved against the measured root. `--container-page` is
+	 * 80rem and `--container-wide` is 96rem; writing 1280 and 1536 here encoded a
+	 * 16px root as a fact and broke when it became 15.
+	 */
+	for (const [route, capRem] of [
+		['/', 80],
+		['/appointments', 80],
+		['/ask/resources', 80],
+		['/calendar', 96]
 	]) {
 		await wide.goto(BASE + route, { waitUntil: 'networkidle' });
 		await wide.waitForTimeout(SETTLE);
 		const m = await wide.evaluate(readMeasure);
+		const ceiling = capRem * (m.root ?? 16);
 
 		check(
 			`${route} stops growing at its cap on a 1920px screen`,
-			m.content !== null && m.content <= ceiling + 4 && m.content >= ceiling - 4,
-			`${m.content}px against a ${ceiling}px cap, gutter ${m.gutterRight}px`
+			m.content !== null && Math.abs(m.content - ceiling) <= 4,
+			`${m.content}px against a ${capRem}rem cap = ${Math.round(ceiling)}px at root ${m.root}px, gutter ${m.gutterRight}px`
 		);
 	}
 
 	check(
 		'the calendar is allowed more width than the rest',
 		true,
-		'1536px against 1280px — the month grid, the week columns and the agenda all use it'
+		'96rem against 80rem — the month grid, the week columns and the agenda all use it'
 	);
 
 	await wide.setViewportSize({ width: DESKTOP.width, height: DESKTOP.height });
