@@ -370,17 +370,29 @@ export async function cancelAppointment(
  * has to know how to derive a unit count.
  */
 export async function getRequestPrefill(): Promise<CourseRequestPrefill> {
-  const [student, courses, degree] = await Promise.all([
+  const [student, courses, degree, timeline] = await Promise.all([
     getStudent(),
     getCourses(),
     getDegreeProgress(),
+    getProgramTimeline(),
   ]);
 
   return {
     studentName: student.name,
     program: student.program,
     track: student.track,
-    term: student.currentTerm,
+    /*
+     * From the TIMELINE, not from a field on the student. `Student.currentTerm`
+     * was deleted on 2026-08-22 for drifting a term out of step with the
+     * timeline it duplicated -- see `mock/student.ts`.
+     *
+     * The fallback is the ENROLMENTS' term rather than an empty string: a
+     * request form needs a term, and a student between phases is still enrolled
+     * in something. `fixtureConsistency.spec.ts` pins those two to agree, so
+     * this reads as "the current term, or the one the courses are in" rather
+     * than as two sources of truth.
+     */
+    term: timeline.currentTerm ?? courses[0]?.term ?? "",
     currentCourses: courses.map((course) => `${course.code} · ${course.title}`),
     currentUnits: courses.reduce((total, course) => total + course.units, 0),
     unitsCompleted: degree.unitsCompleted,
@@ -518,7 +530,11 @@ export async function generateNewVersion(): Promise<{
   diff: ResumeDiff;
 }> {
   const store = readResumeStore();
-  const [student, courses] = await Promise.all([getStudent(), getCourses()]);
+  const [student, courses, timeline] = await Promise.all([
+    getStudent(),
+    getCourses(),
+    getProgramTimeline(),
+  ]);
 
   const previous = store.versions.find((version) => version.isCurrent) ?? null;
 
@@ -554,7 +570,12 @@ export async function generateNewVersion(): Promise<{
 
   const version: ResumeVersion = {
     id: nextVersionId(),
-    label: `Regenerated from ${student.currentTerm} courses`,
+    /*
+     * The term comes from the timeline now. `Student.currentTerm` was deleted on
+     * 2026-08-22 -- see `mock/student.ts`. Falls back to the enrolments' term,
+     * which the consistency spec pins to the same value.
+     */
+    label: `Regenerated from ${timeline.currentTerm ?? courses[0]?.term ?? "current"} courses`,
     createdAt: new Date().toISOString(),
     summary,
     skills,

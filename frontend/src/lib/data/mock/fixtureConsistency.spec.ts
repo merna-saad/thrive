@@ -83,27 +83,43 @@ describe("the student's position in the timeline", () => {
     expect(phases[0].status).toBe("current");
   });
 
-  it("agrees with the term the top bar renders", () => {
-    // `student.currentTerm` said "Fall 2026" while the strip beneath it said
-    // Summer 2026. Derived from the timeline rather than compared to a literal,
-    // so this follows a change of start date or track.
-    const current = timeline().phases.find((phase) => phase.status === "current");
+  it("names its current term, and names the phase that is current", () => {
+    /*
+     * `currentTerm` replaced `Student.currentTerm`, which said "Fall 2026" while
+     * the timeline put the student in Summer 2026 (see `mock/student.ts`). This
+     * is not the same assertion the old one was: there is no second field left to
+     * disagree, so what is checked now is that the DERIVATION is coherent —
+     * `currentTerm` and `currentPhaseId` must name the same phase.
+     *
+     * Worth keeping even though both come from one variable in
+     * `buildProgramTimeline`. That is true today; the assertion is what makes it
+     * still true after somebody adds a second way to compute either.
+     */
+    const t = timeline();
+    const current = t.phases.find((phase) => phase.status === "current");
 
     expect(current).toBeDefined();
-    expect(mockStudent.currentTerm).toBe(current!.term);
+    expect(t.currentPhaseId).toBe(current!.id);
+    expect(t.currentTerm).toBe(current!.term);
   });
 
   it("agrees with the term the enrolments are in", () => {
-    // The other half of the same statement, and the one the "wrong Summer
-    // courses" report was really about: the courses the student is taking must be
-    // the courses of the term the student is in.
+    // The assertion the "wrong Summer courses" report was really about: the
+    // courses the student is taking must be the courses of the term the student
+    // is in. This is the one that now carries the weight, because the term the
+    // top bar renders IS `timeline.currentTerm` rather than a copy of it.
     const terms = new Set(buildMockCourses().map((course) => course.term));
 
-    expect([...terms]).toEqual([mockStudent.currentTerm]);
+    expect([...terms]).toEqual([timeline().currentTerm]);
   });
 
-  it("agrees with the degree audit about the track", () => {
-    expect(mockDegreeProgress.track).toBe(mockStudent.track);
+  it("takes its track from the student and nowhere else", () => {
+    /*
+     * `DegreeProgress.track` used to sit beside this and said "11 month" while
+     * the student said "17 month". It was deleted on 2026-08-22 rather than
+     * corrected again, so there is one fewer thing to assert here — which is the
+     * point. **The best outcome for a consistency test is that it gets shorter.**
+     */
     expect(timeline().track).toBe(mockStudent.track);
   });
 });

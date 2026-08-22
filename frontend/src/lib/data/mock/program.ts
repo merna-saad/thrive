@@ -189,6 +189,12 @@ export function buildProgramTimeline(
   return {
     phases,
     currentPhaseId: current?.id ?? null,
+    /*
+     * Derived from the same `current` as the id above, so the two cannot
+     * disagree about which phase is the current one. This is what replaced
+     * `Student.currentTerm`, a stored copy that drifted a term out of step.
+     */
+    currentTerm: current?.term ?? null,
     percentComplete,
     programStart: toISODate(startDate),
     programEnd: toISODate(programEnd),

@@ -2,7 +2,6 @@ import {
 	getCourses,
 	getDegreeProgress,
 	getEvents,
-	getProgramTimeline,
 	getStudent,
 	getSuggestedCourses,
 	getTasks
@@ -58,15 +57,34 @@ const WEEK_WINDOW_DAYS = 7;
  * classified rows -- the data to count, not the count. Each event row carries a
  * `thisWeek` flag, which is the date half of that question answered here so the
  * client only has to filter on a boolean.
+ *
+ * ## THE TIMELINE COMES FROM THE PARENT, not from a second provider call
+ *
+ * Changed 2026-08-22, when `Student.currentTerm` was deleted and `TopBar` started
+ * reading `ProgramTimeline.currentTerm` instead.
+ *
+ * `getProgramTimeline` reads the clock itself, so calling it here as well as in
+ * the root layout would be two reads and two timelines in one request. The bar
+ * renders the current term and this page's strip renders the current phase, and
+ * at a phase boundary those two could name different terms -- which is exactly
+ * the bug deleting `currentTerm` was meant to end, rebuilt one layer up.
+ *
+ * So the layout owns the one call and this reads its result. The cost is that
+ * this load waits for the layout's rather than running fully in parallel with it,
+ * which on a mock layer is nothing.
+ *
+ * `getStudent()` is still called in both, and that is fine rather than
+ * inconsistent: it reads no clock, so two calls cannot disagree. **The rule is
+ * about derived values, not about duplicate fetches.**
  */
-export const load: PageServerLoad = async () => {
-	const [student, courses, tasks, events, degree, timeline] = await Promise.all([
+export const load: PageServerLoad = async ({ parent }) => {
+	const [{ timeline }, student, courses, tasks, events, degree] = await Promise.all([
+		parent(),
 		getStudent(),
 		getCourses(),
 		getTasks(),
 		getEvents(),
-		getDegreeProgress(),
-		getProgramTimeline()
+		getDegreeProgress()
 	]);
 
 	const now = new Date();

@@ -48,10 +48,26 @@
 	 * comment stating a measurement decays exactly like any other verification
 	 * claim, so the gate does not read it.
 	 */
+	/**
+	 * ## The term is DERIVED, and this bar is why the field is gone
+	 *
+	 * This used to render `student.currentTerm`, a stored string. It said
+	 * "Fall 2026" while the timeline put the student in Summer 2026, so the bar
+	 * named one term and Home's strip -- three lines below it -- named another.
+	 *
+	 * The field was deleted on 2026-08-22 rather than corrected again, and this
+	 * prop is what replaced it: `ProgramTimeline.currentTerm`, threaded down from
+	 * the root layout. The bar cannot disagree with the strip now, because both
+	 * read the same derivation of the same two fields.
+	 *
+	 * `null` before the program starts or after the finish line, and then the
+	 * separator goes with it -- a bare "·" beside a name is worse than nothing.
+	 */
 	let {
 		student,
+		currentTerm,
 		notificationCount = 0
-	}: { student: Student; notificationCount?: number } = $props();
+	}: { student: Student; currentTerm: string | null; notificationCount?: number } = $props();
 </script>
 
 <!-- Solid, not translucent. A blurred layer separates itself by depth, and depth
@@ -72,9 +88,15 @@
 			<span class="sr-only"> home</span>
 		</a>
 
-		<span aria-hidden="true" class="text-faint lg:hidden">·</span>
+		<!-- Both the separator and the term go when there is no current phase. The
+		     separator only exists to sit BETWEEN the wordmark and the term, so
+		     leaving it behind a null term would render a stray "·" against the edge
+		     of the bar. It is already `lg:hidden` because the wordmark is. -->
+		{#if currentTerm}
+			<span aria-hidden="true" class="text-faint lg:hidden">·</span>
 
-		<p class="min-w-0 truncate text-2xs text-muted-ink">{student.currentTerm}</p>
+			<p class="min-w-0 truncate text-2xs text-muted-ink">{currentTerm}</p>
+		{/if}
 	</div>
 
 	<!-- Ask THRIVE used to sit here as a centred field that did nothing. It is a

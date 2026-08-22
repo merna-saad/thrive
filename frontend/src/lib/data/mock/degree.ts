@@ -54,17 +54,24 @@ import type { DegreeProgress } from "../types";
  * the first thing to re-derive if real unit counts ever arrive. It is recorded
  * as derived rather than transcribed for exactly that reason.
  *
- * ### `track` disagreed with the student
+ * ### `track` disagreed with the student, and is now DELETED
  *
  * It said `"11 month"` while `student.ts` says `"17 month"` and the timeline is
  * built from the student's. Nothing rendered this copy, so the disagreement was
- * invisible -- the same shape as the `expectedCompletion` defect above, and the
- * reason that one was deleted rather than corrected. This one is kept because
- * `DegreeProgress.track` is part of the type the backend will fill, but it is a
- * SECOND answer to a question `student.track` already answers. If it ever starts
- * rendering, delete it instead.
+ * invisible -- the same shape as the `expectedCompletion` defect above.
  *
- * `fixtureConsistency.spec.ts` pins all of this as relationships rather than as
+ * It was corrected on 2026-08-21 and **removed from the type on 2026-08-22**
+ * (owner). The intermediate position -- "keep it, because the backend will fill
+ * it, but flag it" -- did not survive contact with the argument: a degree audit
+ * does not own the student's track, the student record does, and a field the
+ * backend fills from another field it already sent is a field that can arrive
+ * wrong. Read `Student.track`.
+ *
+ * **Three fields have now gone the same way**: `expectedCompletion`,
+ * `Student.currentTerm`, and this. Each was a stored answer to a question a pure
+ * function already answered, and each survived review by rendering nowhere.
+ *
+ * `fixtureConsistency.spec.ts` pins what remains as relationships rather than as
  * numbers. A test asserting `38` would have passed on the bug.
  */
 export const mockDegreeProgress: DegreeProgress = {
@@ -78,7 +85,6 @@ export const mockDegreeProgress: DegreeProgress = {
   electiveDone: 0,
   /* catalogue.length - CORE_CODES.length. */
   electiveRequired: 7,
-  track: "17 month",
   gaps: [
     {
       /*

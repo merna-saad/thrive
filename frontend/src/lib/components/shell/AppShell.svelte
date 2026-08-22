@@ -20,8 +20,18 @@
 	 *
 	 * Kept as its own component rather than inlined into `+layout.svelte` so the
 	 * layout stays about data and lifecycle while this stays about structure.
+	 *
+	 * `currentTerm` is a STRING rather than the whole timeline, and threading it
+	 * through here rather than letting `TopBar` reach for a store is the same
+	 * view-model rule the rest of the app follows: a component receives what it
+	 * renders. It is `null` before the program starts or after the finish line,
+	 * which the bar handles by rendering nothing.
 	 */
-	let { student, children }: { student: Student; children: Snippet } = $props();
+	let {
+		student,
+		currentTerm,
+		children
+	}: { student: Student; currentTerm: string | null; children: Snippet } = $props();
 </script>
 
 <div class="min-h-dvh bg-bg">
@@ -31,7 +41,7 @@
 	<SideRail />
 
 	<div class="lg:pl-rail">
-		<TopBar {student} notificationCount={2} />
+		<TopBar {student} {currentTerm} notificationCount={2} />
 
 		<!-- The bottom padding clears the mobile nav bar, which is fixed OVER the
 		     page, so on mobile it is the bar's height plus the page's gutter. Above

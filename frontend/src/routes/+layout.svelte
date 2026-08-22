@@ -61,6 +61,6 @@
 	<meta name="description" content={SITE_DESCRIPTION} />
 </svelte:head>
 
-<AppShell student={data.student}>
+<AppShell student={data.student} currentTerm={data.timeline.currentTerm}>
 	{@render children()}
 </AppShell>

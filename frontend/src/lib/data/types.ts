@@ -112,13 +112,22 @@ export interface Student {
   consent: StudentConsent;
   /** Optional avatar URL; the UI falls back to initials when absent. */
   avatarUrl?: string;
-  /** Current academic term label, e.g. "Summer 2026". */
-  currentTerm: string;
   /**
    * The day the program began. The whole timeline is derived from this plus
    * `track` -- nothing about the finish line is stored.
    */
   programStart: ISODate;
+  /*
+   * No `currentTerm`. It was declared here as a string and drifted to
+   * "Fall 2026" while `buildProgramTimeline` put the student in Summer 2026 --
+   * so the top bar named one term and the strip beneath it named another. Same
+   * defect as `DegreeProgress.expectedCompletion`, and deleted for the same
+   * reason rather than corrected again.
+   *
+   * Read `ProgramTimeline.currentTerm`. It is derived from `programStart` plus
+   * `track`, which are the two fields above, so there is nothing a caller needs
+   * that is not already reachable.
+   */
 }
 
 // ---------------------------------------------------------------------------
@@ -156,6 +165,16 @@ export interface ProgramTimeline {
   phases: ProgramPhase[];
   /** Null before the program starts or after the finish line. */
   currentPhaseId: PhaseId | null;
+  /**
+   * The current phase's term, e.g. "Summer 2026". Null whenever
+   * `currentPhaseId` is.
+   *
+   * DERIVED, like everything else on this object, and it exists so that nothing
+   * has to store the answer. `Student.currentTerm` used to, and it drifted to
+   * "Fall 2026" while the timeline said Summer — see `mock/student.ts`. Every
+   * consumer that wants "which term is the student in" reads this.
+   */
+  currentTerm: string | null;
   /** 0-100, today's position between programStart and programEnd. */
   percentComplete: number;
   programStart: ISODate;
@@ -396,13 +415,21 @@ export interface DegreeProgress {
   electiveDone: number;
   electiveRequired: number;
   gaps: DegreeGap[];
-  track: Track;
   /*
-   * No `expectedCompletion`. It was declared here and hardcoded "Spring 2027"
-   * in the fixture while `buildProgramTimeline` derived Fall 2027 for the same
-   * student -- two answers to one question, hidden only because the field
-   * rendered nowhere. See MIGRATION.md section 9 defect 9. The finish term is
-   * derived: read `ProgramTimeline.expectedFinishTerm`.
+   * NEITHER `expectedCompletion` NOR `track`, and they are the same mistake
+   * twice.
+   *
+   * `expectedCompletion` was declared here and hardcoded "Spring 2027" in the
+   * fixture while `buildProgramTimeline` derived Fall 2027 for the same student
+   * -- two answers to one question, hidden only because the field rendered
+   * nowhere. See MIGRATION.md section 9 defect 9.
+   *
+   * `track` went the same way on 2026-08-22. It said "11 month" while
+   * `Student.track` said "17 month", and it survived because nothing rendered
+   * it either. A degree audit does not own the student's track; the student
+   * record does, and the timeline is built from it.
+   *
+   * Read `Student.track` and `ProgramTimeline.expectedFinishTerm`.
    */
 }
 
