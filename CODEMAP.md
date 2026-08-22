@@ -1,4 +1,4 @@
-<!-- built-at: 81137b7 -->
+<!-- built-at: 37c1cd1 -->
 <!-- updated: 2026-08-21 -->
 
 # CODEMAP
@@ -67,6 +67,7 @@ No framework surface, and all of it under test. Mostly ported in Phase 2;
 | `calendarViews.ts` | Its 7b sibling, for questions about a VIEW rather than a day: `agendaRange` (thirty days, anchored on today), `showsRowDate`, `undatedTodoItem`, `visibleUndatedTodos`. |
 | `calendarSources.ts` | `taskToItem`, `todoToItem`, `mergedSchedule()`, `nowMinutes()`. **`nowMinutes()` still has no consumer** — the calendar takes its "next up" clock from the server; see `routes/calendar/+page.server.ts`. |
 | `calendarItems.ts` | Custom events, labels, urgent. Keyed by **calendar item id**. `labelFor`/`urgentFor` are the ONE resolution rule, shared by the merge and the dialog. |
+| `sources.ts` | **Provenance.** `sourceLabel` / `sourceSpoken` turn a `SourceSystem` into a pill's text, or `null`. Here rather than in the component because the case worth pinning is the NEGATIVE one — absent or unrecognised renders nothing — and Vitest cannot see logic inside a `.svelte`. |
 | `calendarEvents.ts` | **The calendar's event boundary.** `dayEventRows` sheds the `evt-` prefix once and hands the raw `Event.id` back with each row, for the join AND ignore stores. `DayEventsSection`'s only arithmetic. |
 | `calendarAdd.ts` | **Three kinds, three stores.** `addCalendarItem` is the whole of `AddItemForm` that can be wrong invisibly, so it lives out here where a gate can see it. |
 | `ics.ts` | The `.ics` export. `buildIcs` is pure and takes its `DTSTAMP` instant as an argument; `downloadIcs` reads the clock at the boundary. `icsFromItem` is one mapper for both callers. |
@@ -97,7 +98,7 @@ move.
 |---|---|
 | `index.ts` | **The only public entry.** Re-exports `types`, `providers`, `labels` and nothing else. |
 | `types.ts` | Every domain type. One file, on purpose. Dates are ISO **strings**, never `Date`. |
-| `providers.ts` | **The 25 functions + `SlotUnavailableError`.** Every one returns a Promise. Every one returns copies. |
+| `providers.ts` | **The 28 functions + `SlotUnavailableError`.** Every one returns a Promise. Every one returns copies. `getSuggestedCourses(term)` is the recommender's seam — replace the body, not the signature. |
 | `labels.ts` | `requestTypeLabel`, `requestTypeHelp`. Public because they are labels for a closed union, not mock data. |
 | `latency.ts` | `resolveAfterDelay` + `setMockLatencyMs`. **Private.** The 120ms exists to surface missing loading states. |
 | `mock/relative-dates.ts` | **The clock every fixture reads.** `at`, `onDay`, `upcomingWeekday`, `startOfToday`, `SUN`–`SAT`. |
@@ -105,7 +106,9 @@ move.
 | `mock/requests.ts` | **Store 2.** Lazy `seedOnce` — one approved `req-000`. |
 | `mock/resume.ts` | Skills, resume courses, experience, and **store 3**. Lazy seed, `nextId` starts at 4. |
 | `mock/program.ts` | `buildProgramTimeline` — pure, fully parameterised including `now`. The finish line is derived. |
-| `mock/{student,courses,assignments,tasks,events,syllabi,degree,resources}.ts` | Pure fixtures. Byte-identical to the Next source except `degree.ts`. |
+| `mock/catalogue.ts` | **The real MSBA catalogue** — twelve courses over four terms, with `CORE_CODES`. Read the header before editing: the terms are the real sequence, the unit values are placeholders, and it lists what else moves if the grouping changes. |
+| `mock/courses.ts` | The three ENROLMENTS (Summer 2026). A different shape from the catalogue on purpose — meeting times, progress, a grade. Real instructor names beside invented performance data; the header says so. |
+| `mock/{student,assignments,tasks,events,syllabi,degree,resources}.ts` | Pure fixtures. Byte-identical to the Next source except `degree.ts` and the course-id remaps. |
 
 ### Three things to know before touching it
 
@@ -130,10 +133,11 @@ before changing it. (`/calendar` is built too, as of 7a — its own section belo
 
 | File | Role |
 |---|---|
-| `routes/+page.server.ts` | **Six providers in one `Promise.all`, and the only `new Date()` on this page.** Every date is classified and formatted here. |
+| `routes/+page.server.ts` | **Six providers in one `Promise.all`, and the only `new Date()` on this page.** Every date is classified and formatted here. Also builds `termPlans` — one `getSuggestedCourses` call per program phase, so no component touches a provider. **Revisit that shape when a real recommender lands**; six RAG calls per dashboard load is wasteful. |
 | `routes/+page.svelte` | Owns the reveal channel **and** calls `resolveRows` ONCE, feeding the same array to the stat pills and to the Tasks card so they cannot disagree. |
 | `home/HomeHeader.svelte` | One panel holding the strip and the greeting. Exists to save a panel's padding and a stack gap. |
-| `home/ProgramTimelineCompact.svelte` | The program strip. Bare, not a panel. |
+| `home/ProgramTimelineCompact.svelte` | The program strip, and **an accordion**: every pip is a button, six triggers over ONE region, one open at a time. The current term opens too — a strip where five of six things are pressable reads as broken. |
+| `home/TermPlanPanel.svelte` | What a pip opens. TWO kinds of list that must never read alike: the current term is ENROLMENTS (facts, with meeting times), a future term is SUGGESTIONS (a heading that says so, a note that nothing is registered, and the sparkle badge). Labels are "Core" / "Suggested elective" — the difference is in the words, not a tag's border. |
 | `home/GreetingPanel.svelte` | Greeting, standing sentence, and ONE row of pills + chips. |
 | `home/TaskStatPills.svelte` | The three counts, and the three lists behind them. **Reads the stores**, so the counts see the student's own ticks and ignores. Each pill's number IS `items.length` of the list it opens. |
 | `home/TasksCard.svelte` | **Flat when collapsed, grouped when expanded.** The one real design decision in 6a. Owns ticking, undo, drag/keyboard reorder, and the add form. Reordering is offered **only when expanded** — see its doc comment. Also answers the reveal channel by writing its own collapse state, never anyone else's. |
@@ -291,7 +295,14 @@ page got a history rail. New design, not a port — the Next tree has no equival
 
 `Tag` · `Button` · `ProgressBar` · `EmptyState` · `SectionCard` · `ShowMore` ·
 `StatPill` · `StatPopover` · `StatusBadge` · `DueChip` · `IgnoreButton` ·
-`UnIgnoreButton` · `IgnoreUndoBar` · `Toast`
+`UnIgnoreButton` · `IgnoreUndoBar` · `Toast` · `SourcePill`
+
+`SourcePill` is provenance, not status — the smallest type step, muted ink, a
+hairline, no fill. Deliberately NOT a `Tag`, which is for tones that mean
+something: a row can already carry an urgency chip, a status tag and a category
+tag, all of which say more important things than where the row came from. It
+renders nothing for an absent OR unrecognised origin, and both go through
+`$lib/sources`.
 
 `UnIgnoreButton` is `IgnoreButton`'s twin down to the last utility, because they
 share a slot and swap on one boolean. Only the calendar has one: Home is a
@@ -384,7 +395,7 @@ Home card but will not be built (owner) — the card IS the feature.
 
 ---
 
-## Tests — 640, 29 files
+## Tests — 665, 31 files
 
 `npm test`. Vitest, **Node environment, no jsdom**, so nothing renders.
 

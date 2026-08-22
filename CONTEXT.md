@@ -1,4 +1,4 @@
-<!-- updated-at: c1ffe87 -->
+<!-- updated-at: 37c1cd1 -->
 
 # CONTEXT
 
@@ -8,13 +8,11 @@ without asking anyone.
 **Regenerated in full every handoff.** Never patch it — a partial edit leaves
 stale claims sitting beside fresh ones with no way to tell them apart.
 
-This one is a full pass after a long session that ran **eight requests past the
-last regeneration**: the calendar's chrome, an appointments bug that turned out
-not to be one, two density passes, a Netlify deploy already recorded, the Key
-moved twice, the type scale reduced, and a provenance pill. The previous version
-was five commits behind and still described `--container-wide`, the Key as an
-18rem column, and "Your day" above the month — which is exactly the accumulated
-drift the regenerate-in-full rule exists for.
+This pass covers seven commits: **the desktop type scale, the calendar Key's third
+arrangement in one day, provenance as a data model, the real MSBA catalogue, and
+suggested classes per term.** Two of those commits corrected work from earlier the
+same day and one corrected work from ninety minutes earlier. The churn is recorded
+rather than tidied away, because the reasons are the useful part.
 
 ---
 
@@ -54,8 +52,8 @@ rather than migration, and the docs should say which.
 Several entries and `app.css` comments are stamped **2026-08-22**, a day ahead of
 the real date, from a mis-stamp during the repalette. **Commit hashes are the
 reliable ordering.** Dates here are ±1 day; do not use them to reason about
-sequence. A great deal happened on 2026-08-21 in particular — that one date
-covers Phases 8 and 9, the deploy, and eight follow-on redesigns.
+sequence. A great deal happened on 2026-08-21 in particular — that one date covers
+Phases 8 and 9, the deploy, and about a dozen follow-on redesigns.
 
 ---
 
@@ -82,9 +80,10 @@ thrive/
 └── scripts/
     ├── check-contrast.py       58 assertions over the palette and app.css
     ├── check-layout.mjs        17 targets x 3 viewports, in a real browser
-    └── check-interaction.mjs   219 assertions: the popovers, task editing, the
+    └── check-interaction.mjs   234 assertions: the popovers, task editing, the
                                 calendar, booking, Ask THRIVE, the nav
-                                disclosure, provenance, and the page measure
+                                disclosure, provenance, the term-plan accordion,
+                                and the page measure
 ```
 
 `MIGRATION.md` is also the **only surviving copy** of the prototype inventory —
@@ -114,10 +113,11 @@ backend engineer can skip.
 
 **It documents the PROTOTYPE, not this repo**, and the two have diverged enough
 that several of its claims are stale about the current tree. `BACKEND.md` §9
-lists them: the provider count is 27 rather than 25, `cancelAppointment` releases
+lists them: the provider count is 28 rather than 25, `cancelAppointment` releases
 by slot id rather than by start time, slot availability also depends on the clock,
 and a `DegreeProgress` field it warns about has been removed. Add to that list
-everything in §6 below about type sizes — the prototype's scale is not this one.
+everything in §6 about type sizes, and **the entire course fixture** — the
+prototype's four invented courses are gone (§12).
 
 ### The standing rule, and the four shapes it has taken
 
@@ -181,11 +181,11 @@ failed only in the build. See §20 and `setup_info.md`.
 
 **No shadcn-svelte and no bits-ui yet.** Deferred deliberately. The stat pill
 popover, the due-date editor, the calendar's key bar, the add form's kind picker,
-`ItemDetail`, and the nav rail's disclosure are all hand-built; the agenda's
-grouping control is a deliberately native `<select>`. Phases 8 and 9 added no new
-primitive, and neither did anything after them — the booking panel's choices are
-buttons with `aria-pressed`, Ask THRIVE's composer is an `<input>` in a `<form>`,
-and the provenance pill is a `<span>`.
+`ItemDetail`, the nav rail's disclosure and the program strip's accordion are all
+hand-built; the agenda's grouping control is a deliberately native `<select>`. No
+phase has added a new primitive since 7c — the booking panel's choices are buttons
+with `aria-pressed`, Ask THRIVE's composer is an `<input>` in a `<form>`, and the
+provenance pill is a `<span>`.
 
 **Dependencies added since Phase 1: two.** `playwright-core` (2026-08-21) for the
 two browser gates, and `@sveltejs/adapter-netlify` (2026-08-21) for the deploy.
@@ -193,8 +193,9 @@ Between them the browser gates have caught a dead button five other gates called
 green, a `derived_inert` warning live in production, the undo arrival's silent
 no-op, an unclamped `line-clamp`, a TypeError on every dialog close with focus in a
 field, a 403 on every form submission, a chat log that stopped being a scroll
-container, and eight month-grid cells clipping their dot row. `@types/node` was
-rejected in Phase 5 and stayed rejected when the adapter switch wanted
+container, eight month-grid cells clipping their dot row, and a fixture change that
+emptied the calendar on the one day everything is dated relative to. `@types/node`
+was rejected in Phase 5 and stayed rejected when the adapter switch wanted
 `process.env` — see §16.
 
 ---
@@ -222,26 +223,28 @@ rejected in Phase 5 and stayed rejected when the adapter switch wanted
 | 9 | Ask THRIVE — a history rail, a chat window, three destinations in the nav rail | done |
 | — | Page measure and gutters | done |
 | — | Netlify deploy, adapter-node retained for the gates | done |
-| — | **Calendar chrome: one heading row, the Key off its own column** | **done** |
-| — | **"Your day" moved under the month it follows** | **done** |
-| — | **Two density passes: call-site rhythm, then the whole desktop scale** | **done** |
-| — | **The Key back as an 11rem side panel** | **done** |
+| — | Calendar chrome: one heading row, the Key off its own column | done |
+| — | "Your day" moved under the month it follows | done |
+| — | Two density passes: call-site rhythm, then the whole desktop scale | done |
+| — | The Key back as an 11rem side panel | done |
 | — | **Provenance: a Canvas pill, and an `origin` field to drive it** | **done** |
+| — | **The real MSBA catalogue, and a `CourseRequirement` field** | **done** |
+| — | **Suggested classes per term, behind a provider and an accordion** | **done** |
 | **next** | `/assignments` — the same `TaskRow`, no groups | not started |
-| then | The retrieval service behind Ask THRIVE | needs a backend |
+| then | The retrieval service behind Ask THRIVE, and the real recommender | needs a backend |
 | later | **Group Projects — the first shared surface** | scoped, not built |
 | later | Floating widgets, behind `FEATURES` | not started |
 
-**651 tests, 30 spec files, all passing**, green in **all seven timezones**.
-`svelte-check` clean over 463 files, 0 warnings. Build clean. Contrast **58/58**.
-Layout **51/51**. Interaction **219/219**. 122 commits, all pushed.
+**665 tests, 31 spec files, all passing**, green in **all seven timezones**.
+`svelte-check` clean over 466 files, 0 warnings. Build clean. Contrast **58/58**.
+Layout **51/51**. Interaction **234/234**. 126 commits, all pushed.
 
-**182 files under `frontend/src`.**
+**185 files under `frontend/src`.**
 
 **Four destinations are built:** `/`, `/calendar`, `/appointments`, `/ask`. That is
 the whole of `primaryNav` — **every visible navigation item leads to a real page**.
 
-### Nine follow-on changes, and four of them were reversals
+### Twelve follow-on changes, and six of them were corrections
 
 Worth reading before touching any of these surfaces, because the churn IS the
 record and the reasons are the useful part.
@@ -253,30 +256,34 @@ record and the reasons are the useful part.
    which is a different thing with one job.
 3. **The page container** went 72rem → 96rem → 80rem plus a 40px gutter, with
    `/calendar` alone on 96rem — and then `--container-wide` was deleted and every
-   route landed on 80rem. Both extremes were wrong and the fix needed two knobs.
+   route landed on 80rem.
 4. **The month grid on `/appointments` became clickable**, which deleted the
    read-only mode added a change earlier.
 5. **"Your day" moved BELOW the month grid.** The bug reported against it did not
    reproduce; the arrangement was most of the cause and the legibility of the date
-   was the rest. See §13 and BUGS.md.
+   was the rest.
 6. **The calendar's Key: column → full-width disclosure → column again**, at 11rem
    rather than 18. Three arrangements in one day, and the numbers are the argument.
 7. **The Key's streams: a wrapping chip strip → a vertical list**, dots in one
    column.
 8. **Type and spacing came down twice.** First at the call sites, then the whole
-   desktop scale.
+   desktop scale — the fourth time it was raised and the first time it was answered
+   by making something smaller.
 9. **Provenance arrived as a field, not a flag.** `origin`, not `isFromCanvas`.
+10. **The invented course fixtures were replaced with the real MSBA catalogue.**
+11. **The catalogue's term grouping was an inference and had to be corrected**, and
+    with it all three enrolments and the six fixtures keyed to them.
+12. **The core course list was four and should have been five.**
 
-**What the reversals cost:** two components written and deleted, three pure
+**What the corrections cost:** two components written and deleted, three pure
 functions written and deleted with their tests, `MiniCalendar` given and then
-stripped of two modes, a fixture constant moved 5 → 25 → 5, and one design token
-(`--container-wide`) added and removed. All of it deleted rather than left
-unreachable.
+stripped of two modes, a fixture constant moved 5 → 25 → 5, one design token
+(`--container-wide`) added and removed, one skill renamed and renamed back, and a
+gate assertion moved three times. All of it deleted rather than left unreachable.
 
-**What they bought:** every reversal left a residue that was never about the
-design being reverted — `publishedByDay`, the per-chip open count, and
-`BookingDayView` all survive because they answer questions the chip strip has too.
-See FINDINGS.
+**What they bought:** every reversal left a residue that was never about the design
+being reverted — `publishedByDay`, the per-chip open count, and `BookingDayView`
+all survive because they answer questions the chip strip has too. See FINDINGS.
 
 ---
 
@@ -1037,9 +1044,9 @@ to Home, and the same event says so.
 Card collapse state, and the reveal channel that can drive it (§13). Also: the
 drag in progress, the open editor, the note draft before it commits, the
 live-region sentence, **the detail dialog's open item and its
-delete-confirmation step**, the calendar's `selectedKey` / `monthKey`, **and
-whether the Key's panel is open below `xl`** — a momentary place, not a
-preference. **The calendar's FILTER is persisted**, through `calendarPrefs`,
+delete-confirmation step**, the calendar's `selectedKey` / `monthKey`, whether the
+Key's panel is open below `xl`, **and which term on the program strip is expanded**
+— all momentary places, not preferences. **The calendar's FILTER is persisted**, through `calendarPrefs`,
 because a filter that resets on every navigation is a filter nobody uses twice.
 
 ### `.svelte.ts` is not decoration
@@ -1324,20 +1331,21 @@ renders the same `TaskRow` with no `reorder` prop, and **owes that row a
 
 `pageTitle()` in `lib/title.ts` reproduces Next's `"%s · THRIVE"` template.
 
+
 ---
 
 ## 12. The data layer
 
-`frontend/src/lib/data/` — 20 files. **This is the seam.** `BACKEND.md` is the
+`frontend/src/lib/data/` — 22 files. **This is the seam.** `BACKEND.md` is the
 contract written out for whoever implements it.
 
-**Built against the same mock fixtures the Next app uses.** No HTTP client, no
-API layer, no Django integration. Django replaces the provider *bodies* later;
-the signatures are the contract and do not move.
+**Built against mock fixtures.** No HTTP client, no API layer, no Django
+integration. Django replaces the provider *bodies* later; the signatures are the
+contract and do not move.
 
 ### The public surface
 
-`data/index.ts` re-exports exactly three modules: `types`, `providers` (**27**
+`data/index.ts` re-exports exactly three modules: `types`, `providers` (**28**
 functions + `SlotUnavailableError`), and `labels`. **`mock/` and `latency` are
 private** — a component that needs something from either has found a gap in the
 provider surface. Widen the surface, do not reach through it.
@@ -1360,48 +1368,117 @@ because their dates are relative to "now" and module load may be hours earlier.
 somebody numbered the request seed `req-000` by hand and set the resume counter to
 4. Commented at the generator, and pinned by a test.
 
-### Five providers have a calendar consumer
+### THE COURSE DATA, which is two fixtures and two types
 
-`buildScheduleData()` was the gating unported piece from Phase 2 to 7a. It reads
-**`getCourses`, `getAssignments`, `getEvents`, `getMyAppointments`, `getAdvisors`**
-in one `Promise.all` — see §14 for what it does with them.
+This is the part most likely to be misread, so it is spelled out.
+
+| | `Course` / `mock/courses.ts` | `CatalogueCourse` / `mock/catalogue.ts` |
+|---|---|---|
+| What it is | a course the student is TAKING | a course in the CATALOGUE |
+| Rows | 3 (Summer 2026) | 12 (four terms) |
+| Has | meeting times, progress, standing, next assignment, grade, `syllabusId` | code, title, instructor, term, requirement, units |
+| Provider | `getCourses()` | reached through `getSuggestedCourses(term)` |
+
+**Two shapes because a course in a term that has not happened has none of those
+fields.** Serving `progress: 0`, `standing: "onTrack"` and an empty schedule for a
+Spring 2027 listing would put four fields on screen that mean nothing and read as
+real. `getCourses()` therefore returns **three rows, not twelve**.
+
+**The catalogue is the real MSBA one.** Course numbers, titles and instructors are
+transcribed verbatim; the source runs Summer 2025 → Spring 2026 and every term here
+is that plus one year. **The app's timeline was not moved to match** — it is
+computed from `programStart` and a track, and moving it would move the current
+phase, the percentage and the finish term.
+
+```
+Summer 2026   MGTA464 Perols · MGTA403 Nijs · MGTA451 Buti/Shin/Wilbur
+Fall 2026     MGTA453 August · MGTA461 McAuley · MGTA452 Hansen
+Winter 2027   MGTA402 Salovey · MGTA455 Nijs · MGTA444 Peterson
+Spring 2027   MGTA454 (no instructor) · MGT449 Nijs/Teixeira · MGTA495 Yavorsky
+```
+
+**The grouping was inferred once and was wrong.** The list arrived without terms,
+so it was split three-per-term in the order given. The real sequence is not an even
+split, and the shape is the tell: **Summer holds ONE core course, Fall holds TWO.**
+A program that front-loads the applied course and stacks the foundations second
+term is a curriculum decision; three-cores-then-three-electives was a tidy guess.
+
+**Two things about the codes.** `MGT449` is cross-listed and is **not** an `MGTA`
+code — anything parsing a prefix off a course code is wrong about that row, and a
+test pins it. And `MGTA454`, the capstone, has **no instructor**; the field is
+optional and the UI writes "Instructor to be announced" itself rather than the
+fixture carrying "TBD".
+
+**`units: 4` on all twelve is a PLACEHOLDER** and did not come from the real
+catalogue. Nothing depends on it — `student.ts`'s `unitsRequired` drives the degree
+percentage and the request prefill sums the three enrolments — so correcting it is a
+twelve-line edit. Flagged in the file.
+
+### `CourseRequirement`, and why it is not a boolean
+
+```ts
+type CourseRequirement = "core" | "elective";   // required on both shapes
+```
+
+**Core is FIVE: MGTA451, 452, 453, 454, 455.** It was four for one commit, missing
+451.
+
+Not `isCore`, for the same reason `origin` is not `isFromCanvas`. It is a
+classification with obvious room to grow — a concentration requirement, a capstone
+treated separately from ordinary core — and it has two consumers that need it for
+different reasons. **Degree progress** counts units toward a requirement, and "8 of
+16 core units" is a different sentence from "8 of 16 units". **The recommender**
+needs to know a core course is not really a suggestion. Neither is a rendering
+question, which is why it is on the type rather than derived from a list of codes in
+a component.
+
+### `getSuggestedCourses(term)` — the recommender's seam
+
+Filters the catalogue by term and attaches a reason to each **elective**. A core
+course gets none: "why is this here" has one answer for a required course, and
+`requirement` already says it. An unknown or empty term returns `[]` rather than
+throwing — a term with nothing scheduled and a term that does not exist are the same
+answer from the student's side, and a throw would take Home down over a typo.
+
+**Called once per program phase from Home's load** — six calls, in one
+`Promise.all`. That keeps every component out of the provider layer and every date
+formatted server-side. **It is also the shape to revisit when a real recommender
+lands**: six RAG calls per dashboard render for panels nobody may open is wasteful,
+and at that point this should become an on-demand fetch. Nothing about
+`CourseSuggestion` assumes it arrived early. Recorded in the code and in
+`BACKEND.md`.
 
 ### Provenance: `origin`, and why it is not called `source`
-
-Added 2026-08-21, and the naming is the load-bearing part.
 
 ```ts
 type SourceSystem = "canvas" | "handshake" | "student";
 ```
 
-Optional on `Course`, `Assignment` and `Task`. **`getCourses` and
-`getAssignments` return `"canvas"` on every row; `getTasks` returns nothing** —
-the field exists on `Task` so the model is uniform and is deliberately unset,
-because the instruction was classes and assignments only.
+Optional on `Course`, `Assignment` and `Task`. **`getCourses` and `getAssignments`
+return `"canvas"` on every row; `getTasks` returns nothing** — the field exists on
+`Task` so the model is uniform and is deliberately unset.
 
 **`source` was already taken and means something else.** `Task.source` is a
 `TaskSource` — `"class" | "career" | "admin" | "event"` — which is the KIND OF
-WORK. Two fields called `source` on one model meaning two different axes is a bug
-waiting to be written, so the systems axis is `origin` and both names stay. This
-is recorded in `BACKEND.md` as well, because it is the kind of thing a backend
-author would otherwise "tidy up".
+WORK. Two fields called `source` on one model meaning two axes is a bug waiting to
+be written, so the systems axis is `origin`. Recorded in `BACKEND.md` too, because
+it is the kind of thing a backend author would otherwise tidy up.
 
-**A named value rather than a boolean, on purpose.** `isFromCanvas` would have
-made every render site know which system was special, and the second system would
-have meant touching all of them. Instead one component renders from a label map
-keyed by the union, and **nothing in the app branches on `"canvas"`**. Adding
-Handshake is one message entry plus a fixture field.
+**A named value rather than a boolean, on purpose.** `isFromCanvas` would have made
+every render site know which system was special, and the second system would have
+meant touching all of them. One component renders from a label map keyed by the
+union, and **nothing in the app branches on `"canvas"`**.
 
 **Absent means UNKNOWN, never "not from Canvas".** Two paths render nothing and
-they are deliberately the same path: no origin at all, and an origin this build
-has no label for. The label map is PARTIAL so Django can start sending a value
-ahead of a frontend release without putting `handshake_v2` on a row.
+they are deliberately the same path: no origin at all, and an origin whose label
+this build does not know. The map is PARTIAL so Django can send a value ahead of a
+frontend release without putting `handshake_v2` on a row.
 
-**The decision lives in `$lib/sources`, not in the component**, because Vitest
-runs in Node with no jsdom — logic inside a `.svelte` file is logic no gate can
-see, and the case worth pinning is the negative one. An empty badge on every row
-reads as a styling glitch rather than a bug nobody reports, which is exactly how
-it would survive.
+**The decision lives in `$lib/sources`, not in the component**, because Vitest runs
+in Node with no jsdom — logic inside a `.svelte` file is logic no gate can see, and
+the case worth pinning is the negative one. An empty badge on every row reads as a
+styling glitch rather than a bug anyone reports, which is exactly how it would
+survive.
 
 ### Four MIGRATION §9 defects built correctly rather than reproduced
 
@@ -1409,7 +1486,7 @@ it would survive.
 |---|---|---|
 | 8 | `cancelAppointment` released by matching start time | `Appointment.slotId`; one exact delete |
 | 11 | A page imported a label map from `lib/data/mock/requests` | Both maps in `data/labels.ts`, public side |
-| 15 | Four providers returned fixtures by reference | All 27 return copies |
+| 15 | Four providers returned fixtures by reference | All 28 return copies |
 | 9 | `expectedCompletion` hardcoded vs a derived finish term | Field dropped; read `expectedFinishTerm` |
 
 ### The fixture student
@@ -1421,17 +1498,40 @@ Fall 2026 · `programStart: 2026-08-03` · standing `onTrack`. `programStart` is
 Two advisors, and the pair matters rather than the people: **a graduate student
 advisor** (an on-campus room in Rady) and **a career coach** (the CMC, or Zoom).
 One in-person-only and one with a remote mode, which is what the booking panel's
-mode filter exists to distinguish. Their names are fixture data.
+mode filter exists to distinguish.
 
 **There is exactly one student, and Group Projects is the first thing that breaks
 that assumption** — see §18.
 
+### REAL NAMES BESIDE INVENTED PERFORMANCE DATA
+
+**The one thing on this page that is not a technical note.** The course numbers,
+titles and instructor names are real. `progress`, `standing`, `currentGrade`,
+`nudge`, `nextAssignment`, `schedule` and `syllabusId` are **all fabricated**.
+
+So on a publicly reachable URL, a real instructor's name sits beside a made-up
+"C+" and a made-up "Grade slipped to C+". Today that is MGTA403 and Nijs, who also
+teaches MGTA455 and MGT449.
+
+**Not changed, deliberately** (owner, 2026-08-21). Recorded in the header of both
+`courses.ts` and `catalogue.ts` where anyone editing them will see it, and it is
+the sharpest reason the README says not to share the deployed link outside the
+team. Anyone replacing these providers with Django should expect the real numbers
+to look nothing like this.
+
 ### The fixture's shape, measured
 
-**10 tasks** (8 open, 2 done — 1 overdue, 2 due today, 5 upcoming), **4 courses**,
-**9 assignments**, and **159 upcoming events, 21 of them inside seven days**,
-generated 2–4 per day across a rolling horizon. That 21-against-4 is what forced
-the events card decision in §13.
+**10 tasks** (8 open, 2 done — 1 overdue, 2 due today, 5 upcoming), **3
+enrolments** and **12 catalogue courses**, **9 assignments**, and **159 upcoming
+events, 21 of them inside seven days**, generated 2–4 per day across a rolling
+horizon. That 21-against-4 is what forced the events card decision in §13.
+
+**The three enrolments cover Mon–Fri between them**, and that is load-bearing
+rather than tidy. The fixture's anchor day is a **Friday**; when the real catalogue
+replaced four invented courses with three, the course that went was the only one
+meeting on a Friday, and the calendar's day panel and Home's class list went empty
+on the one day every other fixture is dated relative to. `check:interaction` found
+it by reporting no provenance pill. MGTA403 sits on Friday for that reason.
 
 **Event ids are `` `evt-${dayOffset}-${i}` `` — already `evt-`-prefixed**, which is
 the root of both key-space defects in §8.
@@ -1447,20 +1547,18 @@ exercised by seeding the store by hand — and why the interaction gate's
 two-dimension assertion is written to pass with one labelled list when there are no
 labels, rather than demanding two.
 
-**All four courses and all nine assignments carry `origin: "canvas"`. No task
-does.** `sources.spec.ts` asserts all three facts, so a fixture drifting from the
-instruction is a red test rather than a silent change in what the UI claims.
-
-**The month the calendar opens on has 36 days with something on it and 14 with
-events**, which is what makes 7c's day-figure gate non-vacuous.
+**Every course and every assignment carries `origin: "canvas"`. No task does.**
+`sources.spec.ts` asserts all three, so a fixture drifting from the instruction is a
+red test rather than a silent change in what the UI claims.
 
 ---
 
 ## 13. Home
 
 The dashboard, and the only editable surface besides the calendar.
-`+page.server.ts` awaits **six providers in one `Promise.all`** and calls
-`new Date()` once. Four cards in a **2×2 grid** at `lg`, one column below it.
+`+page.server.ts` awaits **six providers in one `Promise.all`**, calls
+`new Date()` once, and then builds the term plans. Four cards in a **2×2 grid** at
+`lg`, one column below it.
 
 **What is deliberately not computed on the server:** the three stat counts. They
 have to see the student's persisted ticks, edits and ignores, which only exist in
@@ -1482,6 +1580,55 @@ the browser. What goes down is the classified rows and, on each event row, a
 **Cap: `--thrive-card-body-cap: 18.75rem` (300px)**. Collapsed row COUNTS live in
 `$lib/cardLayout`: **4** task rows, **2** course cards, **4** class rows,
 `VISIBLE_EVENTS = 4`. **`COLLAPSED_TASK_ROWS` stays at 4** (owner, settled).
+
+### The program strip is an accordion
+
+`ProgramTimelineCompact` plus `TermPlanPanel`. **Every pip is a button**, six
+triggers over ONE region, one open at a time, and pressing the open one closes it.
+
+**Six independent regions would mean six panels open at once and Home stops fitting
+a screen by the third**, which is why it is an accordion rather than six
+disclosures. `aria-expanded` is per-trigger; only the pressed one reports itself
+expanded.
+
+**The current term opens too**, and that is deliberate: a strip where five of six
+things are pressable reads as broken — the same argument that made the appointments
+month grid clickable again. What differs is what comes back.
+
+**Two kinds of list, and they must never read alike.**
+
+| | ENROLLED (the current term) | SUGGESTED (a future term) |
+|---|---|---|
+| Heading | "Your classes · Summer 2026" | "Suggested for Fall 2026" |
+| Per row | the meeting pattern and instructor | why it was suggested |
+| Badge | none | the sparkle, "AI suggested" |
+| Note | none | "Suggestions only. Nothing here is registered…" |
+
+**Three ways, not one, because a list of course codes looks exactly like an
+enrolment whatever the heading says.** The badge's visible text is two words and
+its spoken form is a sentence — "AI suggested" out of context tells a screen reader
+user neither what was suggested nor by what. Same construction as `SourcePill`.
+
+**Both the badge and the note are suppressed on an empty term.** "AI suggested"
+above "No classes listed for this term yet" would be claiming the assistant
+suggested an absence.
+
+**Enrolled-versus-suggested is decided on the DATA, not the phase's status.** A
+term the student has enrolments in is enrolled whether the timeline calls it current
+or complete, which keeps this correct as time passes rather than only today.
+
+**Labels are "Core" and "Suggested elective" — the difference is in the WORDS.**
+Two same-shaped chips reading "core" and "elective" would leave
+requirement-versus-recommendation to a border weight. And there are **three labels
+for two values**: an elective in the ENROLLED panel says plain "Elective", because
+a course already on the timetable is not being suggested to anybody.
+
+**The panel opens BELOW the strip, not in a popover.** Three reasons: the last pip
+sits at the right edge so a popover would cover the pips it came from, a course
+title runs to 55 characters against a 272px popover token, and a row in the reading
+order needs no anchoring geometry at six positions across four breakpoints.
+
+**Home is 1096px with nothing open** and the pip is a 44px touch target on a phone.
 
 ### Tasks is flat when collapsed, grouped when expanded
 
@@ -1610,10 +1757,6 @@ what makes the next event move up instead of leaving a gap.
 saying exactly why: the join store was keyed on the calendar item id, so a write
 from Home would have landed under a key the calendar never reads.
 
-**It renders the calendar's shape exactly**, and the register vocabulary moved to
-`messages.common.events`, because two live surfaces rendering the identical words
-for the identical act should not be two strings for a translator to keep in step.
-
 **An inert control is a dead affordance, and Home has none left.** Four have been
 removed: "View all" pointing at a parked route, copy-to-list with nowhere to copy
 to, "count me in", and **"Add to calendar"** — which downloads an `.ics` through
@@ -1636,12 +1779,18 @@ everything it needs rather than looking something up in the component.
 `CourseCard` reads `course.origin` directly and puts the pill beside the course
 CODE rather than the title, so it does not push a two-line title around.
 
-**Task rows show nothing because Home's Tasks card renders `Task`, not
-`Assignment`.** That is the instruction rather than an oversight, and
-`sources.spec.ts` plus one interaction assertion both pin it — the gate checks
-that 0 of 4 task rows carry a pill while a class row inches away does. If tasks
-derived from Canvas assignments should be marked, it is a fixture field and no code
-change.
+**Task rows show nothing, and it is SETTLED rather than scoped out.** The obvious
+objection is that a task with a `courseId` came from a class, so it came from
+Canvas. The answer is that the pill does not mean "this was influenced by Canvas" —
+it means **this row is a Canvas OBJECT**. A task is the student's own object even
+when it came from a class: they can rename it, reprioritise it, move its due date,
+tick it and delete it, and none of that touches anything in Canvas. An assignment
+is none of those things.
+
+Marking tasks would make the pill mean two different things on two rows of the same
+list, which is worse than marking nothing (owner, 2026-08-21). Recorded in
+`sources.spec.ts` so it is not relitigated, and a gate assertion checks that 0 of 4
+task rows carry a pill while a class row inches away does.
 
 ### The reveal channel: the page owns the intent, the cards own their state
 
@@ -1666,9 +1815,9 @@ to work.
 is a promise to a screen reader that neither keeps.
 
 **`RevealKind` is a closed union — `'task' | 'event'` — on purpose.** Nothing since
-7a has needed a third, and it was checked rather than assumed each time. A third
-member would force an id-space decision, which is why the union is closed. **The
-calendar has still added no arrival caller at all.**
+7a has needed a third, including the term-plan accordion, and it was checked rather
+than assumed each time. A third member would force an id-space decision, which is
+why the union is closed. **The calendar has still added no arrival caller at all.**
 
 ### Arriving is one function, and it is the standard
 
@@ -1728,10 +1877,11 @@ build where the dev-only warn is compiled out.
 ### Measured heights
 
 Header block **375px → 266px** (6a density pass). Document **1392 → 1238 (6a) →
-1218 (6b) → 1136 (the call-site density pass) → 1091px** after the type scale came
-down. **The phone is 2974px.**
+1218 (6b) → 1136 (the call-site density pass) → 1091 (the type scale) → 1096px**
+after the term-plan accordion added a 44px touch target to each pip. **The phone is
+3040px.**
 
-Home fits a 1091px viewport whole, not 1052px, and the decision is **do not cut
+Home fits a 1096px viewport whole, not 1052px, and the decision is **do not cut
 card rows.**
 
 ### Strings
@@ -1744,18 +1894,15 @@ assembled at the call site.
 `calendar` group of ~90, with the same property: `countPart(count, singular,
 plural)` hands a translation both word-forms so it can pluralise its own way.
 
-**`common.events` is the one group that is not owned by a surface.** Home and the
-calendar render the same eight strings for the same act against the same store.
-
-**`common.source` is the second**, added with the provenance pill: a label map and
-a `spoken(name)` function. It is in `common` for the same reason — three surfaces
-render it, and none owns it.
+**Two groups are not owned by a surface.** `common.events` — Home and the calendar
+render the same eight strings for the same act against the same store.
+`common.source` — a label map and a `spoken(name)` function, rendered by three
+surfaces and owned by none.
 
 **This is a standing rule, not a Home thing.** Every surface extracts its strings as
 it is built, or Mandarin stops being possible.
 
 ---
-
 ## 14. The calendar
 
 **The second built surface and the largest.** `/calendar` — 14 components plus
@@ -2177,12 +2324,12 @@ No console warnings or errors at any width, in any view.
 
 | Command | What it proves |
 |---|---|
-| `npm test` | **651 tests**, 30 files. Pure logic and source scans. **Nothing renders.** |
-| `npm run check` | Types agree over 463 files. **Does NOT prove the page renders** |
+| `npm test` | **665 tests**, 31 files. Pure logic and source scans. **Nothing renders.** |
+| `npm run check` | Types agree over 466 files. **Does NOT prove the page renders** |
 | `npm run build` | It compiles, with `adapter-netlify` |
 | `python3 scripts/check-contrast.py` | 58 assertions: 42 pairs, 6 ceilings, 10 structural |
 | `npm run check:layout` | **17 targets × 3 viewports** in a real browser |
-| `npm run check:interaction` | **219 assertions** in a real browser |
+| `npm run check:interaction` | **234 assertions** in a real browser |
 | the timezone sweep | The suite in seven zones, UTC+14 to UTC−11 |
 
 **Both browser gates build their own server first** (`npm run build:node`,
@@ -2210,6 +2357,10 @@ density pass or for the provenance pill**, which is the property that makes it
 survive this kind of work: it compares each route's scroll height against its
 painted height rather than hardcoding either, so a new height is simply the new
 truth.
+
+**It needed no update for the real course catalogue either**, which replaced every
+fixture Home and the calendar render. Three consecutive structural changes and no
+gate edit is the property, not luck.
 
 **It covers the calendar three times, because the view is a persisted PREFERENCE
 rather than a URL.** `/calendar` alone only ever measured the month grid, so 7b's
@@ -2246,7 +2397,7 @@ split; not sharing a transformation is.**
 
 **The tenth had no gate at all**, which is the honest entry in this table.
 
-### The two false greens found this session, and they are the useful entries
+### THREE false greens, and they are the same defect in three costumes
 
 **One: an assertion that read a POSITION rather than an identity.** The appointments
 grid check read `section[aria-labelledby="my-day"] p` — *the first paragraph in the
@@ -2262,6 +2413,22 @@ the rest" was asserted as a literal `true` with prose for a reason. It could nev
 go red, and its prose was stale the moment the cap changed — still claiming 96rem
 after the token was deleted. **Grep for `check(` calls whose second argument is a
 literal.** They are load-bearing in the count and nowhere else.
+
+**Three: an assertion satisfiable by an ABSENCE.** "Core is distinguishable from
+elective" carried an `|| !hasCore` escape branch and was run against a term holding
+no core course, so it passed by finding nothing to distinguish. Fixed twice — the
+branch deleted, and the check pointed at a term that actually holds both.
+
+A fourth, of the same family, in the unit suite: `expect(core).toEqual([...CORE_CODES])`
+beside `expect(core).toHaveLength(4)`. The first compares a fixture against the
+constant the app reads, so it proves consistency and not correctness; the second
+counts to four, which a wrong list of four satisfies exactly. The core list WAS
+wrong — four entries, missing MGTA451.
+
+> **An assertion that can be satisfied by an absence, by a literal, or by comparing
+> a thing to itself is not an assertion.** Four instances now. Grep for `check(`
+> with a literal second argument, for `toHaveLength` unaccompanied by a membership
+> check, and for `||` inside an expectation.
 
 ### What the browser gate covers that nothing else can
 
@@ -2287,8 +2454,6 @@ Both browser gates **skip loudly and exit 0** when there is no chromium.
 
 **`npm run check` is not a render.** `svelte-check` passed 0 errors on a component
 that threw `ReferenceError` on every request. **And it is held at 0 warnings.**
-
----
 
 ## 16. Standing decisions
 
@@ -2329,6 +2494,28 @@ that threw `ReferenceError` on every request. **And it is held at 0 warnings.**
 - **The Ask history rail is a `sunken`-tone panel**, the nav rail's own treatment,
   and its rows have a surface and a hairline AT REST.
 - **There is no chat store in the browser and none may be added** (§8).
+- **The desktop scale is smaller than the phone scale at every step.** All nine type
+  steps and `--spacing` are raw `--thrive-*` tokens, because `@theme inline` bakes a
+  literal and only a `var()` stays reachable. The 64rem block must sit AFTER the
+  40rem one.
+- **`getCourses()` returns ENROLMENTS, not the catalogue.** Two shapes, because a
+  course in a term that has not happened has no progress, standing or schedule.
+- **Core is five courses** — MGTA451, 452, 453, 454, 455 — and `CourseRequirement`
+  is a field on the type rather than a list of codes in a component.
+- **The catalogue's terms are the real sequence, not an even split.** Summer 2026
+  holds one core course; Fall 2026 holds two.
+- **Unit counts in the catalogue are placeholders.** Left as-is, flagged in the file.
+- **Suggestions come from a provider**, called once per phase from Home's load.
+  Revisit that shape when a real recommender lands.
+- **The current term on the program strip opens too**, and shows enrolments rather
+  than suggestions.
+- **Provenance marks Canvas OBJECTS, not Canvas-influenced rows.** Classes and
+  assignments carry the pill; tasks never will, because a task is the student's own
+  object even when it came from a class. Settled, recorded in `sources.spec.ts`.
+- **Real instructor names sit beside invented grades and that is accepted** (§12).
+  Not to be fixed; it is why the link is not shared.
+- **The calendar grid at 1023px is being looked at and is not to be changed
+  meanwhile** (owner, 2026-08-21).
 
 **One still wants a second opinion:** a single
 `svelte-ignore a11y_no_noninteractive_tabindex` on the chat log. axe's
@@ -2384,6 +2571,22 @@ without it a long conversation is mouse-only.
   helper.**
 - **Is this a fact about the EVENT or about the ROW?** That is the test for whether
   something belongs in a new key space.
+- **When you have to guess at data, write the assertions against the INVARIANT and
+  not against the guess.** "Each term holds three courses" survives a regrouping;
+  "Fall holds these three" does not. Both are worth having — label which is which at
+  the assertion, so a red test says whether the data moved or the behaviour broke.
+- **A test comparing a fixture against the constant the code reads proves
+  consistency, not correctness.** For a set that came from outside the codebase, the
+  membership has to be spelled out where a human reviews it.
+- **A label describes the ROW IN ITS CONTEXT, not just the field's value.** Two
+  values needed three labels: "Suggested elective" is wrong beside a class the
+  student is already sitting in.
+- **`@theme inline` decides what can ever be responsive**, at declaration time. A
+  literal is baked into the utility; a `var()` is inlined as a reference.
+- **`--spacing` is not a typography knob.** It moves control heights and icon sizes,
+  so shrink it only where a pointer is doing the work.
+- **When two same-specificity utilities disagree, size to the box the browser
+  actually produces** rather than adding a third utility.
 - **A field that names a system beats a boolean that names one system.**
   `isFromCanvas` makes every render site know which system is special; `origin`
   makes none of them know. And **absent must mean unknown, never the negative** — an
@@ -2467,7 +2670,7 @@ without it a long conversation is mouse-only.
 - **Capture the artefact, not the event.** A gate asserting that a download FIRED
   proves a button is wired and nothing else.
 - **No Claude/Anthropic attribution anywhere** — commits, PRs, file headers.
-  Verified clean across all 122 commits.
+  Verified clean across all 126 commits.
 
 ---
 
@@ -2529,92 +2732,115 @@ Calm, plain, honest about what is simulated.
    turn", and the read shapes were built around fixtures rather than a real
    service's response — so expect those two providers to change. `BACKEND.md` §8.
 
+4. **The real recommender behind `getSuggestedCourses`.** The seam exists and the UI
+   is built against it. Two things to settle when it lands: **the call shape** —
+   six calls per Home render is wrong against a RAG service, so it should become an
+   on-demand fetch — and **what happens if it stops being a recommendation.** The
+   copy says "AI suggested" and "nothing is registered"; if the provider ever
+   returns a registrar's actual schedule, that copy becomes a lie and has to change
+   with it.
+
 **Scoped, not built**
 
-4. **Group Projects — a future FIFTH nav item.** Group members, a project holding
+5. **Group Projects — a future FIFTH nav item.** Group members, a project holding
    tasks and subtasks, assigning a task to a person.
 
-   **The first feature that is not one student's private view**, and that is the whole
-   difficulty:
-   - **Real accounts.** MIGRATION §9 defect 2 — no auth on any server action — stops
-     being a note and becomes a blocker.
+   **The first feature that is not one student's private view**, and that is the
+   whole difficulty:
+   - **Real accounts.** MIGRATION §9 defect 2 — no auth on any server action —
+     stops being a note and becomes a blocker.
    - **A shared database.** Every persistence property in §8 assumes one person's
      overrides in their own browser.
    - **The fixtures model one student** (§12).
-   - **The nav has four destinations by decision**, and the mobile bar has four slots.
+   - **The nav has four destinations by decision**, and the mobile bar has four
+     slots.
 
-5. **More sources for the provenance pill.** `SourceSystem` names Handshake and the
+6. **More sources for the provenance pill.** `SourceSystem` names Handshake and the
    student's own entries and nothing produces either. Handshake is the obvious next
    one; "student" would mark custom events and self-added tasks, which is a product
-   question rather than a technical one — a student may not need telling that a thing
-   they typed came from them.
+   question rather than a technical one — a student may not need telling that a
+   thing they typed came from them.
+
+**Data the fixtures are guessing at**
+
+7. **Unit counts.** `units: 4` on all twelve catalogue rows is a placeholder and did
+   not come from the real catalogue. Nothing depends on it; a twelve-line edit.
+8. **Summer 2027 and Optional Fall 2027 have no catalogue courses** and show "No
+   classes listed for this term yet." The catalogue spans four terms and the
+   timeline has six. Either the catalogue is incomplete or those terms genuinely
+   hold nothing — unknown.
+9. **The three enrolments' performance data is invented** and now sits beside real
+   instructor names (§12). Accepted, not to be fixed.
 
 **The real-phone list**
 
-6. Four things wait on a session with an actual handset, because a simulated
-   viewport cannot answer any of them:
-   - **Touch drag on Home's task rows.** HTML5 drag does not fire on touch, which is
-     why the keyboard move buttons exist — but no gate asserts those buttons are the
-     only route on a phone or that they are reachable there.
-   - **The month grid at 375px.** Cells are at the touch-target floor in a 7×6 grid,
-     each holding a dot row that is 8px per dot.
-   - **The 8px category dot against an actual thumb.**
-   - **The Ask history strip against a thumb.**
+10. Four things wait on a session with an actual handset, because a simulated
+    viewport cannot answer any of them:
+    - **Touch drag on Home's task rows.** HTML5 drag does not fire on touch, which
+      is why the keyboard move buttons exist — but no gate asserts those buttons are
+      the only route on a phone or that they are reachable there.
+    - **The month grid at 375px.** Cells are at the touch-target floor in a 7×6
+      grid, each holding a dot row that is 8px per dot.
+    - **The 8px category dot against an actual thumb.**
+    - **The Ask history strip against a thumb.**
 
-   All were measured rather than felt, and the desktop density passes deliberately
-   did not touch any of them.
+    All were measured rather than felt, and the desktop density passes deliberately
+    did not touch any of them.
 
 **Carried**
 
-7. **Provider copies are shallow.** `{ ...version }` shares nested arrays with the
-   store. Pinned by a test that says why.
-8. **`npm test` renders nothing.** `check:interaction` covers Home, the calendar,
-   appointments and Ask THRIVE; it is still not a general answer. The open question
-   — component tests via jsdom or `vitest-browser-svelte` — has not moved.
-9. **Home fits 1091px, not 1052px.** Accepted. Phone is 2974px. **The calendar's
-   agenda is the tallest thing in the app** by an order of magnitude, which is a long
-   list rather than a broken layout, and is gated.
-10. **Three dead providers:** `getSyllabi`, `getResources`, `getCurrentResume`.
-11. **`requestTypeHelp` has no consumer** anywhere in the prototype.
-12. **Two product decisions parked pending real screens:** the missing year in
+11. **Provider copies are shallow.** `{ ...version }` shares nested arrays with the
+    store. Pinned by a test that says why.
+12. **`npm test` renders nothing.** `check:interaction` covers Home, the calendar,
+    appointments and Ask THRIVE; it is still not a general answer. The open
+    question — component tests via jsdom or `vitest-browser-svelte` — has not moved.
+13. **Home fits 1096px, not 1052px.** Accepted. Phone is 3040px. **The calendar's
+    agenda is the tallest thing in the app** by an order of magnitude, which is a
+    long list rather than a broken layout, and is gated.
+14. **Three dead providers:** `getSyllabi`, `getResources`, `getCurrentResume`.
+15. **`requestTypeHelp` has no consumer** anywhere in the prototype.
+16. **Two product decisions parked pending real screens:** the missing year in
     `formatShortDate`, and `countdownPhrase` counting to "13 months".
-13. **`taskNotes` on `createOverrideStore`?** It duplicates the persistence logic.
+17. **`taskNotes` on `createOverrideStore`?** It duplicates the persistence logic.
     Several phases have not needed the refactor, which is mild evidence against it.
-14. **`format.ts` still emits `"Invalid Date"` from `formatShortDate`**, and a
-    parseable-but-wrong date still gets through `describeDue`: V8 rolls `"2026-02-30"`
-    into March.
-15. **`matchesWide()` is still unported**, and no phase has become its first
+18. **`format.ts` still emits `"Invalid Date"` from `formatShortDate`**, and a
+    parseable-but-wrong date still gets through `describeDue`: V8 rolls
+    `"2026-02-30"` into March.
+19. **`matchesWide()` is still unported**, and no phase has become its first
     consumer — see §7.
-16. **`calendarSources.nowMinutes()` has no consumer** and may never get one.
-17. **MIGRATION §9 defect 14 — `custom-custom-…` ids.** Cosmetic and internally
-    consistent, and now **harmless**: nothing parses them, because the row carries its
-    own event.
-18. **A task moved beyond seven days leaves Home's list.** Correct, and announced
+20. **`calendarSources.nowMinutes()` has no consumer** and may never get one.
+21. **MIGRATION §9 defect 14 — `custom-custom-…` ids.** Cosmetic and internally
+    consistent, and now **harmless**: nothing parses them, because the row carries
+    its own event.
+22. **A task moved beyond seven days leaves Home's list.** Correct, and announced
     rather than silent. `/assignments` is where it lives (owner: accepted).
-19. **`prefs.view` can hold a stale `week` or `agenda`** from a hand-edited store.
+23. **`prefs.view` can hold a stale `week` or `agenda`** from a hand-edited store.
     Harmless — nothing but `ViewSwitcher` writes it.
-20. **Teal and amber cannot be made more vivid** without moving lightness, which the
-    contrast floor forbids (§6). If the dots still read muted, the next lever is size
-    or the surface behind them, not the tokens.
-21. **`leading-none` loses to `text-*` on the month grid's day number**, and adding
+24. **Teal and amber cannot be made more vivid** without moving lightness, which the
+    contrast floor forbids (§6). If the dots still read muted, the next lever is
+    size or the surface behind them, not the tokens.
+25. **`leading-none` loses to `text-*` on the month grid's day number**, and adding
     `lg:leading-none` did not change it. Left unforced, with the cell sized to the
     real box. If a future pass wants the tighter box, the fix is to understand the
     cascade rather than to add a third utility.
-22. **The Key panel is ~500px tall at 1512 and taller on a phone when opened.**
+26. **The Key panel is ~500px tall at 1512 and taller on a phone when opened.**
     Acceptable beside the grid and behind a disclosure respectively. If it bites, a
     multi-column stream list is the next lever — but it would cost the single dot
     column, which was the point of stacking them.
+27. **The calendar grid is 1023px** and the owner is looking at whether that is
+    enough. **Do not change it meanwhile.** A side panel and a full-width grid
+    cannot both exist; the levers are a narrower Key or a route-specific cap, and
+    the second brings back the gutter asymmetry `--container-wide` was deleted over.
 
 **Closed this session**
 
-- **`--container-wide` deleted**, and the calendar's gutter matches every other
-  route at 1920 (248px, up from 127).
-- **The appointments "bug" that was not one.** Diagnosed to two visibility causes;
-  the arrangement and the date's legibility were the fix. BUGS.md.
-- **Two false-green gate assertions**, both replaced with real ones.
-- **All nine type steps are responsive**, which they were not before — the bottom
-  five were literals.
-- **Provenance exists as a data model**, not as a hardcoded check.
+- **The desktop scale came down**, and the bottom five type steps became responsive
+  at all — they were literals.
+- **The Key found a third arrangement** that keeps the grid still when it opens.
+- **Provenance exists as a data model**, not a hardcoded check.
+- **The invented course fixtures are gone.**
+- **The term grouping and the core list are the real ones.**
+- **Four false-green assertions**, all replaced with real ones.
 
 ---
 
@@ -2629,11 +2855,12 @@ Note the interaction with loose end 1: a control group implies concurrent users,
 and the process-global stores mean concurrent users see each other's data. Either
 Django lands first or the control group is one person at a time.
 
-**Two scoped features move Django from "later" to "on the critical path".** Ask
-THRIVE's saved chat history cannot live in `localStorage`, and Group Projects is
-shared between people by definition. Neither can be demoed on the mock layer at all,
-which is a different situation from the appointment and request flows — those work
-today and are merely process-global.
+**Three scoped features now move Django from "later" to "on the critical path".**
+Ask THRIVE's saved chat history cannot live in `localStorage`, Group Projects is
+shared between people by definition, and the course recommender is a service rather
+than a fixture. None can be demoed on the mock layer at all, which is a different
+situation from the appointment and request flows — those work today and are merely
+process-global.
 
 The prototype's Release 1 scope was: (a) the student dashboard, (b) appointment
 scheduling with history/notes/summaries/topic tagging, (c) `/resources` as the
@@ -2643,14 +2870,18 @@ Resource Navigator surface, (d) per-task time estimates.
 in that scope at all — is the largest surface in the app.** (b) is real, including
 the double-booking path. (d) was never begun, and (c) exists in a different shape
 than planned: `/ask/resources` answers questions from program material, while
-`/resources` stays a parked stub. Those are two surfaces with one name, not one
-absorbing the other.
+`/resources` stays a parked stub.
 
 **Four surfaces are finished** — Home, the calendar, appointments and Ask THRIVE —
 and the app is deployed. **What is missing is not screens; it is a backend.** The
-last several sessions have been layout and legibility work on finished surfaces,
-which is worth noting when the dates are re-set: it is polish, and polish is not
-what the release is waiting on.
+last several sessions have been layout, legibility and fixture work on finished
+surfaces, which is worth weighing when the dates are re-set: it is polish, and
+polish is not what the release is waiting on.
+
+**One thing did move the product forward this session**, and it is worth separating
+from the polish: the course data is now real, and the suggestions surface is the
+first place a recommendation is offered rather than a fact displayed. That is a
+seam a teammate's RAG service can land against.
 
 ---
 

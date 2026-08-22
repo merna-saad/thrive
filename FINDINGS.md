@@ -4,6 +4,120 @@ Reusable patterns and lessons. Things worth knowing again.
 
 ---
 
+## 2026-08-21 (third pass) — a test can encode an inference instead of a rule
+
+The course catalogue arrived without term groupings, so they were inferred: twelve
+courses, three per term, in the order the list gave them. Six assertions were then
+written against that shape. When the real mapping arrived, four of the six had to
+change and two did not, and the split between them is the useful part.
+
+**Encoded the inference** — the exact code order, the capstone's term,
+`getSuggestedCourses("Fall 2026")`'s contents, and which term held both a core
+course and an elective.
+
+**Were real rules and survived** — every catalogue term must be one the program
+timeline names, and the catalogue must agree with the enrolment fixture on every
+shared field. Neither says anything about WHICH courses are where.
+
+> **When you have to guess at data, write the assertions against the INVARIANT and
+> not against the guess.** "Each term holds three courses" survives a regrouping;
+> "Fall holds MGTA464, MGTA403, MGTA451" does not. Both are worth having — but know
+> which is which, and say so at the assertion, so the next person knows what a red
+> test means.
+
+The capstone's term is the instructive one: it survived, and it survived by
+COINCIDENCE. Under the inferred split, taking the list three at a time happened to
+put the capstone last, and that was the thing that made the guess look right.
+
+## 2026-08-21 (third pass) — a length check cannot catch a wrong list
+
+`CORE_CODES` had four entries and was missing one. The test read:
+
+```ts
+expect(core).toEqual([...CORE_CODES].sort());
+expect(core).toHaveLength(4);
+```
+
+Green, and wrong. The first line compares the fixture against the same list the
+app uses, so it only proves they agree with each other; the second counts to four,
+which a wrong list of four satisfies exactly.
+
+> **A test comparing a fixture against the constant the code reads proves
+> consistency, not correctness.** For a set that came from outside the codebase,
+> the membership has to be spelled out somewhere a human reviews — and the count is
+> only useful as a SECOND assertion beside the exact list, where it catches an
+> accidental addition rather than a wrong transcription.
+
+The rule that would actually have caught it was written afterwards and is a
+different shape entirely: *every elective has a suggestion reason and no core
+course does.* That found dead data on its first run — a reason written for a course
+that is core, so the provider never attaches it.
+
+## 2026-08-21 (third pass) — two values can need three labels
+
+Core versus elective is a two-member union, so the obvious labelling is two words.
+It needs three.
+
+"Suggested elective" is right in a suggestions panel and wrong in an enrolled one:
+a course already on the timetable is not being recommended to anybody. So the
+enrolled panel says plain "Elective" and the suggested panel says "Suggested
+elective", while "Core" is the same in both — a requirement is a requirement
+whether or not you have reached it.
+
+> **A label describes the ROW IN ITS CONTEXT, not just the field's value.** When
+> the same value renders in two places that mean different things, the label count
+> is a property of the surfaces, not of the enum.
+
+The same shape as `SourcePill`'s visible word versus its spoken sentence, and as
+the calendar's month grid saying "Hide Class" rather than "Class".
+
+## 2026-08-21 (third pass) — `@theme inline` decides what can ever be responsive
+
+Tailwind v4's `@theme inline` **bakes a literal into the utility** —
+`.text-sm{font-size:1rem}` — so overriding the theme variable in a media query
+does nothing at all. A theme value that is itself a `var()` is inlined AS the
+reference, which leaves the raw token reachable.
+
+This had already been learned once, for the top four type steps. It bit again from
+the other direction: the request was "make the whole scale smaller", and the bottom
+five steps could not be made responsive at all until they were moved to raw
+`--thrive-text-*` tokens first. Same for `--spacing`.
+
+> **In Tailwind v4, "is this token responsive?" is decided when it is declared, not
+> when it is used.** Anything that might ever need a breakpoint has to be a `var()`
+> in `@theme` from the start.
+
+**And source order decides which media query wins.** The new 64rem type block had
+to be moved to sit AFTER the existing 40rem one, or desktop silently got the
+tablet's headings.
+
+## 2026-08-21 (third pass) — `--spacing` is not a typography knob
+
+Reducing `--thrive-spacing` from 0.25rem to 0.225rem compressed every gap, padding
+and stack in the app with no component touched, which is exactly what was wanted.
+It also moved `min-h-11` from 41.25px to 37.13px and `size-3.5` from 13.13px to
+11.81px, because in Tailwind v4 both derive from the same token.
+
+> **Shrink the spacing step only where a pointer is doing the work.** Scoping it to
+> `lg`+ is what made "mobile is unchanged" a measurable claim rather than an
+> intention — the phone document heights came out byte-identical.
+
+## 2026-08-21 (third pass) — a utility fight is a bad thing to depend on
+
+`leading-none` on the calendar's day number loses to the `text-*` utility's own
+line-height, and has since the component was written. Invisible while cells were
+41.25px tall; at 30.38px, 8 of 42 cells clipped their dot row.
+
+Adding `lg:leading-none` did not win either — a responsive variant sits in a media
+query after the unprefixed rule, so it beat the base `leading-none` and lost to
+`lg:text-xs` in turn.
+
+> **When two same-specificity utilities disagree, size to the box the browser
+> actually produces rather than adding a third utility.** A layout held together by
+> stylesheet order is a layout that changes when Tailwind reorders its output.
+
+---
+
 ## 2026-08-21 (later) — "the app renders too large" is usually not one knob
 
 Asked twice in one day, and the answer was different both times.

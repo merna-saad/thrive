@@ -4,6 +4,121 @@ Session log, newest first. What happened, what was decided, what is still open.
 
 ---
 
+## 2026-08-21 (third pass) — the desktop scale, the Key's third home, provenance, and the real catalogue
+
+**HEAD:** `37c1cd1` · **665 tests · 234 interaction assertions · 51 layout targets ·
+58 contrast assertions · six gates green · green in all seven timezones.** 126
+commits, all pushed.
+
+Seven commits. Two of them corrected work from earlier the same day, and one
+corrected work from ninety minutes earlier — the churn is the record.
+
+### `bd1efb9` — the desktop type scale and spacing step
+
+- **The fourth time "too large" was raised, and the first time it was answered by
+  making something smaller.** The three previous passes reported that the root
+  computes to 15px and the spacing step to 3.75px. Both true, neither useful.
+- **The bottom five type steps were LITERALS** in `@theme inline`, which bakes them
+  into the utility — there was no variable for a media query to reach. All nine are
+  raw `--thrive-text-*` tokens now, and so is `--spacing`.
+- Graduated: `3xl` −20%, `2xl` −17%, `xl` −13%, body −5%, `3xs` unchanged as a
+  floor. `3xl / sm` went 2.00 → 1.68.
+- `--thrive-spacing` 0.25rem → 0.225rem above 64rem. **That knob also moves control
+  heights and icons** — `min-h-11` is 37.13px on desktop now.
+- Mobile byte-identical at 390px, measured rather than claimed.
+- Two steps smaller CLIPPED the month grid. Cause older than the change:
+  `leading-none` on the day number loses to the `text-*` utility's own line-height,
+  and `lg:leading-none` did not win either. Cell sized to the real box.
+
+### `803e39e` — the Key, third arrangement in one day
+
+| | grid at 1512 |
+|---|---|
+| 18rem column | 927px |
+| full-width disclosure | 1198px, but opening it pushed the month down the page |
+| **11rem column** | **1023px** |
+
+- Always visible above `xl`; the trigger is `xl:hidden` there, because a control
+  offering to open something already on screen has no job.
+- **DOM order is grid THEN Key at every width**, which is what makes "opening it
+  never pushes the calendar down" true rather than approximately true. On a phone
+  the grid's top is 175px before and after.
+- `hidden`/`block` rather than `{#if}`: one instance, two widths. Duplicating it
+  would give a screen reader two "Class" toggles for one filter.
+- `--thrive-key-width: 11rem` sized from content, with the gate asserting no stream
+  name wraps and the column stays under 200px.
+
+### `c1ffe87` — provenance, as a field rather than a flag
+
+- **`origin`, not `source`** — `Task.source` already means the KIND of work.
+  `type SourceSystem = "canvas" | "handshake" | "student"`.
+- Absent means UNKNOWN, never "not from Canvas". Two paths render nothing — no
+  origin, and an origin with no label — deliberately the same path, so Django can
+  send a value ahead of a frontend release.
+- The decision lives in `$lib/sources` because Vitest renders nothing and the case
+  worth pinning is the negative one: an empty badge reads as a styling glitch
+  rather than a bug anyone reports.
+- Home's task rows carry none. Settled and recorded in `sources.spec.ts`: the pill
+  means "this row is a Canvas OBJECT", and a task is the student's own object even
+  when it came from a class.
+
+### `198f143` — CONTEXT regenerated at `c1ffe87`
+
+Five commits of drift. It still described `--container-wide` as live, the Key as an
+18rem column, "Your day" above the month, and a phone root bump that no longer
+existed.
+
+### `fd547d8` — the real MSBA catalogue and suggested classes
+
+- **Two shapes for a course.** `Course` is an ENROLMENT; `CatalogueCourse` is a
+  listing. A course in a term that has not happened has no progress, no standing
+  and no schedule, and serving zeroes would put four meaningless fields on screen.
+- `getSuggestedCourses(term)` — the recommender's seam. Reads the catalogue,
+  attaches a reason to each elective, returns `[]` for an unknown term.
+- **The program strip's pips became an accordion.** Six triggers, one region, one
+  open at a time. The current term opens too and shows enrolments.
+- Suggestions are marked three ways: the heading, a note saying nothing is
+  registered, and the sparkle badge. Both badge and note are suppressed on an empty
+  term.
+- **`check:interaction` caught a real consequence**: the course that went was the
+  only one meeting on a Friday, and the fixture's anchor day is a Friday, so the
+  calendar rendered no class rows at all.
+
+### `b998db3` — placeholder note, and a comment that was wrong
+
+`units: 4` is not from the real catalogue. And the header had claimed regrouping
+would touch only that one file, which is false — five other places follow. Both
+recorded.
+
+### `37c1cd1` — the term grouping was an inference; the core list was short
+
+- The real sequence is **not an even split**: Summer 2026 holds one core course,
+  Fall 2026 holds two.
+- **Summer 2026 is the enrolled term, so all three enrolments changed**, along with
+  six fixtures keyed to their ids. Remapped by semantic role, not position.
+- **Core is five, not four** — MGTA451 was missing. The old test checked a length,
+  and a wrong list of four satisfies any check that counts to four. Exact
+  membership now.
+- Labels became "Core" / "Suggested elective". THREE labels for two values: an
+  elective in the enrolled panel says plain "Elective", because a course on your
+  timetable is not being suggested to you.
+- The core-versus-elective gate assertion moved to Fall 2026 — its third position.
+  It started there, went vacuous when Fall had no core, moved to Winter, and Fall
+  is correct again.
+
+### Still open
+
+- **Unit counts are placeholders.** Twelve-line edit, nothing depends on them.
+- **Summer 2027 and Optional Fall 2027 have no catalogue courses** and show an
+  empty state. The catalogue spans four terms; the timeline has six.
+- **`termPlans` is built at load time**, six provider calls per Home render. Fine
+  against a mock layer, wrong against a RAG service. Flagged in the code and in
+  `BACKEND.md`.
+- **Grid width at 1023px is being looked at** by the owner and is not to be changed
+  meanwhile.
+
+---
+
 ## 2026-08-21 (later) — Calendar chrome, an unreproducible bug, density, and the Key
 
 **HEAD:** `3d38df1` · **640 tests · 213 interaction assertions · 51 layout targets ·

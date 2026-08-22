@@ -1,7 +1,7 @@
 # TESTING
 
-**Last verified:** 2026-08-21 at `3d38df1`. **640 tests, 29 files, all
-passing. 213 interaction assertions, 51 layout targets, 58 contrast assertions.** Verified green in all seven timezones of the sweep below — and in 7a
+**Last verified:** 2026-08-21 at `37c1cd1`. **665 tests, 31 files, all
+passing. 234 interaction assertions, 51 layout targets, 58 contrast assertions.** Verified green in all seven timezones of the sweep below — and in 7a
 the sweep **caught a real failure**, which is recorded there.
 
 ```bash
@@ -22,6 +22,69 @@ npm run check:interaction            # 97 assertions: popovers, task editing, ca
 `check-contrast.py` PARSES `app.css` rather than mirroring it, so a token edited
 there is checked there. `check:layout` needs a browser and skips loudly (exit 0)
 when it cannot find one — see the note below.
+
+---
+
+## 2026-08-21 (third pass) — 213 -> 234 assertions, 640 -> 665 tests, two new spec files
+
+`sources.spec.ts` (11) and `catalogue.spec.ts` (14). Both exist because the thing
+worth pinning could not be reached from a component: Vitest runs in Node with no
+jsdom, so a decision made inside a `.svelte` file is a decision no gate can see.
+
+### The two shapes of test this session produced, and the difference matters
+
+**RULES**, which survive a data change:
+
+| Rule | Why it exists |
+|---|---|
+| An absent or unrecognised `origin` renders no pill | An empty badge reads as a styling glitch, so nobody reports it |
+| Every catalogue term is one the program timeline names | The term string is the join key; a mismatch shows as an empty panel, not an error |
+| The catalogue agrees with the enrolment fixture on every shared field | Two fixtures describe the same three courses and two surfaces render them |
+| Each term holds exactly three courses | Checkable without knowing WHICH three |
+| Every elective has a suggestion reason; no core course does | Found dead data on its first run |
+
+**FACTS**, which are worth having and will churn:
+
+the twelve-code list in term order · the capstone's term ·
+`getSuggestedCourses("Fall 2026")`'s contents · `getCourses` returning three ·
+`currentUnits` being 12 · the resume diff's three added skills.
+
+Four of these were rewritten when the real term grouping replaced an inference, and
+the resume diff was rewritten **twice** — it is keyed to whichever course happens to
+be the third enrolment, which churns every time the roster moves. Noted at the
+assertion rather than fixed, because the alternative is a test that asserts nothing
+about the fixture at all.
+
+> **Write the assertion against the invariant, and label the ones that are facts.**
+> A red test should tell you whether the data moved or the behaviour broke.
+
+### Three assertions that could not fail, all found this session
+
+1. `check('the calendar is allowed more width than the rest', true, '<prose>')` — a
+   literal second argument. Replaced with a comparison of two routes' gutters.
+2. `expect(core).toHaveLength(4)` beside `expect(core).toEqual([...CORE_CODES])` —
+   the first compares the fixture to the constant the app reads, so it proves
+   consistency and not correctness; the second counts to four, which a wrong list
+   of four satisfies.
+3. `'core is distinguishable from elective'` with an `|| !hasCore` escape branch,
+   run against a term holding no core course.
+
+All three are the same defect in different clothing: **an assertion satisfiable by
+an absence.** Grep for `check(` with a literal, for `toHaveLength` unaccompanied,
+and for `||` inside an expectation.
+
+### New coverage by area
+
+| Area | Assertions | What they hold |
+|---|---|---|
+| Provenance | 4 browser + 11 unit | the pill reached the rows, its accessible name is a sentence, no pill renders empty, a task row has none while a class row inches away does |
+| The term-plan accordion | 13 | six pressable pips, nothing open on arrival, the region is empty rather than hidden, the current term shows ENROLMENTS, a future term is unmistakably suggestions, the AI attribution, core-versus-elective in WORDS, one open at a time, pressing an open term closes it, 44px on a phone |
+| The Key as a side panel | 5 rewritten | beside the grid rather than above, always visible above `xl` with no trigger, the column stays under 200px, no stream name wraps, and on a phone opening it does not move the grid |
+
+`check:layout` needed **no update for any of it**, across two density passes, a
+type-scale reduction, the Key's third arrangement and a fixture replacement. It
+compares each route's scroll height to its painted height rather than hardcoding
+either, which is the property that makes it survive this kind of work.
 
 ---
 

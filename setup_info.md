@@ -2,7 +2,7 @@
 
 Environment, versions, and how to run things.
 
-**Last verified:** 2026-08-21 at `3d38df1`.
+**Last verified:** 2026-08-21 at `37c1cd1`.
 
 ---
 
@@ -55,7 +55,7 @@ npm run build:node       # production build as a Node server, into build-node/
 ORIGIN=http://localhost:3000 node build-node/index.js   # run that, :3000
 npm run preview          # vite's preview of the build, :4173
 npm run check            # svelte-check
-npm test                 # vitest run, 640 tests
+npm test                 # vitest run, 665 tests
 npm run test:unit        # vitest watch
 ```
 
@@ -283,11 +283,12 @@ does require `npm run build` to have run, and it fails with a clear message if
 
 ```bash
 cd frontend
-npm test                              # 640 tests, Node, no jsdom
+npm test                              # 665 tests, Node, no jsdom
 npm run check                         # svelte-check
 npm run build                         # vite build, adapter-netlify (ADAPTER=node for the gates)
 npm run check:layout                  # 17 targets x 3 viewports, real browser
-npm run check:interaction             # 213 assertions: popovers, editing, calendar,
-                                      #   booking, Ask THRIVE, the page measure
+npm run check:interaction             # 234 assertions: popovers, editing, calendar,
+                                      #   booking, Ask THRIVE, provenance, the
+                                      #   term-plan accordion, the page measure
 cd .. && python3 scripts/check-contrast.py   # 58 assertions, no dependencies
 ```

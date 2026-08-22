@@ -7,6 +7,57 @@ Note on links: this repo has no PRs — all commits go direct to `main`
 
 ---
 
+## 2026-08-21 (third pass) — dead data a rule found, and two fixture gaps
+
+### A suggestion reason for a course that can never show one
+
+`37c1cd1`. `SUGGESTION_REASONS` carried a sentence for MGTA451. MGTA451 is core,
+and `getSuggestedCourses` never attaches a reason to a core course — so the
+sentence was unreachable from the moment the core list was corrected.
+
+**Found by a rule, not by reading**: *every elective has a reason and no core
+course does*. That assertion was written to catch a missing entry and caught a
+surplus one on its first run.
+
+**THE PATTERN: a lookup keyed by id, with nothing checking it against the thing it
+is keyed to, drifts silently in both directions.** A missing entry degrades
+quietly by design here; a surplus entry is invisible entirely. One test over the
+whole catalogue covers both.
+
+### Dropping a course emptied the fixture's anchor day
+
+`fd547d8`. Replacing four invented courses with three real ones removed the only
+course meeting on a **Friday** — and the fixture's anchor day is a Friday. So the
+calendar's day panel and Home's class list had nothing on them on the one day every
+other fixture is dated relative to.
+
+Found by `check:interaction`, which reported no provenance pill on the calendar:
+no class rows, nothing to mark. Fixed by moving MGTA403 to Friday so the three
+enrolments cover Mon–Fri.
+
+**THE PATTERN: a fixture change can empty a surface without changing any code.**
+The pill assertion was not looking for this and found it anyway, which is the
+argument for asserting on rendered content rather than on component state.
+
+### A gate assertion that passed by finding nothing
+
+`fd547d8`, mine, caught in the same run. "Core is distinguishable from elective in
+the list" opened Fall 2026 — which, under the inferred grouping, held three
+electives and no core course. The assertion had an `|| !hasCore` escape branch, so
+it passed by finding nothing to distinguish.
+
+Fixed twice: the branch was deleted, and the check was pointed at a term that
+actually holds both. It has now moved three times, and the comment records why
+each time, because "which term" is exactly the sort of thing that looks arbitrary
+later.
+
+**THE PATTERN, and it is the third instance in this repo: an assertion that can be
+satisfied by an absence is not an assertion.** The other two were
+`check(name, true, 'because')` and a test comparing a fixture against the constant
+the code reads.
+
+---
+
 ## 2026-08-21 (later) — a gate that could not fail, and a bug that was not one
 
 ### The assertion read the first `<p>` and called it the date
