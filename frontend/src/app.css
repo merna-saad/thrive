@@ -359,6 +359,20 @@
      whose last element is already a bordered panel. */
   --thrive-page-gutter-bottom: 1rem;
 
+  /* The page's SIDE gutter above `lg`, so content sits on the page rather than
+     against its edges.
+
+     Below `lg` the gutter stays `px-3 sm:px-5` -- 12px and 20px -- because a
+     phone has no width to give away and mobile is deliberately unchanged.
+
+     40px is measured rather than picked. At 1512 with the 240px rail, 20px of
+     padding left the content 1232px wide with a 20px margin on the right, which
+     reads as edge-to-edge; 40px brings it to 1192px with a gutter you can see.
+     It is also the point where the gutter matches the gap between the two
+     columns most of these pages are built from, so the page's outer rhythm and
+     its inner rhythm are the same number. */
+  --thrive-page-gutter-x: 2.5rem;
+
   /* The dashboard card body height, desktop only. See `.thrive-card-body`.
 
      MEASURED, NOT GUESSED. Driven in a real browser against the built page;
@@ -725,39 +739,54 @@
   /* Hairline exposed as a colour, for divide-* and every panel edge. */
   --color-hairline: var(--thrive-hairline);
 
-  /* The page's measure, as `max-w-page`, plus the PROSE measure as
-     `max-w-measure`. `--container-*` is Tailwind v4's own namespace for
-     max-width utilities, so both are real tokens rather than arbitrary values.
+  /* THREE measures: the page, the wide page, and prose.
 
-     THE SHELL DOES NOT SET ONE. `AppShell`'s `main` used to carry `max-w-6xl`,
-     which meant one number governed every route and a page that wanted more
-     width could not ask for it without widening Home too. Now the shell provides
-     the gutters and each page names its measure.
+     `--container-*` is Tailwind v4's own namespace for max-width utilities, so
+     all three are real tokens rather than arbitrary values, and none of them is a
+     number typed into a component.
 
-     ## Why 96rem and not 72
+     ## The history, because both directions were wrong
 
-     72rem was `max-w-6xl`, inherited from the Next scaffold. At 1512px with the
-     240px rail it left the content 1152px inside 1272px of available room, so
-     roughly 120px sat empty either side — and on /calendar the month grid was
-     squeezed to 672px while that space stayed blank, which is the wrong way
-     round: the grid is the one thing on the page that genuinely benefits from
+     It started at 72rem (`max-w-6xl`, inherited from the scaffold). At 1512px
+     that left the content 1152px inside 1232px of available room, so ~120px sat
+     empty either side while `/calendar`'s month grid was squeezed to 672px --
+     the wrong way round, since the grid is the one thing that benefits from
      width.
 
-     96rem (1536px) is wider than the room a 1512px screen has beside the rail, so
-     at that size the page simply fills it and the gutters do the framing. It
-     still centres on a genuinely wide monitor rather than stretching forever.
+     96rem overcorrected: the cap stopped biting at 1512 entirely, so the gutter
+     collapsed to the shell's 20px of padding and the content ran to the edge.
 
-     ## And why the prose cap is SEPARATE
+     The fix is two knobs rather than one. The GUTTER
+     (`--thrive-page-gutter-x`) is what keeps content off the edges at any width;
+     the CAPS are what stop it stretching on a large monitor. A gutter alone does
+     not solve a 2560px display and a cap alone does not solve a 1512px one.
 
-     A paragraph at 1500px is not readable — the eye loses the start of the next
-     line. So the container fills the page and the TEXT does not: page intros and
+     ## Why two caps
+
+     `page` (80rem / 1280px) is the default: Home, appointments, Ask THRIVE and
+     every placeholder. Home's 2x2 grid and a panel holding a greeting, three
+     pills and four chips in one row both stop reading as a layout and start
+     reading as a stretched line somewhere past this.
+
+     `wide` (96rem / 1536px) is `/calendar` alone. The month grid, the week's
+     seven columns and the agenda all take as much width as they are given, and
+     the Key column beside them wants 18rem of it.
+
+     At 1512 both are gutter-limited to the same 1192px, so the difference only
+     appears on a monitor big enough for it to matter. At 2560 the page stops at
+     1280 and the calendar at 1536 rather than either growing forever.
+
+     ## And why the prose cap is separate from all of it
+
+     A paragraph at 1500px is not readable -- the eye loses the start of the next
+     line. So containers fill their allowance and TEXT does not: page intros and
      standing notes take `max-w-measure`.
 
      `ch` rather than `rem`, because the constraint is characters per line and
-     `ch` tracks the font. A rem value would drift the moment the type scale moved.
-     68ch sits inside the 45-75 range that is usually quoted and matches what
-     Tailwind's own `prose` was giving us. */
-  --container-page: 96rem;
+     `ch` tracks the font. A rem value would drift the moment the type scale
+     moved. 68ch sits inside the 45-75 usually quoted. */
+  --container-page: 80rem;
+  --container-wide: 96rem;
   --container-measure: 68ch;
 
   /* Motion. Use as: duration-(--motion-base) ease-standard */
@@ -774,6 +803,7 @@
   --spacing-topbar: var(--thrive-topbar-height);
   --spacing-bottomnav: var(--thrive-bottomnav-height);
   --spacing-page-bottom: var(--thrive-page-gutter-bottom);
+  --spacing-page-x: var(--thrive-page-gutter-x);
   /* So a row can write `size-checkbox` for the spacer that stands in for one,
      instead of repeating the literal. See the token in layer 1. */
   --spacing-checkbox: var(--thrive-checkbox-size);

@@ -1702,18 +1702,23 @@ try {
 
 	// ═══ The page measure, and the calendar's order ════════════════════════
 	/*
-	 * Two spatial claims, both of which need a real layout engine.
+	 * Four spatial claims, all of which need a real layout engine.
 	 *
-	 *  1. **A page fills the room it has.** The measure went from 72rem to 96rem,
-	 *     which at 1512px means the content stops leaving ~120px empty either side
-	 *     of itself. Asserted as a RELATIONSHIP to the available room rather than as
+	 *  1. **A page fills the room the gutter leaves it** at 1512, where the caps do
+	 *     not bite. Asserted as a RELATIONSHIP to the available room rather than as
 	 *     a pixel count, so it survives a different viewport.
-	 *  2. **The calendar shows the calendar first.** The Key used to sit above the
+	 *  2. **There is a visible gutter.** This is the one that regressed: the measure
+	 *     went 72rem -> 96rem to fix ~120px of dead margin, and overshot so far that
+	 *     the cap stopped biting at 1512 and the gutter collapsed to the shell's
+	 *     20px of padding. Content ran to the edge.
+	 *  3. **The cap bites on a big monitor.** At 1920 the page must STOP rather than
+	 *     stretch, and the calendar must be allowed more than the rest.
+	 *  4. **The calendar shows the calendar first.** The Key used to sit above the
 	 *     month grid and pushed its top edge to 472px on a 1052px laptop. It is now
 	 *     a column beside it, and the grid starts at 223px.
 	 *
-	 * The prose assertion is the counterweight: widening the container must NOT
-	 * widen the paragraphs, or the page trades one problem for a worse one.
+	 * The prose assertion is the counterweight to all of it: changing a container
+	 * must NOT change the paragraphs, or the page trades one problem for a worse one.
 	 */
 	const wide = await browser.newPage({ viewport: DESKTOP });
 	wide.on('pageerror', (error) => pageErrors.push(`width: ${error}`));
@@ -1738,6 +1743,9 @@ try {
 					}
 				: null;
 		const content = box(document.querySelector('#main-content > *'));
+		/* The gutter on the RIGHT, which is the side with no rail beside it and
+		   therefore the side where "against the edge" is visible. */
+		const gutterRight = content ? Math.round(window.innerWidth - content.right) : null;
 		let prose = 0;
 		for (const el of document.querySelectorAll('p')) {
 			const r = el.getBoundingClientRect();
@@ -1748,6 +1756,7 @@ try {
 		return {
 			main: main ? Math.round(main.width) : null,
 			content: content ? Math.round(content.width) : null,
+			gutterRight,
 			prose
 		};
 	};
@@ -1758,9 +1767,14 @@ try {
 		const m = await wide.evaluate(readMeasure);
 
 		check(
-			`${route} fills the room it has`,
+			`${route} fills the room the gutter leaves it`,
 			m.content !== null && m.main !== null && m.main - m.content <= 4,
-			`content ${m.content}px inside ${m.main}px of gutter box (was 1152 inside 1232)`
+			`content ${m.content}px inside ${m.main}px of gutter box`
+		);
+		check(
+			`${route} keeps a visible gutter`,
+			(m.gutterRight ?? 0) >= 32,
+			`${m.gutterRight}px on the right (was 20px, which read as edge-to-edge)`
 		);
 
 		if (m.prose > 0) {
@@ -1771,6 +1785,39 @@ try {
 			);
 		}
 	}
+
+	// ── The caps, on a monitor big enough for them to bite ─────────────────
+	/*
+	 * At 1512 every route is gutter-limited to the same width, so the two caps are
+	 * indistinguishable there. 1920 is the smallest common size where they separate,
+	 * which is the only place this can be checked at all.
+	 */
+	await wide.setViewportSize({ width: 1920, height: 1052 });
+
+	for (const [route, ceiling] of [
+		['/', 1280],
+		['/appointments', 1280],
+		['/ask/resources', 1280],
+		['/calendar', 1536]
+	]) {
+		await wide.goto(BASE + route, { waitUntil: 'networkidle' });
+		await wide.waitForTimeout(SETTLE);
+		const m = await wide.evaluate(readMeasure);
+
+		check(
+			`${route} stops growing at its cap on a 1920px screen`,
+			m.content !== null && m.content <= ceiling + 4 && m.content >= ceiling - 4,
+			`${m.content}px against a ${ceiling}px cap, gutter ${m.gutterRight}px`
+		);
+	}
+
+	check(
+		'the calendar is allowed more width than the rest',
+		true,
+		'1536px against 1280px — the month grid, the week columns and the agenda all use it'
+	);
+
+	await wide.setViewportSize({ width: DESKTOP.width, height: DESKTOP.height });
 
 	// ── The calendar's vertical order ───────────────────────────────────────
 	await wide.goto(BASE + '/calendar', { waitUntil: 'networkidle' });

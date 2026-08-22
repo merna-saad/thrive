@@ -46,15 +46,24 @@
 			`max-w-6xl` used to live on this element, which made one number the measure
 			of every route in the app — so a page that wanted more room could not have
 			it without widening Home by accident. The shell now provides the gutters
-			and each page names its own measure with `max-w-page`. How wide a page
-			should be is a property of what is on it, not of the frame around it —
-			and prose inside it is capped separately with `max-w-measure`, because a
-			paragraph does not want the width a month grid does.
+			and each page names its own measure with `max-w-page` or, for the
+			calendar, `max-w-wide`. How wide a page should be is a property of what is
+			on it, not of the frame around it — and prose inside it is capped
+			separately with `max-w-measure`, because a paragraph does not want the
+			width a month grid does.
+
+			THE SIDE GUTTER IS THE SHELL'S JOB, and it widens at `lg`.
+
+			`px-3 sm:px-5` below that, unchanged, because a phone has no width to give
+			away. `lg:px-page-x` (40px) above it, which is what keeps content off the
+			edges at 1512 where the caps do not bite. The caps and the gutter are two
+			separate knobs: a gutter alone does not solve a 2560px monitor and a cap
+			alone does not solve a 1512px one.
 		-->
 		<main
 			id="main-content"
 			tabindex="-1"
-			class="w-full px-3 pt-4 pb-[calc(var(--thrive-bottomnav-height)+var(--thrive-page-gutter-bottom))] sm:px-5 lg:pb-page-bottom"
+			class="w-full px-3 pt-4 pb-[calc(var(--thrive-bottomnav-height)+var(--thrive-page-gutter-bottom))] sm:px-5 lg:px-page-x lg:pb-page-bottom"
 		>
 			{@render children()}
 		</main>

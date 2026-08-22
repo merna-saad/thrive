@@ -39,7 +39,9 @@
 
 <svelte:head><title>{pageTitle(copy.documentTitle)}</title></svelte:head>
 
-<div class="mx-auto w-full max-w-page space-y-3">
+<!-- `max-w-wide`, not `max-w-page`: the month grid, the week columns and the
+     agenda all take as much width as they are given. See `--container-wide`. -->
+<div class="mx-auto w-full max-w-wide space-y-3">
 	<header class="mx-auto w-full max-w-5xl">
 		<p class="thrive-eyebrow">{copy.eyebrow}</p>
 		<h1 class="mt-1 text-3xl font-bold text-ink">{copy.title}</h1>
