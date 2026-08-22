@@ -4,13 +4,23 @@
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="text-scale" content="scale" />
-		<!-- Matches --thrive-bg, so the browser chrome blends into the page. -->
-		<meta name="theme-color" content="#faf9f5" />
-		<!-- THRIVE is light-only by decision. Declaring it stops the browser from
-		     auto-darkening native controls and scrollbars on a machine set to
-		     dark, which would otherwise put dark form widgets on a warm-white
-		     page. Mirrors `color-scheme: light` in app.css @layer base. -->
-		<meta name="color-scheme" content="light" />
+		<!-- Matches --thrive-bg in each theme, so the browser chrome blends into
+		     the page. TWO TAGS, keyed on the OS preference, so this is right with
+		     no JavaScript for a student on the default -- the same approach the
+		     tokens take. An explicit choice contradicts the key, and `applyTheme`
+		     rewrites both tags' content for that case; see theme.ts for why a
+		     third unscoped tag would break the default. -->
+		<meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)" />
+		<meta name="theme-color" content="#161512" media="(prefers-color-scheme: dark)" />
+		<!-- THRIVE has two themes as of 2026-08-21, so this is `light dark` rather
+		     than the `light` it was pinned to. It is what makes the browser hand
+		     native controls and scrollbars the right palette in EITHER theme -- the
+		     pinned version existed to stop a dark-set machine putting dark form
+		     widgets on a warm-white page, and the answer now is that the page is
+		     dark too. `color-scheme: light dark` in app.css `:root` is the
+		     authority; this tag is the same statement for anything that reads the
+		     document before the stylesheet arrives. -->
+		<meta name="color-scheme" content="light dark" />
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">

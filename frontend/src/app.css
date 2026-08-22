@@ -13,12 +13,34 @@
 @import '@fontsource/jetbrains-mono/latin-400.css';
 @import '@fontsource/jetbrains-mono/latin-500.css';
 
-/* THRIVE is light-only by decision. Left undefined, Tailwind v4 would fall
-   back to its stock `dark:` variant (prefers-color-scheme). Pinning the variant
-   to a class nothing ever applies keeps any vendored `dark:` rules inert
-   without editing vendored files. Kept from the Next app: shadcn-svelte lands
-   in a later phase and will bring `dark:` rules with it. */
-@custom-variant dark (&:is(.dark *));
+/* THRIVE HAS TWO THEMES (2026-08-21). It was light-only until this pass, and
+   the variant below is the hook that was kept open for it -- it used to be
+   pinned to `.dark`, a class nothing ever applied, precisely so that vendored
+   `dark:` rules stayed inert until there was a dark theme to serve them.
+
+   THE THEME IS NOT CARRIED BY THIS VARIANT. Every colour in this app comes from
+   a token (enforced by `designSystem.spec.ts`), so the whole theme is a token
+   swap in `:root` -- see the `light-dark()` note at the head of layer 1. Nothing
+   in `src/` writes a `dark:` utility, and nothing needs to.
+
+   The variant is retuned rather than deleted because it still has a job: it is
+   what will make shadcn-svelte's own `dark:` rules land correctly when that
+   phase arrives. It has to answer the same question the tokens answer, and there
+   are two ways to be in dark -- an explicit choice, or the system preference
+   with no choice recorded. A single selector cannot say that, so this is the
+   block form with two arms. Getting only the first arm would leave a vendored
+   `dark:` rule silently inert for every student who never touched the toggle,
+   which is most of them. */
+@custom-variant dark {
+  &:where([data-theme='dark'], [data-theme='dark'] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:not([data-theme='light'], [data-theme='light'] *)) {
+      @slot;
+    }
+  }
+}
 
 /* ==========================================================================
    THRIVE DESIGN TOKENS
@@ -29,6 +51,10 @@
    Layer 1  :root            raw THRIVE tokens (--thrive-*)
    Layer 2  :root            shadcn semantic vars mapped onto layer 1
    Layer 3  @theme inline    exposes both as Tailwind utilities
+
+   TWO THEMES, ONE DECLARATION EACH. Every colour token below is a
+   `light-dark(light, dark)` pair, so a token's two values sit on one line and
+   there is no second block to keep in step. See the note above layer 1.
 
    DIRECTION -- soft cream, hairline, Rady navy with a yellow accent.
    Adopted 2026-08-15 as a deliberate reversal of the bordered direction of
@@ -63,41 +89,160 @@
    ========================================================================== */
 
 :root {
+  /* ── HOW THE TWO THEMES ARE EXPRESSED ─────────────────────────────────────
+     Added 2026-08-21, when the app stopped being light-only.
+
+     `color-scheme: light dark` says this document renders in either, which does
+     three things at once: it makes `light-dark()` resolve, it hands the browser
+     the right palette for scrollbars and native form widgets, and it makes the
+     SYSTEM PREFERENCE the default with no JavaScript in the path. That last
+     property is the whole answer to the first-paint problem -- see the note in
+     `theme.ts`.
+
+     A student's explicit choice arrives as `data-theme` on this same element,
+     set from the store after mount. `only light` / `only dark` is what makes an
+     explicit choice beat the OS rather than merely tie with it.
+
+     WHY ONE DECLARATION PER TOKEN RATHER THAN A SECOND BLOCK. The obvious shape
+     is `:root` for light and a `[data-theme='dark']` block repeating every
+     token. That is two copies of forty values, in a file whose entire premise is
+     that a colour exists in exactly one place -- and it needs a THIRD copy,
+     because an explicit choice and a system preference are different selectors
+     and one of them has to sit inside a media query. A repalette would then be
+     three edits, and the failure mode of missing one is a single wrong colour in
+     one theme, which is exactly the class of drift `check-contrast.py` was
+     rewritten to parse this file to prevent.
+
+     `light-dark()` puts both values on one line, so a token cannot be half
+     retuned. The contrast gate reads both out of the one declaration, which is
+     also why it can check dark at all.
+
+     NEVER READ ONE OF THESE AS A CUSTOM PROPERTY. `getPropertyValue()` does not
+     give you a colour, and it gives you a DIFFERENT non-colour in dev and in
+     production:
+
+       dev    the literal `light-dark(#faf9f5, #161512)` -- chromium hands back
+              the declared value, since custom properties resolve at substitution
+       build  `var(--lightningcss-light,#faf9f5) var(--lightningcss-dark,#161512)`
+
+     The second one is the surprise, and it is worth knowing before it is
+     debugged: LightningCSS, in the Tailwind/Vite pipeline, DOWNLEVELS
+     `light-dark()` into the space-toggle trick -- `--lightningcss-light: initial`
+     against `--lightningcss-dark: ` -- so one arm collapses to nothing and the
+     other falls back to its literal. Verified by reading the compiled asset, not
+     assumed.
+
+     It downlevels the two `[data-theme]` rules below faithfully too, including
+     the specificity that makes an explicit choice beat the media query. But the
+     point stands: a check has to read a USED value off a real element, in the
+     BUILT app. `check-interaction.mjs` does, and says so at the assertion.
+
+     THE DARK PALETTE IS NOT AN INVERSION. Each value was derived in oklch by
+     holding the light theme's HUE exactly and solving for the lightness that
+     reproduces the light theme's own contrast ratio against the dark surfaces.
+     So a token keeps its meaning and roughly its measured standing, and the
+     reserved colours stay as far apart from each other as they were. Where that
+     method needed overriding, the token says so. */
+  color-scheme: light dark;
+
   /* --- Layer 1: raw palette ------------------------------------------- */
 
   /* Surfaces. Cream rather than off-white: with the borders gone, the page has
      to do the separating, and a warmer ground makes a plain white card read as
      raised without any shadow under it.
      `sunken` is no longer just a recessed well -- it is now the row hover fill,
-     which is the main way a list signals that a row is interactive. */
-  --thrive-bg: #faf9f5;
-  --thrive-surface: #ffffff;
-  --thrive-sunken: #f1efea;
+     which is the main way a list signals that a row is interactive.
 
-  /* Ink. Four steps, and only the first three may carry text. */
-  --thrive-ink: #17181c; /* headings          16.8:1 on cream */
-  --thrive-body: #3a3b42; /* body copy         10.6:1 on cream */
-  --thrive-muted: #6b6c72; /* ALL secondary and metadata text
-                                                 4.97:1 on cream
-                                                 4.55:1 on sunken (the floor) */
-  --thrive-faint: #85868c; /* DECORATIVE TEXT AND CONTROL BOUNDARIES ONLY.
-                              Enforced by value: it clears 3:1 and stops well
-                              short of 4.5, so words placed in it fail a check
-                              rather than quietly shipping.
-                              3.45 cream / 3.63 card / 3.16 sunken.
-                              Spec'd as #8a8b91; that lands at 2.96 on sunken,
-                              which fails the 3:1 a control boundary owes, and
-                              sunken is now the row hover fill -- so a checkbox
-                              on a hovered row sat under the bar. Darkened one
-                              step. See CHANGELOG. */
+     DARK KEEPS THE WARMTH. The dark surfaces sit at the cream's own hue (~95 in
+     oklch) rather than at a neutral grey, because the direction is "soft cream"
+     and a blue-grey dark would be a different product wearing the same layout.
+
+     ONE RELATIONSHIP INVERTS, ON PURPOSE. On light, `sunken` is DARKER than the
+     card. On dark it is LIGHTER. `sunken` is the row hover fill, and its job is
+     "this row is interactive" -- a fill darker than an already-dark card is
+     invisible, so the gesture has to go the other way. `surface` stays the
+     raised one relative to `bg` in both themes, which is the relationship that
+     does carry over. */
+  --thrive-bg: light-dark(#faf9f5, #161512);
+  --thrive-surface: light-dark(#ffffff, #201f1b);
+  --thrive-sunken: light-dark(#f1efea, #2f2e29);
+
+  /* THE DIALOG SCRIM, and it is a NEW TOKEN, which wants justifying in a file
+     whose last note says no new treatment has been needed since 7c.
+
+     `ItemDetail` drew its scrim as `bg-ink/20`, and said so in a comment: "the
+     ink colour at low alpha, which is a use of the palette rather than a new
+     entry in it." That was right, and it stopped being right the moment `ink`
+     stopped being dark. On dark, ink is a near-white, so `bg-ink/20` is a 20%
+     WHITE veil -- it lightens the page it is meant to recede, and a scrim that
+     brightens is not a scrim.
+
+     There is no token that works in both themes, because the scrim is the one
+     colour in the system that must NOT follow the ink: it is always a darkening,
+     whichever theme it darkens. So it becomes its own entry rather than being
+     derived from something that inverts underneath it.
+
+     The alphas differ, and that is measured rather than symmetric. On light, 20%
+     of ink is enough -- a white dialog against a dimmed cream page is a big
+     luminance step. On dark the dialog is `surface` at 0.24 lightness against a
+     page at 0.20, so there is far less step to work with and the scrim has to do
+     more of the separating: 60% black. Matching the light alpha on dark produces
+     a dialog you cannot find.
+
+     The light arm is deliberately spelled as the same `color-mix(... 20%,
+     transparent)` that Tailwind's `/20` modifier compiled to, so this is
+     provably the same colour the scrim has always been -- verified by reading the
+     compiled utility, not assumed. */
+  --thrive-scrim: light-dark(
+    color-mix(in oklab, #17181c 20%, transparent),
+    rgb(0 0 0 / 0.6)
+  );
+
+  /* Ink. Four steps, and only the first three may carry text.
+     Dark ratios, on bg / card / sunken:
+       ink    15.58 / 14.07 / 11.60
+       body    9.52 /  8.60 /  7.09
+       muted   6.41 /  5.79 /  4.78   <- the floor, and it is on sunken again
+       faint   4.16 /  3.76 /  3.10 */
+  /* headings: 16.8:1 on cream */
+  --thrive-ink: light-dark(#17181c, #eeede8);
+  /* body copy: 10.6:1 on cream */
+  --thrive-body: light-dark(#3a3b42, #b9bbc2);
+  /* ALL secondary and metadata text. 4.97:1 on cream, 4.55:1 on sunken (the
+     floor). Deliberately NOT tinted in either theme -- it is the colour of every
+     piece of secondary text in the app, so tinting it tints the interface. */
+  --thrive-muted: light-dark(#6b6c72, #97999f);
+  /* DECORATIVE TEXT AND CONTROL BOUNDARIES ONLY.
+     Enforced by value: it clears 3:1 and stops well short of 4.5, so words
+     placed in it fail a check rather than quietly shipping.
+     3.45 cream / 3.63 card / 3.16 sunken.
+     Spec'd as #8a8b91; that lands at 2.96 on sunken, which fails the 3:1 a
+     control boundary owes, and sunken is now the row hover fill -- so a checkbox
+     on a hovered row sat under the bar. Darkened one step. See CHANGELOG.
+
+     THE DARK VALUE IS THE TIGHTEST TOKEN IN THE SYSTEM, and it is the one that
+     decided how far apart the dark surfaces could sit. It has to clear 3:1
+     against the LIGHTEST dark surface and stay under 4.5 against the DARKEST
+     one, so the window is bounded from both ends at once: 3.10 on sunken and
+     4.16 on bg. Widening the gap between `bg` and `sunken` any further closes
+     that window and there is no value that passes. If a future pass wants more
+     separation between the dark surfaces, this is the token that says no. */
+  --thrive-faint: light-dark(#85868c, #78787e);
 
   /* Lines. Decorative, and that is the point. Two tiers:
        hairline       1.22:1  panel edges and dividers
        hairline-soft  1.12:1  inner dividers inside an already-hairlined panel
      Neither is a meaningful graphic under WCAG, and neither needs to be --
-     nothing in this direction depends on a line to be legible. */
-  --thrive-hairline: #e6e3dc;
-  --thrive-hairline-soft: #efece6;
+     nothing in this direction depends on a line to be legible.
+
+     On dark they are the only tokens NOT derived from a ratio, because there is
+     no ratio to hit: a decorative line is sized to look like a tidy edge, and
+     the gate deliberately does not check either of them in either theme. 1.30:1
+     and 1.10:1 on the dark card, against 1.22 and 1.12 on the light one -- the
+     same relationship, one step apart. Both sit ABOVE the dark card rather than
+     below it, for the same reason `sunken` does. */
+  --thrive-hairline: light-dark(#e6e3dc, #34332f);
+  --thrive-hairline-soft: light-dark(#efece6, #282724);
 
   /* Control boundaries are the exception. A checkbox edge is the only thing
      saying where the checkbox is, so it owes 3:1 and draws in faint.
@@ -150,14 +295,55 @@
      clear of 4.5:1.
 
      Keeping the text-safe value on `primary` is why every existing
-     `text-primary` / `bg-primary` / `bg-primary-soft` retunes for free. */
-  --thrive-primary: #182b49;
-  --thrive-primary-hover: #22395e;
-  --thrive-primary-active: #101d33;
-  --thrive-on-primary: #ffffff;
-  --thrive-primary-soft: #e9edf3;
-  --thrive-primary-fill: #9dbcdb;
-  --thrive-on-primary-fill: #0d1b2e;
+     `text-primary` / `bg-primary` / `bg-primary-soft` retunes for free.
+
+     ── ON DARK, THE BRAND VALUE CANNOT BE THE TOKEN ───────────────────────────
+     PMS 2767 is 1.16:1 on the dark card. Navy IS a dark colour; there is no
+     surface in a dark theme it can sit on and be seen. So the dark value is the
+     brand hue (259) held exactly, lifted to a light steel at 7.91:1 on the card.
+     It is the same blue; it is not the same lightness, and it could not be.
+
+     THE COLLISION THIS HAD TO AVOID, and it is the interesting part. On light,
+     navy and the RESERVED indigo separate on lightness first -- 14.18:1 against
+     5.59:1 -- and on saturation second. Lift navy for dark and that first axis
+     is gone: both are now light blues. What is left is the second axis, and the
+     light theme already names it: "indigo is vivid, navy is nearly
+     desaturated." So the dark navy is held at chroma 0.055 against indigo's
+     0.168, and the two stay a steel and a violet-blue rather than two shades of
+     one thing.
+
+     Be honest about what that costs: the pair measures dE 0.144 on dark against
+     0.271 on light, so they ARE closer -- losing a whole axis of separation is
+     not free. It is still nearly twice the grid's worst pair (0.076), and the
+     3.1x chroma ratio between them is the same ratio the light theme runs
+     (0.061 vs 0.185). The separation is thinner, and it is the same KIND of
+     separation, held at the same proportion.
+
+     `on-primary` FLIPS, and it is the one token whose meaning depends on the
+     theme rather than surviving it. Every solid fill in this app is dark on
+     light and light on dark, so the text that goes on one cannot be white in
+     both. It becomes a deep navy ink: 9.00:1 on `primary` and at least 6.36:1 on
+     every status fill in `tones.ts`. Flipping ONE token is what makes the eight
+     `text-on-primary` call sites, the checkbox's tick and every chip in
+     `tones.ts` retune without being touched -- which is the whole argument for
+     the token existing rather than each site writing `text-white`. (Eight sites
+     in `schedule.ts` DID write `text-white`, and this pass is what found them.)
+
+     `primary-soft` and `primary-fill` keep their ROLES and swap their direction:
+     soft is a pale tint of the surface in both themes, and `primary-fill` is
+     still the fill that cannot hold its own edge -- 1.97:1 on the light card,
+     2.05:1 on the dark one -- so it stays ringed in `primary` either way.
+
+     Hover LIFTS and active PRESSES in both themes, which on dark means brighter
+     and dimmer rather than lighter and darker. The gesture is preserved; the
+     luminance direction is not, because "lift" is not a luminance. */
+  --thrive-primary: light-dark(#182b49, #9fb5d7);
+  --thrive-primary-hover: light-dark(#22395e, #b3c7e7);
+  --thrive-primary-active: light-dark(#101d33, #89a0c3);
+  --thrive-on-primary: light-dark(#ffffff, #09121f);
+  --thrive-primary-soft: light-dark(#e9edf3, #273140);
+  --thrive-primary-fill: light-dark(#9dbcdb, #2c5377);
+  --thrive-on-primary-fill: light-dark(#0d1b2e, #edf3f8);
 
   /* RESERVED, and reserved by ratio rather than by convention:
      UC SAN DIEGO YELLOW, PMS 116, official value from the same brand page.
@@ -183,8 +369,45 @@
      UC San Diego also publishes Gold #C69214 (PMS 1245). Not adopted: it is
      2.79:1 on card, so it fails the same bar while adding a second warm token
      to reason about. Where a warm accent must be legible, `watch` (#8f6220,
-     5.34:1) already exists and already means something. */
-  --thrive-yellow: #ffcd00;
+     5.34:1) already exists and already means something.
+
+     ── AND ON DARK IT IS A DIFFERENT COLOUR ENTIRELY, BY MEASUREMENT ──────────
+     THE VALUE DOES NOT MOVE. It is the only colour token in the file that is the
+     same in both themes: the brand yellow is already a light colour, so it needs
+     no lifting. What moves is what it MEASURES.
+
+       light   1.50 card · 1.43 cream · 1.31 sunken   -- decoration, and 9.45 on navy
+       dark   10.98 card · 12.16 bg   ·  9.06 sunken  -- past BOTH bars, everywhere
+
+     So on dark, yellow could carry meaning. It clears 3:1 for a graphic by
+     3x and 4.5:1 for text by 2x, on every dark surface. This was measured
+     because it was asked about, not assumed either way.
+
+     THE ROLE STILL DOES NOT CHANGE, and the reason is worth stating because the
+     measurement now argues the other way. A colour's role has to hold in both
+     themes or it is not a role. Yellow as an indicator would work at 9:1 in dark
+     and sit at 1.43:1 in light -- so the light theme would need a second,
+     different carrier for the same meaning, and "the meaning has two colours
+     depending on your OS setting" is worse than "yellow is decoration". The
+     reservation was never really about the ratio; the ratio was the thing that
+     made it obvious.
+
+     WHAT THE GATE DOES ABOUT IT. The three light CEILINGS stay -- they are what
+     stops the promotion happening, and they still bind, because the promotion
+     would have to be legible in light to be worth making. Dark gets three
+     FLOORS instead, asserting that yellow IS legible there. That is not a
+     redundant check: it pins the fact this note rests on, so if a future pass
+     lightens the dark surfaces far enough to drag yellow back under 3:1, the
+     claim above stops being true and the gate says so.
+
+     AND THE ONE LEGIBLE PAIRING INVERTS, which is the neatest fact in this note.
+     On light, yellow works ON navy (9.45) and nowhere else. On dark, `primary`
+     is a light steel, so yellow on it collapses to 1.39 -- worse than yellow on
+     cream -- while yellow on the dark SURFACE is 10.98. The pairing did not
+     disappear and it did not survive; it swapped ends. A component that draws a
+     yellow mark on a navy ground is correct in light and invisible in dark, so
+     the gate checks each theme's own pairing rather than one rule for both. */
+  --thrive-yellow: light-dark(#ffcd00, #ffcd00);
 
   /* RESERVED: indigo marks "this is where you are now" and nothing else.
      Not a status, not an action colour. Current phase on the timeline, today
@@ -202,9 +425,37 @@
 
      Note what indigo did NOT give up: "an active indicator" stays indigo's
      job. Yellow is an accent, not a locator. Two colours both meaning "here"
-     is how a reservation dies. */
-  --thrive-indigo: #4c5bd4;
-  --thrive-indigo-soft: color-mix(in oklab, var(--thrive-indigo) 8%, white);
+     is how a reservation dies.
+
+     ON DARK it keeps its hue (273) exactly and lifts to 5.59:1 on the card --
+     the SAME ratio it holds on light, which is what "keeps its meaning" means
+     here. It also stays the vivid one: chroma 0.168 against the dark navy's
+     0.055. See the navy note above for what that separation costs on dark, and
+     what it does not.
+
+     The soft tint is the one place the two themes are built differently, and it
+     is deliberate. On light it stays a `color-mix()` against the surface, which
+     is how it has always been derived and cannot drift from the base hue. On
+     dark it is a LITERAL HEX, because a gate cannot evaluate a color-mix and
+     these tints carry text -- `bg-indigo-soft text-indigo` has to clear 4.5:1
+     and, until this pass, nothing anywhere measured that. The dark values are
+     measured (4.64:1 here) and the light ones still are not. That asymmetry is
+     honest rather than tidy: it is the light theme that has the unchecked
+     colours, and closing it means replacing seven light mixes with literals,
+     which would move light values this pass is not allowed to move.
+
+     AND THE LIGHT MIX LOST A PROPERTY, so the gate got a check. It used to read
+     `var(--thrive-indigo) 8%`, which is what made it unable to drift from the
+     base hue. A `light-dark()` cannot be nested inside another one, so the light
+     arm has to name the light hex outright -- and a hex repeated is a hex that
+     can fall out of step. `check-contrast.py` now asserts that the colour inside
+     each light `color-mix()` IS the light arm of the token it claims to tint.
+     The guarantee moved from "by construction" to "by gate"; it did not go. */
+  --thrive-indigo: light-dark(#4c5bd4, #788eff);
+  --thrive-indigo-soft: light-dark(
+    color-mix(in oklab, #4c5bd4 8%, white),
+    #272c45
+  );
 
   /* Status. RESERVED: signals status, never decoration.
 
@@ -246,11 +497,38 @@
      WHAT IT BOUGHT, honestly: very little for teal and amber, which were
      already at the gamut boundary for their lightness (1.07x and 1.15x). A lot
      for slate, plum and violet, which had room (2.46x, 1.70x, 1.41x). The slate
-     is the one that mattered most — see the note on `--thrive-later`. */
-  /* was #14706b · C 0.0803 -> 0.0856, the gamut maximum at this L and H */
-  --thrive-on-track: #00716c;
-  /* was #8f6220 · C 0.0988 -> 0.1136, likewise the maximum */
-  --thrive-watch: #946000;
+     is the one that mattered most — see the note on `--thrive-later`.
+
+     ── THE DARK SET, 2026-08-21 ───────────────────────────────────────────────
+     Same method as the chroma pass, run the other way. Each hue is held EXACTLY
+     and the lightness is solved for, so every one of these lands at 5.58-5.61:1
+     on the dark card against 4.76-5.87 on the light one -- the same standing,
+     token for token. The floor is `sunken` again in both themes (4.60-4.63 dark,
+     4.14-5.13 light), because sunken is the lightest dark surface exactly as it
+     is the darkest light one.
+
+     CHROMA GOES UP 1.30x, NOT TO THE GAMUT MAXIMUM. Lifting lightness costs
+     chroma -- the sRGB gamut narrows towards white -- so a hue that keeps its
+     ratio on dark has less saturation available than the same hue on light. 1.30x
+     restores the appearance of saturation without reaching the boundary, where
+     these become the neon the light pass also refused. Two tokens override that
+     multiplier and both are collision fixes; see `later` and `needs-help`.
+
+     WHAT THE DARK SET COSTS, measured on the month grid the way the light one
+     was: worst pair dE 0.0759 (`later`/`indigo`) against the light grid's 0.0727
+     (`needs-help`/`indigo`). Marginally better overall, with the pairs
+     reshuffled -- `needs-help`/`indigo` improves to 0.0875 and `later`/`indigo`
+     becomes the tight one. The single real loss is `muted`/`primary`, 0.2484 down
+     to 0.0964, and that is the navy note's problem rather than this one's. */
+  /* was #14706b · C 0.0803 -> 0.0856, the gamut maximum at this L and H.
+     Dark: 5.61 card / 4.62 sunken, H 189 held, C 0.0856 -> 0.1117. Teal was the
+     hue the light chroma pass could do least for, being already at the gamut
+     edge; on dark there is room, which is the one place this token gained
+     anything from being retuned. */
+  --thrive-on-track: light-dark(#00716c, #14a8a0);
+  /* was #8f6220 · C 0.0988 -> 0.1136, likewise the maximum.
+     Dark: 5.61 card / 4.63 sunken, H 73 held, C 0.1137 -> 0.1452. */
+  --thrive-watch: light-dark(#946000, #ce8800);
   /* was #6a5fb0 · C 0.1240 -> 0.1697, and the ONE hue that also moved: 287.7 ->
      296. The shift is what pays for the chroma.
 
@@ -265,12 +543,28 @@
      saturation for nothing: separation from indigo is 0.0723 -> 0.0727 and from
      civic 0.0744 -> 0.0777, both marginally BETTER, at 1.37x the chroma. Still a
      violet, and still the same violet meaning. Capped well under the 0.28 the
-     gamut allows, where it is a neon that would shout in a chip. */
-  --thrive-needs-help: #7851c2;
+     gamut allows, where it is a neon that would shout in a chip.
+
+     AND THE DARK VALUE MADE THE SAME MOVE AGAIN, for the same reason, which is
+     why this note is worth its length. Held at H 296 with 1.30x chroma, the dark
+     violet came out dE 0.0728 from the dark indigo -- effectively the same
+     crowding the light pass had to escape, reappearing on the other side of the
+     lightness range. Boxed in identically: indigo at 273, civic at 323. So it
+     re-centres 4 degrees further out, to H 300, and the separation goes 0.0728 ->
+     0.0875 against indigo while civic holds at 0.0770.
+
+     THE LESSON IS THAT THE COLLISION IS IN THE HUE CORRIDOR, NOT IN THE
+     LIGHTNESS. Re-tuning for a second theme does not inherit the first theme's
+     fix; the same three hues crowd each other at any lightness, and each theme
+     has to buy its own way out. Dark: 5.59 card / 4.61 sunken. */
+  --thrive-needs-help: light-dark(#7851c2, #b07bff);
 
   /* Urgency. RESERVED harder than the rest: overdue and genuinely urgent
-     only. If coral shows up for anything else it stops meaning "act now". */
-  --thrive-urgent: #b8462f;
+     only. If coral shows up for anything else it stops meaning "act now".
+     Dark: 5.59 card / 4.61 sunken, H 33 held, C 0.1526 -> 0.1964. The hue with
+     the most gamut to spare at high lightness, so a dark coral is the one that
+     most obviously still reads as itself. */
+  --thrive-urgent: light-dark(#b8462f, #ff6343);
 
   /* Priority ramp, straight from the reference's urgent / soon / later.
      `soon` aliases watch and `later` is a neutral slate, so a low-priority
@@ -288,26 +582,70 @@
      must stay neutral. `later` can, because it was already a blue-ish slate and
      nothing about "later" requires it to be grey. Pushing its chroma makes it
      read as BLUE rather than as grey, which separates the pair by hue instead of
-     by a lightness difference too small to see at 8px. dE 0.039 -> 0.094. */
-  --thrive-later: #4c74ad;
+     by a lightness difference too small to see at 8px. dE 0.039 -> 0.094.
+
+     ── AND ON DARK IT TAKES NO BOOST AT ALL, WHICH IS THE EXCEPTION ───────────
+     Every other hue here goes up 1.30x. This one stays at its light chroma
+     (0.1001 -> 0.1008) and the reason is the whole lesson of the light pass read
+     backwards.
+
+     `later`'s big light-theme gain existed to escape `muted` -- two
+     indistinguishable greys carrying four of the eleven categories. On dark that
+     problem is smaller: `later`/`muted` measures 0.0926 before any boost, against
+     0.0942 on light, because the dark surfaces let a low-chroma slate read as
+     blue without help.
+
+     Meanwhile the boost has a NEW cost that did not exist on light. At 1.30x the
+     dark slate landed dE 0.0461 from the dark indigo -- worse than either theme's
+     worst pair, and a fresh collision with the most reserved colour in the system,
+     bought to solve a problem that had already gone away. So the multiplier is 1.0
+     and `later`/`indigo` sits at 0.0759.
+
+     Same shape as the violet above and the same conclusion: a chroma change is
+     not a free move, and the thing it walks toward may be reserved. Dark: 5.58
+     card / 4.60 sunken. */
+  --thrive-later: light-dark(#4c74ad, #6e98d4);
 
   /* Categorical only, never status. Plum rather than the old teal: teal sat
      between the new sage and the on-track blue and stopped reading apart.
      was #8a5f8f · C 0.0884 -> 0.1500, which also pulls it away from
-     `needs-help` — the second-closest pair, dE 0.074 -> 0.102. */
-  --thrive-civic: #994ea3;
+     `needs-help` — the second-closest pair, dE 0.074 -> 0.102.
+     Dark: 5.59 card / 4.61 sunken, H 323 held, C 0.1497 -> 0.1940. */
+  --thrive-civic: light-dark(#994ea3, #d56de2);
 
-  /* Soft tints, derived so they can never drift from the base hue. */
-  --thrive-on-track-soft: color-mix(in oklab, var(--thrive-on-track) 9%, white);
-  --thrive-watch-soft: color-mix(in oklab, var(--thrive-watch) 10%, white);
-  --thrive-needs-help-soft: color-mix(
-    in oklab,
-    var(--thrive-needs-help) 9%,
-    white
+  /* Soft tints.
+     LIGHT: derived, so they cannot drift from the base hue -- except that the
+     base can no longer be reached through a var(), because a `light-dark()`
+     cannot nest inside another one. The light hex is repeated here and
+     `check-contrast.py` asserts it matches the token's own light arm.
+     DARK: literal hexes, so the gate can measure them. Each is solved for the
+     lightness at which its own hue clears 4.5:1 as TEXT on it, which is what
+     `bg-*-soft text-*` asks of the pair and what nothing checked before this
+     pass. Measured: 4.60-4.64:1, every one. See the note on `--thrive-indigo`. */
+  --thrive-on-track-soft: light-dark(
+    color-mix(in oklab, #00716c 9%, white),
+    #0b3432
   );
-  --thrive-urgent-soft: color-mix(in oklab, var(--thrive-urgent) 9%, white);
-  --thrive-civic-soft: color-mix(in oklab, var(--thrive-civic) 9%, white);
-  --thrive-later-soft: color-mix(in oklab, var(--thrive-later) 9%, white);
+  --thrive-watch-soft: light-dark(
+    color-mix(in oklab, #946000 10%, white),
+    #3d2b13
+  );
+  --thrive-needs-help-soft: light-dark(
+    color-mix(in oklab, #7851c2 9%, white),
+    #322a42
+  );
+  --thrive-urgent-soft: light-dark(
+    color-mix(in oklab, #b8462f 9%, white),
+    #432620
+  );
+  --thrive-civic-soft: light-dark(
+    color-mix(in oklab, #994ea3 9%, white),
+    #3a273d
+  );
+  --thrive-later-soft: light-dark(
+    color-mix(in oklab, #4c74ad 9%, white),
+    #1f2e44
+  );
 
   /* Elevation: none. Deleted 2026-08-15 along with the borders.
      There is no drop shadow anywhere in THRIVE and no blurred replacement for
@@ -625,12 +963,42 @@
   --chart-5: var(--thrive-muted);
 }
 
+/* ==========================================================================
+   THE STUDENT'S CHOICE BEATS THE SYSTEM'S.
+
+   Two rules, and between them they are the entire theme switch. `color-scheme`
+   on `:root` above is `light dark`, which resolves every `light-dark()` in this
+   file from `prefers-color-scheme` -- so with no attribute here, the OS decides
+   and no JavaScript is involved. That is what makes the default correct on the
+   FIRST PAINT for the great majority of students, who never touch the toggle.
+
+   `only` is the load-bearing word. `color-scheme: light` would still let the
+   browser fall back to dark for a UA-controlled surface; `only light` pins it,
+   which is what an explicit choice has to mean.
+
+   `data-theme` is written by `theme.ts` after mount, and its absence is
+   meaningful -- absent is "follow the system", not "light". Same rule the
+   override stores follow: `undefined` means never touched. A student who has
+   chosen `system` has NO attribute rather than `data-theme="system"`, so the
+   markup for the default state is the markup the server already sends.
+   ========================================================================== */
+:root[data-theme='light'] {
+  color-scheme: only light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: only dark;
+}
+
 /* --- Layer 3: expose tokens as Tailwind utilities ---------------------- */
 @theme inline {
   /* Color utilities: bg-surface, text-ink, text-on-track, ... */
   --color-bg: var(--thrive-bg);
   --color-surface: var(--thrive-surface);
   --color-sunken: var(--thrive-sunken);
+  /* `bg-scrim`, for the one element behind a modal. Carries its own alpha, so it
+     takes no `/nn` modifier -- see the token. */
+  --color-scrim: var(--thrive-scrim);
   --color-ink: var(--thrive-ink);
   --color-body: var(--thrive-body);
   --color-muted-ink: var(--thrive-muted);
@@ -1056,9 +1424,13 @@
     @apply font-sans;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
-    /* Light-only by decision. Without this, a machine set to dark gets
-       auto-darkened scrollbars and native form widgets on a warm-white page. */
-    color-scheme: light;
+    /* `color-scheme` USED TO BE PINNED HERE, to `light`, and it is deliberately
+       gone rather than moved: the declaration that replaces it lives at the top
+       of `:root` in layer 1, where it has to be, because `light-dark()` resolves
+       against it. Two declarations of the same property on the same element --
+       one in `@layer base`, one unlayered -- is a cascade fight nobody wants to
+       debug, and the unlayered one wins, so the base-layer copy would have been
+       silently dead. */
   }
 
   /* THE ROOT SIZE, and the bug that made the whole app render one notch large.

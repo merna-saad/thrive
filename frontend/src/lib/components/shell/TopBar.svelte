@@ -2,6 +2,7 @@
 	import Bell from '@lucide/svelte/icons/bell';
 
 	import Avatar from '$lib/components/Avatar.svelte';
+	import ThemeToggle from '$lib/components/shell/ThemeToggle.svelte';
 	import type { Student } from '$lib/data/types';
 
 	/**
@@ -65,6 +66,12 @@
 	<!-- gap-2 is a floor, not a taste call: two 44px targets 4px apart are one
 	     mis-tap away from each other on a phone. -->
 	<div class="flex shrink-0 items-center gap-2">
+		<!-- Theme first, so the two controls that do something to the PAGE sit
+		     together and the account mark stays at the edge where it belongs. It is
+		     on every route because the bar is, which is the point of putting it here
+		     rather than on /settings -- that page is still a placeholder. -->
+		<ThemeToggle />
+
 		<!-- The shared IconButton is not ported yet, so its ghost treatment is
 		     inlined: a border box held at rest so the button cannot change size on
 		     hover, drawing nothing until it is reached for.
