@@ -234,9 +234,25 @@ describe("returned objects are copies, not the stored record", () => {
     const data = await freshData();
 
     const first = await data.getDegreeProgress();
+    /*
+     * READ BEFORE THE MUTATION, rather than compared to a literal.
+     *
+     * This used to assert `toBe(38)`, which coupled a defensive-copy test to a
+     * fixture value -- so correcting that fixture (it claimed 38 of 52 units for
+     * a student three weeks into their first term) broke a test that has nothing
+     * to do with unit counts. What this test is actually about is that the write
+     * below does not reach the fixture, and the property is "unchanged", so the
+     * expected value is the one that was there a line ago.
+     *
+     * The explicit `not.toBe(999)` is the companion: comparing a value to itself
+     * would pass on a provider that returned the same mutated object twice.
+     */
+    const before = first.unitsCompleted;
     first.unitsCompleted = 999;
 
-    expect((await data.getDegreeProgress()).unitsCompleted).toBe(38);
+    const second = await data.getDegreeProgress();
+    expect(second.unitsCompleted).toBe(before);
+    expect(second.unitsCompleted).not.toBe(999);
   });
 
   it("does not let a mutation to an advisor or a resource reach the fixture", async () => {
@@ -530,7 +546,11 @@ describe("shaping happens behind the provider boundary", () => {
     expect(prefill.currentUnits).toBe(12);
     expect(prefill.currentCourses).toHaveLength(3);
     expect(prefill.studentName).toBe("Merna");
-    expect(prefill.unitsRequired).toBe(52);
+    // 48, not 52. The old total implied a thirteenth four-unit course that was
+    // in no term of the catalogue -- see `mock/degree.ts` for the derivation.
+    // `fixtureConsistency.spec.ts` is what pins it to the catalogue; this line
+    // only checks the prefill carries it through.
+    expect(prefill.unitsRequired).toBe(48);
   });
 });
 
