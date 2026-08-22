@@ -95,7 +95,16 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const FRONTEND = join(ROOT, 'frontend');
-const ENTRY = join(FRONTEND, 'build', 'index.js');
+/*
+ * The ADAPTER-NODE build, not the Netlify one.
+ *
+ * `frontend/build/` is Netlify's publish directory and holds static assets plus a
+ * bundle of serverless functions -- nothing this can spawn. `adapter-node` writes
+ * `build-node/` instead, and `npm run check:layout` / `check:interaction` build it
+ * first (`ADAPTER=node vite build`). Two adapters writing one folder would mean
+ * whichever ran last decided what this gate measured.
+ */
+const ENTRY = join(FRONTEND, 'build-node', 'index.js');
 const PORT = 4400;
 const BASE = `http://127.0.0.1:${PORT}`;
 
@@ -176,7 +185,8 @@ function findCachedShell() {
 
 if (!existsSync(ENTRY)) {
 	console.error('check-interaction: FAILED');
-	console.error(`  No build at ${ENTRY}. Run \`npm run build\` first.`);
+	console.error(`  No build at ${ENTRY}. Run \`npm run build:node\` first.`);
+	console.error('  (`npm run build` produces the Netlify output, which this cannot spawn.)');
 	process.exit(1);
 }
 

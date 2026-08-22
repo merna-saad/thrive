@@ -1,0 +1,84 @@
+# Netlify build configuration for the THRIVE frontend.
+#
+# COMMITTED ON PURPOSE. Everything Netlify needs to build this repo is in this
+# file, so the deploy is reproducible from a clone rather than from settings
+# somebody typed into a dashboard once. If a value here and a value in the
+# dashboard disagree, THIS FILE WINS -- which is the property we want.
+#
+# ## The app is not at the repo root
+#
+# `base` is what makes that work. The repo is:
+#
+#   thrive/
+#   ├── netlify.toml     <- this file, at the ROOT, which is where Netlify looks
+#   ├── frontend/        <- the SvelteKit app, and the build's working directory
+#   ├── backend/         <- Django, not started
+#   └── scripts/         <- the gates
+#
+# With `base = "frontend"`, Netlify changes into that directory before doing
+# anything, so `npm install` finds `frontend/package.json` and `command` and
+# `publish` are both resolved relative to it. Without it, the build would run at
+# the root, find no package.json, and fail with a message about a missing build
+# command rather than about the wrong directory.
+#
+# ## Why there is no `functions` setting
+#
+# `@sveltejs/adapter-netlify` writes the server into `.netlify/functions-internal/`
+# and emits the redirect that routes every request to it. That is the adapter's
+# job and it is wired automatically; naming a functions directory here would
+# point Netlify at a folder the adapter does not use.
+#
+# ## Server rendering is unchanged by this file
+#
+# There is no `prerender`, no `ssr = false` and no `csr = false` anywhere in
+# `src/routes`, so every route is rendered per request. Under `adapter-node` that
+# request is served by a long-running process; under `adapter-netlify` it is
+# served by a function invocation. In both cases the `load` function runs when the
+# request arrives, which is the property this app's whole date rule depends on:
+# `new Date()` in a `load` is the ONE answer to "what is today", and it has to be
+# read at request time or every relative fixture date freezes.
+#
+# If any route were ever prerendered, that would break -- the dates would be
+# stamped at build time and the demo would age. That is the thing to check before
+# adding `prerender = true` anywhere.
+
+[build]
+  # The SvelteKit app, not the repo root. See the note above.
+  base = "frontend"
+
+  # `npm run build` with no ADAPTER set, which selects adapter-netlify. See
+  # `vite.config.ts` for why the choice is an environment variable.
+  command = "npm run build"
+
+  # Relative to `base`, so this is `frontend/build`, which is also
+  # adapter-netlify's own default output directory.
+  #
+  # EXPECTED WARNING, so nobody "fixes" it: the build log says
+  #
+  #   Using @sveltejs/adapter-netlify
+  #     No netlify.toml found. Using default publish directory.
+  #
+  # That is correct and harmless. The adapter looks for `netlify.toml` relative to
+  # its own working directory, which is `frontend/` -- and this file is at the repo
+  # ROOT, because that is the only place Netlify itself reads it from and the only
+  # place `base` can be declared. So the adapter never sees it and falls back to
+  # its default, `build`, which is exactly the value on this line.
+  #
+  # The two agree, and the adapter takes no `publish` option to be told otherwise
+  # (its options are `{ split, edge }`). A second copy of this file inside
+  # `frontend/` would silence the line at the cost of two files that can drift,
+  # which is the worse trade.
+  publish = "build"
+
+[build.environment]
+  # Pinned rather than left to Netlify's default, so a change to their default
+  # image cannot change what this builds with. 22 is inside the "Node 20 or
+  # newer" the README states and below the 24 the project is developed on, so it
+  # exercises the floor rather than the ceiling.
+  NODE_VERSION = "22"
+
+# NOTE ON `ORIGIN`: adapter-node needs it or every form POST is a 403, because
+# that adapter cannot know its own public URL (see setup_info.md). adapter-netlify
+# does NOT -- it derives the origin from the request Netlify hands it, so there is
+# nothing to set here and no secret to store. The two browser gates still set it
+# when they spawn the Node build.

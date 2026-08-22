@@ -64,14 +64,46 @@ cd thrive/frontend
 npm install
 
 npm run dev -- --open      # dev server on :5173
-npm run build              # production build
-node build/index.js        # run that build on :3000
+npm run build              # production build, for Netlify
+npm run build:node         # production build, as a plain Node server
+ORIGIN=http://localhost:3000 node build-node/index.js   # run it on :3000
 ```
 
-The build is a plain Node process — `adapter-node`, no serverless assumptions.
+**Two adapters, and the environment picks one.** `npm run build` uses
+`adapter-netlify`, which is what a push to `main` deploys. `npm run build:node`
+sets `ADAPTER=node` and uses `adapter-node`, which writes to `build-node/` and is
+what the two browser gates spawn — they drive a real long-running server, which a
+bundle of serverless functions is not. Neither adapter changes the app: nothing is
+prerendered, so every route is server-rendered per request under both. See
+`vite.config.ts` and `netlify.toml`.
+
+`ORIGIN` is required by the Node build and not by Netlify — see `setup_info.md`.
 
 If a page looks stale locally, something is usually holding the port:
 `lsof -ti:3000 | xargs kill -9`.
+
+---
+
+## The deployed site is not private
+
+There is a Netlify deploy so teammates can open a link instead of cloning the
+repo or getting onto Tailscale. Treat that URL as **shared with everyone who has
+it**:
+
+- **There is no authentication.** No login, no sessions, no per-student data.
+  Anyone with the URL sees the app.
+- **The mock stores are process-global.** Appointments, course requests and
+  resume versions live in module-scope objects on the server, shared by every
+  visitor and wiped on restart. So two people using the site at once book over
+  each other and see each other's bookings. This is `MIGRATION.md` §9 defect 1,
+  graded BLOCKING, and it is inherited deliberately — Django is the fix.
+- **The form actions have no auth check** and are reachable by direct POST
+  (§9 defect 2).
+
+None of that is new; it has been true since the data layer was built against
+fixtures. A public URL is what makes it matter. **Do not share the link outside
+the team, and do not put anything real into it** — no actual names, no actual
+questions you would not want a stranger to read.
 
 ---
 
