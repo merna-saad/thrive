@@ -22,8 +22,20 @@
 	 * in sequence, and a three-wide radio group in a two-column grid would be
 	 * wider than the field beside it. Kept as the Next source has it.
 	 *
-	 * A native select inherits the platform's colours, which on a dark-set OS
-	 * renders white-on-white against our light fill, so the colours are explicit.
+	 * A native select inherits the platform's colours, so its fill and text are
+	 * set explicitly here. THE REASON CHANGED with the dark theme and the old one
+	 * is worth keeping visible: it used to be that a dark-set OS rendered
+	 * white-on-white against our light fill, because the app declared itself
+	 * light-only while the machine was not. That specific failure is gone --
+	 * `color-scheme: light dark` now tells the browser the truth, so the widget
+	 * and its dropdown are handed the right palette in either theme.
+	 *
+	 * The explicit colours stay anyway, and are now doing a different job: they
+	 * are what makes the closed control match the app's own surface and ink
+	 * rather than the platform's idea of a form field. Both are tokens, so they
+	 * follow the theme. The OPTION LIST is still drawn by the OS and cannot be
+	 * styled; it is correct in both themes now for the color-scheme reason, which
+	 * is the half this component never controlled.
 	 *
 	 * ## Submitting keeps the form open
 	 *

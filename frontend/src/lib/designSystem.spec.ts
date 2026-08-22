@@ -72,6 +72,89 @@ describe("the design system's unenforced rules", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("never reaches for a colour outside the palette", () => {
+    /*
+     * THE HOLE THE DARK THEME FOUND, and it had been open the whole time.
+     *
+     * The hex test above rejects `#fff`. It does not reject `text-white`, which
+     * is a named Tailwind colour and just as unrepalettable -- and `schedule.ts`
+     * had eight of them, painting the calendar's category chips. In the
+     * light-only app they were invisible: `--thrive-on-primary` IS white, so
+     * `text-white` and `text-on-primary` rendered identically. The theme is what
+     * made them wrong, at about 1.2:1 on dark, and nothing in the repo could
+     * have said so.
+     *
+     * So the rule is the palette rather than the notation: THRIVE's tokens are
+     * the only colour names in `@theme`, and any Tailwind default that survives
+     * into markup is a colour the design system does not own.
+     *
+     * `white`/`black` are called out separately from the numbered families
+     * because they are the tempting ones -- a stock `blue-500` looks wrong in
+     * review, and `text-white` on a coloured fill looks correct until the fill
+     * moves. This scans `.ts` as well as markup: the eight offenders were all in
+     * a `.ts` class-string map, which is exactly where the markup glob cannot
+     * see them.
+     */
+    const FAMILIES = [
+      "slate", "gray", "grey", "zinc", "neutral", "stone",
+      "red", "orange", "amber", "lime", "green", "emerald", "teal",
+      "cyan", "sky", "blue", "violet", "purple", "fuchsia", "pink", "rose",
+    ];
+    // `yellow` and `indigo` are deliberately absent: both are real THRIVE
+    // tokens, so `text-indigo` and `border-yellow` are correct and a numbered
+    // `indigo-500` is what would be wrong. Those are caught by the suffix.
+    const PREFIX = "(?:bg|text|border|ring|outline|fill|stroke|divide|from|via|to)";
+    const patterns = [
+      new RegExp(`\\b${PREFIX}-(?:white|black)\\b`),
+      new RegExp(`\\b${PREFIX}-(?:${FAMILIES.join("|")})(?:-\\d{2,3})?\\b`),
+      // A THRIVE token name with a Tailwind weight suffix is a stock colour
+      // wearing our name: `--color-indigo` has no `-500`.
+      new RegExp(`\\b${PREFIX}-(?:indigo|yellow)-\\d{2,3}\\b`),
+    ];
+
+    const sources = { ...MARKUP, ...SCRIPTS };
+    const offenders = Object.keys(sources)
+      .filter((path) => patterns.some((pattern) => pattern.test(sources[path])))
+      .sort();
+    expect(offenders).toEqual([]);
+  });
+
+  it("can still see a colour outside the palette when there is one", () => {
+    // The companion assertion for the test above, which asserts an absence over
+    // a corpus this large. Every family, and the two bare names, proved to match
+    // rather than assumed to -- a typo in one entry of FAMILIES would otherwise
+    // be a permanent silent pass for that family.
+    const PREFIX = "(?:bg|text|border|ring|outline|fill|stroke|divide|from|via|to)";
+    const samples = [
+      "bg-white", "text-black", "border-slate-200", "text-gray-500",
+      "bg-red-500", "ring-sky-300", "text-emerald-600", "bg-indigo-500",
+      "border-yellow-400", "divide-zinc-100", "outline-rose-500",
+    ];
+    const FAMILIES = [
+      "slate", "gray", "grey", "zinc", "neutral", "stone",
+      "red", "orange", "amber", "lime", "green", "emerald", "teal",
+      "cyan", "sky", "blue", "violet", "purple", "fuchsia", "pink", "rose",
+    ];
+    const patterns = [
+      new RegExp(`\\b${PREFIX}-(?:white|black)\\b`),
+      new RegExp(`\\b${PREFIX}-(?:${FAMILIES.join("|")})(?:-\\d{2,3})?\\b`),
+      new RegExp(`\\b${PREFIX}-(?:indigo|yellow)-\\d{2,3}\\b`),
+    ];
+    for (const sample of samples) {
+      expect(
+        patterns.some((pattern) => pattern.test(`class="${sample}"`)),
+        `${sample} should be rejected`,
+      ).toBe(true);
+    }
+    // And it must NOT reject the THRIVE tokens that share those words.
+    for (const good of ["text-indigo", "bg-indigo-soft", "border-yellow", "text-on-primary"]) {
+      expect(
+        patterns.some((pattern) => pattern.test(`class="${good}"`)),
+        `${good} is a THRIVE token and must pass`,
+      ).toBe(false);
+    }
+  });
+
   it("never names a font in a component", () => {
     /*
      * The two-face rule, enforced. Components reach for `.thrive-numeric` (a

@@ -165,6 +165,21 @@
 							// On the sunken rail a white row is a raised one, so the stack
 							// reads as cards without a single new token.
 							//
+							// AND ON DARK IT IS AN INSET ONE, which is worth writing down
+							// rather than leaving as a claim that quietly went false. The
+							// dark theme inverts `sunken` -- it is LIGHTER than the card
+							// there, because a row-hover fill has to brighten on a dark
+							// ground. So a `bg-surface` row on a `sunken` rail is darker
+							// than the rail rather than lighter.
+							//
+							// Left as it is, deliberately. The separation is what the
+							// treatment was for and it is intact -- 1.15:1 rail-to-row on
+							// light, 1.21:1 on dark, so if anything the stack reads slightly
+							// MORE distinctly in dark. What changes is whether the rows look
+							// raised or recessed, and nothing in this list depends on which:
+							// they are a list of things you can click either way, and the
+							// hairline is what draws the boundary in both.
+							//
 							// The open conversation keeps the control-weight stroke AS WELL AS
 							// the tint, and adds a navy bar down its leading edge. Three cues,
 							// none of them hue alone: the stroke survives not being able to

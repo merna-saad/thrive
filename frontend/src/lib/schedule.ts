@@ -77,24 +77,60 @@ export const categoryDot: Record<ScheduleCategory, string> = {
 /**
  * Tag styling for the day list, where there is room for a label.
  *
- * Solid fills with white text, matching `Tag`. The previous tint-on-tint set
- * put `sandiego` at 4.24:1 -- under AA for label text -- and read faint beside
- * the heavier borders and type this pass introduced. Every pairing below was
- * measured: watch 5.34, primary 5.72, on-track 5.12, needs-help 5.42,
+ * Solid fills with `on-primary` text, matching `Tag`. The previous tint-on-tint
+ * set put `sandiego` at 4.24:1 -- under AA for label text -- and read faint
+ * beside the heavier borders and type this pass introduced. Every pairing below
+ * was measured: watch 5.34, primary 5.72, on-track 5.12, needs-help 5.42,
  * civic 5.10, later 4.76. `class` and `ucsd` stay neutral on purpose, so the
  * two most common categories do not make every row shout.
+ *
+ * ## EIGHT OF THESE LETTERED IN STOCK WHITE, AND IT WAS A BUG AWAITING A THEME
+ *
+ * Fixed 2026-08-21, when the dark theme arrived. Tailwind's own white is a raw
+ * colour rather than a THRIVE token, so it could not follow a repalette -- and on
+ * dark every fill in this map is a LIGHT colour, so white lettering on it
+ * measured 2.85 to 2.96:1 across the eight. Eight failing chips, in the one map
+ * that paints the calendar's stream identity.
+ *
+ * That range is worth reading twice, because it is the reason this was worth a
+ * gate rather than an eye. 2.9:1 is not invisible -- it is legible enough to look
+ * fine in a screenshot and fine to whoever is clicking around, while failing AA
+ * for label text by a wide margin. A bug that looks right is the expensive kind.
+ *
+ * `--thrive-on-primary` is the token for "text that goes on a solid fill", and
+ * it flips from white to a deep navy ink between the themes, so writing it here
+ * means these retune with the palette instead of against it. Measured after the
+ * change: at least 6.36:1 on every fill in dark, and IDENTICAL in light, because
+ * `on-primary` is `#ffffff` there -- so this fix changes no light pixel.
+ *
+ * `tones.ts` had it right all along (`urgent: 'bg-urgent text-on-primary'`),
+ * which is what made the inconsistency findable: two files painting the same
+ * kind of chip, one through the token and one around it. The gate that reads
+ * app.css could never have caught this, because the offending value was in a
+ * `.ts`, and `designSystem.spec.ts` only rejected HEX colours -- a NAMED Tailwind
+ * colour walked straight through. That hole is closed now: the spec rejects the
+ * whole stock palette, not just hex notation.
+ *
+ * Note it also has to be described in prose here rather than quoted, because
+ * that new check scans raw source and does not strip comments. Deliberate: a
+ * comment-stripping regex that is wrong somewhere would HIDE a real offender,
+ * and this file is the evidence that a silently passing colour check is the
+ * expensive failure. Awkward wording is the cheaper half of that trade.
  */
 export const categoryTag: Record<ScheduleCategory, string> = {
+  // `bg-ink text-surface` is the deliberate inverse pair, and it survives the
+  // theme without help: both halves are tokens, so it is dark-on-light in light
+  // and light-on-dark in dark. 17.74:1 and 14.07:1.
   class: "bg-ink text-surface",
-  assignment: "bg-watch text-white",
-  task: "bg-watch text-white",
+  assignment: "bg-watch text-on-primary",
+  task: "bg-watch text-on-primary",
   appointment: "bg-primary text-on-primary",
-  todo: "bg-later text-white",
-  custom: "bg-muted-ink text-white",
-  career: "bg-on-track text-white",
-  rady: "bg-needs-help text-white",
-  club: "bg-civic text-white",
-  sandiego: "bg-later text-white",
+  todo: "bg-later text-on-primary",
+  custom: "bg-muted-ink text-on-primary",
+  career: "bg-on-track text-on-primary",
+  rady: "bg-needs-help text-on-primary",
+  club: "bg-civic text-on-primary",
+  sandiego: "bg-later text-on-primary",
   ucsd: "bg-surface text-body border border-line",
 };
 

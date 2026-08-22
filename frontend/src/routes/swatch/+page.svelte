@@ -143,6 +143,23 @@
 			Every colour token, every type step, both border weights, both faces. Throwaway route
 			for comparing this against the Next app side by side.
 		</p>
+		<!--
+			The swatches themselves read the tokens, so they retune with the theme for
+			free. THE PRINTED HEX VALUES AND RATIOS DO NOT -- they are literal text,
+			and every one of them describes the LIGHT theme.
+
+			Said on the page rather than only in a comment, because this page's whole
+			job is to be believed about colour, and a page that prints "1.43:1 on
+			cream" while rendering dark is actively misleading. Not fixed: /swatch is
+			slated for deletion before Release 1 and is deliberately outside every
+			maintenance pass (owner, 2026-08-21). This is the cheapest thing that
+			stops it lying -- the numbers live in app.css and check-contrast.py, which
+			do cover both themes.
+		-->
+		<p class="mt-1.5 max-w-measure text-2xs text-muted-ink">
+			The swatches follow the theme; the printed values do not. Every hex and ratio on this
+			page is the light theme's. See <code>app.css</code> and the contrast gate for both.
+		</p>
 	</header>
 
 	<!-- ── Brand ────────────────────────────────────────────────────────── -->

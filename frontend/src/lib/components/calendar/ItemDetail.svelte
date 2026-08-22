@@ -186,15 +186,21 @@
 
 <!--
 	The scrim. Fixed, so it covers the page rather than the panel it was opened
-	from, and `bg-ink/20` rather than a token of its own: it is the ink colour at
-	low alpha, which is a use of the palette rather than a new entry in it.
+	from, and `bg-scrim` -- which IS a token of its own as of the dark theme.
+
+	It used to be `bg-ink/20`, on the reasoning that the ink colour at low alpha
+	is a use of the palette rather than a new entry in it. True while ink was
+	dark. On dark ink is a near-white, so that expression became a 20% white veil
+	that LIGHTENED the page behind the dialog. A scrim is always a darkening, so
+	it is the one colour that must not follow the ink. The light value is
+	unchanged; see the token for the alphas and why they differ.
 
 	Bottom-anchored on a phone and centred from `sm` up. A dialog that appears in
 	the middle of a small screen has its controls under the fold of a thumb's
 	reach; one anchored to the bottom edge does not, and the square top corners
 	say it is attached to that edge rather than floating over it.
 -->
-<div class="fixed inset-0 z-50 flex items-end justify-center bg-ink/20 p-0 sm:items-center sm:p-4">
+<div class="fixed inset-0 z-50 flex items-end justify-center bg-scrim p-0 sm:items-center sm:p-4">
 	<div
 		role="dialog"
 		aria-modal="true"

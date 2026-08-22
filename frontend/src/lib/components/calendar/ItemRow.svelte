@@ -201,9 +201,10 @@
 		     a strike-through can never appear together.
 
 		     Through `Tag` rather than hand-rolled: urgent is a STATUS, and the app
-		     has one status chip. The Next version built its own span with
-		     `bg-urgent text-white`, which is a second urgent chip that would drift
-		     from the first the moment either was tuned. -->
+		     has one status chip. The Next version built its own span, filling with
+		     the urgent token and lettering it in a stock white utility -- a second
+		     urgent chip that would drift from the first the moment either was
+		     tuned, and which the dark theme would have broken outright. -->
 		{#if item.urgent}
 			<Tag tone="urgent">{messages.calendar.row.urgent}</Tag>
 		{/if}
