@@ -1,4 +1,4 @@
-<!-- updated-at: 99fd968 -->
+<!-- updated-at: 613668d -->
 
 # CONTEXT
 
@@ -8,10 +8,10 @@ without asking anyone.
 **Regenerated in full every handoff.** Never patch it — a partial edit leaves
 stale claims sitting beside fresh ones with no way to tell them apart.
 
-The previous regeneration was **deferred across two phases** and covered 7a and 7b
-together. This one covers **7c and its two follow-ons**, and was done at the
-owner's instruction on the same reasoning: three calendar phases of drift is
-exactly the accumulated case the rule exists for.
+This one covers **Phases 8 and 9, four follow-on redesigns, a Netlify deploy and a
+typography pass**, regenerated end to end. The previous version was two phases
+behind and had been patched twice in-session; this is the first clean pass since
+`695dbb2`.
 
 ---
 
@@ -25,10 +25,12 @@ This repo is the **rebuild**. A working Next.js prototype already exists and is
 now frozen; this is the SvelteKit + Django version of it.
 
 - **Repo:** `rsm-msaad/thrive`, private, GitHub. Default branch `main`.
-- **Owner:** one developer, working solo. There is no second maintainer yet.
+- **Owner:** one developer, working solo. Teammates are about to get repo access
+  to build the Django backend.
 - **Local path:** `~/code/thrive`
-- **No PRs.** Everything goes direct to `main` — solo, no review gate yet. Commit
-  hashes stand in for PR links throughout the docs.
+- **Deployed:** Netlify, from `main`. **No authentication** — see §20.
+- **No PRs.** Everything goes direct to `main`. Commit hashes stand in for PR
+  links throughout the docs.
 
 ### The frozen prototype
 
@@ -36,8 +38,13 @@ now frozen; this is the SvelteKit + Django version of it.
 `4e0a65b`. **READ-ONLY REFERENCE. Never write to it.** Its uncommitted working
 tree has been left exactly as found and verified untouched after every phase.
 
-Everything worth knowing about it is inventoried in `MIGRATION.md` (see §3), so
-in practice you read that rather than the old tree.
+Everything worth knowing about it is inventoried in `MIGRATION.md` (§3), so in
+practice you read that rather than the old tree.
+
+**Phase 9 was the first surface with no prototype at all.** Ask THRIVE does not
+exist in the old tree — the closest thing is a floating assistant panel behind a
+feature flag, read for tone rather than ported. From here some phases are design
+rather than migration, and the docs should say which.
 
 ### A note on dates in this repo
 
@@ -52,6 +59,7 @@ sequence.
 
 ```
 thrive/
+├── BACKEND.md       the contract Django has to satisfy — the backend's entry point
 ├── CONTEXT.md       this file — the snapshot
 ├── HANDOFF.md       the diary — what happened, per session
 ├── MIGRATION.md     the map of the frozen prototype, and the port spec
@@ -62,30 +70,36 @@ thrive/
 ├── BUGS.md          defects found and fixed
 ├── DEPENDENCIES.md  packages and why each is here
 ├── TESTING.md       coverage and gaps
-├── setup_info.md    environment and versions
-├── README.md        the public-facing explanation of the layout
+├── setup_info.md    environment, versions, and how to run things
+├── README.md        the public-facing explanation, and the doc guide
+├── netlify.toml     the deploy config, at the root because Netlify reads it there
 ├── frontend/        the SvelteKit app
 ├── backend/         Django — not started, README only
 └── scripts/
     ├── check-contrast.py       58 assertions over the palette and app.css
-    ├── check-layout.mjs        14 targets x 3 viewports, in a real browser
-    └── check-interaction.mjs   97 assertions: the popovers, task editing, the calendar
+    ├── check-layout.mjs        17 targets x 3 viewports, in a real browser
+    └── check-interaction.mjs   190 assertions: the popovers, task editing, the
+                                calendar, booking, Ask THRIVE, the nav
+                                disclosure, and the page measure
 ```
 
 `MIGRATION.md` is also the **only surviving copy** of the prototype inventory —
 it was never committed to the old repo.
 
+**`BACKEND.md` is new and is where a backend contributor starts.** The README's
+doc guide now routes by side and says honestly which files are frontend build
+history that a backend engineer can skip.
+
 ---
 
-## 3. MIGRATION.md is the spec
+## 3. MIGRATION.md is the spec, and it is now partly historical
 
 1,457 lines, nine sections, written by reading the prototype at `4e0a65b`.
-Every phase of the port works from it.
 
 | § | Contents |
 |---|---|
 | 1 | Route inventory — 13 routes, which are real, which return `PagePlaceholder` |
-| 2 | The data layer — all **25** provider functions with exact signatures, and the three module-level stores |
+| 2 | The data layer — provider signatures and the three module-level stores |
 | 3 | Date and time handling — the timestamp rule as actually implemented |
 | 4 | Component inventory — 75 components, shadcn/Radix wrappers marked |
 | 5 | Design system — every token, and the conventions a port must preserve |
@@ -94,93 +108,87 @@ Every phase of the port works from it.
 | 8 | React-specific code needing a real decision, not a translation |
 | 9 | Known defects, on a "build correctly, do not reproduce" list |
 
-**Three counts in the original brief were wrong and MIGRATION.md corrects
-them:** 25 providers (not 21), 83 tests (not 61), and `todayKey()` lives in
-`buildSchedule.ts` (not `format.ts`).
+**It documents the PROTOTYPE, not this repo**, and the two have now diverged
+enough that four of its claims are stale about the current tree. `BACKEND.md` §9
+lists them: the provider count is 27 rather than 25, `cancelAppointment` releases
+by slot id rather than by start time, slot availability also depends on the clock,
+and a `DegreeProgress` field it warns about has been removed.
 
-### The standing rule, and the three shapes it now has
+### The standing rule, and the four shapes it has taken
 
 **Where MIGRATION.md and the prototype source disagree, the source wins, and it
-gets reported.** Exercised three times — §2 overstated `buildSlotsFor`'s
-determinism, §2 omitted that provider copies are shallow, and §4's one-line entry
-for the task-editing components omits `lib/taskBoard.ts` entirely, which is where
-most of the behaviour actually lives.
+gets reported.** Exercised repeatedly.
 
 **Shape two: sometimes the source is simply WRONG, and porting it verbatim is the
 bug.** Every date converter in the Next `taskBoard.ts` throws a `RangeError` on a
-due date that will not parse (§7). The agenda rendered all three groupings
-identically, so a type-grouped list showed thirty days of rows each reading "9:30
-AM" with nothing saying which day (§14).
+due date that will not parse. The agenda rendered all three groupings identically.
 
 > **The right instinct when the source is wrong is to improve on it, not to port
-> the mistake** (owner, 2026-08-21). Recorded as a rule because it will come up
-> again, and because "the source wins" read alone points the other way.
+> the mistake** (owner, 2026-08-21).
 
-**7c found three more of shape two, all in the components it ported**, and they
-are worth naming because they are all the same kind of mistake — a control that
-appears to work:
+**Shape three: sometimes the source contradicts ITSELF.** MIGRATION §4 and
+`WeekView.tsx`'s own comment both say week view is not rendered below `40rem`;
+`CalendarView.tsx` renders it at every width with a horizontal scroll, which that
+same comment calls the wrong answer.
 
-- `AddItemForm.tsx` stored a custom event's label and urgent flag BOTH on the
-  event and in the annotation stores, and `mergedSchedule` resolves
-  `override ?? item.urgent`. Clearing the flag wrote `undefined` and fell straight
-  back to the copy on the event, so **un-marking urgent did nothing**.
-- `ItemDetail.tsx` rendered its urgent checkbox from the row it was handed, which
-  is a snapshot and never changes, so the box did not move until the dialog was
-  reopened.
-- `ItemDetail.tsx` fired `deleteCustomEvent` on **one click** of a button labelled
-  "delete", for a thing with no undo anywhere in the system.
+> **A source that contradicts itself is not a source to follow** (owner).
 
-**Shape three: sometimes the source contradicts ITSELF, and there is no behaviour
-to defer to.** MIGRATION §4 and `WeekView.tsx`'s own doc comment both say week
-view is not rendered below `40rem` and the parent falls back to the agenda.
-`CalendarView.tsx` renders it at every width, and `WeekView` handles narrow
-screens with `overflow-x-auto` + `min-w-[42rem]` — a horizontal scroll, which is
-the exact thing that comment calls the wrong answer.
+**Shape four, found in Phase 8: sometimes the source declares a coupling and never
+builds it.** `BookingPanel.tsx` takes a `selectedDayKey` prop documented as "day
+chosen elsewhere on the page (the mini calendar)" and carries a full
+adjust-during-render mechanism to adopt it — but `BookingArea.tsx` never renders a
+calendar. The month calendar Phase 8 was asked to build was a coupling the
+prototype had already declared and left dangling.
 
-> **A source that contradicts itself is not a source to follow** (owner,
-> 2026-08-21). "The source wins" resolves a disagreement between the spec and the
-> code. It cannot resolve a disagreement inside the code, and reaching for it there
-> would have shipped the scroll.
+This is the mildest shape and the most encouraging: **a dangling declaration is a
+design intention with the plumbing already in place.** Worth grepping for before
+assuming a change is new.
 
 ---
 
 ## 4. Stack
 
 **Frontend** — SvelteKit 2.63 · Svelte 5.56 (runes, forced outside
-`node_modules`) · TypeScript 6 strict · Vite 8 · `adapter-node` · Tailwind v4 ·
-Vitest 4 · npm.
+`node_modules`) · TypeScript 6 strict · Vite 8 · Tailwind v4 · Vitest 4 · npm.
 
-Note this SvelteKit version has **no `svelte.config.js`** — the adapter and
-compiler options live in `vite.config.ts` under the `sveltekit()` plugin.
+Note this SvelteKit version has **no `svelte.config.js`** — the adapter choice,
+the runes setting and the Vitest projects live in `vite.config.ts`.
 
-**Backend** — Django, not started. **It is not being written in this repo yet,
-and nothing here talks to it.** See §12: the data layer was built against mock
-fixtures on purpose, and the provider signatures are the only contract Django
-will have to honour.
+**Two adapters, and an environment variable picks one.** `@sveltejs/adapter-netlify`
+by default (what a push to `main` deploys); `@sveltejs/adapter-node` under
+`ADAPTER=node`, which is what the two browser gates spawn — they drive a real
+long-running server and a bundle of serverless functions is not that. Out
+directories are separate: `build/` for Netlify, `build-node/` for the gates.
 
-Two things now queued need it rather than merely wanting it — Ask THRIVE's saved
-chat history and Group Projects' shared data. See §18.
+Nothing about the app differs between them, and that was checked rather than
+assumed: there is no `prerender`, no `ssr = false` and no `csr = false` anywhere in
+`src/routes`, so every route is server-rendered per request either way. That
+property is load-bearing — `new Date()` inside a `load` is this app's one answer to
+"what is today", and a prerendered route would stamp every relative fixture date at
+build time.
 
-**No shadcn-svelte and no bits-ui yet.** Deferred deliberately; `MIGRATION.md`
-§4 lists the Radix primitives that will need equivalents. The stat pill popover
-and the due-date editor are both hand-built floating widgets rather than deferred
-to one of them — see §13. The calendar added three more hand-built controls and
-one deliberately native one: the key bar's chips are labelled checkboxes, the add
-form's kind picker is a labelled radio group, **`ItemDetail` is a hand-built modal
-dialog** (§14), and the agenda's grouping control is a plain `<select>`.
+**Backend** — Django, not started. **Nothing here talks to it.** The provider
+signatures are the only contract it has to honour; see `BACKEND.md`.
 
-**One dependency added since Phase 1: `playwright-core`** (2026-08-21), for the
-layout gate. It has since paid for itself repeatedly: the same dependency carries
-the interaction gate and every by-hand browser pass, and between them they have
-caught a dead button five other gates called green, a `derived_inert` warning live
-in the production build, the undo arrival's silent no-op, 7b's unclamped
-`line-clamp`, and **7c's TypeError on every dialog close with focus in a field**.
-`@types/node` was rejected in Phase 5 because
-`import.meta.glob(..., { query: "?raw" })` did that job with nothing added — the
-rule is "do not add one where the platform already answers", not "never add one".
-See DEPENDENCIES.md.
+**`ORIGIN` is an adapter-node requirement**, not a Netlify one. Without it every
+form POST is a 403, and the dev server is unaffected — so it worked in dev and
+failed only in the build. See §20 and `setup_info.md`.
 
-**No dependency changed in 7a, 7b or 7c.**
+**No shadcn-svelte and no bits-ui yet.** Deferred deliberately. The stat pill
+popover, the due-date editor, the calendar's key bar, the add form's kind picker,
+`ItemDetail`, and the nav rail's disclosure are all hand-built; the agenda's
+grouping control is a deliberately native `<select>`. Phases 8 and 9 added no new
+primitive — the booking panel's choices are buttons with `aria-pressed` and Ask
+THRIVE's composer is an `<input>` in a `<form>`.
+
+**Dependencies added since Phase 1: two.** `playwright-core` (2026-08-21) for the
+two browser gates, and `@sveltejs/adapter-netlify` (2026-08-21) for the deploy.
+Between them the browser gates have caught a dead button five other gates called
+green, a `derived_inert` warning live in production, the undo arrival's silent
+no-op, an unclamped `line-clamp`, a TypeError on every dialog close with focus in a
+field, a 403 on every form submission, and a chat log that stopped being a scroll
+container. `@types/node` was rejected in Phase 5 and stayed rejected when the
+adapter switch wanted `process.env` — see §9.
 
 ---
 
@@ -194,30 +202,58 @@ See DEPENDENCIES.md.
 | 3a / 3a-fix | `format.ts` suite; input guards on `describeDue` | done |
 | 3b | Browser persistence layer → Svelte 5 runes | done |
 | 4 | App shell, navigation, root layout | done |
-| 5 | Data layer — 25 providers, fixtures, three stores | done |
+| 5 | Data layer — providers, fixtures, three stores | done |
 | — | Repalette to campus brand; tighten the two-face type rule | done |
 | — | Trim navigation to four destinations | done |
 | 6a | Home — the page, four cards, fit-on-one-screen | done |
 | — | Stat pill popovers, the reveal channel, the arrival cue, `check:interaction` | done |
 | 6b | Task editing — tick, undo, rename, priority, notes, due date, reorder, add | done |
-| — | Honest affordances: no link to a parked route, no copy with nowhere to copy | done |
 | 7a | Calendar spine — `buildScheduleData`, month grid, selected day, day sections | done |
 | 7b | Calendar views + filter — switcher, week, agenda, key bar | done |
-| **7c** | **Calendar editing — item detail, add form, the events section** | **done** |
-| — | **Home's "count me in" wired; the month grid's dots given chroma and 2px** | **done** |
+| 7c | Calendar editing — item detail, add form, the events section | done |
+| **8** | **Appointments — cards, chip strip, booking panel, "Your day", a clickable month** | **done** |
+| **9** | **Ask THRIVE — a history rail, a chat window, three destinations in the nav rail** | **done** |
+| — | **Page measure and gutters; the calendar's Key beside the grid** | **done** |
+| — | **Netlify deploy, adapter-node retained for the gates** | **done** |
+| — | **Typography: the top four steps shrink above 40rem** | **done** |
 | **next** | `/assignments` — the same `TaskRow`, no groups | not started |
-| then | Appointments | not started |
-| then | **Ask THRIVE — a full page: second left rail, chat, saved history** | scoped, not built |
-| later | **Group Projects — a fifth nav item, and the first shared surface** | scoped, not built |
+| then | The retrieval service behind Ask THRIVE | needs a backend |
+| later | **Group Projects — the first shared surface** | scoped, not built |
 | later | Floating widgets, behind `FEATURES` | not started |
 
-**563 tests, 26 spec files, all passing**, and green in **all seven timezones** of
-the sweep. `svelte-check` clean over 425 files, 0 warnings. Build clean. Contrast
-**58/58**. Layout **42/42**. Interaction **97/97**. 89 commits, all pushed.
+**640 tests, 29 spec files, all passing**, green in **all seven timezones**.
+`svelte-check` clean over 459 files, 0 warnings. Build clean. Contrast **58/58**.
+Layout **51/51**. Interaction **190/190**. 112 commits, all pushed.
 
-**157 files under `frontend/src`** — ~25,614 lines, 18,435 source / 7,179 test.
+**179 files under `frontend/src`** — ~30,755 lines, 22,458 source / 8,297 test.
 
-**Two routes are built:** `/` and `/calendar`. **The calendar is complete.**
+**Four destinations are built:** `/`, `/calendar`, `/appointments`, `/ask`. That is
+the whole of `primaryNav` — **every visible navigation item leads to a real page**,
+which has not been true before.
+
+### The four follow-on changes, and why three of them were reversals
+
+Worth reading before touching either new surface, because the churn is the record.
+
+1. **Booking flow measured and rearranged**, then reverted. The month grid read
+   backwards; a day list fixed that; the owner reverted to the chip strip.
+2. **Ask THRIVE's destinations moved into the nav rail**, and the page's second
+   rail was removed as almost-empty — then brought back as a **history** rail,
+   which is a different thing with one job.
+3. **The page container** went 72rem → 96rem → 80rem plus a 40px gutter, with
+   `/calendar` alone on 96rem. Both extremes were wrong and the fix needed two
+   knobs.
+4. **The month grid on `/appointments` became clickable**, which deleted the
+   read-only mode added a change earlier.
+
+**What that cost:** two components written and deleted, three pure functions
+written and deleted with their tests, `MiniCalendar` given and then stripped of two
+modes, and a fixture constant moved 5 → 25 → 5. All of it deleted rather than left
+unreachable.
+
+**What it bought:** every reversal left a residue that was never about the design
+being reverted — `publishedByDay`, the per-chip open count, and `BookingDayView`
+all survive because they answer questions the chip strip has too. See FINDINGS.
 
 ---
 
@@ -398,6 +434,32 @@ Everything made of words is DM Sans.
 **Weight is not in the type scale.** Set it at the call site or you get 400. Only
 400/500/700 load, so `font-semibold` (600) synthesises — never use it.
 
+### The top four type steps are responsive (2026-08-21)
+
+`lg`, `xl`, `2xl` and `3xl` shrink above `40rem`: 22→20, 27→24, 34→28, 40→32.
+`base` (18) and below do not move, because 16px body is the readability floor and
+there is nothing to give back down there. Ratios between the big steps tighten from
+~1.24 to ~1.16, which is what a display scale wants — a page title is still twice
+body.
+
+**What was NOT responsible, checked rather than assumed.** The 106.25% root bump is
+`@media (width < 40rem)`: a MOBILE bump raising a 15px body to 16px on a handset.
+The type renders identically at 1512 and 1920, so nothing was scaling with the
+viewport; the top steps were simply drawn large for a 72rem page, and a wider
+container gave them room to look it.
+
+**Why an override rather than editing the tokens.** Editing them would shrink the
+phone too, because the root bump multiplies whatever it is given, and mobile is
+deliberately unchanged. 40rem because that is the boundary the root bump already
+uses, so the system has one type breakpoint rather than two.
+
+**And one thing that had to be read out of the compiled CSS.** The first attempt
+overrode `--text-3xl` in a media query and changed nothing measurable: **`@theme
+inline` BAKES a literal theme value into the utility** — `.text-3xl{font-size:2.5rem}`
+— so there is no variable left at runtime. A theme value that is itself a `var()`
+is inlined as the reference instead, which is why `--thrive-topbar-height` has
+always been overridable. The four steps now read from raw `--thrive-text-*` tokens.
+
 Type scale 12/13/14/**16 body**/18/22/27/34/**40**, tracking on the top three
 steps only plus `.thrive-eyebrow`. Radii 4/6/8/10/**16**. Motion 120/160/260ms.
 Light-only, no shadows. Below `40rem` the **root** goes to 106.25%.
@@ -409,10 +471,12 @@ Nine, and each exists because Tailwind cannot express it at the call site:
 `.thrive-checkbox`, `.thrive-strike`, `.thrive-card-body`, `.thrive-popover`,
 `.thrive-arrived`.
 
-**Still nine after 7a, 7b and 7c**, which is worth noting: three phases and
-seventeen new components added no new treatments. **`ItemDetail` in particular did
-not earn a `.thrive-dialog`** — its scrim is `fixed inset-0 bg-ink/20` and its
-panel is a `.thrive-panel` with a max-height, all of which Tailwind expresses.
+**Still nine after 7a, 7b, 7c, 8 and 9**, which is worth noting: five phases and
+twenty-eight new components added no new treatments. **`ItemDetail` in particular
+did not earn a `.thrive-dialog`** — its scrim is `fixed inset-0 bg-ink/20` and its
+panel is a `.thrive-panel` with a max-height, all of which Tailwind expresses. Nor
+did the chat window earn a `.thrive-chat`: what it needed was a HEIGHT, which is a
+token, not a treatment.
 
 - **`.thrive-popover`** carries only a WIDTH:
   `min(--thrive-popover-width, 100vw - 2 * --thrive-popover-viewport-inset)`. The
@@ -426,7 +490,40 @@ panel is a `.thrive-panel` with a max-height, all of which Tailwind expresses.
   change a design-system size, the row makes its **title** the checkbox's
   `<label>`, so the tick target is the width of the row.
 
-### Two size tokens, and why each is a token
+### The layout tokens, and why each is one
+
+**Four separate questions, never solved with each other**, learned by getting two
+of them wrong in turn:
+
+| Token | Utility | Answers |
+|---|---|---|
+| `--container-page` (80rem) | `max-w-page` | how wide may a page get |
+| `--container-wide` (96rem) | `max-w-wide` | …and `/calendar`, which wants more |
+| `--thrive-page-gutter-x` (2.5rem) | `lg:px-page-x` | how far off the edges does it sit |
+| `--container-measure` (68ch) | `max-w-measure` | how long may a LINE OF TEXT get |
+
+**The shell no longer owns the width.** `max-w-6xl` used to sit on `AppShell`'s
+`main`, so one number governed every route and a page that wanted more could not
+have it without widening Home by accident. The shell provides the gutters; each
+page names its own measure.
+
+**The gutter and the cap are two knobs and you need both.** 72rem left ~120px of
+dead margin at 1512px, so it went to 96rem — and then the cap stopped biting at
+that width entirely, the gutter collapsed to the shell's 20px of padding, and
+content ran to the edge. A gutter alone does not solve a 2560px monitor; a cap
+alone does not solve a 1512px one.
+
+At 1512 every route is gutter-limited to 1192px, so the two caps are
+indistinguishable there and only separate on a bigger screen: at 1920 the page
+stops at 1280 and the calendar at 1536.
+
+**The line length is separate from all of it.** A paragraph at 1500px is not
+readable, so containers fill their allowance and TEXT does not. `ch` rather than
+`rem`, because the constraint is characters per line and `ch` tracks the font.
+**Put the cap on the element that OWNS the text** — a full-width `<p>` wrapping a
+capped `<span>` looks identical and is not the same thing.
+
+### Three size tokens, and why each is a token
 
 **`--thrive-checkbox-size: 17px`** (7a) replaced that number written in two
 places. `.thrive-checkbox` sizes itself from it, and any row rendering a **spacer**
@@ -448,6 +545,40 @@ overflow case is two dots and a count in 36px; the narrowest cell the grid draws
 of six widths, with 5px of slack at the 375px this app actually supports. **It is
 1.8× the area of the 6px dot, and that is most of the legibility the whole dots
 pass bought — more than the saturation did.**
+
+**`--thrive-chat-height: 34rem`** (Phase 9), applied above `xl` only. This one is
+a token for a different reason from the other two: not because two places have to
+agree on a number, but because **the number is what makes a layout work at all.**
+
+Without a definite height on the chat panel, the log's `flex-1 min-h-0` resolves
+to its own content — there is no height to divide up — so the document grows
+instead of the log scrolling, the composer walks off the bottom as a conversation
+lengthens, and the log's `tabindex` guards an overflow that never happens. The
+gate said so by permanently skipping its own keyboard-scroll assertion.
+
+**34rem rather than a viewport calculation**, and both alternatives were
+considered: `calc(100dvh - topbar - gutters - header)` is brittle in two
+directions, since the header above it wraps to two lines at some widths and `dvh`
+moves under a mobile browser's collapsing chrome. A fixed panel that fits the
+shortest desktop viewport this app targets (1052px) is calmer, and the document
+scrolls past it the way it does past any other panel.
+
+**Deliberately not applied below `xl`.** On a phone the whole page scrolling is
+the right behaviour, and a 544px box inside an 812px screen gives a student two
+nested scrollbars to fight.
+
+> **A `min-h-0` chain makes a child ABLE to shrink. Something still has to give it
+> a height to shrink within.**
+
+**And `flex-1` on that panel is gated on `xl`**, which is the other half of the
+same lesson. In the row it governs WIDTH; in the column below `xl` it governs
+HEIGHT and silently beats the token beside it. That shipped for one commit and the
+only signal was `check:interaction` SKIPPING its own keyboard-scroll assertion.
+
+**`--thrive-chat-measure: 65ch`** caps the message text so a 90rem panel does not
+mean a 140-character line. Each bubble is `min(85%, that)` — the percentage still
+wins on a phone, and it is what keeps the inset that makes a conversation read as
+two voices.
 
 ### Durations: motion versus dwell
 
@@ -513,7 +644,6 @@ deletion, so it is not worth the time. Note it therefore did **not** need updati
 for the chroma pass — it reads the tokens.
 
 ---
-
 ## 7. Dates: the rule the framework no longer enforces
 
 **Components never see a raw timestamp.** Dates are classified and formatted on
@@ -566,6 +696,14 @@ and is wrong in another timezone. **Review is the enforcement.**
    Opening the note panel is an explicit request to write, so focus lands in the
    field, but only where a keyboard will not cover the screen.
 
+**Phases 8 and 9 added none.** `$lib/availability` takes no clock and, after the
+chip strip came back, takes no "today" either — the published set IS the window, so
+there is nothing to compare a day against. Phase 9's is the stronger result: `/ask` renders a
+timestamp on every message and every rail entry, and **`ConversationView` carries
+no ISO field at all** — there is not a timestamp available to a component that
+wanted to format one. `ask.spec.ts` asserts that absence. Where a phase can reach
+that shape it should, because it is a property rather than a discipline.
+
 **7c added a fourth, and it is a clock read of a different kind.** `downloadIcs`
 in `$lib/ics` reads `new Date()` for the `.ics` file's `DTSTAMP` — "when this file
 was made". It is inside a click handler, it can never run on the server (there is
@@ -584,6 +722,12 @@ CSS form of that to prefer. That is the whole test: *could CSS have done this?*
 is about. `quickList.ts`, `taskBoard.ts`'s `mintTaskId` and `calendarAdd.ts`'s
 `own-${Date.now()}` all use one; none is ever parsed back into a day. A nonce is
 not a date.
+
+**Phase 9's chat composer does not even need a nonce.** Its ids key an `{#each}`
+for the lifetime of one tab, nothing stores them and nothing reads them back, so
+it uses a plain incrementing counter. Reaching for `Date.now()` there would have
+been the weaker choice for the same reason: it invites a reader to think the value
+means something.
 
 ### A viewport question that CSS can answer belongs in CSS
 
@@ -618,6 +762,17 @@ key already built from local parts.
 | `WeekView`'s weekday abbreviations (7b) | Same: the week is chosen client-side |
 | The agenda's per-row date (7b) | Same: the thirty-day range is walked client-side |
 | `customEventToItem`'s `timeLabel` | A custom event is `localStorage`-only, and it stores a wall clock rather than an instant |
+| `MyDayPane`'s day heading | The clickable month can point that pane at ANY day in any month it pages to, so the set really is unbounded |
+
+**`BookingPanel` was briefly on this list and came off.** While a month grid was
+the day picker it formatted its own `dayLabel`; the chip strip carries every day's
+finished labels from the server, so the panel takes a PROP and formats nothing.
+
+**Nothing from Phase 9 is on this list at all.** `/ask` formats every one of its
+dates on the server, including the "Today" / "Yesterday" relative labels, because
+the day a conversation was last touched is a fact the server can decide once —
+and `ConversationView` carries no ISO field, so there is not a timestamp available
+to a component that wanted one. `ask.spec.ts` asserts the absence.
 
 ### `describeDue` has four states, not three
 
@@ -683,8 +838,23 @@ survives a restart; those are shared by everyone and do not.
 
 **And it is the layer that runs out first.** Everything persisted so far is one
 student's private view of their own data, which is exactly what `localStorage` is
-for. The two features queued in §18 are not: saved chat history is too large and
-too long-lived, and Group Projects is shared between people by definition.
+for.
+
+**Phase 9 is where it ran out, and the answer was not to stretch it.** Saved chat
+history is too large, grows without bound, and — the deciding argument — a student
+opening THRIVE on a second laptop would find an empty history *indistinguishable
+from never having asked anything*. A history that is complete on one machine and
+empty on another is not a smaller feature, it is a misleading one. So conversations
+are provider data from the start (§12), and a message sent before the backend
+exists lives in component state that is gone on navigation, with the page saying so
+BEFORE anything is typed.
+
+`check:interaction` asserts sending writes **no** `localStorage` key. That
+assertion is what stops the constraint eroding, because eroding it would be one
+convenient line.
+
+Group Projects, still queued in §18, is the same wall for a different reason:
+shared between people by definition.
 
 ### Four properties that must survive
 
@@ -723,11 +893,25 @@ above it went on counting the server's stale `due.urgency`.
 | Calendar item id | `calendarItems.ts` | `asg-12`, `apt-3`, `task-7`, `todo-x`, `custom-…`, `evt-evt-3-1` |
 | Raw `Event.id` | `ignoredEvents.ts` **and `thrive:event-joins`** | `evt-3-1` — **stored verbatim** |
 
-**Still three spaces, not four.** The test for whether a new store needs a new one
-is: *is this a fact about the EVENT, or about the ROW?* A join and an ignore are
-facts about an event. A label and an urgent flag are facts about a row — which is
-what lets a student flag an assignment or label a booked appointment, neither of
-which they own and neither of which has an event behind it at all.
+**Still three spaces, not four — through two more phases.** The test for whether a
+new store needs a new one is: *is this a fact about the EVENT, or about the ROW?* A
+join and an ignore are facts about an event. A label and an urgent flag are facts
+about a row — which is what lets a student flag an assignment or label a booked
+appointment, neither of which they own and neither of which has an event behind it
+at all.
+
+**Phases 8 and 9 both introduced ids and neither introduced a key space**, which
+is worth being explicit about because the count has bitten this project twice:
+
+- **Slot ids and appointment ids** (`slot-adv-gsa-0-0`, `apt-001`) live in the
+  server-side mock store, not in `localStorage`. Nothing browser-side is keyed by
+  them. `Appointment.slotId` is a server-to-server reference.
+- **Conversation and message ids** (`conv-001`, `conv-001-m1`) are provider data.
+  There is no conversation store of any kind.
+- **The chat composer's ids** are a counter scoped to one component instance.
+
+The rule the count actually tracks is *persisted browser key spaces*, and both
+phases added zero stores.
 
 **Defect one, fixed in 7a: the ignore store.** `eventIdOf` strips exactly one
 leading `evt-`. Given a calendar item id (`evt-evt-3-1`) that recovers the raw id.
@@ -820,6 +1004,11 @@ Three calendar phases added eight pure modules and **no seventh rune file** —
 `ics.ts`, `calendarEvents.ts` and `calendarAdd.ts` are all plain `.ts`, and
 `actions/focusTrap.ts` is DOM code like `arrive.ts`.
 
+**Still six rune files after Phases 8 and 9.** `availability.ts`,
+`appointmentsView.ts` and `ask.ts` are all plain `.ts` and hold no state at all —
+the booking surface's state lives in `BookingArea`, and Ask THRIVE's lives in the
+URL. A surface whose state is a route is a surface with no store to declare.
+
 ---
 
 ## 9. React-isms deliberately dropped
@@ -893,9 +1082,12 @@ are "the DOM outlives the state for one tick".
 `frontend/src/lib/components/shell/` — `AppShell`, `SideRail`, `TopBar`,
 `BottomNav`.
 
-- **`nav.ts` is the single source** for the rail and the bottom bar.
-  `PagePlaceholder` looks its own `href` up and **throws** when there is no
-  match, which is what makes that a guarantee rather than an intention.
+- **`nav.ts` is the single source** for the rail and the bottom bar, and it is a
+  TREE now: the `/ask` item carries `children`. `flattenNav` is what keeps it
+  single — `allNav` and `isBuiltRoute` are DERIVED from the tree, so a child
+  cannot exist in the rail and be missing from the lookup, because there is no
+  second list to add it to. `PagePlaceholder` resolves its own `href` against
+  `allNav` and **throws** when there is no match.
 - **The top bar is 48px above `lg`, 56px below.** The CONTROLS change size — 44px
   touch, 36px pointer — and the bar's height follows from them. WCAG 2.5.5 asks
   44px of a touch target and 2.5.8 asks 24px of a pointer one. The stat pills, 6b's
@@ -906,14 +1098,38 @@ are "the DOM outlives the state for one tick".
   padding.
 - **Icons are component references held as values.** Not `<svelte:component>`,
   deprecated in Svelte 5.
-- **Accessibility:** skip link, `main` landmark with `tabindex="-1"`, exactly one
-  `nav` landmark in the a11y tree at a time, `aria-current="page"` on the active
-  item.
+- **A nav item with `children` is a DISCLOSURE**, and the rail owes it the whole
+  contract: the link navigates, a SEPARATE button carries `aria-expanded` and
+  `aria-controls`, collapsing REMOVES the children from the DOM rather than hiding
+  them, the group opens itself when a child is current, and `aria-current` lands on
+  the child only. A parent whose child is current takes full ink rather than the
+  solid fill — prefix matching would otherwise paint two rows as "here".
+- **Accessibility:** skip link, `main` landmark with `tabindex="-1"`,
+  `aria-current="page"` on the active item, and **one `nav` landmark per purpose**
+  — see the note below.
 - **`Toast` is mounted here**, once, for every route.
 
-**One thing the shell will have to grow:** Ask THRIVE wants a SECOND left rail
-beside the nav rail (§18). The single-`nav`-landmark rule is the constraint to
-design against.
+### The `nav` landmark rule, as it actually settled
+
+The old statement — "exactly one `nav` landmark in the a11y tree at a time" — did
+not survive Ask THRIVE, and the honest version is more useful.
+
+`SideRail` and `BottomNav` both carry `aria-label="Primary"`. That is CORRECT:
+whichever is displayed IS the primary navigation, and they are never displayed
+together (`hidden lg:flex` against `lg:hidden`). But **both are in the DOM at every
+width**, which is not the same thing — `display: none` removes an element from the
+accessibility tree and not from `querySelectorAll`. A gate scoping by that label
+matched both and counted one `aria-current` twice, which is why they now carry
+`data-nav="rail"` / `data-nav="bottom"` hooks.
+
+`/ask` has up to three `nav` landmarks, each named and each with one purpose: the
+primary rail, the destination band (`lg:hidden`, for widths with no rail), and the
+conversation history. Never two with the same name in the tree at once.
+
+**The second rail Ask THRIVE was expected to want** turned out to be two separate
+questions. The destinations are navigation and moved into the nav rail as the
+disclosure group above; the page's own rail holds the conversation history and
+nothing else.
 
 ### The app-wide toast
 
@@ -992,8 +1208,15 @@ two visible consumers and a writer while its panel does not exist.
 
 ## 11. Routes and navigation
 
-13 routes. **Four are in the navigation:** Home, Calendar, Appointments, Ask
-THRIVE — in that order. **Two are built:** `/` and `/calendar`.
+13 routes plus two nested under `/ask`. **Four destinations are in the
+navigation:** Home, Calendar, Appointments, Ask THRIVE — in that order. **All four
+are built**, which has not been true before: every visible navigation item now
+leads to a real page.
+
+Ask THRIVE's three subjects are `children` of its nav item — real routes
+(`/ask/resources`, `/ask/courses`, `/ask/career`) with their own hrefs, labels,
+icons and descriptions, rendered as a rail disclosure. `/ask` itself redirects to
+the first of them.
 
 Nine of the previous eleven destinations were placeholders, and a nav that is
 four-fifths stubs reads as broken rather than unfinished.
@@ -1019,8 +1242,10 @@ against it, so parking a route does not start it throwing.
 **Settings is parked and stays parked** (confirmed 2026-08-21). It was also the
 reason the mobile **More sheet** could go.
 
-**Two parked routes are scoped to be absorbed rather than unparked.** Ask THRIVE's
-second rail names Resources and Career (§18).
+**Two parked routes share a NAME with an Ask THRIVE destination and are not the
+same thing.** `/resources` and `/career` are parked stubs; `/ask/resources` and
+`/ask/career` are built chat surfaces. The overlap is a naming collision to be aware
+of, not an absorption — nothing about the parked routes changed.
 
 ### A card links out only when its destination is built
 
@@ -1035,6 +1260,10 @@ pointed at parked routes, so the alternative was four places to forget.
 **Which cards lost their link:** Tasks (`/assignments`), My Classes (`/classes`),
 Upcoming Events (`/events`). Today's classes keeps `/calendar` — and that link now
 lands on a real and complete page.
+
+**`isBuiltRoute` is flattened**, so a nested destination counts as built. A card
+linking to `/ask/career` keeps its link; the route being nested is not a reason to
+withhold one.
 
 **`isKnownRoute` is the companion**, separating a parked route from a mistyped one.
 `SectionCard` warns in development on an href in neither list. A warning and not a
@@ -1053,7 +1282,8 @@ renders the same `TaskRow` with no `reorder` prop, and **owes that row a
 
 ## 12. The data layer
 
-`frontend/src/lib/data/` — 19 files, ~3,551 lines. **This is the seam.**
+`frontend/src/lib/data/` — 20 files. **This is the seam.** `BACKEND.md` is the
+contract written out for whoever implements it.
 
 **Built against the same mock fixtures the Next app uses.** No HTTP client, no
 API layer, no Django integration. Django replaces the provider *bodies* later;
@@ -1061,7 +1291,7 @@ the signatures are the contract and do not move.
 
 ### The public surface
 
-`data/index.ts` re-exports exactly three modules: `types`, `providers` (25
+`data/index.ts` re-exports exactly three modules: `types`, `providers` (**27**
 functions + `SlotUnavailableError`), and `labels`. **`mock/` and `latency` are
 private** — a component that needs something from either has found a gap in the
 provider surface. Widen the surface, do not reach through it.
@@ -1096,7 +1326,7 @@ in one `Promise.all` — see §14 for what it does with them.
 |---|---|---|
 | 8 | `cancelAppointment` released by matching start time | `Appointment.slotId`; one exact delete |
 | 11 | A page imported a label map from `lib/data/mock/requests` | Both maps in `data/labels.ts`, public side |
-| 15 | Four providers returned fixtures by reference | All 25 return copies |
+| 15 | Four providers returned fixtures by reference | All 27 return copies |
 | 9 | `expectedCompletion` hardcoded vs a derived finish term | Field dropped; read `expectedFinishTerm` |
 
 ### The fixture student
@@ -1805,13 +2035,23 @@ No console warnings or errors at any width, in any view.
 
 | Command | What it proves |
 |---|---|
-| `npm test` | 563 tests. Pure logic and source scans. **Nothing renders.** |
-| `npm run check` | Types agree. **Does NOT prove the page renders** |
-| `npm run build` | It compiles |
+| `npm test` | **640 tests**, 29 files. Pure logic and source scans. **Nothing renders.** |
+| `npm run check` | Types agree over 459 files. **Does NOT prove the page renders** |
+| `npm run build` | It compiles, with `adapter-netlify` |
 | `python3 scripts/check-contrast.py` | 58 assertions: 42 pairs, 6 ceilings, 10 structural |
-| `npm run check:layout` | 14 targets × 3 viewports in a real browser |
-| `npm run check:interaction` | 97 assertions in a real browser: the popovers, task editing, the calendar |
+| `npm run check:layout` | **17 targets × 3 viewports** in a real browser |
+| `npm run check:interaction` | **190 assertions** in a real browser: the popovers, task editing, the calendar, booking, Ask THRIVE, the nav disclosure, and the page measure |
 | the timezone sweep | The suite in seven zones, UTC+14 to UTC−11 |
+
+**Both browser gates build their own server first** (`npm run build:node`,
+`adapter-node` into `build-node/`) rather than assuming one exists. That closed a
+real hole: `check:layout` used to be able to measure yesterday's output and pass.
+
+**And one of them can press a button and measure a layout.** `check:interaction`
+now covers a two-page double-booking RACE, the negative assertion that clicking
+the month grid does NOT move the booking chips, the nav disclosure's DOM-removal on
+collapse, that Ask THRIVE writes no `localStorage` key, two independent scroll
+containers, and the page measure at two viewport widths.
 
 **Four properties every gate here has.**
 
@@ -1908,9 +2148,45 @@ that threw `ReferenceError` on every request. **And it is held at 0 warnings.**
 
 ## 16. Standing decisions
 
+### Settled this session
+
+- **Home keeps the 1280px cap** (owner, asked and answered). Do not pin it
+  narrower. Home was 1152 before the width work and 1280 is one step up, not a new
+  problem. If Home should ever be narrower than the rest, that is an explicit
+  decision about Home rather than a leftover.
+- **The cold-start note goes in the README**, beside the no-authentication note,
+  because a vanished booking reads as data loss and is not (§20).
+- **The chip strip is the day picker on `/appointments`**, and the month grid beside
+  it is a browse surface that moves "Your day" only. Booking and browsing are two
+  questions; the coupling runs one way.
+- **The booking window IS the published fixture.** Five business days. The separate
+  one-calendar-month rule existed only while a grid could show days the fixture had
+  not published, and went with it.
+- **`--container-wide` is `/calendar` alone.** Every other route takes
+  `--container-page`.
+- **Both adapters stay** (§4, §20). `adapter-node` is what the browser gates spawn.
+- **`@types/node` stays rejected**, even though the adapter switch wanted
+  `process.env`. One narrowed property read is not worth reversing a recorded
+  decision; the read goes through a narrowed `globalThis`.
+- **`/ask` redirects rather than offering a landing page**, the conversation is a
+  search param rather than a nested route, and a real conversation opened under the
+  wrong destination is a 404.
+- **The Ask history rail shows ONE destination's conversations**, not all three
+  grouped, because the loader 404s a mismatch — a mixed list would mostly be 404s.
+- **There is no chat store in the browser and none may be added** (§8).
+
+**One still wants a second opinion:** a single
+`svelte-ignore a11y_no_noninteractive_tabindex` on the chat log. axe's
+`scrollable-region-focusable` requires the tabindex; Svelte's rule forbids it on
+`role="log"`. Accessibility won, at one site, with the reason in the markup —
+without it a long conversation is mouse-only.
+
+### Standing
+
 - **The old repo is read-only.** Verified untouched after every phase.
-- **Django is not being written here** — but two queued features now require it
-  (§18).
+- **Django is not being written here** — and it is now on the critical path rather
+  than merely queued (§18). `BACKEND.md` is the contract written out for whoever
+  picks it up.
 - **Measure layout in a real browser.** Never reason about pixels.
 - **Drive interaction in a real browser too.** Anything a person presses gets
   pressed; anything a person *gestures* gets gestured.
@@ -2067,7 +2343,18 @@ Calm, plain, honest about what is simulated.
 2. **`/assignments`** — the same `TaskRow` with no `reorder` prop. First outside
    caller of the row, and **owes it a `role="list"` container**.
 
-3. **Appointments.**
+3. **~~Appointments.~~ Built.** Cards, a chip strip, the booking panel, "Your day"
+   and a clickable month. Includes the app's only form actions and the only
+   double-booking path.
+
+3b. **The real-phone pass**, now four items: touch drag on Home's task rows, the
+   month grid at 375px, the 8px category dot against an actual thumb, and the Ask
+   history strip against a thumb. All four were measured rather than felt.
+
+3c. **A write path for conversations.** `/ask` reads real providers and can create
+   nothing. There is no designed shape for "start a conversation" or "append a
+   turn", and the read shapes were built around fixtures rather than a real
+   service's response — so expect those two providers to change. `BACKEND.md` §8.
 
 **Scoped, not built**
 
@@ -2202,5 +2489,85 @@ Resource Navigator surface, (d) per-task time estimates.
 in that scope at all — is now COMPLETE and is the largest surface in the app**,
 which is the thing most worth weighing when the dates are re-set: the rebuild has
 two finished surfaces, and neither the appointment flow nor the resource navigator
-is one of them. (b) and (d) were never begun, and (c) may be absorbed into Ask
-THRIVE's second rail rather than built as `/resources`.
+is one of them. (b) is now real — **the appointment flow is built**, including the
+double-booking path. (d) was never begun, and (c) exists in a different shape than
+planned: `/ask/resources` answers questions from program material, while
+`/resources` stays a parked stub. Those are two surfaces with one name, not one
+absorbing the other.
+
+**Four surfaces are finished now** — Home, the calendar, appointments and Ask
+THRIVE — and the app is deployed. What is missing is not screens; it is a backend.
+
+
+---
+
+## 20. Deployment, and what a public URL changes
+
+Deployed to **Netlify** from `main` since 2026-08-21, so teammates can open a link
+instead of cloning the repo and getting onto Tailscale.
+
+### The setup, and why it is committed
+
+`netlify.toml` lives at the **repo root** with `base = "frontend"`, because the app
+is not at the root and that is the only place Netlify reads the file from or accepts
+`base`. `command`, `publish` and a pinned `NODE_VERSION = "22"` are all in it, so
+the deploy is reproducible from a clone rather than from settings somebody typed
+into a dashboard once. Nothing is configured in the UI.
+
+**One expected line in the build log, recorded so nobody "fixes" it:**
+
+```
+Using @sveltejs/adapter-netlify
+  No netlify.toml found. Using default publish directory.
+```
+
+The adapter looks for that file relative to its own working directory, which is
+`frontend/`. It therefore never sees the root file and falls back to its default,
+`build` — which is exactly what the root file declares. The adapter takes no
+`publish` option (`{ split, edge }` only). A second copy inside `frontend/` would
+silence the line at the cost of two files that can drift.
+
+### Both adapters stay
+
+See §4. `adapter-node` is not a fallback; it is what the two browser gates spawn,
+and those gates have caught more real defects than everything else in this repo
+combined. Deleting it to tidy up would have cost them.
+
+### What the URL changes, which is nothing technical and everything socially
+
+None of this is new. It has been true since the data layer was built against
+fixtures. **A public URL is what makes it matter**, and it is written into the
+README for that reason:
+
+- **No authentication.** No login, no session, no per-student anything. Anyone with
+  the URL is the fixture student.
+- **The mock stores are process-global** (MIGRATION §9 defect 1, BLOCKING). Two
+  people using the site at once book over each other and see each other's
+  appointments.
+- **The form actions have no auth check** and are reachable by direct POST
+  (§9 defect 2).
+- **A cold start silently wipes the stores.** Netlify sleeps the function after
+  inactivity; waking it starts a fresh process and the stores live in that process.
+  So the first visit after a quiet period is slow AND arrives to an empty
+  appointment list. **Nobody cancelled anything.** This is the one that will be
+  mistaken for data loss, so the README says to book what you need to demo in the
+  same sitting.
+
+**Do not share the link outside the team, and do not put anything real into it.**
+
+### The UTC date question, settled
+
+The deployed site can show a different day than a laptop in California, for the
+hours between UTC midnight and local midnight.
+
+**That is the date rule working, not a bug.** The server decides what "today" is,
+once, and hands down formatted strings — which is the whole of §7. A viewer's clock
+is deliberately not consulted, because consulting it is what produced the hydration
+drift the rule exists to prevent.
+
+If it should follow the viewer instead, that is a **product decision**, not a
+formatting fix: it means storing a per-student timezone and reading it in the `load`
+alongside `new Date()`. Nothing about the current behaviour needs changing to
+support that later.
+
+---

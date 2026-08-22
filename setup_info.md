@@ -2,7 +2,7 @@
 
 Environment, versions, and how to run things.
 
-**Last verified:** 2026-08-21 at `b0f7c3b`.
+**Last verified:** 2026-08-21 at `81137b7`.
 
 ---
 
@@ -50,18 +50,73 @@ cd ~/code/thrive/frontend
 npm install
 
 npm run dev -- --open    # :5173, the one you want
-npm run build            # production build
-ORIGIN=http://localhost:3000 node build/index.js   # run the build, :3000
+npm run build            # production build for NETLIFY, into build/
+npm run build:node       # production build as a Node server, into build-node/
+ORIGIN=http://localhost:3000 node build-node/index.js   # run that, :3000
 npm run preview          # vite's preview of the build, :4173
 npm run check            # svelte-check
-npm test                 # vitest run, 608 tests
+npm test                 # vitest run, 640 tests
 npm run test:unit        # vitest watch
 ```
 
-### `ORIGIN` is required to run the build (added 2026-08-21, Phase 8)
+### Two adapters, picked by an environment variable (added 2026-08-21)
 
-**Serving `build/index.js` without `ORIGIN` set breaks every form submission with
-`403 Cross-site POST form submissions are forbidden`.**
+`vite.config.ts` selects `@sveltejs/adapter-netlify` by default and
+`@sveltejs/adapter-node` when `ADAPTER=node` is set. `npm run build:node` sets it.
+
+|  | adapter | writes to | who uses it |
+|---|---|---|---|
+| `npm run build` | netlify | `build/` + `.netlify/` | the deploy |
+| `npm run build:node` | node | `build-node/` | `check:layout`, `check:interaction` |
+
+The two gates spawn a real long-running server, which a bundle of serverless
+functions is not — so they set the variable themselves and build before they run.
+That means `npm run check:layout` can no longer measure a stale build, which it
+previously could.
+
+**The out directories are separate on purpose.** Two adapters writing `build/`
+would mean whichever ran last decided what a gate was testing: a build-order bug
+that presents as a flaky gate.
+
+Nothing about the app differs between them. There is no `prerender`, no
+`ssr = false` and no `csr = false` anywhere in `src/routes`, so every route is
+server-rendered per request either way — which is what the whole date rule depends
+on, since `new Date()` in a `load` is the one answer to "what is today".
+
+### Deploying to Netlify
+
+`netlify.toml` at the REPO ROOT holds everything: `base = "frontend"` (the app is
+not at the root), `command`, `publish`, and a pinned `NODE_VERSION`. Nothing is
+configured in the dashboard, so the deploy is reproducible from a clone.
+
+**Expected line in the build log, not a fault:**
+
+```
+Using @sveltejs/adapter-netlify
+  No netlify.toml found. Using default publish directory.
+```
+
+The adapter looks for that file relative to its own working directory, which is
+`frontend/`; the file has to be at the repo root because that is the only place
+Netlify reads it and the only place `base` can be declared. So the adapter falls
+back to its default, `build`, which is exactly what the root file declares. It
+takes no `publish` option (`{ split, edge }` only). A second copy inside
+`frontend/` would silence the line at the cost of two files that can drift.
+
+**`ORIGIN` is not needed on Netlify** — see the section below. The adapter derives
+the origin from the request. It IS needed for the Node build.
+
+**Cold starts wipe the mock stores.** Netlify sleeps the function after a spell of
+inactivity; waking it starts a fresh process and the stores live in that process.
+So the first visit after a quiet period is slow AND arrives to an empty
+appointment list. Recorded in the README, because it looks like data loss and is
+not.
+
+### `ORIGIN` is required to run the NODE build (added 2026-08-21, Phase 8)
+
+**Serving `build-node/index.js` without `ORIGIN` set breaks every form submission
+with `403 Cross-site POST form submissions are forbidden`.** This is an
+adapter-node problem only; `adapter-netlify` derives its origin from the request.
 
 `adapter-node` cannot know the public URL it is reached on, and SvelteKit's CSRF
 check compares a POST's `Origin` header against the URL it thinks it is serving.
@@ -117,8 +172,8 @@ claim that the suite was green in all seven zones had been false for weeks.
 ### Gotcha: stale servers
 
 If a page looks stale or a new route 404s, something is still holding the port.
-This cost real debugging time — two orphaned `node build/index.js` processes made
-`curl` hit an old build.
+This cost real debugging time — two orphaned `node build-node/index.js` processes
+made `curl` hit an old build.
 
 ```bash
 lsof -ti:3000 | xargs kill -9
@@ -130,10 +185,10 @@ lsof -ti:4173 | xargs kill -9
 
 ## Toolchain notes that will bite
 
-**This SvelteKit version ships no `svelte.config.js`.** The adapter, the runes
-setting, and the Vitest projects all live in `frontend/vite.config.ts` under the
-`sveltekit()` plugin. Looking for the missing config file is a wasted ten
-minutes.
+**This SvelteKit version ships no `svelte.config.js`.** The adapter CHOICE, the
+runes setting, and the Vitest projects all live in `frontend/vite.config.ts` under
+the `sveltekit()` plugin. Looking for the missing config file is a wasted ten
+minutes — and note it is a choice rather than a single adapter, since 2026-08-21.
 
 **Runes only work in `.svelte.js` / `.svelte.ts`.** A plain `.ts` file containing
 `$state` compiles, runs, and is silently not reactive. Four files carry the

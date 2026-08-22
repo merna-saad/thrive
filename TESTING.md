@@ -1,7 +1,7 @@
 # TESTING
 
-**Last verified:** 2026-08-21, after Phase 7c and its follow-ons. **563 tests,
-26 files, all passing.** Verified green in all seven timezones of the sweep below — and in 7a
+**Last verified:** 2026-08-21 at `81137b7`. **640 tests, 29 files, all
+passing.** Verified green in all seven timezones of the sweep below — and in 7a
 the sweep **caught a real failure**, which is recorded there.
 
 ```bash
@@ -509,3 +509,113 @@ pinning that string would entrench it.
 - **Never weaken a test to make it pass.** If it fails, that is a finding.
 - **Do not pin garbage output.** Flag it and leave it uncovered instead.
 - Comments explain *why* the assertion matters, matching the house style.
+
+---
+
+## Phases 8 and 9 and everything after — three new specs, both gates much wider
+
+**640 tests, 29 files. `check:layout` 42 → 51. `check:interaction` 97 → 190.**
+
+| Spec | Holds down |
+|---|---|
+| `availability.spec.ts` (20) | The two count maps and the pair they form; `orderedDayKeys` across a year boundary; `firstBookableDay` skipping a full first day and respecting the order it is given over the map's; `slotsForDay`'s mode filter keeping taken slots |
+| `appointmentsActions.spec.ts` (13) | The throw becoming a VALUE — both 409 sentences, the 400 and the 404, the reason truncated where the markup cannot be trusted, and cancel releasing the slot it was booked against |
+| `ask.spec.ts` (32) | The destination guard including near misses; `relativeDayLabel` across month, year and leap boundaries and at both ends of a day; the view models carrying no raw instant at all; `showsDayLabel`; and the conversation providers' copies, order and nulls |
+| `nav.spec.ts` (12 → 21) | `flattenNav`, a parent before its children, the identity case, and that a child destination counts as built |
+| `format.spec.ts` (89 → 92) | `formatWeekdayDate`, asserted to AGREE with `formatShortDate` about the date half rather than merely to work |
+| `providers.spec.ts` (47) | Now pins **27** providers rather than 25 |
+
+### The spec that changed shape twice, and what that taught
+
+`availability.spec.ts` was written at 29 tests around a one-calendar-month
+BOOKING WINDOW that was separate from the fixture. Its centrepiece froze **Monday
+1 December 2025** — the worst case by construction, since a Monday packs business
+days into the fewest calendar days and December is 31 days long — and asserted
+that the fixture published at least as far as the window reached.
+
+**It went red immediately and caught a real off-by-one:** `BOOKING_WINDOW_DAYS =
+23` reached day 30 against a window that can reach 31. The fixture was raised to
+25; the rule was not lowered.
+
+Then the month picker was reverted to the chip strip, the window and the published
+set became the same thing again, and `bookingWindowEnd` / `isBookableDay` /
+`openCountInWindow` were deleted with their tests. The spec is 20 tests now.
+
+**Deleting a test because its subject is gone is not the same as weakening one**,
+and the difference is worth stating because the counts moved down. What is gone is
+arithmetic that no longer exists. What replaced it is `publishedByDay`, and its
+best test is the PAIR: a Saturday and a fully-booked Tuesday both have an open
+count of zero, and only the second map separates them.
+
+### What only a browser could prove, and why
+
+`check:interaction` went 97 → 190. The ones that are not merely convenient to put
+there:
+
+- **The double-booking race, run for real.** Two pages against one server: A holds
+  a slot, B takes it, A confirms and is told. `providers.spec.ts` proves the throw
+  and `appointmentsActions.spec.ts` proves the 409; neither can show a student
+  losing a slot underneath them. The mock store being process-global is a blocking
+  bug, and this is the one place it is useful.
+- **A negative: the booking chips do NOT move when the month grid is clicked.**
+  Booking and browsing are separate questions on that page and the coupling runs
+  one way. Nothing that renders nothing can check that two other components stayed
+  still.
+- **The nav disclosure's whole contract**, including that collapsing REMOVES the
+  children from the DOM rather than hiding them, which is the difference between
+  "out of the tab order" and "probably out of the tab order".
+- **Nothing persisted by Ask THRIVE.** The assertion is that sending a message
+  writes NO `localStorage` key, which needs a real one to be empty of.
+- **Two independent scroll containers** — the history rail and the chat log —
+  asserted as both scrollable and neither containing the other.
+- **The page measure**: every route fills the room the gutter leaves it, keeps a
+  visible gutter, does not widen its prose, and stops at its cap on a 1920px
+  screen. Widths are layout, and layout needs a layout engine.
+- **The calendar's order**: the grid above the fold, using its width, with the Key
+  beside it on a desktop and below it on a phone.
+
+### `check:layout` can press a button now, and it builds its own server
+
+`/appointments` was already a target but only ever measured CLOSED, where it is
+two cards and a list — incapable of overflowing. No preference could reach the
+expanded state, because which advisor is open is component state. A target may now
+name a `click` selector, waited for and pressed after the reload and before
+anything is measured.
+
+Both browser gates also now run `npm run build:node` themselves rather than
+assuming a build exists, which closed a real hole: `npm run check:layout` used to
+be able to measure yesterday's output and pass.
+
+42 → 51 targets: `/appointments booking`, `/ask conversation`, `/ask career`.
+
+### Three gate bugs of my own, all instructive
+
+Recorded because the failure modes are the interesting part.
+
+**A test that could pass for the wrong reason.** The Ask THRIVE clear-on-switch
+assertion typed *"Which electives suit product analytics?"* — word for word one of
+the Course Recommender's own example questions. So it matched the empty state
+rather than the sent message and went red against perfectly correct code.
+
+**An assertion measuring the wrong box.** "Each route fills the room it has"
+compared the page's measure against `main`'s BORDER box, so the side gutters read
+as a 40px shortfall on every route.
+
+**An assertion that was too broad.** "The month grid is no longer hidden from
+assistive technology" queried the section for ANY `aria-hidden` element and
+matched each cell's dot row — which is legitimately hidden, because it repeats
+what the cell's accessible name already says in words.
+
+**A gate that can go green or red for a reason other than the one it names is
+worse than no gate**, because it teaches everyone to argue with it.
+
+### And one caught by a SKIP, which is the quietest failure there is
+
+The chat log stopped being a scroll container when the Ask page lost its rail: the
+panel became a `flex-col` child, and `flex-1` there governs height and silently
+beat the height token, so the document grew instead of the log scrolling.
+
+No assertion failed. `check:interaction` reported *"a keyboard can scroll the log
+— SKIP: could not make the log overflow"*, and that was the only signal. The
+layout looked fine. **A skipped assertion is a result, not an absence** — worth
+reading the SKIP lines rather than only the FAIL lines.

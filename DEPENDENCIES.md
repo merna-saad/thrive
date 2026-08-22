@@ -30,7 +30,8 @@ self-hosting is a requirement, not a preference.
 | `svelte` | `^5.56.1` | Runes, forced on outside `node_modules`. |
 | `playwright-core` | `^1.62.1` | **Added 2026-08-21. The first dependency since Phase 1.** Drives a real browser for `npm run check:layout` and `npm run check:interaction`. See the note below. |
 | `@sveltejs/vite-plugin-svelte` | `^7.1.2` | Compiles `.svelte` and `.svelte.ts`. |
-| `@sveltejs/adapter-node` | `^5.5.4` | Runs as a plain Node process. No serverless assumptions. |
+| `@sveltejs/adapter-node` | `^5.5.4` | Runs as a plain Node process. **Still here after the Netlify swap** — the two browser gates spawn it. See the note below. |
+| `@sveltejs/adapter-netlify` | `^6.0.4` | **Added 2026-08-21.** What a push to `main` deploys. See the note below. |
 | `vite` | `^8.0.16` | Build. |
 | `@tailwindcss/vite` | `^4.3.0` | Tailwind v4 as a Vite plugin, no PostCSS config. |
 | `tailwindcss` | `^4.3.0` | The design system compiles through `@theme inline`. |
@@ -85,6 +86,34 @@ patching.
 | `tw-animate-css` | Its only consumers were `ui/popover` and `ui/tooltip`, both vendored and imported by nothing. `animate-spin`/`animate-pulse` are core Tailwind; `animate-rise` is defined in `app.css`. **Comes back with shadcn-svelte**, whose popover and tooltip animations depend on it. |
 | `shadcn` (the CLI) | Nothing to generate yet. |
 | `next`, `react`, `react-dom`, `eslint-config-next` | Framework being replaced. |
+
+### Two adapters, and why both stay
+
+**Added `@sveltejs/adapter-netlify` and did NOT remove `@sveltejs/adapter-node`.**
+`vite.config.ts` picks one from an environment variable: unset selects Netlify,
+`ADAPTER=node` selects Node.
+
+The swap was asked for so teammates could open a URL instead of cloning the repo
+and getting onto Tailscale. Deleting adapter-node would have cost the two gates
+that have caught the most real defects in this project — the dead stat pill, the
+`derived_inert` warning live in production, the dialog's TypeError, and the 403 on
+every form submission. They spawn a real long-running server and drive it with
+Playwright, and a bundle of serverless functions is not that.
+
+The alternative was pointing them at `netlify dev`, which would put the Netlify
+CLI and a serverless emulator between a gate and the thing it measures, and add a
+dependency far heavier than the adapter it replaced.
+
+**It is not a hedge, because it is not a fork.** Both adapters consume the same
+SvelteKit build and neither changes the app: there is no `prerender`, no
+`ssr = false` and no `csr = false` anywhere in `src/routes`, so every route is
+server-rendered per request either way. The out directories are separate —
+`build/` for Netlify, `build-node/` for the gates — so whichever ran last cannot
+decide what a gate is testing.
+
+**What it costs:** one more package to keep current, and a build script that is
+`npm run build` for deployment and `npm run build:node` for the gates. Both are in
+the README.
 
 ### Python
 

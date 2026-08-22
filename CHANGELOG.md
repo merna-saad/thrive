@@ -4,6 +4,70 @@ Dated session summaries, most recent first.
 
 ---
 
+## 2026-08-21 — Appointments, Ask THRIVE, three redesigns, and a Netlify deploy
+
+**HEAD:** `81137b7` · **640 tests · 190 interaction assertions · 51 layout targets ·
+six gates green · green in all seven timezones.** 110 commits, all pushed.
+
+One long session covering two phases and four follow-on changes, three of which
+partly reversed the one before. The reversals are recorded rather than tidied away,
+because the reasons are the useful part.
+
+### Phase 8 — `/appointments`
+
+- The route is real: service cards, a day picker, the booking panel, "Your day",
+  and the student's bookings.
+- **Mutations are SvelteKit form actions**, the app's first POSTs. `load` re-runs
+  after one, which is what makes a booking appear in "Your day" and the list with
+  nothing to keep in sync by hand.
+- MIGRATION §8.5's adjust-during-render **dissolved rather than porting**: with one
+  owner for the day there is nothing to reconcile.
+- The day picker went chips → month grid → day list → chips. See HANDOFF.
+
+### Phase 9 — `/ask`
+
+- Three destinations, saved history, a chat window with no brain, and 27 providers
+  (up from 25). **Chat history cannot live in `localStorage`** — too large, and a
+  second laptop would show an empty history indistinguishable from never having
+  asked — so it is provider data from the start.
+- The URL is the state: a redirect from `/ask`, the destination as a route segment,
+  the conversation as a search param, and 404s for both kinds of nonsense.
+- The destinations later moved into the NAV rail as a disclosure group, and the
+  page kept a history rail.
+
+### The four follow-on changes
+
+1. **Booking flow measured and rearranged**, then reverted to the chip strip.
+2. **Ask THRIVE's destinations into the nav rail**, `nav.ts` grew `children`.
+3. **The page container**: 72rem → 96rem → 80rem plus a 40px gutter and a
+   `/calendar`-only 96rem. Two knobs, because a gutter alone does not solve 2560px
+   and a cap alone does not solve 1512px.
+4. **The month grid on `/appointments` became clickable**, moving "Your day" only.
+
+### Deployed
+
+`@sveltejs/adapter-netlify` added; **`adapter-node` kept**, selected by
+`ADAPTER=node`, because the two browser gates spawn a real server. `netlify.toml`
+is committed at the repo root with `base = "frontend"`, so the deploy is
+reproducible from a clone rather than from a dashboard.
+
+### Known issues
+
+- **The mock stores are process-global**, MIGRATION §9 defect 1, BLOCKING. On
+  Netlify a cold start also wipes them, so a booking made yesterday is probably
+  gone. Recorded in the README, because it looks like data loss and is not.
+- **Form actions have no auth check** and are reachable by direct POST (§9 defect
+  2).
+- Ask THRIVE **has no brain** and says so.
+
+### Next priorities
+
+1. The real-phone pass, now four items.
+2. `/assignments` — the same `TaskRow` with no `reorder` prop.
+3. The retrieval service behind `/ask`, and the Django work the stores need.
+
+---
+
 ## 2026-08-21 — session close: the last inert control
 
 **HEAD:** `99fd968` · 563 tests · six gates green · green in all seven timezones ·

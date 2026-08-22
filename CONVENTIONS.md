@@ -147,6 +147,32 @@ are not days. Same reasoning — the week and the range are walked client-side, 
 `load` could have pre-formatted them, and what varies is locale wording rather than
 which day it is.
 
+Phase 8 and its redesigns add exactly ONE, and the arithmetic of getting there is
+worth recording because the count went up and then back down.
+
+`/appointments` briefly had two — `MyDayPane`'s day heading and `BookingPanel`'s
+`dayLabel` — while a month grid was the day picker, because a grid that pages
+anywhere has no finite set of days a `load` could pre-format. Reverting to the chip
+strip removed the second: the chips carry their finished labels from the server, so
+`BookingPanel` takes a `dayLabel` PROP and formats nothing.
+
+**`MyDayPane`'s heading remains**, and now for a better reason than the grid gave
+it: the clickable month can point that pane at ANY day in any month it pages to,
+so the set really is unbounded. It formats a key already built from local parts by
+`fromDayKey`, so what varies is locale wording rather than which day it is.
+
+**Note what is NOT on the list:** every slot time, every chip label, every
+appointment label and the whole confirmation are formatted on the server, and
+`AppointmentView` carries no field a component could format wrongly except the
+ISO bounds, which only `icsFromAppointment` reads.
+
+Phase 9 adds **none**, which is the more interesting result. `/ask` renders
+timestamps on every message in a conversation and every entry in the rail, and
+all of them arrive as strings: `ConversationView` has no ISO field on it at all,
+so there is not a timestamp available to a component that wanted one. That is
+stronger than a convention about what components may do — `ask.spec.ts` asserts
+the absence. Where a phase can reach that shape, it should.
+
 ### A viewport question that CSS can answer belongs in CSS
 
 The same rule as hover-to-reveal, and 7b is where it was first tested on something
@@ -511,6 +537,180 @@ the trigger occupied and holds focus, so neither a double-tap nor an Enter can
 destroy anything. A confirm button rendered where the trigger was reintroduces the
 accident the step exists to prevent. And Escape peels one layer: with the question
 up it cancels the question, not the dialog.
+
+---
+
+## A mutation is a form action, and errors come back as values
+
+**Nothing in this app fetches from a click handler. A change to server state is a
+`<form>` posting to a named action, and a failure the student can hit is a
+`fail()` rather than a throw.**
+
+### Why
+
+Three things fall out of it, and the first is the one that matters:
+
+- **`load` re-runs after a successful action.** A booking appears in the day pane
+  beside the panel and in the list below it with nothing to keep in sync by hand.
+  A fetch would have needed a client-side cache and a decision about when to
+  invalidate it, which is two more places to be wrong.
+- **A per-row button works with no JavaScript.** `AppointmentList` renders a
+  one-field form per row; the Next version called a server action imperatively
+  from a click handler, so the button did nothing at all without JS.
+- **`useTransition` becomes one boolean around one await.** MIGRATION §8.4 —
+  there is no Svelte equivalent because there is no concurrent renderer, and a
+  boolean is the honest shape.
+
+### Errors are values, and the layer that knows chooses the words
+
+`SlotUnavailableError` is caught in the action and returned through `fail(409,
+…)`. Two people CAN want the same slot — the page was rendered before somebody
+else took it — so a taken slot is an ordinary outcome the panel renders, not a
+crash. **Anything else re-throws**, because a provider failing for a reason
+nobody has thought about must not be reported to a student as a booking problem.
+
+The message is the DATA LAYER's, passed through rather than replaced from
+`messages.ts`. It throws two different sentences — "no longer listed" for an id
+that does not resolve, "just taken" for one that has been claimed — and only that
+layer knows which happened. Flattening both would tell a student somebody took a
+slot that never existed. This is the one sanctioned exception to "every
+user-facing string lives in `messages.ts`", and it is narrow: the copy still
+lives in exactly one place, that place is just not this file.
+
+### Every branch of an `enhance` callback ends in something on screen
+
+`success`, `failure`, and **everything else**. The first version treated the
+third as "nothing local to say", and a 403 made the confirm button visibly do
+nothing — no confirmation, no alert, nothing a student could see. A press that
+produces no response is the failure mode this repo treats as its worst.
+
+### And the operational half: `ORIGIN`
+
+A form action needs it, or every POST is a 403. See `setup_info.md`. `npm run
+dev` is unaffected, so this fails only in the build — which is why it is written
+down rather than remembered, and why both browser gates now set it.
+
+What to look for in a diff:
+
+- `fetch('/some-route', { method: 'POST' })` from a component
+- an `enhance` callback with no final `else`
+- an action that lets a domain error escape instead of shaping it
+- a `catch` that swallows everything rather than re-throwing what it does not
+  recognise
+- a new POST surface with no note about `ORIGIN`
+
+---
+
+## A disabled thing in a composite widget takes `aria-disabled`, not `disabled`
+
+**If a keyboard has to be able to REACH something it cannot activate, it must
+stay focusable.**
+
+> **No live example right now.** The case this was written for — a month grid whose
+> closed days had to be crossable — was deleted with the booking grid, and the
+> booking chips use plain `disabled` correctly, because a chip strip is a row of
+> independent buttons rather than a composite widget: nothing has to be crossed to
+> reach anything else. The rule stays because the distinction is the part that is
+> easy to get wrong, and the companion below IS live.
+
+The month grid's closed days were the case. A student arrowing across a month had
+to be able to cross a shut weekend to reach the Monday behind it, and a
+`disabled` button cannot receive focus at all — so the walk would stop dead at
+the first closed cell.
+
+Two things follow, and both have bitten:
+
+- **The cursor and the selection become two values.** With one, arrowing onto a
+  focusable-but-unselectable day either selects it (booking days by accident) or
+  refuses to move (breaking the spatial model, where ArrowDown means "a week
+  later"). `MiniCalendar` keeps `cursorKey` whose `null` MEANS "the selection", so
+  the second value only exists on the exceptional path.
+- **The handler is what refuses, so the handler needs a test.** Playwright reads
+  `aria-disabled` the way assistive tech does and will not click it without
+  `force` — which is what turns the assertion into a real one: the click is
+  pressed through and the handler declines it.
+
+### The companion: a scrollable region must be focusable, and a linter disagrees
+
+axe's `scrollable-region-focusable` requires `tabindex="0"` on anything with
+overflow, or its content is unreachable by keyboard. Svelte's
+`a11y_no_noninteractive_tabindex` objects to it on a non-interactive role. The
+chat log is both.
+
+**Accessibility wins, suppressed at that one site with the reason in the markup.**
+Never repo-wide, and never by relaxing the check — `npm run check` stays at 0
+errors and 0 warnings.
+
+And the finding underneath it, which is the more useful half: **a `min-h-0` chain
+makes a child able to shrink, but something still has to give it a height to
+shrink within.** Until the chat panel had one, the log never overflowed, the
+document grew instead, and the tabindex was guarding nothing. The gate said so by
+permanently skipping its own keyboard-scroll assertion.
+
+What to look for in a diff:
+
+- `disabled` on a `gridcell`, a `tab`, an `option`, or a roving-tabindex item
+- a single value used as both "what is chosen" and "where focus is", in a widget
+  where some items cannot be chosen
+- `overflow-y-auto` on an element with no `tabindex`
+- a `min-h-0` chain with no height at the top of it
+- **`flex-1` on an element that also sets a height.** It governs the MAIN axis, so
+  it is a width in a row and a height in a column — and in a column it silently
+  beats the `h-` beside it. Moving a panel between the two changes what it
+  constrains. This shipped once: the chat log stopped being a scroll container and
+  no assertion failed, because the only signal was `check:interaction` SKIPPING
+  its own keyboard-scroll check.
+
+---
+
+## Layout numbers are tokens, and there are three of them
+
+**A container width, a gutter, and a line length are three different questions.
+Never solve one with another, and never type any of them into a component.**
+
+| Token | Utility | What it answers |
+|---|---|---|
+| `--container-page` (80rem) | `max-w-page` | how wide may a page get |
+| `--container-wide` (96rem) | `max-w-wide` | …and `/calendar`, which wants more |
+| `--thrive-page-gutter-x` (2.5rem) | `lg:px-page-x` | how far off the edges does it sit |
+| `--container-measure` (68ch) | `max-w-measure` | how long may a LINE OF TEXT get |
+
+### Why the shell does not own the width
+
+It used to: `max-w-6xl` on `AppShell`'s `main`. One number governed every route, so
+a page that wanted more width could not have it without widening Home by accident.
+The shell provides the gutters; **each page names its own measure.** How wide a
+page should be is a property of what is on it.
+
+### The gutter and the cap are two knobs and you need both
+
+Learned by getting each wrong in turn. 72rem left ~120px of dead margin either side
+at 1512px, so it went to 96rem — and then the cap stopped biting at that width
+entirely, the gutter collapsed to the shell's 20px of padding, and content ran to
+the edge. **A gutter alone does not solve a 2560px monitor; a cap alone does not
+solve a 1512px one.**
+
+### And the line length is separate from all of it
+
+A paragraph at 1500px is not readable. So containers fill their allowance and TEXT
+does not: page intros and standing notes take `max-w-measure`. Capping the
+container instead would leave the dead margin exactly where it was.
+
+`ch` rather than `rem`, because the constraint is characters per line and `ch`
+tracks the font.
+
+**Put the cap on the element that OWNS the text.** A full-width `<p>` wrapping a
+capped `<span>` looks identical and is not the same thing — the element whose line
+length matters is the one with the text in it, and a gate measuring paragraph
+widths reads the wrapper.
+
+What to look for in a diff:
+
+- `max-w-` followed by a Tailwind size step (`max-w-5xl`, `max-w-2xl`) on a page or
+  a page-level region, rather than one of the four tokens above
+- a `px-` on `main` or a page root that is not `page-x`
+- a widened container with no prose cap added in the same change
+- a cap moved onto a wrapper instead of onto the text
 
 ---
 

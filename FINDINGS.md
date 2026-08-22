@@ -4,6 +4,245 @@ Reusable patterns and lessons. Things worth knowing again.
 
 ---
 
+## 2026-08-21 — a design can be reverted and still leave the right residue
+
+`/appointments` shipped three day pickers in one session: a five-chip strip, then a
+month grid, then a bookable-day list, then the chip strip again. That reads as
+churn, and mostly was. What is worth keeping is the distinction between what a
+revert should take back and what it should leave.
+
+**Taken back:** the month grid as a picker, the separate one-calendar-month booking
+window, `bookingWindowEnd` / `isBookableDay` / `openCountInWindow`, the day list
+component, the 25-business-day fixture, and `MiniCalendar`'s `booking` and
+`readOnly` modes. All of it deleted rather than left unreachable.
+
+**Left behind, because it was never about the grid:**
+
+- **`publishedByDay` beside `availabilityByDay`.** An open count alone cannot tell
+  a fully-booked Tuesday from a Saturday — both are zero. The chips needed that
+  distinction as much as the grid did.
+- **A per-day open COUNT on each chip.** The original strip made a student select
+  a day to discover it was empty.
+- **`BookingDayView`**, which turned out to be the Next tree's `DayOption` with
+  those counts added.
+
+> **When you revert a design, ask which of its parts were answers to questions the
+> design invented, and which were answers to questions that were already there.**
+> The second kind should survive.
+
+---
+
+## 2026-08-21 — the same measurement can be an improvement and a regression
+
+The booking flow was measured three ways at 1512px:
+
+| arrangement | total path | day→time | direction changes |
+|---|---|---|---|
+| day picker on the right | 1320px | 538px leftward | 3 |
+| three side-by-side columns | **1362px** | 305px | 0 |
+| two columns, step 4 stacked | 1128px | 313px | 0 |
+
+The three-column version fixed exactly what it set out to fix and made the journey
+LONGER, because three columns sweep the whole page width. Had the brief only asked
+for "no backtracking" it would have shipped, and the report would have claimed an
+improvement truthfully while the thing got worse.
+
+The same shape appeared in the page container: 72rem left 120px of dead margin, so
+it went to 96rem, and at 1512 the cap stopped biting entirely and content ran to
+the edge. Two knobs were needed — a gutter for the near case, a cap for the far
+one — because a gutter alone does not solve 2560px and a cap alone does not solve
+1512px.
+
+> **Measure the thing you were asked about AND the thing you might be trading it
+> for**, and put both in the gate. `check:interaction` now asserts the ordering and
+> the total, and the gutter and the cap.
+
+---
+
+## 2026-08-21 — an affordance beats a caption, every time
+
+"Your month" shipped as a read-only reference: cells as `<div>`s, no focus, no
+hover, the grid `aria-hidden`, and a caption reading *"A reference while you book.
+Nothing here is clickable."*
+
+Every one of those was a correct implementation of "not interactive", and the thing
+still read as broken, because a month grid with dots on it looks like a date
+picker. The caption was arguing with the shape and losing.
+
+The fix was to make it interactive. But the reasoning from the read-only version is
+worth keeping, because it holds in the other direction: **if a cell is not a
+control, do not use an element that looks like one** — and the fix there is to
+change the ELEMENT (`<svelte:element this={readOnly ? 'div' : 'button'}>`), not to
+drop the handler, since a focusable cell that does nothing is worse than no cell.
+
+> **A caption cannot make an affordance mean something else.** If you find yourself
+> writing one that explains why a control does not work, the control is the problem.
+
+---
+
+## 2026-08-21 — two selections on one page, and the coupling has a direction
+
+`/appointments` has a booking day (the chips) and a browse day (the month grid).
+The obvious implementations are both wrong:
+
+- **One shared day** — clicking the grid to look at next Thursday silently changes
+  which day you are booking.
+- **Two fully independent days** — "Your day" stops showing what the slot you are
+  about to take would collide with, which is the entire reason that pane exists.
+
+What works is a one-way coupling: a chip moves both, the grid moves only the browse
+day. Asymmetry in a UI usually smells, so this one is stated at both ends in the
+code and the gate asserts the negative half — after a grid click, the pressed chip
+and the rendered times are byte-identical.
+
+> **When two controls write related state, write down which direction the coupling
+> runs and assert the direction it does NOT.** A positive assertion cannot tell a
+> one-way coupling from a two-way one.
+
+---
+
+## 2026-08-21 — reusing a component means finding the assumptions, not the shape
+
+`MiniCalendar` was built in Phase 7a with `size` and `showTodayButton` props it
+had no caller for, and a doc comment saying they existed because the same grid was
+meant to serve as a booking picker later. Phase 8 was that later, and the props
+were the least of it.
+
+What transferred: the panel shape, month paging, the 6×7 grid, the grid roles, the
+roving tabindex with its documented fallback, and the whole keyboard walk.
+
+What did NOT, and none of it was a prop:
+
+1. **Dots come from `ScheduleData` categories.** Booking needs an advisor's open
+   count, which is a different question about the same day.
+2. **Every rendered day is selectable.** Booking has two independent reasons to
+   refuse a day, and they look identical.
+3. **Paging is unbounded.** Booking is capped a month out.
+
+All three turned out to be *additive* — one optional prop and a branch in four
+places — which is what made reuse correct rather than merely cheaper. (That prop
+is gone with the grid it served; the component is back to one shape and has two
+interactive call sites, which is the outcome the props were kept for in the first
+place.) **The test
+for "reuse or fork" is not how similar the two surfaces look. It is whether the
+differences are additions or contradictions.** Had any of the three required
+changing what `/calendar` does, a sibling component would have been right.
+
+The thing worth not forking, specifically, was the ~80 lines of keyboard grid
+navigation carrying two fixes the Next version did not have. A near-copy would have
+carried the fixes on the day it was written and diverged on the next.
+
+---
+
+## 2026-08-21 — a cursor and a selection are two values, and one of them is a lie
+
+> **The code this describes has been deleted** along with the booking-mode month
+> grid, so `MiniCalendar` uses one value again — correctly, because every day in it
+> is selectable once more. Kept because the lesson is about the CONDITION, and the
+> condition will recur the next time a grid has unselectable cells.
+
+`MiniCalendar` used `selectedKey` for both "which day is chosen" and "where the
+keyboard is". That is correct exactly while every day is selectable.
+
+The moment some days are not, the conflation forces a choice between two bad
+behaviours: arrow keys that skip closed days (so the grid's spatial model breaks —
+ArrowDown stops meaning "a week later"), or arrow keys that select whatever they
+land on (so exploring the month books days by accident).
+
+The fix is a third state, and its default is what makes it cheap:
+
+```ts
+let cursorKey = $state<string | null>(null);
+const activeKey = $derived(cursorKey ?? selectedKey);
+```
+
+`null` MEANS "the selection". So the cursor only exists on the exceptional path,
+the parent can still move the selection from outside and have the tab stop follow
+with no effect to synchronise them, and `/calendar` — where everything is
+selectable — never writes it at all.
+
+**The companion rule:** a disabled cell in a composite widget takes
+`aria-disabled`, not `disabled`. A `disabled` button cannot receive focus, so a
+keyboard could not cross a shut weekend to reach the Monday behind it. Playwright
+enforces the same reading — it refuses to click `aria-disabled` without `force`,
+which is how the gate ended up proving the handler refuses the click rather than
+the browser doing it.
+
+---
+
+## 2026-08-21 — a React idiom can dissolve instead of porting
+
+MIGRATION §8.5 asked whether `BookingPanel`'s adjust-during-render becomes a
+`$derived` or an `$effect`, and noted the current code deliberately does both:
+derive `dayKey` from a changed prop, and clear `slotId` as a side effect.
+
+The answer was neither, and the reason is that **the idiom existed to reconcile
+two owners of one value.** Once the month calendar became the only day picker,
+the day stopped being panel state — it is a prop — and there was nothing to
+reconcile.
+
+The side effect went the same way. `selectedSlot` is derived by looking the chosen
+id up in *this day's* slots, so a day change makes the lookup fail and the stale
+choice drops out on its own. The `seenExternal` shadow, the comparison and both
+setState calls have no replacement because they have no job.
+
+**Before translating a framework-specific mechanism, ask what problem it solves in
+the source and whether the port still has that problem.** Three of MIGRATION §8's
+twelve items have now dissolved rather than translated.
+
+---
+
+## 2026-08-21 — "no localStorage" is a design constraint, not a limitation to work around
+
+Ask THRIVE's history could not be a persisted store: conversations are large, they
+grow without bound, and a student on a second laptop would find an empty history
+indistinguishable from never having asked anything.
+
+The tempting move is to persist a little anyway — the last N messages, a draft, a
+"recent" list. All of it would have to be torn out, and worse, all of it would be
+*wrong in a way a student cannot see*: a history that is complete on one machine
+and empty on another is not a smaller feature, it is a misleading one.
+
+So the split is by honesty rather than by convenience:
+
+- **Saved conversations** come from a provider. Real shape, mock body.
+- **A message sent now** lives in component state, is gone on navigation, and the
+  page says so BEFORE anything is typed.
+
+The gate asserts the second half: sending writes no `localStorage` key. That is
+the assertion that stops the constraint eroding, because eroding it would be one
+convenient line.
+
+**And the composer is live, not disabled.** A disabled control would have been a
+fifth inert control in an app that has deliberately removed four — and "you cannot
+type here yet" is less informative than a reply that explains what is missing.
+
+---
+
+## 2026-08-21 — a scroll container that cannot take focus is not navigable
+
+Two rules disagree about the chat log and only one of them is about a student.
+
+axe's `scrollable-region-focusable` says a region with overflow must be focusable,
+or its content is unreachable by keyboard. Svelte's
+`a11y_no_noninteractive_tabindex` says a non-interactive role must not take a
+non-negative tabindex. Both are describing the same element.
+
+The tabindex won, suppressed at that one site with the reason in the markup. But
+the more useful finding is the one underneath it: **the tabindex was guarding
+nothing until the panel got a definite height.**
+
+`flex-1 min-h-0` with no height anywhere up the chain resolves to the content's
+own height. So the log never overflowed, the document grew instead, and the
+composer walked off the bottom as the conversation lengthened. The gate said so by
+skipping — "this conversation fits without overflow" — and a permanently skipped
+keyboard-scroll assertion is exactly the one you least want skipped.
+
+**A `min-h-0` chain makes a child ABLE to shrink. Something still has to give it a
+height to shrink within.**
+
+---
+
 ## 2026-08-21 — raising chroma moves a colour toward its NEIGHBOURS, not just away from grey
 
 The dots pass. The brief was "push chroma, hold luminance", which is the right
@@ -452,9 +691,10 @@ appears next to anything called Cancel.
 `arriveAtRow` gained a `console.warn` for the row it could not find. Reading the
 two together, it looks like the warning is covered.
 
-It is not. The gate drives `node build/index.js` — the **production** build — and
-the warning is behind `import.meta.env.DEV`, so the branch does not exist in the
-artifact being measured. The check is real and useful for anything that warns in
+It is not. The gate drives a **production** build (`build-node/index.js` since the
+Netlify work; `build/index.js` when this was written) and the warning is behind
+`import.meta.env.DEV`, so the branch does not exist in the artifact being
+measured. The check is real and useful for anything that warns in
 production; it is simply blind to the one thing it appears to have been added for.
 
 **Nobody would have noticed.** Both halves are correct in isolation, they landed

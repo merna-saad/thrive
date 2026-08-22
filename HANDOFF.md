@@ -4,6 +4,157 @@ Session log, newest first. What happened, what was decided, what is still open.
 
 ---
 
+## 2026-08-21 — Phases 8 and 9, three redesigns, a deploy, and this doc pass
+
+**HEAD:** `81137b7` · **640 tests · 190 interaction assertions · 51 layout targets ·
+six gates green · green in all seven timezones.** 110 commits, all pushed.
+
+Long session. Two phases, then four follow-on requests that arrived mid-work, three
+of which partly reversed the change before them. The reversals are the interesting
+part and are recorded as such.
+
+---
+
+### The order things happened, because it explains some of the churn
+
+1. **Phase 8** — `/appointments`, with a month calendar replacing the five-day chip
+   strip. Designed, presented, approved with four answers.
+2. **Phase 9** — `/ask`, arrived while Phase 8 was mid-flight. Phase 8 was finished
+   and committed first rather than abandoned, because otherwise four answered
+   decisions would have been discarded and an orphan fixture change left in the
+   tree.
+3. **"The appointments page is confusing"** — the month grid read backwards.
+   Measured three arrangements, shipped a day list.
+4. **"Ask THRIVE does not use its width"** and the destinations moved to the nav
+   rail.
+5. **"Move the saved conversations into a second left rail"** — which partly undid
+   (4)'s removal of that rail, for a stated reason.
+6. **"The pages sit in a narrow centred column"** — widened the container.
+7. **"Revert the day picker to the chip strip"** — undid (3) entirely.
+8. **"The pages are now too wide"** — undid part of (6).
+9. **"Deploy to Netlify."**
+10. **"Make the mini calendar clickable"** — undid the read-only mode from (7).
+
+**What that cost, honestly:** two components written and deleted (`DayPicker`,
+`MiniCalendar`'s `readOnly` and `booking` modes), three window functions written and
+deleted with their tests, and a fixture constant moved 5 → 25 → 5. Everything
+deleted rather than left unreachable.
+
+**What it bought:** every one of those reversals came back with a residue that was
+never about the design being reverted — see FINDINGS.
+
+---
+
+### Phase 8 — what the owner decided
+
+Four questions, all answered with the recommendation: raise the fixture to a month;
+availability-only marks; calendar top-right with "Your day" under it; proceed. All
+four are now moot, because the month calendar is gone. Recorded so it is clear they
+were answered rather than ignored.
+
+### Phase 8 — the appointments surface as it stands
+
+Two advisor cards, then two columns: the booking panel left (chip strip → meeting
+type → times → reason → confirm), and "Your day" right with a clickable month
+beneath it.
+
+**Two days, one-way coupling.** `bookingDay` drives the chips and the times;
+`browseDay` drives "Your day". A chip moves both; the month grid moves only
+`browseDay`. Stated at both ends in the code, and the gate asserts the negative
+half.
+
+**The window IS the fixture again.** `bookingDays()` publishes five business days
+and the strip shows those five. `bookingWindowEnd`, `isBookableDay` and
+`openCountInWindow` are deleted — they existed only while a grid could show days the
+fixture had not published.
+
+### Phase 9 — the shape it settled into
+
+Nav rail → history rail → chat. The three destinations are `children` of the `/ask`
+item in `nav.ts`, rendered as a disclosure; the page's own rail holds one
+destination's history.
+
+**`flattenNav` is what keeps `nav.ts` a single source.** `allNav` and `isBuiltRoute`
+are DERIVED from the tree, so a child cannot exist in the rail and be missing from
+`PagePlaceholder`'s lookup — there is no second list to add it to.
+
+**No chat store.** Conversations are provider data; a sent message lives in
+component state and is gone on navigation, and the page says so before you type.
+The gate asserts sending writes no `localStorage` key.
+
+---
+
+### Decisions made in the owner's absence, and the owner's later rulings
+
+Phase 9 and the follow-ons ran without the owner. The ones since ruled on:
+
+- **Home keeps the 1280 cap.** Asked, answered: do not pin it narrower. Home was
+  1152 before any of this, and 1280 is one step up rather than a new problem.
+- **The cold-start note is in the README**, beside the no-authentication note.
+- **The doc pass** is this entry and the files listed below.
+
+Still standing and reversible:
+
+1. **`/ask` redirects (307)** rather than offering a landing page.
+2. **The conversation is a search param**, not a nested route.
+3. **The composer is live** with a fixed "I can't answer yet" reply in component
+   state, said before you type.
+4. **A real conversation under the wrong destination is a 404.**
+5. **One `svelte-ignore a11y_no_noninteractive_tabindex`** on the chat log — axe's
+   `scrollable-region-focusable` requires the tabindex, Svelte's rule forbids it on
+   `role="log"`. **Still the one most worth a second opinion.**
+6. **The history rail shows ONE destination's conversations**, not all three
+   grouped, because the loader 404s a conversation opened under the wrong
+   destination — a mixed list would mostly be 404s.
+7. **The month grid pages**, and paging does not touch the selection.
+8. **`--container-wide` is `/calendar` only.**
+
+---
+
+### What the gates caught, which is the argument for widening them
+
+Six real defects, none visible to any gate that existed before:
+
+1. **A 403 on every form submission.** `adapter-node` needs `ORIGIN`; dev is
+   unaffected, so it worked in dev and failed only in the build.
+2. **A silent no-op behind it** — the `enhance` callback's third branch said
+   nothing, so Confirm visibly did nothing.
+3. **"Too far ahead to book" announced about last Tuesday.**
+4. **`BOOKING_WINDOW_DAYS = 23` was one short**, caught by a test that froze the
+   worst case on purpose.
+5. **`flex-1` beating a height token**, caught by a SKIP — the quietest failure
+   there is.
+6. **Two `<nav>`s labelled "Primary"**, which made a gate count one `aria-current`
+   twice.
+
+And **three bad assertions of mine**: one that could pass for the wrong reason, one
+measuring the wrong box, one too broad. All three in TESTING.
+
+---
+
+### Docs updated in this pass
+
+README (cold starts), DEPENDENCIES (`adapter-netlify` added — the first package
+change since Phase 1's `playwright-core`), setup_info (two adapters, the deploy),
+TESTING, BUGS, FINDINGS, CONVENTIONS (two new rules: form actions, and layout
+numbers as tokens), CODEMAP (refreshed at `81137b7`), CHANGELOG, this file, and
+**CONTEXT.md regenerated in full**.
+
+### Loose ends
+
+1. **The real-phone pass**, four items: touch drag on Home's task rows, the month
+   grid at 375px, the 8px dot against a thumb, and the Ask history strip against a
+   thumb.
+2. **`/assignments`** — the same `TaskRow` with no `reorder` prop. Owes it a
+   `role="list"` container.
+3. **The retrieval service behind `/ask`.** The three destinations are shells on
+   purpose.
+4. **Django**, which is the fix for the process-global stores, the missing auth, and
+   the cold-start wipe.
+5. **Decision 5 above** (the a11y suppression) wants a second opinion.
+
+---
+
 ## 2026-08-21 — session close: the last inert control, and the doc system
 
 **HEAD:** `99fd968` · **563 tests · 97 interaction assertions · six gates green ·

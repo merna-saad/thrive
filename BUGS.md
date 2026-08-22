@@ -7,6 +7,159 @@ Note on links: this repo has no PRs — all commits go direct to `main`
 
 ---
 
+## 2026-08-21 — after Phases 8 and 9: the redesigns and the deploy
+
+### A `flex-1` silently beat a height token, and only a SKIP said so
+
+**Found by:** `check:interaction`, by skipping. **Fixed in:** `63bb79f`.
+**Severity: MEDIUM** (the composer walked off the bottom of a long conversation).
+
+Ask THRIVE's chat panel carried `flex-1` alongside `xl:h-[var(--thrive-chat-height)]`.
+While it sat in a `flex-row` beside a rail, `flex-1` governed WIDTH and the height
+token governed height. When the rail was removed the panel became a `flex-col`
+child, where `flex-1` sets `flex-basis: 0%` plus grow — which governs the MAIN
+axis, now the height, and beats the `h-` beside it.
+
+So the panel took its content's height, the log never overflowed, and the document
+scrolled in its place. Every assertion still passed. The only signal was
+`check:interaction` reporting **"a keyboard can scroll the log — SKIP: could not
+make the log overflow"**, and the layout looked entirely fine.
+
+Fixed by gating it: `xl:flex-1`, so it applies only in the row.
+
+**Pattern to watch:** `flex-1` means different things in a row and a column, so
+moving an element between the two changes what it constrains. And **read the SKIP
+lines** — a skipped assertion is a result, not an absence.
+
+### Two `<nav>` landmarks both labelled "Primary"
+
+**Found by:** an `aria-current` count that came back 2 instead of 1.
+**Fixed in:** `45765fe`. **Severity: LOW** (a gate bug, not a user-facing one).
+
+`SideRail` and `BottomNav` both carry `aria-label="Primary"`. That is CORRECT —
+whichever is displayed is the primary navigation, and they are never displayed
+together, since the rail is `hidden lg:flex` and the bar is `lg:hidden`. But both
+are in the DOM at every width, so a gate scoping by the label matched both and
+counted one `aria-current` twice.
+
+Fixed with `data-nav="rail"` / `data-nav="bottom"` hooks rather than by renaming a
+label that was right.
+
+**Pattern to watch:** `display: none` removes an element from the accessibility
+tree and NOT from `querySelectorAll`. A selector is not a proxy for what a screen
+reader sees.
+
+### `process.env` in `vite.config.ts` broke `npm run check`
+
+**Found by:** `npm run check`. **Fixed in:** `9a50383`. **Severity: LOW.**
+
+Selecting the adapter from an environment variable needs `process`, and this
+project has no Node types — `DEPENDENCIES.md` records rejecting `@types/node` in
+Phase 5 on the rule "do not add a dependency where the platform already answers".
+
+Fixed by reading through a narrowed `globalThis` rather than by reversing that
+decision for one property access.
+
+**Pattern to watch:** a config file is type-checked by the same project it
+configures, and it is the one file most likely to want host globals the app does
+not have.
+
+---
+
+## 2026-08-21 — Phases 8 and 9
+
+### Every form submission returned 403, and only in the built server
+
+**Found by:** `check:interaction`, the first time it tried to book anything.
+**Fixed in:** `8c4f68e` (gates) and `a39fa55` (the doc). **Severity: HIGH** — the
+feature was entirely non-functional in production.
+
+`POST /appointments?/book` came back `{"message":"Cross-site POST form
+submissions are forbidden"}`. `adapter-node` cannot know the public URL it is
+served on, and SvelteKit's CSRF check compares a POST's `Origin` header against
+the URL it thinks it is serving. Without `ORIGIN` set it guesses, the guess does
+not match, and the POST is refused.
+
+**Two things made it invisible until Phase 8.** Nothing in the app had ever
+posted anything — Home and the calendar write to `localStorage` — so the whole
+app was GET-only. And **`npm run dev` is unaffected**, because Vite serves on the
+origin it reports. So booking worked perfectly in development and failed
+completely in the build, which is the worst possible split.
+
+Both browser gates now set `ORIGIN` when they spawn the server. That is not a
+workaround: it is the same variable a real deployment must set, so the gates now
+drive the app the way it actually has to be run. `setup_info.md` records it,
+including the reverse-proxy alternative and why `csrf: { checkOrigin: false }` is
+the wrong reach — the check is the only thing in front of form actions that have
+no auth yet.
+
+**Pattern to watch:** *a capability the app has never used has never been
+configured.* The first POST, the first upload, the first WebSocket will each find
+their own version of this.
+
+### The 403 was silent, which was the worse half
+
+**Found by:** the same run. **Fixed in:** `b034b31`. **Severity: HIGH.**
+
+The `use:enhance` callback handled `result.type === 'success'` and
+`'failure'` and treated everything else as "nothing local to say". A 403 is
+`type: 'error'`, so the confirm button **visibly did nothing**: no confirmation,
+no alert, no console message a student would ever see.
+
+A press that produces no response is this repo's worst failure mode, and it is
+the same shape as the id-parsing tick that "worked" and reverted. Every branch of
+both `enhance` callbacks now ends in something on screen, via
+`messages.appointments.errors.unexpected`.
+
+**Pattern to watch:** an `else` that says nothing. In a handler with three
+outcomes and two branches, the third outcome is a silent no-op.
+
+### The month grid announced past days as "too far ahead to book"
+
+> **Subject since deleted.** The month grid as a day picker was reverted, so the
+> code this describes is gone. Kept because the PATTERN is not: two conditions
+> collapsed into one message because they produce the same visual state.
+
+**Found by:** a new `check:interaction` assertion, written to check exactly this
+distinction. **Fixed in:** `79d1a63`. **Severity: MEDIUM** (screen-reader only).
+
+`labelFor` computed `outsideWindow = dayKey < todayKey || dayKey > windowEnd` and
+mapped both to one sentence. A month grid **always renders six leading cells from
+the previous month**, so a grid opened on the current month announced last
+Tuesday as too far ahead.
+
+Both cells are grey and both refuse the click, so the accessible name is the only
+channel where that difference exists at all — which makes it the only place it
+could be wrong unnoticed. Three answers now: `alreadyPast`, `beyondWindow`,
+`nothingOpen`.
+
+**Pattern to watch:** two conditions collapsed into one message because they
+produce the same VISUAL state. The visual state is not the whole state.
+
+### `BOOKING_WINDOW_DAYS = 23` was one day short of the rule
+
+> **Subject since deleted.** The separate booking window went with the month grid;
+> the window and the published fixture are the same thing again. Kept because the
+> pattern is live anywhere two numbers have to agree with nothing asserting it.
+
+**Found by:** `availability.spec.ts`, which freezes the worst case on purpose.
+**Fixed in:** `2e6dba4`. **Severity: LOW** (a day or two of the grid greyed for
+no reason a student could see).
+
+The window is one calendar month, which can reach `today+31`. 23 business days
+from a Monday reaches day 30. 25 reaches day 32.
+
+The instructive part is that the arithmetic was reasoned about and got the
+inclusive/exclusive boundary wrong, and the test that caught it only caught it
+because it froze **a Monday in a 31-day month** rather than a convenient date. The
+spec now asserts the coupling in both directions, so lowering the rule to match a
+short fixture goes red too.
+
+**Pattern to watch:** a fixture and a rule that have to agree, with nothing
+asserting they do.
+
+---
+
 ## 2026-08-21 — Phase 7c, the calendar's editing surfaces
 
 ### `ItemDetail` threw on every close with focus in the label field

@@ -1,12 +1,14 @@
-<!-- built-at: 4a05fdb -->
+<!-- built-at: 81137b7 -->
 <!-- updated: 2026-08-21 -->
 
 # CODEMAP
 
 Navigation map for the THRIVE rebuild. Read this before opening files.
 
-**Built:** 2026-08-21, refreshed after Phase 7c and its two follow-ons.
-**Size:** 157 files under `frontend/src` — ~25,614 lines, 18,435 source / 7,179 test.
+**Built:** 2026-08-21, refreshed at `81137b7` — after Phases 8 and 9, the two
+appointments redesigns, the Ask THRIVE rework, the page-width pass, and the
+Netlify deploy.
+**Size:** 179 files under `frontend/src` — ~30,755 lines, 22,458 source / 8,297 test.
 
 > The `built-at` comment above is machine-read by the codemap staleness hook.
 > Keep it as the first line, in that exact `<!-- built-at: <hash> -->` form.
@@ -42,9 +44,10 @@ and why the `*View` types exist.
 |---|---|
 | `frontend/src/routes/+layout.server.ts` | Root load. The only place `getStudent()` is called. |
 | `frontend/src/routes/+layout.svelte` | Imports `app.css`, mounts the shell, and is **the one place `hydrateStores()` runs**. |
-| `frontend/src/app.css` | **Design tokens. Single source of truth.** Start here for any styling question. |
+| `frontend/src/app.css` | **Design tokens. Single source of truth.** Start here for any styling question. The layout ones are `--container-page` / `--container-wide` / `--container-measure` / `--thrive-page-gutter-x` — four separate questions, never solved with each other. |
 | `frontend/src/app.html` | Document shell. Carries the light-only meta tags. |
-| `frontend/vite.config.ts` | Adapter, runes mode, and the Vitest projects. **There is no `svelte.config.js`.** |
+| `frontend/vite.config.ts` | **Adapter CHOICE** (netlify by default, node under `ADAPTER=node`), runes mode, and the Vitest projects. **There is no `svelte.config.js`.** |
+| `netlify.toml` | At the REPO ROOT, because that is where Netlify reads it and the only place `base = "frontend"` can be declared. |
 
 ---
 
@@ -67,13 +70,16 @@ No framework surface, and all of it under test. Mostly ported in Phase 2;
 | `calendarEvents.ts` | **The calendar's event boundary.** `dayEventRows` sheds the `evt-` prefix once and hands the raw `Event.id` back with each row, for the join AND ignore stores. `DayEventsSection`'s only arithmetic. |
 | `calendarAdd.ts` | **Three kinds, three stores.** `addCalendarItem` is the whole of `AddItemForm` that can be wrong invisibly, so it lives out here where a gate can see it. |
 | `ics.ts` | The `.ics` export. `buildIcs` is pure and takes its `DTSTAMP` instant as an argument; `downloadIcs` reads the clock at the boundary. `icsFromItem` is one mapper for both callers. |
+| `availability.ts` | **What an advisor has open, as arithmetic.** Two count maps (open, and published-at-all — the pair is what tells "full" from "not a working day"), the ordered day keys, the soonest bookable day, and one day's slots by mode. Clock-free, and it takes no "today" at all any more. |
+| `appointmentsView.ts` | The booking surface's view models, `REASON_MAX`, `toBookingDayViews` (the chips) and `toAppointmentView` — **the ONE mapper** the load function and the booking action share. |
+| `ask.ts` | **Ask THRIVE's vocabulary and its only date arithmetic.** `ASK_DESTINATIONS` (one list, like `nav.ts`), the route guard, `relativeDayLabel`, the view models, `showsDayLabel`. |
 | `calendarPrefs.ts` | `normalisePrefs` + the persisted store. |
 | `ignoredEvents.ts` | `eventIdOf()`, `canIgnore()`, and the store. Keyed on **raw `Event.id`**, and it now normalises **nothing** it is handed — the calendar sheds its own prefix at its boundary. That was the HIGH defect fixed in 7a. |
 | `tickItem.ts` | `tickItem()` and `isTickable()`. Dispatches on the **attached source row**, never by parsing an id. |
 | `quickList.ts` | The scratch list: `QuickItem` plus its store and panel store. |
 | `reveal.ts` | **"Show me the row behind this number", as arithmetic.** `planReveal` is the one question a card asks. Read this before touching the popovers. |
 | `arrive.ts` | **`arriveAtRow` — the ONE way any surface moves a student to a row.** Focus, scroll, and the arrival mark. Awaits one `tick()` and **warns in dev** when the row is not there. Never hand-roll a `scrollIntoView`; see CONVENTIONS. |
-| `nav.ts` | **One list drives the rail, the bottom bar, and every stub page** — and now whether a card links out at all. `isBuiltRoute` asks `primaryNav`; `isKnownRoute` separates "parked on purpose" from "typo". |
+| `nav.ts` | **One TREE drives the rail, the bottom bar, and every stub page.** `children` nests Ask THRIVE's three subjects; `flattenNav` is what keeps `allNav` and `isBuiltRoute` DERIVED rather than maintained beside it, so a child cannot exist in the rail and be missing from the lookup. Originally: **one list drives the rail, the bottom bar, and every stub page** — and now whether a card links out at all. `isBuiltRoute` asks `primaryNav`; `isKnownRoute` separates "parked on purpose" from "typo". |
 | `features.ts` | `FEATURES` — both floating widgets off. **`floatingTodo` also gates the task row's copy-to-list control**, since the quick list is the only place a copy is visible. |
 | `title.ts` | `pageTitle()` — Next's `"%s · THRIVE"` template. |
 | `utils.ts` | `cn()`. Survives for the `class`-override case only. |
@@ -214,6 +220,73 @@ before changing it. (`/calendar` is built too, as of 7a — its own section belo
 
 ---
 
+## Appointments — `routes/appointments/` + `lib/components/appointments/`
+
+**Built in Phase 8, then redesigned twice and reverted to the original shape.**
+Read the HANDOFF entry before changing it — the day picker has been a chip strip,
+a month grid, a day list, and a chip strip again, and the reasons matter.
+
+| File | Role |
+|---|---|
+| `routes/appointments/+page.server.ts` | **The load AND the app's only two form actions.** One `new Date()`; today and tomorrow come off it. `book` catches `SlotUnavailableError` into a 409; `cancel` returns 404 for an id no longer on file. |
+| `routes/appointments/+page.svelte` | Header, `BookingArea`, and the student's bookings. |
+| `appointments/BookingArea.svelte` | **The only stateful node**, and it owns TWO days: `bookingDay` (the chips and the times) and `browseDay` ("Your day"). See below. |
+| `appointments/ServiceCard.svelte` | One advisor. The open count is why it is more than a name. Carries `data-service`, the hook both browser gates use. |
+| `appointments/BookingPanel.svelte` | The whole form: the chip strip, meeting type, times, reason, confirm, and the confirmation it becomes. |
+| `appointments/MyDayPane.svelte` | Classes and appointments only, and it SAYS so. Reads `browseDay`. |
+| `appointments/MonthBrowser.svelte` | The clickable month under "Your day". `MiniCalendar`, unmodified. |
+| `appointments/AppointmentList.svelte` | One cancel form per row, so it works with no JavaScript. |
+
+### Four things to know before touching it
+
+1. **TWO days, and the coupling runs ONE WAY.** A chip moves both (seeing what a
+   slot collides with is why "Your day" exists); the month grid moves only
+   `browseDay` (looking at next Thursday is not changing your mind about Tuesday).
+   The gate asserts the negative half — after a grid click the pressed chip and the
+   rendered times are byte-identical.
+2. **The window IS the fixture.** `bookingDays()` publishes 5 business days and the
+   strip shows those five. There is no separate one-month rule any more; it existed
+   only while a month grid could show days the fixture had not published.
+3. **`publishedByDay` beside `availabilityByDay`** is what tells a fully-booked
+   Tuesday from a Saturday. Both have an open count of zero.
+4. **`ORIGIN` is required by the NODE build** — these are the app's only POSTs, and
+   without it every one is a 403. Not needed on Netlify. See `setup_info.md`.
+
+---
+
+## Ask THRIVE — `routes/ask/` + `lib/components/ask/`
+
+**Built in Phase 9**, then the destinations moved into the navigation rail and the
+page got a history rail. New design, not a port — the Next tree has no equivalent.
+
+| File | Role |
+|---|---|
+| `routes/ask/+page.server.ts` | A 307 to a destination. `/ask` has no page of its own. |
+| `routes/ask/+layout.server.ts` | The history, loaded ONCE for the section so switching destination does not rebuild it. |
+| `routes/ask/+layout.svelte` | The `h1`, the mobile destination band, the history rail, and a slot. |
+| `routes/ask/[destination]/+page.server.ts` | Validates the slug (404, never a redirect) and resolves `?c=` — including 404ing a real conversation opened under the WRONG destination. |
+| `routes/ask/[destination]/+page.svelte` | A mount point, keyed on the conversation so an unsent question cannot appear under another title. |
+| `ask/AskHistory.svelte` | **The history rail.** A column above `xl`, a horizontal strip below it. One tree, CSS only. |
+| `ask/DestinationTabs.svelte` | The three destinations for widths with no nav rail. `lg:hidden`, driven by the SAME `primaryNav` children. |
+| `ask/ChatWindow.svelte` | The log, the per-destination empty state, and the composer. |
+
+### Four things to know before touching it
+
+1. **The destinations are in `nav.ts`, as `children` of the `/ask` item.** The rail
+   renders them as a disclosure; `flattenNav` is what keeps `allNav` and
+   `isBuiltRoute` derived from the tree rather than maintained beside it.
+2. **There is no chat store, deliberately.** Conversations come from providers. A
+   sent message lives in component state and is gone on navigation, and the page
+   says so BEFORE you type. `check:interaction` asserts sending writes no
+   `localStorage` key.
+3. **`--thrive-chat-height` is what makes the LOG the scroller**, and `flex-1` on
+   the panel is gated on `xl` — in a column it would govern height instead and
+   silently beat the token. That shipped once; a SKIP caught it.
+4. **The phone gets one rail.** The nav rail is `hidden lg:flex`; the history rail
+   flips to a strip below `xl`.
+
+---
+
 ## The shared primitives — `lib/components/ui/`
 
 `Tag` · `Button` · `ProgressBar` · `EmptyState` · `SectionCard` · `ShowMore` ·
@@ -247,12 +320,12 @@ control must not scroll away with the content it controls.
 
 | Command | What it proves |
 |---|---|
-| `npm test` | 563 tests. Pure logic and source scans. Nothing renders. |
-| `npm run check:interaction` | 97 assertions in a real browser: the popovers, 6b's editing, **and 7c's calendar** — the day figure against its rows, the dialog's focus contract, the two-step delete, and the join round trip from the calendar to Home. **The only gate that can press a button**, and it found two real bugs the day it was widened. Fails on a console warning too — but it drives the PRODUCTION build, so it cannot see `arriveAtRow`'s dev-only warn. |
+| `npm test` | **640 tests.** Pure logic and source scans. Nothing renders. |
+| `npm run check:interaction` | **190 assertions** in a real browser: the popovers, 6b's editing, 7c's calendar, the booking surface (including a two-page double-booking RACE), Ask THRIVE, the nav disclosure, and the page measure. **The only gate that can press a button**, and the only one that measures a layout. Fails on a console warning too — but it drives the PRODUCTION build, so it cannot see `arriveAtRow`'s dev-only warn. **Builds its own adapter-node server first**, so it cannot measure a stale one. |
 | `npm run check` | Types agree. **Does NOT prove the page renders** — see BUGS.md. |
 | `npm run build` | It compiles. |
 | `python3 scripts/check-contrast.py` | 58 assertions. **Parses `app.css`**, so tokens cannot drift from their checks. |
-| `npm run check:layout` | 14 targets x 3 viewports in a real browser: the page cannot scroll further than it paints. The calendar counts three times — its view is a persisted preference, not a URL. Skips if no browser. |
+| `npm run check:layout` | **17 targets x 3 viewports** in a real browser (**builds its own adapter-node server first**): the page cannot scroll further than it paints. The calendar counts three times — its view is a persisted preference, not a URL. Skips if no browser. |
 
 ---
 
@@ -280,7 +353,7 @@ Four properties and three key spaces: see `CONTEXT.md` §8.
 | File | Role |
 |---|---|
 | `shell/AppShell.svelte` | The persistent frame. Skip link, rail, header, `main`, bottom bar, gated widget mount points. |
-| `shell/SideRail.svelte` | Desktop rail, hidden below `lg`. `railLink` snippet drives both lists. |
+| `shell/SideRail.svelte` | Desktop rail, hidden below `lg`. One recursive `railLink` snippet, so a nav item and its CHILD render through the same code. An item with `children` is a **disclosure**: the link navigates, a separate button carries `aria-expanded`/`aria-controls`, and collapsing REMOVES the children from the DOM. |
 | `shell/BottomNav.svelte` | Mobile bar. Four fixed slots + a More sheet. |
 | `shell/TopBar.svelte` | Sticky header. Identity left, bell and avatar right. |
 | `PagePlaceholder.svelte` | Body for unbuilt routes. **Throws** on an href absent from `nav.ts`. |
@@ -294,7 +367,7 @@ Four properties and three key spaces: see `CONTEXT.md` §8.
 
 ## Routes — `frontend/src/routes/`
 
-13 routes. **Two are built**, ten are `PagePlaceholder`, one is the swatch.
+15 route files. **Four destinations are built**, six are `PagePlaceholder`, one is the swatch.
 
 **One route is settled as never-to-be-built:** `/classes` keeps its route and its
 Home card but will not be built (owner) — the card IS the feature.
@@ -303,13 +376,15 @@ Home card but will not be built (owner) — the card IS the feature.
 |---|---|
 | `/` | **Built.** The dashboard, and editable. |
 | `/calendar` | **Built and complete (7a–7c).** Three views, the filter bar, the detail dialog, the add form, and the day's events. |
-| `/classes` `/syllabi` `/events` `/resources` `/settings` `/assignments` `/appointments` | `PagePlaceholder` |
+| `/appointments` | **Built.** Service cards, a chip strip day picker, the booking panel, "Your day", and a clickable month beneath it. **The app's only form actions.** |
+| `/ask` · `/ask/[destination]` | **Built.** A history rail, a chat window with no brain, and three destinations that live in the NAV rail as a disclosure group. `/ask` redirects to a destination. |
+| `/classes` `/syllabi` `/events` `/resources` `/settings` `/assignments` | `PagePlaceholder` |
 | `/degree` `/career` | Placeholder body. Both are *partial* in the prototype and need providers. |
 | `/swatch` | **Throwaway.** Every token, type step, border weight, both faces. Delete before Release 1. |
 
 ---
 
-## Tests — 563, 26 files
+## Tests — 640, 29 files
 
 `npm test`. Vitest, **Node environment, no jsdom**, so nothing renders.
 
@@ -323,8 +398,11 @@ logic left in a `.svelte` file is logic no gate can see.
 
 | Spec | Holds down |
 |---|---|
-| `format.spec.ts` (89) | `describeDue` across every branch, field and boundary; both private helpers via their public surfaces; both DST transitions |
-| `providers.spec.ts` (47) | The provider boundary: copies out, no randomness, the three stores |
+| `format.spec.ts` (92) | `describeDue` across every branch, field and boundary; both private helpers via their public surfaces; both DST transitions |
+| `providers.spec.ts` (47) | The provider boundary: **27** providers, copies out, no randomness, the three stores |
+| `ask.spec.ts` (32) | The destination guard including near misses; `relativeDayLabel` across month, year and leap boundaries and at both ends of a day; the view models carrying NO raw instant; `showsDayLabel`; and the conversation providers' copies, order and nulls |
+| `availability.spec.ts` (20) | The two count maps and **the pair they form** — a Saturday and a fully-booked Tuesday are both zero open, and only `publishedByDay` separates them; `orderedDayKeys` across a year boundary; `firstBookableDay` skipping a full first day |
+| `appointmentsActions.spec.ts` (13) | The throw becoming a VALUE: both 409 sentences, the 400 and the 404, the truncation the markup cannot be trusted for, and cancel releasing the slot it was booked against |
 | `taskBoard.spec.ts` (43) | `resolveRows` identity and reclassification, the date converters including every unparseable-date path, `reorderedIds` |
 | `calendarStores.spec.ts` (42) | Prefs, quick list, annotations, `tickItem`, the three key spaces, and **the cross-surface ignore test** |
 | `schedule.spec.ts` (27) | Grid arithmetic, filtering, grouping, the collapsed `dayKeyOf` |
@@ -343,7 +421,7 @@ logic left in a `.svelte` file is logic no gate can see.
 | `buildSchedule.spec.ts` (13) | Classes stay weekday rules; every dated row's `dayKey` agrees with its own `startISO`; the `evt-evt-` double prefix; nothing the server built is tickable |
 | `collapse.spec.ts` (13) | The fit-on-one-screen arithmetic |
 | `taskNotes.spec.ts` (13) | Hydration, corrupt input, forget-on-empty |
-| `nav.spec.ts` (12) | The two lists disjoint and duplicate-free; `isBuiltRoute` exact rather than prefix; `isKnownRoute` separating parked from mistyped |
+| `nav.spec.ts` (21) | The two lists disjoint and duplicate-free; **`flattenNav` and the children**; `isBuiltRoute` exact rather than prefix and true for a nested destination; `isKnownRoute` separating parked from mistyped |
 | `calendarPrefs.spec.ts` (11) | Defaults and migration |
 | `calendarItems.spec.ts` (16) | Custom-event mapping and its attached source row, `labelFor`/`urgentFor`, label and urgent filtering |
 | `toast.spec.ts` (6) | The single slot and its clock |
@@ -432,6 +510,30 @@ calendar sheds its `evt-` prefix in `calendarEvents.ts` and nowhere else, so a r
 never holds two ids for one event. Settled in 7c with the consumer in front of us;
 the item-id shape was MIGRATION §9 defect 13.
 
+**There are TWO adapters and an env var picks one.** `npm run build` is Netlify,
+`npm run build:node` is a Node server into `build-node/`, which is what the two
+browser gates spawn. Nothing about the app differs — nothing is prerendered, so
+every route is server-rendered per request either way. See `vite.config.ts`.
+
+**`flex-1` is a width in a row and a HEIGHT in a column**, where it silently beats
+an `h-` beside it. Moving a panel between the two changes what it constrains.
+
+**A form action needs `ORIGIN` or it 403s.** `adapter-node` cannot know its own
+public URL, and SvelteKit's CSRF check compares a POST's `Origin` against the
+guess. `npm run dev` is unaffected, so booking works in dev and only the build
+fails. Both browser gates now set it. See `setup_info.md`.
+
+**A scrollable region must be focusable, and Svelte's a11y rule disagrees.** axe's
+`scrollable-region-focusable` requires `tabindex="0"` on the chat log;
+`a11y_no_noninteractive_tabindex` objects to it on `role="log"`. The tabindex
+wins, suppressed at that one site with the reason written down — without it a long
+conversation is mouse-only.
+
+**A gate that can pass for the wrong reason is worse than no gate.** The
+clear-on-switch check typed a question that was word for word one of the Course
+Recommender's example questions, so it matched the empty state rather than the
+message and went red against correct code.
+
 **The old Next repo is read-only.** `~/Desktop/Test 1/Thrive-msba-brain`.
 
 ---
@@ -442,13 +544,15 @@ the item-id shape was MIGRATION §9 defect 13.
 cd frontend
 npm run dev -- --open      # dev server, :5173
 npm run build              # production build
-node build/index.js        # run the build, :3000
+npm run build:node         # the same app as a Node server, into build-node/
+ORIGIN=http://localhost:3000 node build-node/index.js   # run that, :3000
 npm run check              # svelte-check
-npm test                   # vitest run — 563 tests
+npm test                   # vitest run — 640 tests
 
 python3 scripts/check-contrast.py    # 58 assertions: 42 pairs, 6 ceilings, 10 structural
-npm run check:layout                 # 14 targets x 3 viewports, in a real browser
-npm run check:interaction            # 97 assertions: the popovers, task editing, the calendar
+npm run check:layout                 # 17 targets x 3 viewports, in a real browser
+npm run check:interaction            # 190 assertions: the popovers, task editing, the calendar,
+                                     #   booking, Ask THRIVE, and the page measure
 ```
 
 If a page looks stale locally, something is holding the port:
