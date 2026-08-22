@@ -57,14 +57,29 @@ import type { CatalogueCourse } from "../types";
  * is a reasonable stand-in, but no row here should be read as transcribed and
  * none should be quoted to a student as fact.
  *
- * Nothing depends on it today: `student.ts`'s `unitsRequired` is what drives the
- * degree percentage, and the request prefill sums the three ENROLMENTS from
- * `courses.ts` rather than reading this file. So correcting these is a
- * twelve-line edit with no downstream work — which is the reason to correct them
- * rather than leave a placeholder in place indefinitely.
+ * ## AND SINCE 2026-08-21 IT HAS A CONSUMER, so correcting it is no longer free
  *
- * Left as-is deliberately (owner, 2026-08-21), and flagged here rather than
- * fixed.
+ * The note here used to say "nothing depends on it today". That stopped being
+ * true when the degree audit was fixed, and it was also wrong about where the
+ * total lived — it said `student.ts`, and `unitsRequired` has always been on
+ * `mock/degree.ts`.
+ *
+ * **`mockDegreeProgress.unitsRequired` is 48, and it is 12 × 4 — this file's
+ * twelve rows at this file's placeholder unit value.** So is `electiveRequired`
+ * (7 = 12 − 5 core). The derivation is written out in `degree.ts` and asserted by
+ * `fixtureConsistency.spec.ts`, which reads the catalogue's own summed units
+ * rather than a literal.
+ *
+ * **So changing a `units` value here changes the degree total.** The gate will go
+ * red rather than let the two drift, which is the intended behaviour and not a
+ * problem to work around: re-derive `unitsRequired` in `degree.ts` in the same
+ * commit. What is no longer available is treating these twelve numbers as inert.
+ *
+ * The request prefill still sums the three ENROLMENTS from `courses.ts` rather
+ * than reading this file, so that path is unaffected.
+ *
+ * Left as-is deliberately (owner, 2026-08-21 and again 2026-08-22), and flagged
+ * here rather than fixed.
  *
  * ## A NOTE THAT IS NOT ABOUT THE DATA
  *

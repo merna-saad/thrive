@@ -227,10 +227,14 @@ interface Student {
   standing: Standing;
   consent: StudentConsent;
   avatarUrl?: string;        // absent → the UI renders initials
-  currentTerm: string;       // e.g. "Summer 2026"
   programStart: ISODate;     // the whole timeline is derived from this + track
 }
 ```
+
+**There is no `currentTerm`, and do not add one.** It existed until 2026-08-22 and
+drifted a term out of step with the timeline built from the two fields above — the
+top bar named one term while the dashboard named another. Send `programStart` and
+`track`; the current term is `ProgramTimeline.currentTerm`.
 
 `consent` is part of the model rather than an afterthought because this app reads
 from a lot of systems. Nothing currently enforces it — see §8.
@@ -297,6 +301,7 @@ interface ProgramPhase {
 interface ProgramTimeline {
   phases: ProgramPhase[];
   currentPhaseId: PhaseId | null;  // null before the start or after the finish
+  currentTerm: string | null;      // that phase's term; null whenever the id is
   percentComplete: number;         // 0-100, today between start and end
   programStart: ISODate;
   programEnd: ISODate;             // end of the last phase this track requires
@@ -567,9 +572,19 @@ interface DegreeProgress {
   electiveDone: number;
   electiveRequired: number;
   gaps: DegreeGap[];
-  track: Track;
 }
 ```
+
+**There is no `track` here, and do not add one.** It existed until 2026-08-22,
+said `"11 month"` while `Student.track` said `"17 month"`, and survived because
+nothing rendered it. A degree audit does not own the student's track. Same for
+`expectedCompletion`, removed earlier for the same reason — see `MIGRATION.md` §9
+defect 9.
+
+**And `unitsCompleted` is not a number to invent.** In the fixture it is derived:
+0, because no timeline phase is complete and no enrolment is finished. Whatever
+Django computes, it has to agree with the student's position in the timeline, and
+`fixtureConsistency.spec.ts` is the shape of the check the frontend applies.
 
 ### Appointments
 

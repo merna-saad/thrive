@@ -56,6 +56,22 @@
 	 * An empty term has nothing to attribute and nothing to disclaim, so "AI
 	 * suggested" above "No classes listed for this term yet" would be claiming the
 	 * assistant suggested an absence. Both are gated on there being rows.
+	 *
+	 * ## TWO TERMS ARE PERMANENTLY EMPTY, and that is the correct answer
+	 *
+	 * The catalogue covers four terms — Summer 2026 through Spring 2027 — and the
+	 * 17 month timeline has six phases. So **Summer 2027 and Fall 2027 render this
+	 * empty state and always will** until somebody extends the catalogue.
+	 *
+	 * Settled rather than left as a gap (owner, 2026-08-22): the empty state is
+	 * HONEST, and the catalogue genuinely does not cover those terms. Inventing
+	 * two terms of courses to make six pips look uniform would put fabricated
+	 * course codes on a page whose whole point is telling a student what they are
+	 * actually taking — and this app already carries real instructor names beside
+	 * invented grades, which is as far as that should ever go.
+	 *
+	 * So do not "fix" these two panels. If the catalogue grows, they fill
+	 * themselves; nothing here needs to change either way.
 	 */
 	const hasSuggestions = $derived(plan.kind === 'suggested' && plan.courses.length > 0);
 </script>

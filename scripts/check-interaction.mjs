@@ -37,6 +37,36 @@
  * the one that would catch hover being quietly reintroduced, which is the only
  * route back to the original fault.
  *
+ * ## THIS GATE IS NEVER PINNED TO A FIXED DATE. Decided, not overlooked.
+ *
+ * It drives fixtures dated relative to `new Date()`, so what it exercises depends
+ * on the day it runs. On 2026-08-22 that surfaced two reds nobody had seen: the
+ * three enrolments meet Mon-Fri, so a Saturday day panel has no classes and
+ * nothing due, and two assertions had quietly rested on that for five months. One
+ * was a gate bug; the other found a real 967px paragraph, live since 7c.
+ *
+ * The obvious response is to pin `now` and make the gate deterministic. **It is
+ * not going to be pinned** (owner, 2026-08-22):
+ *
+ *   Catching a Saturday bug on a Saturday is worth more than a gate that never
+ *   surprises us.
+ *
+ * A pinned date would have made both of those invisible indefinitely, and it
+ * would have made this gate stop testing the one thing the whole date rule in
+ * CONVENTIONS.md exists for — that relative fixtures behave on every day, not on
+ * the day somebody chose. The cost is real and accepted: a run can fail for a
+ * reason the last commit did not cause.
+ *
+ * **So when this gate goes red, check the day before checking the diff.** Two
+ * failures appearing right after a change are two failures the change is presumed
+ * to own, and on 2026-08-22 that presumption was wrong — both reproduced at the
+ * previous commit in a throwaway worktree. That check costs two minutes and is the
+ * first thing to do.
+ *
+ * And where an assertion genuinely needs a fixture condition, it says so and
+ * SKIPs when the condition is absent (see `unproven`). That is the sanctioned way
+ * to handle a date-dependent case, rather than freezing the clock for everything.
+ *
  * ## Why it is not a Vitest test
  *
  * It needs a real browser: real pointer events, real focus, real
