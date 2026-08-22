@@ -4,6 +4,100 @@ Dated session summaries, most recent first.
 
 ---
 
+## 2026-08-21/22 (fifth pass) — two fixture bugs on Home, four answers, and a Saturday
+
+**HEAD:** `ad38970` · **694 tests · 261 interaction assertions · 51 layout targets ·
+127 contrast assertions across both themes · six gates green · green in all seven
+timezones.** 132 commits.
+
+Two commits of work plus the docs. The bugs are the record: **none of it was a type
+error, a crash, or anything any of six gates could see**, and all of it was on Home's
+front page.
+
+### `cea48aa` — Home's numbers described three different students
+
+Four fixtures land within about 200 pixels of each other — the timeline strip, the
+greeting panel, the degree chips and the top bar — and each was written at a different
+time. Nothing typed them together.
+
+- **`unitsCompleted: 38` of 52**, beside "Summer 2026 · you are here" and "4% through
+  your program". **Derived, not picked:** the timeline puts today inside the FIRST
+  phase so no phase is `complete`; every enrolment is in that phase with progress 72,
+  60 and 45 so no course is finished; therefore **0**. The old number claimed 73% of
+  the degree in 4% of the calendar.
+- **The requirement totals were wrong the same way.** `unitsRequired: 52` implied a
+  thirteenth four-unit course existing in no term; `coreRequired: 9` against a
+  `CORE_CODES` of five; `electiveRequired: 4` against seven electives. All three now
+  come from the catalogue: 5 + 7 = 12 courses, **48 units** — which rests on the
+  catalogue's placeholder unit values and says so.
+- **THE SUMMER COURSES: the enrolment fixture was never the problem.** The catalogue
+  and `courses.ts` both said MGTA464, MGTA403 and MGTA451, and their agreement test was
+  green because they genuinely agreed. What disagreed was
+  **`student.currentTerm: "Fall 2026"`** — so the top bar told the student their current
+  term was Fall, whose courses are MGTA452, MGTA453 and MGTA461.
+- **Why that test could not have caught it.** It joins the two course fixtures on
+  `code`. The stale data was in a THIRD fixture that **shares no field with the
+  catalogue at all** — there is nothing to join on, `currentTerm` is a free-text string
+  and `standingSummary` is prose. A test comparing two fixtures cannot see a third
+  contradicting both.
+- **`standingSummary` named "Data Visualization"** — `MGT 253` in the invented set the
+  real catalogue replaced. The greeting was telling the student a course they are not
+  taking had slipped. Now MGTA403, the one enrolment carrying `needsHelp`.
+- **`degree.track` said "11 month"** against the student's "17 month". Nothing rendered
+  that copy, which is why it survived.
+- **`gap-001` described a program this one is not** — "two elective slots are open and
+  neither is chosen yet", where the catalogue fixes the sequence.
+
+**`fixtureConsistency.spec.ts`, 15 assertions, pins RELATIONSHIPS.** The timeline
+decides where the student is, the catalogue decides what a term is worth, and everything
+else has to agree — so a change of start date or track carries with no edit. **Verified
+to fail** by restoring each original value: 3 red for 38, 2 for 52, 2 for coreRequired,
+1 for the track, 2 for the term, 2 for the summary.
+
+> **`expect(unitsCompleted).toBe(0)` would have been green on 38 too**, had it been
+> written when 38 was the fixture. A literal pins whatever was there when someone
+> looked.
+
+The summary check is the entry worth reading: it appears to compare course codes and so
+ought to miss a course TITLE, which is what the bug was. It catches it anyway, via the
+assertion that at least one code-shaped token is present at all. **The counterfactual
+established that, not my reading of the code.**
+
+Two existing assertions updated. The defensive-copy test now reads the value BEFORE
+mutating instead of comparing to a literal `38` — **a fifth kind of false green: a test
+pinning a fixture value it does not care about**, which a fixture correction then breaks.
+
+### `d176ae3` — TopBar's control size, corrected to 30.375px
+
+The comment said "36px above `lg`" and was never re-measured after the density pass took
+`--thrive-spacing` to 0.225rem at a 93.75% root. `lg:size-9` is 9 × 3.375px. The theme
+work's new assertion asked for 36 **on the strength of that paragraph** and failed — as
+the bell, with a byte-identical class string, would have too.
+
+**The density is deliberate and the controls are not growing** (owner). 30.375px clears
+WCAG 2.5.8's 24px; the repo's "36px floor" was a house preference. The gate measures the
+toggle against the bell instead — the property that survives a density change.
+
+### The owner's four other answers, all applied
+
+- **The seven light `*-soft` tints stay `color-mix`.** Not worth moving light values to
+  close a measurement gap.
+- **The seven-timezone sweep was re-run** — 694 tests green in all seven, UTC+14 to
+  UTC−11. "Very likely green" is not verified.
+- **CONTEXT.md regenerated in full**, and it earned its keep: reading every section
+  against the tree found **four stale claims** nobody was looking for — `TopBar`'s
+  control size, the fixture's event count (159 → **157**) and assignment count (9 →
+  **8**), the fixture student's current term, and a sentence naming `student.ts` as the
+  source of `unitsRequired` when it lives in `degree.ts`.
+- The dark theme on a real screen is with the owner.
+
+**Known issues / next priorities:** `student.currentTerm` and `degree.track` are still
+second answers to derived questions — corrected, not deleted, because deleting the first
+means `TopBar` reads the timeline. The catalogue's placeholder `units: 4` now has a
+consumer. Summer 2027 and Fall 2027 hold no courses at all. `/assignments` is next.
+
+---
+
 ## 2026-08-21 (fourth pass) — a dark theme
 
 **HEAD:** `20622dc` · **679 tests · 261 interaction assertions · 51 layout targets ·

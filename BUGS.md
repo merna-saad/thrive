@@ -7,6 +7,101 @@ Note on links: this repo has no PRs — all commits go direct to `main`
 
 ---
 
+## 2026-08-21 (fifth pass) — four fixtures describing three students
+
+**`cea48aa`** · `mock/degree.ts`, `mock/student.ts`
+
+Home's header block renders from four fixtures within about 200 pixels of each other,
+each written at a different time, with nothing typing them together. They drifted.
+
+| What it said | What was true |
+|---|---|
+| `unitsCompleted: 38` of 52 | The student is 18 days into their first term |
+| `currentTerm: "Fall 2026"` | The timeline's current phase is Summer 2026 |
+| `standingSummary`: "**Data Visualization** has slipped" | No course by that title exists |
+| `degree.track: "11 month"` | `student.track` is `"17 month"` |
+| `coreRequired: 9` / `electiveRequired: 4` / `unitsRequired: 52` | 5 / 7 / 48 |
+| `gap-001`: "two elective slots are open" | The catalogue fixes the sequence |
+
+**None of it was a type error, a crash, or visible to any of six gates.** Every value
+was individually plausible; only the *combination* was wrong, and the combination is
+what a student reads.
+
+### Why the unit count could not be spotted by eye
+
+"38 of 52" is a perfectly sensible number for an MSBA student. It is only wrong beside
+"4% through your program", three lines above it. **The bug was a relationship, so no
+assertion about a single value could hold it.**
+
+**Derived, not picked:** the timeline puts today inside the FIRST phase, so no phase is
+`complete`; every enrolment is in that phase with progress 72, 60 and 45, so no course
+is finished; therefore 0. The old value claimed **73% of the degree in 4% of the
+calendar**.
+
+### The Summer-courses report, and the innocent fixture
+
+Reported as "Home is showing the wrong Summer courses". **The enrolment fixture and the
+catalogue were both correct and agreed with each other throughout.** What disagreed was
+`currentTerm`: the top bar said the student's term was Fall 2026, whose courses are
+MGTA452, MGTA453 and MGTA461.
+
+**Why the catalogue-versus-enrolment agreement test did not fire.** It exists, it is
+green, it was green the whole time, and it was *right* to be — it joins the two course
+fixtures on `code` and both were correct. **It could not have caught this**: the stale
+data was in `student.ts`, which shares **no field with the catalogue at all**, so there
+is nothing to join on. `currentTerm` is a free-text string; `standingSummary` is prose.
+
+> **A test comparing two fixtures cannot see a third one contradicting both.** Check
+> for a third source before trusting an agreement test's coverage.
+
+### "Data Visualization" was a deleted course
+
+`MGT 253`, from the invented four-course set the real catalogue replaced in `fd547d8`.
+The greeting had been telling the student that a course they are not enrolled in had
+slipped. **Prose is the one thing no gate reads**, which is how it survived two passes
+over the course fixtures.
+
+**Fixed:** names MGTA403, the one enrolment carrying `standing: "needsHelp"`.
+
+**Gate:** `fixtureConsistency.spec.ts` requires the summary to name at least one
+course-code-shaped token and requires every one it names to be enrolled. **It catches a
+title too**, and not the way it looks: prose naming a course by title contains no
+code-shaped token, so it fails for having named nothing checkable. Established by
+counterfactual, not by reading the code.
+
+### Patterns to watch
+
+- **When a field can be derived, deriving it is the only way it cannot drift.** Fourth
+  instance in this repo: `expectedCompletion` (deleted for it), `currentTerm`,
+  `degree.track`, `unitsCompleted`.
+- **A field that renders nowhere drifts fastest.** `degree.track`, `coreDone`,
+  `coreRequired`, `electiveDone`, `electiveRequired` and `gaps` all render nowhere today
+  because `/degree` is parked — and four of the six were wrong.
+- **Test the RELATIONSHIP when two fixtures describe one subject.** `toBe(0)` would have
+  been green on `38` had it been written when 38 was the fixture.
+
+---
+
+## 2026-08-21 (fifth pass) — a test pinning a value it did not care about
+
+**`cea48aa`** · `lib/data/providers.spec.ts`
+
+Not a product defect; a test defect, and a new member of this repo's false-green family.
+
+`"does not let a mutation to degree progress reach the fixture"` asserted
+`expect(...unitsCompleted).toBe(38)`. The test is about **defensive copying** and has
+nothing to do with unit counts — but it named a fixture value, so correcting that fixture
+broke a test about object identity.
+
+**Fixed:** it reads the value BEFORE the mutation and compares against that, with a
+`not.toBe(999)` companion so it cannot pass by comparing a value to itself.
+
+**Pattern to watch:** **a test should pin the narrowest thing that makes it true.** A
+test that names data it does not care about has coupled itself to that data, and the
+failure arrives disguised as an unrelated regression.
+
+---
+
 ## 2026-08-21 (fourth pass) — three defects a second theme exposed
 
 All three had been in the tree for some time. None was observable in a light-only

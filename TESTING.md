@@ -1,14 +1,43 @@
 # TESTING
 
-**Last verified:** 2026-08-21 at `20622dc`. **679 tests, 32 files, all
+**Last verified:** 2026-08-22 at `ad38970`. **694 tests, 33 files, all
 passing. 261 interaction assertions, 51 layout targets, 127 contrast assertions
-across BOTH THEMES.** Verified green in all seven timezones of the sweep below — and in 7a
-the sweep **caught a real failure**, which is recorded there.
+across BOTH THEMES.** Verified green in **all seven timezones**, re-run this pass rather
+than assumed — and in 7a the sweep **caught a real failure**, which is recorded below.
 
-> **The timezone sweep has NOT been re-run since the theme pass.** Nothing in that
-> pass touches a date, so it is very likely still green — but "likely" is not the
-> claim this file is for, and a verification claim decays exactly like a comment.
-> Re-run it before the next release.
+### What the fixture pass added (2026-08-21)
+
+**`fixtureConsistency.spec.ts`, 15 assertions.** Home's header block renders from four
+fixtures written at different times, and nothing typed them together. This file is what
+says they describe one student.
+
+**Every assertion derives its expected value from another fixture.** The timeline decides
+where the student is; the catalogue decides what a term is worth. `expect(unitsCompleted)
+.toBe(0)` is deliberately *not* the shape — it would have been green on `38` too, had it
+been written when 38 was the fixture. A literal pins whatever was there when someone
+looked.
+
+**Verified to fail** by restoring each original value: 3 red for `unitsCompleted: 38`, 2
+for `unitsRequired: 52`, 2 for `coreRequired: 9`, 1 for `track: "11 month"`, 2 for
+`currentTerm: "Fall 2026"`, 2 for the "Data Visualization" summary.
+
+**The zero needed a companion.** Three assertions say the completed-unit ceiling is 0 and
+the count matches — all three satisfied by a derivation that always returns 0. A fourth
+runs the same derivation a year out and requires a non-zero ceiling equal to the full
+requirement.
+
+**Its `NOW` is `new Date(2026, 7, 21)`** — local parts, per the rule below — and it passes
+in all seven zones.
+
+**One existing assertion was a false green of a new kind.** `providers.spec.ts`'s
+defensive-copy test pinned `unitsCompleted).toBe(38)` — a fixture value the test does not
+care about — so correcting the fixture broke a test about object identity. It now reads
+the value before the mutation, with a `not.toBe(999)` companion. **A test should pin the
+narrowest thing that makes it true.**
+
+**What no test here covers:** prose. `standingSummary` named a deleted course for two
+passes. The enforceable rule is *name a course by its code in fixture prose*, which the
+new spec checks; "do not name a course that does not exist" is unwriteable.
 
 ### What the theme pass added (2026-08-21)
 
@@ -52,14 +81,38 @@ npm run check      # svelte-check
 Plus two gates that are tests in everything but name:
 
 ```bash
-python3 scripts/check-contrast.py    # 58 assertions: 42 pairs, 6 ceilings, 10 structural
-npm run check:layout                 # 14 targets x 3 viewports, in a real browser
-npm run check:interaction            # 97 assertions: popovers, task editing, calendar, Home
+python3 scripts/check-contrast.py    # 127 assertions, BOTH themes
+npm run check:layout                 # 17 targets x 3 viewports, in a real browser
+npm run check:interaction            # 261 assertions: popovers, task editing, calendar,
+                                     # booking, Ask THRIVE, provenance, the theme
 ```
 
+**Those three counts had all drifted in this file** (58 / 14 targets / 97) and were
+corrected on 2026-08-22 during the full CONTEXT regeneration. A count in prose is a
+verification claim like any other.
+
 `check-contrast.py` PARSES `app.css` rather than mirroring it, so a token edited
-there is checked there. `check:layout` needs a browser and skips loudly (exit 0)
-when it cannot find one — see the note below.
+there is checked there — and since the dark theme it reads both arms of every
+`light-dark()`. Both browser gates need a browser and skip loudly (exit 0) when they
+cannot find one — see the note below.
+
+### `check:interaction` is DATE-DEPENDENT, and that was invisible until a Saturday
+
+Found 2026-08-22. The three enrolments meet Mon–Fri between them, so a weekend day
+panel has no classes and nothing due. Two assertions rested on that without saying so
+and both went red the first time this gate ran on a Saturday — **with no code change
+behind them**, which was established by reproducing them at the previous commit in a
+throwaway worktree before anything was touched.
+
+- The provenance check asserted `count > 0` unconditionally. It **SKIPs** now.
+- The prose check found a real defect: an event blurb at 967px with no line-length cap,
+  live since 7c. It takes `max-w-measure` now.
+
+**The second is the shape worth remembering.** That assertion is a `max` over every
+paragraph, so a too-wide one hides behind a wider one that is correctly capped.
+
+> **"Verified green" means green on the day it ran.** Ask which fixture conditions a
+> green run silently assumed.
 
 ---
 

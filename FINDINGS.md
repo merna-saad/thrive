@@ -4,6 +4,171 @@ Reusable patterns and lessons. Things worth knowing again.
 
 ---
 
+## 2026-08-21 (fifth pass) — a number is only checkable against something else
+
+### Test the relationship, because a literal pins whatever was there when you looked
+
+Home said "38 of 52 units" three lines under "4% through your program". Both numbers
+are individually plausible. **The bug was the relationship**, so no assertion about
+either value alone could have held it — and the obvious test,
+`expect(unitsCompleted).toBe(38)`, would have been written *at the time 38 was there*
+and been green for as long as the bug lasted.
+
+The fix is to derive the expected value from a **different fixture** and let the two
+argue: the timeline decides where the student is, the catalogue decides what a term is
+worth, and the degree audit has to agree with both. Change the start date or the track
+and the tests follow with no edit.
+
+> **A number in a fixture is not checkable on its own.** It is checkable against
+> something else that also knows what it should be. If nothing else knows, the number
+> is a guess with a test around it.
+
+### An absence assertion needs a companion, and "0" is an absence
+
+Three of the new assertions say the completed-unit ceiling is 0 and the count matches
+it. **All three are satisfied by a derivation that always returns 0** — a typo in the
+helper that never matched a term would make the whole block permanently green.
+
+So a fourth runs the same derivation a year later, where four phases are complete, and
+requires the ceiling to be non-zero *and* to equal the full requirement. Same rule this
+repo already had for absence assertions, and "the correct answer happens to be zero" is
+the case where it is easiest to forget.
+
+### A test should pin the narrowest thing that makes it true
+
+`providers.spec.ts`'s defensive-copy test asserted `unitsCompleted).toBe(38)`. It is
+about whether a mutation reaches the fixture; the number was incidental. Correcting the
+fixture broke a test about object identity, and the failure arrived disguised as an
+unrelated regression.
+
+It now reads the value **before** the mutation and compares against that. **A test that
+names data it does not care about has coupled itself to that data.** Fifth entry in this
+repo's false-green family, and the first that fails in the *other* direction — it does
+not pass when it should fail, it fails when it should pass.
+
+### A test comparing two fixtures cannot see a third contradicting both
+
+The "wrong Summer courses" report had an obvious suspect: `catalogue.spec.ts` asserts
+the catalogue and the enrolment fixture agree on every shared field. **It was green, and
+it was right to be** — both were correct.
+
+The stale value was in `student.ts`, which **shares no field with the catalogue at
+all**. There is nothing to join on. An agreement test's coverage is exactly the set of
+fields its two inputs have in common, and that boundary is invisible from the outside:
+the test *looks* like it covers "the course data is consistent".
+
+> **Before trusting an agreement test, ask which fixtures it does NOT read.** Two of
+> three agreeing is not consistency.
+
+### When a field can be derived, deriving it is the only way it cannot drift
+
+Four instances in this repo now, and the first one was fixed by **deletion**:
+
+| Field | Duplicates | Outcome |
+|---|---|---|
+| `degree.expectedCompletion` | `timeline.expectedFinishTerm` | **deleted** |
+| `student.currentTerm` | the timeline's `current` phase | corrected, should be deleted |
+| `degree.track` | `student.track` | corrected, kept for the backend contract |
+| `degree.unitsCompleted` | what the timeline + catalogue imply | corrected, now gated |
+
+The first was caught because somebody noticed two answers to one question. The other
+three survived that same review, which is the point: **noticing the pattern once does not
+find its other instances.** Grep for stored values that a pure function already computes.
+
+### A field that renders nowhere drifts fastest
+
+`/degree` is parked, so `degree.track`, `coreDone`, `coreRequired`, `electiveDone`,
+`electiveRequired` and `gaps` reach no screen. **Four of those six were wrong.** The two
+fields that DO render — `unitsCompleted` and `unitsRequired` — were also wrong, but they
+were wrong in a way somebody eventually read.
+
+> **An unrendered field has no reviewer.** It is not dead code — it is live data with the
+> feedback loop cut, and it will be wrong by the time the page that shows it gets built.
+
+### Prose is the one thing no gate reads
+
+`standingSummary` named "Data Visualization" — a course deleted when the real catalogue
+landed — and said so on Home's front page for two passes over the course fixtures.
+Nothing scans a sentence.
+
+The enforceable rule is not "do not name a course that does not exist", which is
+unwriteable: matching titles means scanning for any title that has *ever* existed, and
+deleted fixtures leave no list behind. It is **name a course by its CODE in fixture
+prose**, which is checkable — and then require at least one code-shaped token to be
+present, which is what makes a title fail too.
+
+> **Make fixture prose checkable rather than trying to check prose.**
+
+### A comment stating a measurement is a verification claim
+
+`TopBar` said "36px above `lg`" and nobody re-measured after the density pass moved
+`--spacing`. The real number is 30.375px. It surfaced because a new gate assertion was
+written **from the comment** and failed — and the control beside it, with a byte-identical
+class string, would have failed too.
+
+Two lessons, and the second is the one that matters. First: this repo already knew that
+a verification claim decays like a comment, and had not applied it to a comment that IS a
+measurement. Second: **when a new assertion fails, check whether it describes the
+neighbours before changing anything.** The fix was not to resize the control or lower the
+number — it was to assert the property that was actually the change's business (the new
+control matches its siblings) and record the discrepancy.
+
+### A `max`-over-a-set assertion reports only its loudest member
+
+The interaction gate ran on a **Saturday** for the first time on 2026-08-22 and two
+assertions went red with no code change behind them. One was a gate bug; the other found
+a real defect that had been live since 7c.
+
+The real one: `check:interaction` measures the widest `<p>` on each route and asserts it
+stays under 800px. An event blurb in `DayEventsSection` was **967px** — about 150
+characters a line, twice what a reader can track — and had no line-length cap.
+
+**Why five months of weekday runs missed it.** The assertion is a `max`, so it reports
+one number for the whole page. On a weekday the widest qualifying paragraph was something
+else, correctly capped, and the uncapped blurb sat quietly beneath it. It only became the
+maximum on a day whose events carry long descriptions.
+
+> **An assertion that reduces a set to its extreme can only ever fail on the extreme.**
+> Everything else in the set is unmeasured, and a defect hides there until the ordering
+> changes. If the property is "every one of these is capped", assert it per element or
+> report the whole distribution — a `max` answers a different question than the one it
+> looks like it answers.
+
+### And a gate whose greenness depends on the day of the week
+
+The other Saturday red was the provenance check: it asserted `count > 0` unconditionally,
+and the three enrolments meet Mon–Fri, so a weekend has no class row and nothing due.
+"No pills on a day with nothing to mark" was reported as "the pills are broken".
+
+The repo already had the right tool — `unproven()` / SKIP — and already stated the rule:
+report SKIP when the fixture cannot produce the case an assertion needs. **It had simply
+not been applied to a condition nobody realised was a condition.** CONTEXT recorded that
+the enrolments cover Mon–Fri and that this was load-bearing; it did not record that two
+assertions rested on it.
+
+> **A date-dependent gate fails on somebody else's Saturday and gets dismissed as
+> flaky**, which costs more than the assertion was ever worth. Before trusting a green
+> run, ask which fixture conditions it silently assumed — and note that "verified green"
+> means green *on the day it ran*.
+
+**The diagnostic that mattered:** both reds were reproduced at the previous commit in a
+throwaway worktree before anything was touched. Two failures appearing right after a
+change are two failures the change is presumed to own, and that presumption was wrong.
+
+### Regenerating a snapshot doc in full is not ceremony
+
+The rule says CONTEXT.md is regenerated rather than patched, and it is usually obeyed on
+faith. Reading all twenty sections against the tree this pass found **four stale claims
+nobody was looking for**: the control size above, the fixture's event count (159 → 157)
+and assignment count (9 → 8), the fixture student's current term, and a sentence naming
+`student.ts` as the home of `unitsRequired` when it lives in `degree.ts`.
+
+None was found by a gate, and none would have been found by patching the sections the
+work touched. **Three of the four had been wrong since before the previous
+regeneration** — which is the argument for the rule rather than for the diligence.
+
+---
+
 ## 2026-08-21 (fourth pass) — what a second theme teaches about the first one
 
 ### A hue collision lives in the hue corridor, not in the lightness

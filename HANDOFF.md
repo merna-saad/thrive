@@ -4,6 +4,64 @@ Session log, newest first. What happened, what was decided, what is still open.
 
 ---
 
+## 2026-08-21/22 (fifth pass) — two fixture bugs on Home, four answers, and a Saturday
+
+**HEAD:** `ad38970` · **694 tests · 261 interaction assertions · 51 layout targets ·
+127 contrast assertions across both themes · six gates green · green in all seven
+timezones.** 132 commits.
+
+Two commits plus docs. Full detail in CHANGELOG; CONTEXT §12 carries the fixture story
+and §15 the testing lessons.
+
+### What was decided
+
+- **`unitsCompleted` is 0, and it is DERIVED** from the timeline (no phase complete) and
+  the enrolments (none finished). So are `coreRequired` 5, `electiveRequired` 7 and
+  `unitsRequired` 48, from the catalogue — replacing a 52 that implied a thirteenth
+  course existing in no term.
+- **The Summer-courses bug was `student.currentTerm`, not the course fixtures.** The
+  catalogue and the enrolments agreed with each other throughout, which is why their
+  agreement test was green and right to be.
+- **`standingSummary` names a course by CODE now.** Prose is the one thing no gate
+  reads, so the rule is made checkable rather than the prose checked.
+- **`degree.track` is kept, not deleted**, because the type is the backend's contract —
+  but it is flagged as a second answer to `student.track`.
+- **`student.currentTerm` should be deleted**, not corrected. It is corrected only
+  because `TopBar` renders it as a prop and removing it is a behaviour change.
+- **`TopBar`'s controls are 30.375px and are not growing** (owner). The comment was
+  wrong, not the density.
+- **The seven light `*-soft` tints stay `color-mix`** (owner).
+- **CONTEXT.md regenerated in full** (owner), and it found four stale claims.
+- **The timezone sweep was re-run** (owner) — green in all seven.
+
+### Still open
+
+1. **`student.currentTerm` and `degree.track` are still stored duplicates of derived
+   values.** Deleting the first means `TopBar` reads the timeline's current phase
+   instead — a small behaviour change, worth doing.
+2. **The catalogue's `units: 4` is a placeholder that now has a consumer.**
+   `unitsRequired: 48` is derived from it, so correcting the units means re-deriving the
+   total. Flagged in both files.
+3. **Summer 2027 and Fall 2027 hold no courses at all.** The catalogue covers four terms
+   and the 17-month timeline has six phases, so two term panels render the empty state.
+   Not wrong; nobody has decided whether those terms should hold anything.
+4. **The dark theme on a real screen is with the owner.** Every claim about it is a
+   measurement. `later`/`indigo` at dE 0.0759 and `urgent` at `#ff6343` are the two most
+   likely complaints.
+5. **`/assignments` is the next real page**, and it owes `TaskRow` a `role="list"`
+   container.
+6. **The seven light `*-soft` tints remain unmeasured**, by decision.
+7. **`prefers-contrast` and forced-colors have never been considered.**
+8. **Django, Group Projects, the recommender** — unchanged, and on the critical path.
+
+### Carried forward
+
+Everything in the fourth pass's list below still stands unless it appears above. The
+theme pass's own loose ends 1, 2 and 4 are now resolved (the screen review is in
+progress, the control size is settled, CONTEXT is regenerated).
+
+---
+
 ## 2026-08-21 (fourth pass) — a dark theme
 
 **HEAD:** `20622dc` · **679 tests · 261 interaction assertions · 51 layout targets ·
