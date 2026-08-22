@@ -1,10 +1,32 @@
 # TESTING
 
-**Last verified:** 2026-08-22 at `105d50c`. **694 tests, 33 files, all
+**Last verified:** 2026-08-22 at `f0eea89`. **695 tests, 33 files, all
 passing. 261 interaction assertions (1 unproven on a weekend), 51 layout targets,
 127 contrast assertions
 across BOTH THEMES.** Verified green in **all seven timezones**, re-run this pass rather
 than assumed — and in 7a the sweep **caught a real failure**, which is recorded below.
+
+### What the font swap added (2026-08-22)
+
+**`designSystem.spec.ts` gained a weight check**, and the reason is the interesting part:
+the three-weight rule used to be enforced by the build rather than by a test. DM Sans
+shipped only 400/500/700, so `font-semibold` had no 600 and rendered as a visible
+synthesis. The system face ships the range, so it now renders cleanly and the drift
+would be **invisible** — the failure mode this repo treats as the worst.
+
+It rejects the six non-sanctioned weight utilities (`thin`, `extralight`, `light`,
+`semibold`, `extrabold`, `black`) with a **companion** proving the pattern rejects each
+and passes `font-normal` / `font-medium` / `font-bold`. Verified to fail by injecting
+`font-semibold` into `Tag.svelte`: 1 red.
+
+**The font check needed no change to keep firing**, which was worth verifying rather
+than assuming — it is written against the rule (`font-sans` / `font-mono` in markup),
+not against the old face. Verified by injecting `font-sans` into a component: 1 red.
+
+**`check:layout` needed no new expectations**, which was the surprise. It compares each
+route's scroll height to its painted height rather than hardcoding either, so a metrics
+change would only fail it if the two diverged — and the two faces have x-heights within
+0.8%, so no height moved at all.
 
 ### What the field deletions changed (2026-08-22)
 

@@ -4,6 +4,47 @@ Session log, newest first. What happened, what was decided, what is still open.
 
 ---
 
+## 2026-08-22 (seventh pass) — the interface font is the system stack
+
+**HEAD:** `f0eea89` · **695 tests · 261 interaction assertions (1 unproven) · 51 layout
+targets · 127 contrast assertions · six gates green · green in all seven timezones.**
+135 commits.
+
+One commit. Detail in CHANGELOG; CONTEXT §6 has the measurements and the trade.
+
+### What was decided
+
+- **The interface font is the system stack.** DM Sans read badly at every size across
+  four passes; hinting is not fixable with a size or a weight.
+- **`system-ui` / `ui-sans-serif` stay out of the chain.**
+- **Accepted cost:** the app looks slightly different per platform. Native everywhere
+  rather than identical everywhere, and it is in CONTEXT §6 as a decision.
+- **Sizes and line heights did NOT change**, measured — x-height moved 0.8%, document
+  heights byte-identical, `check:layout` needed nothing.
+- **Tracking cut to the top two steps** (-0.01 / -0.015em), because the face is 9.3%
+  narrower and was being tightened three times over. `xl` loses it entirely.
+- **The three-weight rule is now gated**, because 600 is a real weight in the system
+  face and a stray `font-semibold` would render cleanly rather than visibly wrong.
+- **`@fontsource/dm-sans` removed.** Two font files ship where eight did.
+
+### Still open
+
+1. **The stack has only been looked at on macOS.** Every measurement is SF in headless
+   chromium. Segoe UI and Roboto are in the chain and nobody has opened the app on
+   Windows or Android. The sizes should hold — similar x-heights — but that is a
+   prediction.
+2. **Nobody has seen the dark theme on a real screen** either. Still the oldest open item.
+3. **`/assignments` is the next real page**, and owes `TaskRow` a `role="list"` container.
+4. `prefers-contrast` and forced-colors remain unconsidered.
+5. Django, Group Projects, the recommender — unchanged, on the critical path.
+6. Release 1 dates still need re-setting.
+
+### Carried forward
+
+The sixth pass's list below stands, minus its item 1 (`/assignments`, restated above).
+
+---
+
 ## 2026-08-22 (sixth pass) — deleting the fields the fixture bugs were hiding in
 
 **HEAD:** `105d50c` · **694 tests · 261 interaction assertions (1 unproven) · 51 layout

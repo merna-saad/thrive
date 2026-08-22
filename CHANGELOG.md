@@ -4,6 +4,87 @@ Dated session summaries, most recent first.
 
 ---
 
+## 2026-08-22 (seventh pass) — the interface font is the system stack
+
+**HEAD:** `f0eea89` · **695 tests · 261 interaction assertions (1 unproven) · 51 layout
+targets · 127 contrast assertions across both themes · six gates green · green in all
+seven timezones.** 135 commits.
+
+One commit. DM Sans did not read naturally at any size across four passes of the type
+scale, and the comparison that settled it was GitHub's UI — the OS face is **hinted for
+the display** in a way no webfont is, which no size or weight can fix.
+
+```
+-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif
+```
+
+`system-ui` and `ui-sans-serif` are deliberately out: same faces on the platforms that
+matter, two more ways to differ.
+
+**Removed:** three `@fontsource/dm-sans` imports, the `--font-dm-sans` token, and the
+dependency. **Six font files stopped shipping** — the build carries two where it carried
+eight, both JetBrains Mono. Nothing loads a webfont for prose.
+
+### The sizes did not move, and that is measured rather than assumed
+
+| per 100px em | DM Sans | system sans | change |
+|---|---|---|---|
+| cap height | 70.00 | 70.46 | +0.7% |
+| x-height | 50.40 | 50.78 | +0.8% |
+| lowercase alphabet width | 1350.6 | 1224.7 | **−9.3%** |
+
+Apparent size is governed by x-height, so nothing reads larger or smaller. Document
+heights on `/`, `/calendar`, `/appointments` and `/ask/resources` are **byte-identical**
+before and after, and **`check:layout` needed no new expectations** — the one gate
+expected to notice. Line heights untouched for the same reason: leading is set in rem
+against the size, so identical x-heights sit identically inside identical boxes.
+
+### What DID change is the tracking, because the face is 9.3% narrower
+
+Was -0.025 / -0.03 / -0.035em on xl / 2xl / 3xl, tuned to tighten a wide geometric face.
+Measured on real heading strings those took another **6.8–7.4%** off, so on a face
+already 9.3% narrower the headings rendered about **15% tighter than intended**. Worse on
+Apple, where the system face applies its own optical tracking — -3.5% was the third
+tightening in a row.
+
+`xl` loses tracking outright (same argument that took it off `lg`: at the desktop scale
+`xl` is 19.5px, *smaller* than the 22px `lg` was then). `2xl`/`3xl` keep -0.01/-0.015em,
+still negative because Segoe UI and Roboto are not optically tracked.
+
+### And the swap took away what enforced the three-weight rule
+
+The one place it changed a rule rather than a value. With DM Sans self-hosted at
+400/500/700, a stray `font-semibold` came out as a smeared synthesis — visibly wrong and
+therefore self-policing. The system face ships the range: measured at 40px,
+400/500/600/700 are **303.75 / 312.48 / 321.09 / 329.86px**, evenly spaced, which is the
+tell that 600 is real rather than faked.
+
+So the rule survives as a design decision and loses its accidental enforcement — a
+`font-semibold` now renders cleanly, so the drift would be **invisible**.
+`designSystem.spec.ts` rejects the six non-sanctioned weight utilities instead, with a
+companion proving the pattern rejects each and passes the three allowed.
+
+> **A rule enforced by an accident of the build is not enforced.**
+
+### The cost, on the record
+
+**The app looks slightly different on macOS, Windows and Android**, because each
+resolves the stack to its own face. Deliberate: native everywhere rather than identical
+everywhere. Two practical consequences — a screenshot from one machine is no longer a
+reference for another, so type measurements must name their platform; and
+`--container-measure` (68ch) is doing more work, which is why it was `ch` not `rem`.
+
+`.thrive-numeric` and `.thrive-eyebrow` are untouched, and **the calendar's day numbers
+did not move at all** — they are `.thrive-numeric`, so they were always mono.
+`designSystem.spec.ts`'s font check needed no change to keep firing, which is the point
+of having written it against the rule rather than against DM Sans.
+
+**Known issues / next priorities:** the stack has only been looked at on macOS — Segoe UI
+and Roboto are predictions. `/assignments` is still next. The dark theme still has not
+been seen on a real screen by a person.
+
+---
+
 ## 2026-08-22 (sixth pass) — deleting the fields the fixture bugs were hiding in
 
 **HEAD:** `105d50c` · **694 tests · 261 interaction assertions (1 unproven) · 51 layout

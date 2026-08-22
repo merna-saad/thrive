@@ -1,4 +1,4 @@
-<!-- updated-at: 105d50c -->
+<!-- updated-at: f0eea89 -->
 
 # CONTEXT
 
@@ -8,8 +8,9 @@ without asking anyone.
 **Regenerated in full every handoff.** Never patch it — a partial edit leaves
 stale claims sitting beside fresh ones with no way to tell them apart.
 
-This pass covers **the dark theme**, **two fixture bugs on Home**, and **the deletion
-of the two fields those bugs were hiding in**, in nine commits. The theme was the larger piece of work; the fixture bugs are the more
+This pass covers **the dark theme**, **two fixture bugs on Home**, **the deletion of
+the two fields those bugs were hiding in**, and **the switch from DM Sans to the system
+font stack**, in ten commits. The theme was the larger piece of work; the fixture bugs are the more
 interesting record, because they are what a second theme flushed out of a
 codebase that had been green on every gate for days.
 
@@ -220,6 +221,10 @@ native `<select>`. No phase has added a new primitive since 7c.
 **Dependencies added since Phase 1: two.** `playwright-core` (2026-08-21) for the
 two browser gates, and `@sveltejs/adapter-netlify` (2026-08-21) for the deploy.
 **The dark theme added none** — the palette is CSS and the toggle is a button.
+
+**One was REMOVED on 2026-08-22:** `@fontsource/dm-sans`, when the interface font
+became the system stack (§6). The build ships **two** font files where it shipped
+eight, and `@fontsource/jetbrains-mono` is the only webfont left.
 
 Between them the browser gates have caught a dead button five other gates called
 green, a `derived_inert` warning live in production, the undo arrival's silent
@@ -638,9 +643,42 @@ their *relationship* would be wrong. `check-contrast.py` now asserts each light 
 names the light arm of the token it claims to tint. **The guarantee moved from "by
 construction" to "by gate"; it did not go.**
 
+### THE SANS IS THE SYSTEM STACK, and that is a deliberate trade (2026-08-22)
+
+```
+-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif
+```
+
+**DM Sans is gone.** It did not read naturally at any size across four passes of the
+type scale. The comparison that settled it was GitHub's UI, which renders visibly more
+crisply on the same screen because the OS face is **hinted for that display** in a way
+no webfont is. That is not something a size or a weight can fix, so the face changed
+rather than the scale changing a fifth time.
+
+**`system-ui` and `ui-sans-serif` are deliberately NOT in the chain.** They resolve to
+the same thing on the platforms that matter and add two more ways for the rendering to
+differ.
+
+> **THE COST, ON THE RECORD: the app looks slightly different on macOS, Windows and
+> Android**, because each resolves the stack to its own face — SF, Segoe UI, Roboto.
+> That is the trade, accepted deliberately: **native everywhere rather than identical
+> everywhere.**
+
+Two consequences that follow from it, and both are practical rather than aesthetic:
+
+1. **A screenshot from one machine is no longer a reference for another.** Any future
+   type measurement has to say which platform it was taken on. Every number in this
+   file and in `app.css` is macOS, in headless chromium.
+2. **`--container-measure` (68ch) is doing more work than it was.** `ch` tracks the
+   font, so the prose measure adapts per platform on its own — which is exactly why it
+   was `ch` and not `rem`.
+
+**Mono is unchanged and still self-hosted** — JetBrains Mono, two weights, the only
+webfont left. The build ships **two** font files where it shipped eight.
+
 ### Type: two faces, and the rule is tight now
 
-**DM Sans for everything. JetBrains Mono for NUMBERS ONLY.**
+**The system sans for everything. JetBrains Mono for NUMBERS ONLY.**
 
 The old rule ended "…and any label that is a system value", and almost any label can
 be argued into that, so mono spread to eyebrows, view switchers, chips, stream names
@@ -649,8 +687,8 @@ body font.
 
 - **Mono keeps:** clock times, counts, unit totals, percentages, fractions, IDs —
   values a person *scans or compares*, where digits lining up is the point.
-- **Mono loses:** anything made of words. A date in prose is words and takes DM
-  Sans; the time inside it is a value and stays mono.
+- **Mono loses:** anything made of words. A date in prose is words and takes the sans;
+  the time inside it is a value and stays mono.
 - **The test:** would you ever want this to line up in a column with the thing
   above it? Column → mono. Sentence → sans.
 
@@ -658,8 +696,27 @@ Expressed as two classes so a component asks for a **treatment**, not a font:
 `.thrive-numeric` (mono + tabular figures) and `.thrive-eyebrow` (size, case,
 tracking, weight). A component that writes `font-mono` fails `designSystem.spec.ts`.
 
-**Weight is not in the type scale.** Set it at the call site or you get 400. Only
-400/500/700 load, so `font-semibold` (600) synthesises — never use it.
+**The font swap needed no change to that check**, which is the point of having written
+it against the RULE rather than against DM Sans. Verified by injecting `font-sans` into
+a component and watching it go red.
+
+**Weight is not in the type scale.** Set it at the call site or you get 400.
+
+**AND THE SWAP TOOK AWAY WHAT WAS ENFORCING THE THREE WEIGHTS.** This used to read
+"only 400/500/700 load, so `font-semibold` (600) synthesises — never use it", and that
+was true and self-policing: 600 was not in the browser, so a stray `font-semibold` came
+out smeared and looked wrong in review. The system face ships the range. Measured on
+"Handgloves quick" at 40px: **303.75 / 312.48 / 321.09 / 329.86px** for 400/500/600/700
+— evenly spaced, which is the tell that 600 is a real weight rather than a synthesis.
+
+So the three-weight rule survives as a **design** decision and lost its accidental
+enforcement: a `font-semibold` now renders cleanly, so the drift would be invisible.
+`designSystem.spec.ts` rejects the six non-sanctioned weight utilities instead, with a
+companion assertion proving the pattern rejects each and passes the three allowed.
+Nothing in `src/` used one — the check holds a line that is currently held.
+
+> **A rule enforced by an accident of the build is not enforced.** Ask what would go
+> wrong if somebody broke it, and if the answer is "it would look fine", gate it.
 
 ### THE TYPE SCALE, and the four times it was raised as too large
 
@@ -681,8 +738,36 @@ body** / 15.75 / 17.25 / 19.5 / 21.75 / **24**.
 
 Graduated on purpose: the largest steps were the most oversized. `3xl / sm` went
 2.00 → 1.68 — still unmistakably a title, and it stops shouting. Every step stays
-strictly larger than the one below. Tracking on the top three steps only, plus
-`.thrive-eyebrow`.
+strictly larger than the one below.
+
+#### Tracking is on the top TWO steps now, and the sizes did not move
+
+It was -0.025/-0.03/-0.035em on xl/2xl/3xl, tuned to tighten DM Sans — a wide geometric
+face that genuinely reads loose at display sizes. The system sans is **9.3% narrower**
+(lowercase alphabet, per 100px em), and the old tracking took another **6.8–7.4%** off
+the real heading strings, so the headings rendered about **15% tighter than the design
+intended**. On Apple it is worse than that arithmetic suggests, because the system face
+applies its own optical tracking at these sizes — -3.5% was the third tightening in a row.
+
+`xl` loses its tracking outright, which is the same argument that took it off `lg`: at
+the desktop scale `xl` is 19.5px, **smaller** than the 22px `lg` was when that was
+decided. `2xl` and `3xl` keep -0.01em and -0.015em — still negative, because the stack is
+not only Apple and neither Segoe UI nor Roboto is optically tracked.
+`.thrive-eyebrow`'s 0.12em is unchanged.
+
+**The SIZES did not move, and that is measured.** The two faces have near-identical
+vertical metrics — cap height 70.00 → 70.46 per 100px em, x-height 50.40 → 50.78, both
+under 1%. Apparent size is governed by x-height, so nothing reads larger or smaller.
+Document heights on `/`, `/calendar`, `/appointments` and `/ask/resources` are
+byte-identical before and after, and **`check:layout` needed no new expectations** —
+which was the one gate expected to notice.
+
+**Line heights are untouched, for the same reason.** Leading is set in rem against the
+size, so identical x-heights sit identically inside identical boxes.
+
+> Do not read "the scale was already right" as luck that generalises. It is a property
+> of these two particular faces. **The next face change needs cap height and x-height
+> measured again**, not this paragraph trusted.
 
 #### The four passes, and what each actually found
 
@@ -2896,6 +2981,20 @@ that prose in this repo has to describe the offending utility rather than quote 
 
 ### Settled this session
 
+- **The interface font is the SYSTEM STACK, not a webfont.** DM Sans read badly at
+  every size across four passes, and no size or weight fixes hinting. Accepted cost:
+  the app looks slightly different per platform. Native everywhere, not identical
+  everywhere.
+- **`system-ui` / `ui-sans-serif` stay OUT of the stack.** They resolve to the same
+  faces on the platforms that matter and add two more ways to differ.
+- **Tracking is on the top two steps only** (-0.01em / -0.015em), because the new face
+  is 9.3% narrower and was being tightened three times over.
+- **Type sizes and line heights did NOT change with the font**, and that is measured:
+  x-height moved 0.8%. Do not assume that generalises to the next face.
+- **The three-weight rule is now GATED rather than accidental.** 600 is a real weight
+  in the system face, so `font-semibold` renders cleanly and the drift would be
+  invisible.
+
 - **There are two themes, and every colour token is ONE `light-dark()` pair.** Not a
   second `:root` block — that needs three copies, and a half-retuned token is a wrong
   colour nothing catches.
@@ -3036,6 +3135,9 @@ that prose in this repo has to describe the offending utility rather than quote 
 - **A `text-*` utility carries a line-height and can beat `leading-none`.**
 - **Source order decides which media query wins** when two of them match.
 - **Wait past the longest transition on an element before reading a computed style.**
+- **A rule enforced by an accident of the build is not enforced.** Ask what would go
+  wrong if somebody broke it; if the answer is "it would look fine", gate it. The
+  three-weight rule was policed by DM Sans not shipping a 600 for two years.
 - **A verification claim decays exactly like a comment does** — including a comment that
   states a measurement. Re-run the sweep on any date-shaped change; re-measure a number
   a comment asserts before writing a gate against it.
@@ -3126,6 +3228,10 @@ Calm, plain, honest about what is simulated.
    contrast gate will not evaluate. Left that way (owner). The dark seven are measured.
 8. **`prefers-contrast` and forced-colors have never been considered.** Neither was in
    scope for the theme.
+8b. **The system stack has only been LOOKED at on macOS.** Every type measurement in §6
+   is SF in headless chromium. Segoe UI and Roboto are in the stack and nobody has
+   opened the app on Windows or Android — the sizes should hold (the stack's faces have
+   similar x-heights) but that is a prediction, not a measurement.
 9. ~~`student.currentTerm` and `degree.track` are still second answers to derived
    questions.~~ **Closed 2026-08-22** — both deleted, `TopBar` reads the timeline.
 10. **The catalogue's `units: 4` is a placeholder that now has a consumer.**

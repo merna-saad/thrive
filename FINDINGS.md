@@ -4,6 +4,82 @@ Reusable patterns and lessons. Things worth knowing again.
 
 ---
 
+## 2026-08-22 (seventh pass) — a font change is a horizontal change
+
+### Measure cap height and x-height before touching the scale
+
+The expectation going into the font swap was that the type scale would have to move,
+because a different face at the same pixel size does not read the same size. It did not
+move at all, and two numbers said so before anything was adjusted:
+
+| per 100px em | DM Sans | system sans |
+|---|---|---|
+| cap height | 70.00 | 70.46 |
+| x-height | 50.40 | 50.78 |
+
+**Apparent size is governed by x-height**, and 0.8% is not visible. So no size step and
+no line height changed, and the document heights came out byte-identical.
+
+> **Before adjusting a scale for a new face, measure the two vertical metrics.** They
+> answer "does this read bigger" directly, and they are cheap — a canvas `measureText`
+> on `H` and `x` at 100px. Adjusting first and looking second is how a scale acquires
+> four passes of history.
+
+### The difference between two sans faces is mostly HORIZONTAL
+
+Vertical metrics within 1%; the lowercase alphabet **9.3% narrower**. That is the
+change, and it lands on tracking rather than on size:
+
+The old -0.025/-0.03/-0.035em existed to tighten DM Sans, a wide geometric face that
+reads loose at display sizes. On a face already 9.3% narrower those took another
+6.8–7.4% off, so the headings rendered ~15% tighter than the design intended — and on
+Apple the system face applies its own optical tracking, making it the third tightening
+in a row.
+
+> **Negative tracking is a correction for a specific face's width, not a house style.**
+> Carry it across a font change and you are applying one face's fix to another face's
+> metrics. Re-derive it, or drop it.
+
+### A rule enforced by an accident of the build is not enforced
+
+The best thing this pass found, and it is not about fonts.
+
+The three-weight rule (400/500/700) was written down *and* self-policing: DM Sans was
+self-hosted at exactly those three weights, so a stray `font-semibold` had no 600 to
+use, came out as a smeared synthesis, and looked obviously wrong in review. Nobody had
+to remember the rule.
+
+The system face ships the whole range. Measured at 40px, 400/500/600/700 are 303.75 /
+312.48 / 321.09 / 329.86px — **evenly spaced, which is the tell that 600 is a real
+weight rather than a synthesis**. So `font-semibold` now renders cleanly. The rule is
+unchanged and its enforcement is gone, and the new failure mode is invisible.
+
+> **Ask what would go wrong if somebody broke this rule tomorrow. If the answer is "it
+> would look fine", the rule is not enforced — whatever the comment says.** And when a
+> dependency change removes an accidental guarantee, that is the moment to add the
+> deliberate one.
+
+The comment claiming the old behaviour was still sitting in `app.css`, describing a
+world that ended the moment the import was deleted. **A dependency change can falsify a
+comment three files away**, which is a different decay mechanism from the usual one and
+worth grepping for: after removing a package, search the tree for its name.
+
+### What did NOT need to change, and why that was the design working
+
+`designSystem.spec.ts`'s font check needed no edit. It rejects `font-sans` and
+`font-mono` in markup — the RULE — rather than rejecting `'DM Sans'`, the value. Same
+for `.thrive-numeric` and `.thrive-eyebrow`: components ask for a treatment, so swapping
+the face behind the treatment touched no call site.
+
+**And the calendar's day numbers did not move at all**, which was worth checking rather
+than assuming — they carry `.thrive-numeric`, so they were always mono and a sans change
+cannot reach them.
+
+> The measure of a design system is how much of it a face change touches. This one
+> touched one token and one tracking pair.
+
+---
+
 ## 2026-08-22 (sixth pass) — correcting a duplicate buys one release
 
 ### Deleting is the fix; correcting is a deferral

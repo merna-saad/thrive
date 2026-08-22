@@ -10,11 +10,25 @@ What is installed in `frontend/`, and why each thing is here.
 
 | Package | Version | Why |
 |---|---|---|
-| `@fontsource/dm-sans` | `^5.3.0` | Self-hosted DM Sans. Latin subset, weights pinned 400/500/700. |
-| `@fontsource/jetbrains-mono` | `^5.3.0` | Self-hosted JetBrains Mono, 400/500. Mono marks machine truth and never carries a heading, so no 700. |
+| `@fontsource/jetbrains-mono` | `^5.3.0` | Self-hosted JetBrains Mono, 400/500. Mono marks machine truth and never carries a heading, so no 700. **The only webfont left** — see the removal below. |
 | `@lucide/svelte` | `^1.33.0` | Icons. See the note below — **not `lucide-svelte`**. |
 | `clsx` | `^2.1.1` | Conditional class strings. Mostly superseded by Svelte 5's native `class={[...]}`; kept as `twMerge`'s input. |
 | `tailwind-merge` | `^3.6.0` | Tailwind conflict resolution. The half of `cn()` Svelte does **not** replace — needed wherever a component takes a `class` override. |
+
+### REMOVED: `@fontsource/dm-sans` (2026-08-22)
+
+The interface font is the system stack now — `-apple-system, BlinkMacSystemFont,
+"Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`. DM Sans did not read naturally
+at any size across four passes of the type scale, and the OS face is hinted for the
+display in a way no webfont is.
+
+**Six font files stopped shipping** (three weights × woff2 + woff). The build carries
+two where it carried eight. Nothing loads a webfont for prose, so the only remaining
+font payload is mono, which is used for numbers.
+
+The reasoning, the measurements and the cross-platform trade are in CONTEXT §6. **Do not
+re-add a webfont for interface text without reading that section** — the trade is that
+the app looks slightly different per platform, and it was taken deliberately.
 
 `@fontsource` ships `font-display: swap` in each weight file already, matching
 what `next/font` was configured to do. **No Google Fonts link anywhere** —
