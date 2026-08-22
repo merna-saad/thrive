@@ -16,13 +16,18 @@ import type { CatalogueCourse } from "../types";
  * computed from `programStart` and a track (see `program.ts`), and moving it
  * would move the current phase, the percentage and the finish term with it.
  *
- * ## The term assignment is INFERRED, and that is the one soft fact here
+ * ## The terms are the REAL sequence, not an even split
  *
- * The course list as supplied carried no terms — twelve courses, no groupings.
- * These are assigned three per term in the order the list gave them, across the
- * four terms the source catalogue spans. That ordering is consistent with the
- * two things that can be checked: the capstone lands in the final term, and the
- * two foundational core courses land in the first.
+ * An earlier version of this file inferred the grouping by taking the supplied
+ * list three at a time, because the list carried no terms. That inference was
+ * wrong and is gone: the owner supplied the real mapping and these are it.
+ *
+ * The shape it produced is worth noting, because it is not what an even split
+ * would give and it is a better sanity check than any comment: **Summer 2026
+ * holds only ONE core course** (MGTA451) and two electives, while **Fall 2026
+ * holds TWO** (MGTA452 and MGTA453). A program that front-loads the applied
+ * course and stacks the foundations in the second term is a real curriculum
+ * decision; three-cores-then-three-electives was a tidy guess.
  *
  * **If the real catalogue groups them differently, this is the first file to fix
  * but NOT the only one.** An earlier version of this comment claimed nothing else
@@ -70,43 +75,29 @@ import type { CatalogueCourse } from "../types";
  * the README says not to share the link outside the team.
  */
 
-/** Core requirements. Everything else in the catalogue is an elective. */
-export const CORE_CODES = ["MGTA452", "MGTA453", "MGTA454", "MGTA455"] as const;
+/**
+ * Core requirements. Everything else in the catalogue is an elective.
+ *
+ * FIVE, not four. MGTA451 was missing from an earlier version of this list — the
+ * count is the reason a test asserts the exact membership rather than the length:
+ * a wrong list of four passes any length check for four.
+ */
+export const CORE_CODES = [
+  "MGTA451",
+  "MGTA452",
+  "MGTA453",
+  "MGTA454",
+  "MGTA455",
+] as const;
 
 export function buildMockCatalogue(): CatalogueCourse[] {
   return [
     // ── Summer 2026 — the term the student is currently in ────────────────
     {
-      code: "MGTA452",
-      title: "Collecting and Analyzing Large Data",
-      instructor: "Hansen",
-      term: "Summer 2026",
-      requirement: "core",
-      units: 4,
-    },
-    {
-      code: "MGTA453",
-      title: "Business Analytics",
-      instructor: "August",
-      term: "Summer 2026",
-      requirement: "core",
-      units: 4,
-    },
-    {
-      code: "MGTA461",
-      title: "Web Mining and Recommender Systems",
-      instructor: "McAuley",
-      term: "Summer 2026",
-      requirement: "elective",
-      units: 4,
-    },
-
-    // ── Fall 2026 ─────────────────────────────────────────────────────────
-    {
       code: "MGTA464",
       title: "SQL and ETL",
       instructor: "Perols",
-      term: "Fall 2026",
+      term: "Summer 2026",
       requirement: "elective",
       units: 4,
     },
@@ -114,7 +105,7 @@ export function buildMockCatalogue(): CatalogueCourse[] {
       code: "MGTA403",
       title: "AI-Assisted Math and Programming for Business Analytics",
       instructor: "Nijs",
-      term: "Fall 2026",
+      term: "Summer 2026",
       requirement: "elective",
       units: 4,
     },
@@ -122,8 +113,34 @@ export function buildMockCatalogue(): CatalogueCourse[] {
       code: "MGTA451",
       title: "Business Analytics in Marketing, Finance and Ops",
       instructor: "Buti, Shin, Wilbur",
+      term: "Summer 2026",
+      requirement: "core",
+      units: 4,
+    },
+
+    // ── Fall 2026 — the term with two core courses in it ──────────────────
+    {
+      code: "MGTA453",
+      title: "Business Analytics",
+      instructor: "August",
+      term: "Fall 2026",
+      requirement: "core",
+      units: 4,
+    },
+    {
+      code: "MGTA461",
+      title: "Web Mining and Recommender Systems",
+      instructor: "McAuley",
       term: "Fall 2026",
       requirement: "elective",
+      units: 4,
+    },
+    {
+      code: "MGTA452",
+      title: "Collecting and Analyzing Large Data",
+      instructor: "Hansen",
+      term: "Fall 2026",
+      requirement: "core",
       units: 4,
     },
 
@@ -167,14 +184,6 @@ export function buildMockCatalogue(): CatalogueCourse[] {
       units: 4,
     },
     {
-      code: "MGTA495",
-      title: "Special Topics in Business Analytics: Marketing Analytics",
-      instructor: "Yavorsky",
-      term: "Spring 2027",
-      requirement: "elective",
-      units: 4,
-    },
-    {
       /*
        * The one code that is not `MGTA` — it is an MGT course cross-listed into
        * the program, and it is transcribed as given rather than normalised.
@@ -184,6 +193,14 @@ export function buildMockCatalogue(): CatalogueCourse[] {
       code: "MGT449",
       title: "Topics in Ops and Tech: GenAI for Business",
       instructor: "Nijs, Teixeira",
+      term: "Spring 2027",
+      requirement: "elective",
+      units: 4,
+    },
+    {
+      code: "MGTA495",
+      title: "Special Topics in Business Analytics: Marketing Analytics",
+      instructor: "Yavorsky",
       term: "Spring 2027",
       requirement: "elective",
       units: 4,

@@ -208,9 +208,28 @@ export const messages = {
 				 * suggested or by what.
 				 */
 				aiBadgeSpoken: 'Suggested by the THRIVE assistant',
-				/** Core is not really a suggestion, and the tag says which is which. */
-				coreTag: 'core',
-				electiveTag: 'elective',
+				/**
+				 * THE LABELS CARRY THE DIFFERENCE, not a tag colour.
+				 *
+				 * "Core" against "Suggested elective": a requirement and a
+				 * recommendation, said in words. A pair of same-shaped chips reading
+				 * "core" and "elective" leaves the requirement-versus-recommendation
+				 * distinction to a border weight, which is exactly the kind of meaning
+				 * that must not rest on styling.
+				 *
+				 * ## Three labels, not two
+				 *
+				 * "Suggested elective" is right in a SUGGESTIONS panel and wrong in an
+				 * enrolled one — an elective the student is already taking is not being
+				 * suggested to them, it is on their timetable. So the enrolled panel
+				 * says plain "Elective". The core label is the same in both, because a
+				 * requirement is a requirement whether or not you have reached it yet.
+				 */
+				coreTag: 'Core',
+				/** Suggested panels only. */
+				electiveTag: 'Suggested elective',
+				/** Enrolled panels: this one is already being taken. */
+				electiveEnrolledTag: 'Elective',
 				/** A core course in a suggestions list needs no reason. */
 				coreReason: 'Required for the degree.',
 				/** Meeting pattern label on an enrolled row. */

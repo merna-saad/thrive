@@ -15,7 +15,7 @@ export function buildMockAssignments(): Assignment[] {
     {
       id: "asg-001",
       origin: "canvas",
-      courseId: "crs-mgta453",
+      courseId: "crs-mgta464",
       title: "Lab 4: Joins",
       dueDate: at(1, 23, 59),
       weight: 5,
@@ -25,7 +25,7 @@ export function buildMockAssignments(): Assignment[] {
     {
       id: "asg-002",
       origin: "canvas",
-      courseId: "crs-mgta452",
+      courseId: "crs-mgta403",
       title: "Problem Set 3",
       dueDate: upcomingWeekday(FRI, { hour: 23, minute: 59 }),
       weight: 8,
@@ -35,7 +35,7 @@ export function buildMockAssignments(): Assignment[] {
     {
       id: "asg-003",
       origin: "canvas",
-      courseId: "crs-mgta452",
+      courseId: "crs-mgta403",
       title: "Quiz 5",
       dueDate: upcomingWeekday(FRI, { hour: 10, minute: 0 }),
       weight: 4,
@@ -44,7 +44,7 @@ export function buildMockAssignments(): Assignment[] {
     {
       id: "asg-004",
       origin: "canvas",
-      courseId: "crs-mgta461",
+      courseId: "crs-mgta451",
       title: "Dashboard project",
       dueDate: upcomingWeekday(MON, { hour: 23, minute: 59 }),
       weight: 20,
@@ -54,7 +54,7 @@ export function buildMockAssignments(): Assignment[] {
     {
       id: "asg-005",
       origin: "canvas",
-      courseId: "crs-mgta461",
+      courseId: "crs-mgta451",
       title: "Peer review",
       dueDate: at(-2, 23, 59),
       weight: 3,
@@ -64,7 +64,7 @@ export function buildMockAssignments(): Assignment[] {
     {
       id: "asg-006",
       origin: "canvas",
-      courseId: "crs-mgta452",
+      courseId: "crs-mgta403",
       title: "Problem Set 2",
       dueDate: at(-6, 23, 59),
       weight: 8,
@@ -74,7 +74,7 @@ export function buildMockAssignments(): Assignment[] {
     {
       id: "asg-007",
       origin: "canvas",
-      courseId: "crs-mgta453",
+      courseId: "crs-mgta464",
       title: "Lab 3: Aggregation",
       dueDate: at(-8, 23, 59),
       weight: 5,
@@ -84,7 +84,7 @@ export function buildMockAssignments(): Assignment[] {
     {
       id: "asg-008",
       origin: "canvas",
-      courseId: "crs-mgta461",
+      courseId: "crs-mgta451",
       title: "Chart critique",
       dueDate: at(-11, 23, 59),
       weight: 6,

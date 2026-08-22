@@ -131,7 +131,7 @@ const CATALOG: EventTemplate[] = [
     hour: 13,
     minute: 0,
     durationMinutes: 120,
-    description: "Hands-on dashboard building, useful for the MGTA461 project.",
+    description: "Hands-on dashboard building, useful for the MGTA451 project.",
   },
   {
     title: "Faculty Research Talk: Causal ML",

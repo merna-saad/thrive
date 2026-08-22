@@ -797,14 +797,23 @@ describe("the living resume", () => {
     expect(version.isCurrent).toBe(true);
     // Everything the student has now, not just what was on res-003.
     /*
-     * "Recommender systems" where this used to read "Marketing analytics". Both
-     * that skill and A/B testing used to hang off a fourth enrolled course; with
-     * three real courses they belong to MGTA461, the elective actually being
-     * taken, and the skill was renamed to match what that course teaches.
+     * Back to "Marketing analytics", and the round trip is worth recording.
+     *
+     * This skill and A/B testing used to hang off a fourth enrolled course. When
+     * three real courses replaced four invented ones they moved to whatever the
+     * third enrolment was, and under the INFERRED term grouping that was MGTA461
+     * -- a recommender course -- so the skill was renamed to suit it. The real
+     * catalogue puts MGTA461 in Fall, and Summer's third enrolment is MGTA451,
+     * "Business Analytics in Marketing, Finance and Ops". So it is marketing
+     * analytics again.
+     *
+     * The lesson, since this assertion has now been edited twice for the same
+     * reason: a fixture keyed to WHICHEVER course happens to be third is a fixture
+     * that churns every time the roster moves.
      */
     expect(diff.addedSkills).toEqual([
       "Tableau",
-      "Recommender systems",
+      "Marketing analytics",
       "A/B testing",
     ]);
     /* And the fourth resume course went with the fourth enrolment. */

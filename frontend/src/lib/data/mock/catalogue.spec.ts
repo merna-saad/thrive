@@ -15,21 +15,48 @@ import { buildProgramTimeline } from "./program";
 describe("the real MSBA catalogue", () => {
   const catalogue = buildMockCatalogue();
 
-  it("holds the twelve courses, with their real numbers", () => {
+  /*
+   * ENCODED THE OLD INFERENCE. The file is ordered by term, so this list changed
+   * when the real grouping replaced the even three-per-term split. Kept as an
+   * exact list rather than relaxed to a set: the order IS the term sequence, and
+   * a course silently moving term is the thing most worth noticing here.
+   */
+  it("holds the twelve courses, in term order, with their real numbers", () => {
     expect(catalogue).toHaveLength(12);
     expect(catalogue.map((c) => c.code)).toEqual([
-      "MGTA452",
-      "MGTA453",
-      "MGTA461",
+      // Summer 2026
       "MGTA464",
       "MGTA403",
       "MGTA451",
+      // Fall 2026
+      "MGTA453",
+      "MGTA461",
+      "MGTA452",
+      // Winter 2027
       "MGTA402",
       "MGTA455",
       "MGTA444",
+      // Spring 2027
       "MGTA454",
-      "MGTA495",
       "MGT449",
+      "MGTA495",
+    ]);
+  });
+
+  /*
+   * A REAL RULE, and the one that makes the grouping checkable at all: each term
+   * holds exactly three courses. Not an assumption about WHICH three.
+   */
+  it("puts three courses in each of the four terms", () => {
+    const byTerm = new Map<string, number>();
+    for (const course of catalogue) {
+      byTerm.set(course.term, (byTerm.get(course.term) ?? 0) + 1);
+    }
+    expect([...byTerm.entries()]).toEqual([
+      ["Summer 2026", 3],
+      ["Fall 2026", 3],
+      ["Winter 2027", 3],
+      ["Spring 2027", 3],
     ]);
   });
 
@@ -43,10 +70,32 @@ describe("the real MSBA catalogue", () => {
     expect(codes.filter((c) => !c.startsWith("MGTA"))).toEqual(["MGT449"]);
   });
 
-  it("marks exactly the four core courses as core", () => {
-    const core = catalogue.filter((c) => c.requirement === "core").map((c) => c.code);
-    expect(core).toEqual([...CORE_CODES].sort((a, b) => codeOrder(catalogue, a, b)));
-    expect(core.sort()).toEqual([...CORE_CODES].sort());
+  /*
+   * FIVE, and asserted as exact MEMBERSHIP rather than as a length.
+   *
+   * The list was wrong once -- it had four codes and was missing MGTA451 -- and a
+   * wrong list of four satisfies any check that only counts to four. Sorted on
+   * both sides so this says nothing about order, which the test above owns.
+   */
+  it("marks exactly the five core courses as core", () => {
+    const core = catalogue
+      .filter((c) => c.requirement === "core")
+      .map((c) => c.code)
+      .sort();
+
+    expect(core).toEqual([...CORE_CODES].sort());
+    expect(core).toHaveLength(5);
+  });
+
+  /* The companion: everything not in that list is an elective, with none left
+     unclassified. `requirement` is required by the type, so this is really
+     asserting that nobody widened the union without revisiting the fixture. */
+  it("marks everything else elective, and nothing else", () => {
+    const electives = catalogue.filter((c) => c.requirement === "elective");
+    expect(electives).toHaveLength(catalogue.length - 5);
+    for (const course of electives) {
+      expect(CORE_CODES).not.toContain(course.code);
+    }
   });
 
   /*
@@ -81,6 +130,12 @@ describe("the real MSBA catalogue", () => {
     }
   });
 
+  /*
+   * Survived the regrouping unchanged, which is worth a word: under the inferred
+   * split this was a CONSEQUENCE of taking the list three at a time, and the
+   * capstone landing last was the coincidence that made the inference look right.
+   * It is now the real mapping saying the same thing.
+   */
   it("puts the capstone in the final catalogue term and gives it no instructor", () => {
     const capstone = catalogue.find((c) => c.code === "MGTA454")!;
     expect(capstone.term).toBe("Spring 2027");
@@ -89,12 +144,21 @@ describe("the real MSBA catalogue", () => {
 });
 
 describe("getSuggestedCourses", () => {
+  /* ENCODED THE OLD INFERENCE. Fall 2026 is a different three under the real
+     mapping -- and it is now the term with TWO core courses in it. */
   it("returns the catalogue's courses for a term", async () => {
     const fall = await getSuggestedCourses("Fall 2026");
-    expect(fall.map((c) => c.code)).toEqual(["MGTA464", "MGTA403", "MGTA451"]);
+    expect(fall.map((c) => c.code)).toEqual(["MGTA453", "MGTA461", "MGTA452"]);
   });
 
-  /* A core course needs no recommendation: `requirement` already says why. */
+  /*
+   * A core course needs no recommendation: `requirement` already says why.
+   *
+   * Winter 2027 is used because it holds both, and it still does under the real
+   * mapping -- MGTA455 core against MGTA402 and MGTA444. The assertions below
+   * check the split rather than trusting the term, so this survives a regrouping
+   * that keeps any mixed term.
+   */
   it("gives a reason to electives and none to core courses", async () => {
     const winter = await getSuggestedCourses("Winter 2027");
 
@@ -105,6 +169,26 @@ describe("getSuggestedCourses", () => {
     expect(electives.length).toBeGreaterThan(0);
     for (const course of core) expect(course.reason).toBeUndefined();
     for (const course of electives) expect(course.reason).toBeTruthy();
+  });
+
+  /*
+   * A REAL RULE, and the one that would have caught a dead reason: every elective
+   * in the catalogue gets a sentence, and no core course does. The reasons map is
+   * keyed by code and nothing checks it against the catalogue, so an entry for a
+   * course that is core -- or a missing entry for an elective -- is invisible.
+   */
+  it("has a reason for every elective in the catalogue, and none for any core", async () => {
+    const terms = ["Summer 2026", "Fall 2026", "Winter 2027", "Spring 2027"];
+    const all = (await Promise.all(terms.map((term) => getSuggestedCourses(term)))).flat();
+
+    expect(all).toHaveLength(12);
+    for (const course of all) {
+      if (course.requirement === "core") {
+        expect(course.reason, `${course.code} is core`).toBeUndefined();
+      } else {
+        expect(course.reason, `${course.code} is an elective`).toBeTruthy();
+      }
+    }
   });
 
   /*
@@ -127,13 +211,3 @@ describe("getSuggestedCourses", () => {
     expect(getSuggestedCourses("Fall 2026")).toBeInstanceOf(Promise);
   });
 });
-
-/** Catalogue order, so the core assertion can compare without sorting noise. */
-function codeOrder(
-  catalogue: ReturnType<typeof buildMockCatalogue>,
-  a: string,
-  b: string,
-): number {
-  const index = (code: string) => catalogue.findIndex((c) => c.code === code);
-  return index(a) - index(b);
-}

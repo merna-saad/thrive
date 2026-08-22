@@ -349,6 +349,11 @@ interface Task {
 prototype. The real MSBA catalogue replaced them: twelve courses across four
 terms, with the real course numbers, titles and instructors.
 
+**The terms are the real sequence, not an even split.** Summer 2026 holds one core
+course and two electives; Fall 2026 holds two core courses and one elective. An
+earlier version of these fixtures split the twelve evenly three-per-term by
+inference, which is not what the catalogue does.
+
 **Codes are `MGTA###`, with one exception.** `MGT449` is an MGT course
 cross-listed into the program. **Do not parse a prefix off a course code** — a
 regex expecting `MGTA` is wrong about that row, and normalising it would make the
@@ -362,7 +367,7 @@ type CourseRequirement = "core" | "elective";
 |---|---|
 | **Type** | `CourseRequirement`, a string enum. NOT a boolean. |
 | **Nullable** | NO. Required on `Course` and on `CatalogueCourse`. |
-| **Core courses today** | MGTA452, MGTA453, MGTA454, MGTA455 |
+| **Core courses today** | MGTA451, MGTA452, MGTA453, MGTA454, MGTA455 — **five** |
 
 **Why not `isCore`.** It is a classification with obvious room to grow — a
 concentration requirement, a capstone treated separately, an elective that only
@@ -422,6 +427,7 @@ is the contract.
 | | |
 |---|---|
 | **An unknown or empty term** | Return `[]`. NOT an error. A term with nothing scheduled and a term that does not exist are the same answer from the student's side, and a throw would take Home down over a typo. |
+| **Labelling** | The UI writes "Core" and "Suggested elective", so a requirement and a recommendation differ in WORDS rather than in a tag's border. An elective the student is already enrolled in says plain "Elective" — nothing on a timetable is being suggested. |
 | **`reason` on a core course** | Omit it. "Why is this here" has one answer for a required course, and `requirement` already says it. The frontend writes "Required for the degree" itself. |
 | **`reason` on an elective** | One sentence. Optional even here — the service may decline to explain a row, and the UI renders the row without a reason rather than with the word "undefined". |
 | **Ordering** | Not currently significant. The frontend renders in the order given, so if the recommender ranks, send it ranked. |

@@ -9,8 +9,8 @@ export function buildMockSyllabi(): Syllabus[] {
    */
   return [
     {
-      id: "syl-mgta452",
-      courseId: "crs-mgta452",
+      id: "syl-mgta403",
+      courseId: "crs-mgta403",
       description:
         "Supervised and unsupervised learning applied to business problems, with an emphasis on model selection and honest evaluation.",
       gradeBreakdown: [
@@ -28,8 +28,8 @@ export function buildMockSyllabi(): Syllabus[] {
       lastUpdated: onDay(-21),
     },
     {
-      id: "syl-mgta453",
-      courseId: "crs-mgta453",
+      id: "syl-mgta464",
+      courseId: "crs-mgta464",
       description:
         "Relational modeling, SQL, and the practical work of getting messy campus and business data into a queryable shape.",
       gradeBreakdown: [
@@ -45,8 +45,8 @@ export function buildMockSyllabi(): Syllabus[] {
       lastUpdated: onDay(-14),
     },
     {
-      id: "syl-mgta461",
-      courseId: "crs-mgta461",
+      id: "syl-mgta451",
+      courseId: "crs-mgta451",
       description:
         "Encoding, perception, and narrative in visual analytics, ending in an interactive dashboard built for a real audience.",
       gradeBreakdown: [

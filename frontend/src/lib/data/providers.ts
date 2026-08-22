@@ -150,16 +150,20 @@ export function getSuggestedCourses(term: string): Promise<CourseSuggestion[]> {
  * for it yet renders as a suggestion with no reason rather than as "undefined".
  * That is the same shape the real service will have: it may decline to explain a
  * row.
+ *
+ * ONE ENTRY PER ELECTIVE, and no entry for a core course. MGTA451 had one while
+ * the core list was wrong -- it is core, so the provider never attaches a reason
+ * to it and the sentence was unreachable. `catalogue.spec.ts` now asserts the
+ * every-elective-has-one direction, which is what would have caught it.
  */
 const SUGGESTION_REASONS: Partial<Record<string, string>> = {
-  MGTA464: "Builds directly on the data collection work you are doing now.",
+  MGTA464: "Builds the pipeline skills every later course assumes.",
   MGTA403: "Strengthens the programming your capstone will lean on.",
-  MGTA451: "Broad coverage across the three functions employers ask about.",
+  MGTA461: "Recommender systems, which is where web-scale data pays off.",
   MGTA402: "The one course on this list about presenting what you found.",
   MGTA444: "Client-facing project work, close to a data scientist's first year.",
-  MGTA495: "Marketing analytics in depth, which matches your stated goal.",
   MGT449: "Generative AI applied to business problems.",
-  MGTA461: "Recommender systems, which is where web-scale data pays off.",
+  MGTA495: "Marketing analytics in depth, which matches your stated goal.",
 };
 
 export function getSyllabi(): Promise<Syllabus[]> {

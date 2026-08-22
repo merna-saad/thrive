@@ -49,7 +49,7 @@ function seedOnce() {
       program: "MSBA",
       track: "11 month",
       term: "Summer 2026",
-      currentCourses: ["MGTA452", "MGTA453", "MGTA461"],
+      currentCourses: ["MGTA403", "MGTA464", "MGTA451"],
       currentUnits: 12,
       unitsCompleted: 34,
       unitsRequired: 52,

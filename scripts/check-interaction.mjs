@@ -1772,26 +1772,39 @@ try {
 		`${enrolled.rows} rows, headed "Your classes" — these are facts, so no badge and no disclaimer`
 	);
 	check(
+		'an enrolled elective is not called a SUGGESTED elective',
+		/\bElective\b/.test(enrolled.text) && !/Suggested elective/.test(enrolled.text),
+		'a course already on the timetable is not being recommended to anybody'
+	);
+	check(
 		'an enrolled row says when the class meets',
 		/\b(Mon|Tue|Wed|Thu|Fri)/.test(enrolled.text) && /\d:\d\d/.test(enrolled.text),
 		'the meeting pattern, formatted on the server like every other date here'
 	);
 	check(
 		'the real catalogue is what renders',
-		/MGTA45[23]/.test(enrolled.text),
-		'real course numbers, not the invented MGT 142 / MGT 100 placeholders'
+		/MGTA(464|403|451)/.test(enrolled.text),
+		'Summer 2026 is MGTA464 / MGTA403 / MGTA451 — not the invented MGT 142 / MGT 100, ' +
+			'and not the MGTA452 / 453 / 461 the inferred grouping put here'
 	);
 
 	/*
 	 * A FUTURE term: suggestions, which are not.
 	 *
-	 * Index 2 (Winter 2027) rather than the next one along, deliberately: it is the
-	 * only future term in the catalogue holding BOTH a core course and electives,
-	 * so the "core is distinguishable" check has something to distinguish. Fall
-	 * 2026 is three electives, and the assertion passed there by finding no core at
-	 * all -- which is the vacuous-pass shape this repo has been bitten by twice.
+	 * INDEX 1 -- Fall 2026, the first future term. It holds MGTA453 and MGTA452
+	 * core against MGTA461 elective, so the "core is distinguishable" check has
+	 * something to distinguish.
+	 *
+	 * This has moved twice and the history is the point. It started here, and Fall
+	 * was three electives under the inferred grouping, so the assertion passed by
+	 * finding no core at all -- vacuous. It moved to index 2 (Winter). The real
+	 * catalogue puts two core courses in Fall, so index 1 is correct again and is
+	 * now the better choice: the FIRST future term is the one a student actually
+	 * opens.
+	 *
+	 * The escape branch that let it pass with no core is gone and stays gone.
 	 */
-	await pips[2].click();
+	await pips[1].click();
 	await strip.waitForTimeout(SETTLE);
 	const suggested = await strip.evaluate((sel) => {
 		const panel = document.querySelector('#program-term-plan');
@@ -1825,10 +1838,15 @@ try {
 			suggested.spoken.some((s) => /suggested by the thrive assistant/i.test(s)),
 		`"AI suggested" plus the sparkle, spoken as "${suggested.spoken.find((s) => /assistant/i.test(s)) ?? '(none)'}"`
 	);
+	/*
+	 * THE WORDS, not the tag's border. "Core" against "Suggested elective" is a
+	 * requirement against a recommendation said out loud; two chips reading "core"
+	 * and "elective" would leave that to a border weight.
+	 */
 	check(
-		'core is distinguishable from elective in the list',
-		/\bcore\b/.test(suggested.text) && /\belective\b/.test(suggested.text),
-		'a core course is not really a suggestion, and the tag is text rather than a colour'
+		'core is distinguishable from elective IN WORDS',
+		/\bCore\b/.test(suggested.text) && /Suggested elective/.test(suggested.text),
+		'"Core" and "Suggested elective" — a requirement and a recommendation, in the labels'
 	);
 	check(
 		'a core course carries no invented recommendation',
@@ -1842,7 +1860,7 @@ try {
 	);
 
 	/* Pressing the open pip closes it, so the strip is never stuck open. */
-	await pips[2].click();
+	await pips[1].click();
 	await strip.waitForTimeout(SETTLE);
 	const reclosed = await strip.evaluate(
 		() => document.querySelector('#program-term-plan')?.children.length ?? null

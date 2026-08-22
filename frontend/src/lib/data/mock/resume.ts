@@ -10,56 +10,60 @@ import { at } from "./relative-dates";
  * Skills, tied to the courses that produced them.
  *
  * The course link is the whole point of the feature: a student should be able
- * to see that "SQL" on their resume came from MGTA453, not wonder where it
+ * to see that "SQL" on their resume came from MGTA464, not wonder where it
  * appeared from.
  */
 export const mockSkills: Skill[] = [
-  // MGTA453 · Business Analytics
-  { id: "skl-sql", name: "SQL", source: "course", courseId: "crs-mgta453" },
+  // MGTA464 · SQL and ETL
+  { id: "skl-sql", name: "SQL", source: "course", courseId: "crs-mgta464" },
   {
     id: "skl-datamodel",
     name: "Relational data modeling",
     source: "course",
-    courseId: "crs-mgta453",
+    courseId: "crs-mgta464",
   },
-  // MGTA452 · Collecting and Analyzing Large Data
+  // MGTA403 · AI-Assisted Math and Programming for Business Analytics
   {
     id: "skl-ml",
     name: "Machine learning",
     source: "course",
-    courseId: "crs-mgta452",
+    courseId: "crs-mgta403",
   },
   {
     id: "skl-modeleval",
     name: "Model evaluation",
     source: "course",
-    courseId: "crs-mgta452",
+    courseId: "crs-mgta403",
   },
-  { id: "skl-python", name: "Python", source: "course", courseId: "crs-mgta452" },
-  // MGTA461 · Web Mining and Recommender Systems
+  { id: "skl-python", name: "Python", source: "course", courseId: "crs-mgta403" },
+  // MGTA451 · Business Analytics in Marketing, Finance and Ops
   {
     id: "skl-dataviz",
     name: "Data visualization",
     source: "course",
-    courseId: "crs-mgta461",
+    courseId: "crs-mgta451",
   },
-  { id: "skl-tableau", name: "Tableau", source: "course", courseId: "crs-mgta461" },
+  { id: "skl-tableau", name: "Tableau", source: "course", courseId: "crs-mgta451" },
   /*
    * These two used to hang off a fourth enrolled course. There are three now, and
-   * both skills belong to the elective the student is actually taking -- a
-   * recommender course is where ranking and A/B testing come from.
+   * both belong to MGTA451 -- "Business Analytics in Marketing, Finance and Ops"
+   * is where campaign measurement and A/B testing come from.
+   *
+   * `skl-recsys` lived here for one commit, while the inferred grouping had the
+   * recommender course in this slot. The real catalogue puts MGTA461 in Fall, so
+   * the skill went back to marketing analytics.
    */
   {
-    id: "skl-recsys",
-    name: "Recommender systems",
+    id: "skl-mktg",
+    name: "Marketing analytics",
     source: "course",
-    courseId: "crs-mgta461",
+    courseId: "crs-mgta451",
   },
   {
     id: "skl-abtest",
     name: "A/B testing",
     source: "course",
-    courseId: "crs-mgta461",
+    courseId: "crs-mgta451",
   },
   // Added by the student
   { id: "skl-git", name: "Git & version control", source: "manual" },
@@ -69,19 +73,19 @@ export const mockSkills: Skill[] = [
 /** Course entries, phrased as what the student can now do. */
 export const mockResumeCourses: ResumeCourse[] = [
   {
-    code: "MGTA452",
-    title: "Collecting and Analyzing Large Data",
-    highlight: "Built and validated pipelines over large business datasets.",
+    code: "MGTA464",
+    title: "SQL and ETL",
+    highlight: "Modeled, queried and loaded relational data at scale.",
   },
   {
-    code: "MGTA453",
-    title: "Business Analytics",
-    highlight: "Modeled and queried relational data at scale.",
+    code: "MGTA403",
+    title: "AI-Assisted Math and Programming for Business Analytics",
+    highlight: "Built and validated models with AI-assisted tooling.",
   },
   {
-    code: "MGTA461",
-    title: "Web Mining and Recommender Systems",
-    highlight: "Designed and evaluated a recommender over web-scale data.",
+    code: "MGTA451",
+    title: "Business Analytics in Marketing, Finance and Ops",
+    highlight: "Measured campaign response across marketing, finance and ops.",
   },
 ];
 

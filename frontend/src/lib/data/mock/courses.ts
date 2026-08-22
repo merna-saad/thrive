@@ -31,11 +31,17 @@ import { at, FRI, MON, THU, upcomingWeekday, TUE, WED } from "./relative-dates";
  *
  * ## One course in trouble, deliberately
  *
- * MGTA461 carries the nudge. Exactly one course in trouble is the point: it makes
+ * MGTA403 carries the nudge. Exactly one course in trouble is the point: it makes
  * "focus here this week" legible instead of leaving the student to compare three
- * progress bars and guess. It is also the ELECTIVE of the three, which is a
- * slightly better story than a core course slipping — a student can drop an
- * elective.
+ * progress bars and guess. It is an ELECTIVE, which is a slightly better story
+ * than a core course slipping — a student can drop an elective.
+ *
+ * ## Which three these are, and why they changed
+ *
+ * Summer 2026 was MGTA452/453/461 while the term grouping was an inference. The
+ * real catalogue puts those three in FALL and gives Summer MGTA464, MGTA451 and
+ * MGTA403. All three enrolments changed with it, along with everything keyed to
+ * their ids — the tasks, assignments, syllabi and resume fixtures.
  *
  * `origin: "canvas"` on every row: a course roster comes from the LMS, so these
  * are the rows that carry the provenance pill.
@@ -43,21 +49,21 @@ import { at, FRI, MON, THU, upcomingWeekday, TUE, WED } from "./relative-dates";
 export function buildMockCourses(): Course[] {
   return [
     {
-      id: "crs-mgta452",
+      id: "crs-mgta464",
       origin: "canvas",
-      code: "MGTA452",
-      title: "Collecting and Analyzing Large Data",
-      instructor: "Hansen",
+      code: "MGTA464",
+      title: "SQL and ETL",
+      instructor: "Perols",
       term: "Summer 2026",
       units: 4,
-      requirement: "core",
+      requirement: "elective",
       progress: 72,
       standing: "onTrack",
-      syllabusId: "syl-mgta452",
+      syllabusId: "syl-mgta464",
       currentGrade: "A-",
       nextAssignment: {
-        title: "Problem Set 3",
-        due: upcomingWeekday(FRI, { hour: 23, minute: 59 }),
+        title: "Lab 4: Joins",
+        due: at(1, 23, 59),
       },
       schedule: [
         {
@@ -75,21 +81,21 @@ export function buildMockCourses(): Course[] {
       ],
     },
     {
-      id: "crs-mgta453",
+      id: "crs-mgta451",
       origin: "canvas",
-      code: "MGTA453",
-      title: "Business Analytics",
-      instructor: "August",
+      code: "MGTA451",
+      title: "Business Analytics in Marketing, Finance and Ops",
+      instructor: "Buti, Shin, Wilbur",
       term: "Summer 2026",
       units: 4,
       requirement: "core",
       progress: 60,
       standing: "watch",
-      syllabusId: "syl-mgta453",
+      syllabusId: "syl-mgta451",
       currentGrade: "B",
       nextAssignment: {
-        title: "Lab 4: Joins",
-        due: at(1, 23, 59),
+        title: "Problem Set 3",
+        due: upcomingWeekday(FRI, { hour: 23, minute: 59 }),
       },
       schedule: [
         {
@@ -107,35 +113,32 @@ export function buildMockCourses(): Course[] {
       ],
     },
     {
-      id: "crs-mgta461",
+      id: "crs-mgta403",
       origin: "canvas",
-      code: "MGTA461",
-      title: "Web Mining and Recommender Systems",
-      instructor: "McAuley",
+      code: "MGTA403",
+      title: "AI-Assisted Math and Programming for Business Analytics",
+      instructor: "Nijs",
       term: "Summer 2026",
       units: 4,
       requirement: "elective",
       progress: 45,
       standing: "needsHelp",
-      syllabusId: "syl-mgta461",
+      syllabusId: "syl-mgta403",
       currentGrade: "C+",
       nudge: "Grade slipped to C+. Focus here this week.",
       nextAssignment: {
-        title: "Dashboard project",
+        title: "Programming assignment 2",
         due: upcomingWeekday(MON, { hour: 23, minute: 59 }),
       },
       /*
        * FRIDAY, and the day matters.
        *
-       * This met on Wednesday until the catalogue replaced four invented courses
-       * with three real ones -- and the course that went was the only one meeting
-       * on a Friday. That left the fixture's anchor day (a Friday) with no classes
-       * at all, which `check:interaction` caught by finding no provenance pill on
-       * the calendar: no class rows, nothing to mark.
+       * The fixture's anchor day is a Friday, so a week with no Friday class
+       * leaves the calendar's day panel and Home's class list empty on the one
+       * day every other fixture is dated relative to. `check:interaction` caught
+       * exactly that once, by finding no provenance pill on the calendar.
        *
-       * With this on Friday the three courses cover Mon-Fri between them, which is
-       * both a better shape for a full-time program and the reason the day panel is
-       * never empty on the day every other fixture is dated relative to.
+       * With this on Friday the three enrolments cover Mon-Fri between them.
        */
       schedule: [
         {

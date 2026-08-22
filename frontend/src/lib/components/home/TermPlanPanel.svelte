@@ -34,8 +34,17 @@
 	 * "Required for the degree" rather than a recommender's sentence, which would
 	 * be the interface pretending to advise where it is informing.
 	 *
-	 * The tag is TEXT, not a colour: `requirement` is a two-value classification
-	 * and there is no reserved hue for "required".
+	 * ## The labels do the work, not the tag's border
+	 *
+	 * "Core" against "Suggested elective" — a requirement and a recommendation,
+	 * said in words. Two same-shaped chips reading "core" and "elective" would
+	 * leave that distinction to a border weight, and requirement-versus-suggestion
+	 * is not a thing to encode in styling.
+	 *
+	 * An elective in the ENROLLED panel says plain "Elective", because a course
+	 * already on the timetable is not being suggested to anybody. Three labels for
+	 * two values, and the third is what stops the word "suggested" appearing beside
+	 * a class the student is sitting in.
 	 */
 	let { plan }: { plan: TermPlan } = $props();
 
@@ -97,7 +106,13 @@
 										: 'border-hairline text-muted-ink'
 								)}
 							>
-								{course.requirement === 'core' ? copy.coreTag : copy.electiveTag}
+								{#if course.requirement === 'core'}
+									{copy.coreTag}
+								{:else if plan.kind === 'suggested'}
+									{copy.electiveTag}
+								{:else}
+									{copy.electiveEnrolledTag}
+								{/if}
 							</span>
 						</span>
 
