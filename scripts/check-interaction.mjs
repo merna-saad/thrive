@@ -74,6 +74,10 @@
  *  - the title field's `onblur` removed      2 red
  *  - a `dragend` handler put back on the
  *    row, reading a destroyed block's prop   1 red (`derived_inert`)
+ *  - `applyTheme` never writing the
+ *    data-theme attribute                    5 red
+ *  - the category chips reverted to a stock
+ *    white utility                           1 red (2.94:1 on the amber fill)
  *
  * The fourth is the one worth the ink. It is the failure 6a predicted for 6b, it
  * produces no error, no warning and no visible difference from a successful
@@ -85,6 +89,18 @@
  * cannot see it, 439 unit tests cannot see it, and the "nothing threw or warned"
  * assertion at the foot of this file could only see it once something here
  * actually dragged a row.
+ *
+ * THE THEME PAIR ARE WORTH READING TOGETHER, because they fail in opposite ways.
+ * Breaking the attribute leaves "the choice survives a reload" reporting
+ * `state=dark attribute=null` -- the STORE was fine and the DOM was not, so an
+ * assertion on the stored value alone, or on the painted colour alone against an
+ * OS already set to dark, would have stayed green. That is why the reload check
+ * asserts the attribute beside the colour, and why the whole theme block is
+ * driven on an OS-DARK browser: on an OS-light one, `data-theme="light"` and
+ * doing nothing at all are indistinguishable.
+ *
+ * The chip one is the sweep's own finding, kept as a gate. At 2.94:1 it looked
+ * fine on screen.
  */
 
 import { spawn } from 'node:child_process';
@@ -3641,6 +3657,375 @@ try {
 	);
 	check('a pill is a 44px touch target', (phonePill?.height ?? 0) >= 44, `${phonePill?.height}px`);
 	await phone.close();
+
+	// ═══ The theme: the control, the default, and surviving a reload ═══════
+	/*
+	 * Nothing else in the repo can see any of this.
+	 *
+	 * `check-contrast.py` proves the two PALETTES are legible; it reads a
+	 * stylesheet and cannot press a button or reload a page. The unit suite can
+	 * test `normaliseTheme` and `nextTheme` and renders nothing. So the questions
+	 * left are the ones that made the feature worth having: does pressing the
+	 * control actually repaint, does the choice come back after a reload, and --
+	 * the one that decides whether the no-flash claim is true -- does the SYSTEM
+	 * preference work with no JavaScript at all.
+	 *
+	 * ## Expected colours are read from app.css, never written here
+	 *
+	 * Property 2 of every gate in this repo. `check-contrast.py` parses that file
+	 * rather than mirroring it, and hardcoding `rgb(22, 21, 18)` here would
+	 * reintroduce exactly the drift that rewrite existed to kill -- with the extra
+	 * twist that this gate would then be asserting a colour the app no longer uses
+	 * and reporting PASS for the wrong reason.
+	 *
+	 * ## And it reads a USED value, never the custom property
+	 *
+	 * `getPropertyValue('--thrive-bg')` does not return a colour. In dev it hands
+	 * back the literal `light-dark(...)`; in the production build LightningCSS has
+	 * downlevelled it to a `var(--lightningcss-light, ...)` space-toggle pair. This
+	 * gate drives the production build, so it reads `backgroundColor` off `body` --
+	 * the colour the browser actually painted.
+	 */
+	const themeTokens = (() => {
+		const css = readFileSync(join(FRONTEND, 'src', 'app.css'), 'utf8');
+		const match = css.match(/--thrive-bg:\s*light-dark\(\s*(#[0-9a-f]{3,6})\s*,\s*(#[0-9a-f]{3,6})\s*\)/i);
+		if (!match) return null;
+		const rgb = (hex) => {
+			let h = match ? hex.slice(1) : hex;
+			if (h.length === 3) h = [...h].map((c) => c + c).join('');
+			const n = parseInt(h, 16);
+			return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`;
+		};
+		return { light: rgb(match[1]), dark: rgb(match[2]) };
+	})();
+
+	if (!themeTokens) {
+		unproven(
+			'the theme paints the colours app.css declares',
+			'could not parse --thrive-bg as a light-dark() pair'
+		);
+	} else {
+		check(
+			'the two themes are actually different colours',
+			themeTokens.light !== themeTokens.dark,
+			`light ${themeTokens.light} · dark ${themeTokens.dark}`
+		);
+
+		/*
+		 * THE FIRST-PAINT CLAIM, AND THE ONLY HONEST WAY TO TEST IT.
+		 *
+		 * The design says a student on the default gets the right theme on the
+		 * first paint because the browser resolves `prefers-color-scheme` itself,
+		 * with no script in the path -- which is why there is no blocking
+		 * localStorage read in `<head>` and no second hydration strategy.
+		 *
+		 * Asserting "there was no flash" by timing a screenshot would be flaky and
+		 * would not prove the mechanism. Turning JAVASCRIPT OFF proves it exactly:
+		 * if the page is still dark on an OS-dark machine with no JS at all, then
+		 * no JS was ever needed, so there is nothing for a flash to happen during.
+		 */
+		for (const scheme of ['light', 'dark']) {
+			const noJs = await browser.newPage({ colorScheme: scheme, javaScriptEnabled: false });
+			await noJs.goto(BASE + ROUTE, { waitUntil: 'load' });
+			const painted = await noJs.evaluate(() => ({
+				bg: getComputedStyle(document.body).backgroundColor,
+				attribute: document.documentElement.getAttribute('data-theme')
+			}));
+			check(
+				`with NO JavaScript, an OS set to ${scheme} gets the ${scheme} theme`,
+				painted.bg === themeTokens[scheme],
+				`painted ${painted.bg}, wanted ${themeTokens[scheme]}`
+			);
+			check(
+				`and it does it with no data-theme attribute (OS ${scheme})`,
+				painted.attribute === null,
+				'absence means "follow the system", which is what the server sends'
+			);
+			await noJs.close();
+		}
+
+		/*
+		 * The control, driven on an OS-DARK machine on purpose.
+		 *
+		 * Every step below is then a case where the choice and the system disagree,
+		 * which is the only situation the attribute has to handle. Run against an
+		 * OS-light browser, `data-theme="light"` would be indistinguishable from
+		 * doing nothing at all -- an assertion satisfiable by a no-op, which is the
+		 * false-green family this file already carries three of.
+		 */
+		const themed = await browser.newPage({ viewport: DESKTOP, colorScheme: 'dark' });
+		themed.on('pageerror', (error) => pageErrors.push(`theme: ${error}`));
+		themed.on('console', (msg) => noisy(msg) && pageErrors.push(`theme: ${msg.text()}`));
+		await themed.goto(BASE + ROUTE, { waitUntil: 'networkidle' });
+
+		const readTheme = () =>
+			themed.evaluate(() => ({
+				attribute: document.documentElement.getAttribute('data-theme'),
+				bg: getComputedStyle(document.body).backgroundColor,
+				state: document.querySelector('[data-theme-toggle]')?.getAttribute('data-theme-toggle'),
+				label: document.querySelector('[data-theme-toggle]')?.getAttribute('aria-label'),
+				stored: localStorage.getItem('thrive:theme'),
+				meta: [...document.querySelectorAll('meta[name="theme-color"]')].map((m) =>
+					m.getAttribute('content')
+				)
+			}));
+
+		const toggle = themed.locator('[data-theme-toggle]');
+		check('the theme control exists and is reachable', (await toggle.count()) === 1);
+
+		/*
+		 * SIZED AGAINST ITS NEIGHBOUR, not against a number typed here.
+		 *
+		 * The first version of this assertion asked for 36px, on the strength of
+		 * TopBar's own comment ("44px on mobile, 36px above `lg`"). It failed at
+		 * 30.375px -- and so would the bell, which carries a byte-identical class
+		 * string. `lg:size-9` is `9 * var(--spacing)`, and the desktop density pass
+		 * took `--spacing` to 0.225rem at a 93.75% root, so every `size-9` in the
+		 * bar is 30.375px rather than the 36 the comment claims. That comment
+		 * predates the pass.
+		 *
+		 * Not fixed here: the bar's target sizes are a density question about three
+		 * existing controls, not a theme question, and quietly resizing them under
+		 * cover of this change is how a diff stops being reviewable. Recorded
+		 * instead. What this gate asserts is the property that IS this change's
+		 * business -- the new control is the same size as the ones it sits beside,
+		 * so it cannot be the odd one out -- plus the standard that actually
+		 * applies to a pointer target, WCAG 2.5.8's 24px.
+		 */
+		const bell = themed.locator('header button[aria-label*="Notification"]');
+		const toggleBox = await toggle.boundingBox();
+		const bellBox = await bell.boundingBox();
+		check(
+			'the theme control is the same size as the controls beside it',
+			toggleBox?.height === bellBox?.height && toggleBox?.width === bellBox?.width,
+			`toggle ${toggleBox?.width}x${toggleBox?.height} · bell ${bellBox?.width}x${bellBox?.height}`
+		);
+		check(
+			'and it clears the 24px WCAG 2.5.8 asks of a pointer target',
+			(toggleBox?.height ?? 0) >= 24,
+			`${toggleBox?.height}px — note TopBar's comment says 36, see the note above`
+		);
+
+		const atRest = await readTheme();
+		check('it starts on `system`', atRest.state === 'system', `state=${atRest.state}`);
+		check(
+			'`system` stores no key at all',
+			atRest.stored === null,
+			'absence is the override layer\'s own word for "never touched"'
+		);
+		check(
+			'and on an OS-dark machine `system` is painting dark',
+			atRest.bg === themeTokens.dark,
+			`${atRest.bg}`
+		);
+		/*
+		 * The label carries BOTH halves. A cycling control whose next state is not
+		 * visible owes that, and it is the only affordance a screen-reader user has
+		 * -- so it is asserted rather than assumed from the markup.
+		 */
+		check(
+			'the label says where you are AND what pressing does',
+			/system/i.test(atRest.label ?? '') && /light/i.test(atRest.label ?? ''),
+			atRest.label ?? '(none)'
+		);
+
+		// system -> light. The choice now CONTRADICTS the OS, which is the case
+		// that needs the attribute to exist and to win.
+		await toggle.click();
+		await themed.waitForTimeout(SETTLE);
+		const light = await readTheme();
+		check('one press moves system -> light', light.state === 'light', `state=${light.state}`);
+		check(
+			'an explicit light choice beats an OS set to dark',
+			light.attribute === 'light' && light.bg === themeTokens.light,
+			`attribute=${light.attribute} painted=${light.bg}`
+		);
+		/*
+		 * PIN THE STORED KEY, NEVER ROUND-TRIP. The standing rule for anything
+		 * persisted: a store that mangles on write and mangles identically on read
+		 * is self-consistent about a key nothing else uses. So this compares the raw
+		 * string against a hardcoded literal rather than against `readTheme()`.
+		 */
+		check(
+			'the stored value is the literal this store claims to write',
+			light.stored === '{"value":"light"}',
+			light.stored ?? '(nothing)'
+		);
+		check(
+			'the browser chrome follows the choice, not the OS',
+			light.meta.length > 0 && light.meta.every((value) => value === themeTokens.light),
+			light.meta.join(' · ')
+		);
+
+		// light -> dark.
+		await toggle.click();
+		await themed.waitForTimeout(SETTLE);
+		const dark = await readTheme();
+		check('a second press moves light -> dark', dark.state === 'dark', `state=${dark.state}`);
+		check(
+			'and the tokens repaint',
+			dark.attribute === 'dark' && dark.bg === themeTokens.dark,
+			`attribute=${dark.attribute} painted=${dark.bg}`
+		);
+
+		/*
+		 * THE RELOAD. The whole point of persisting anything.
+		 *
+		 * Note the choice under test is `dark` on an OS ALREADY set to dark, which
+		 * would be satisfiable by the attribute never being written -- so the
+		 * ATTRIBUTE is asserted alongside the colour. The colour alone would pass on
+		 * a build where persistence was broken entirely.
+		 */
+		await themed.reload({ waitUntil: 'networkidle' });
+		await themed.waitForTimeout(SETTLE);
+		const reloaded = await readTheme();
+		check(
+			'the choice survives a reload',
+			reloaded.state === 'dark' && reloaded.attribute === 'dark',
+			`state=${reloaded.state} attribute=${reloaded.attribute}`
+		);
+		check(
+			'and it is still stored after the reload',
+			reloaded.stored === '{"value":"dark"}',
+			reloaded.stored ?? '(nothing)'
+		);
+
+		// dark -> system, which must FORGET the override rather than store a third
+		// value. Property 4 of the store layer.
+		await toggle.click();
+		await themed.waitForTimeout(SETTLE);
+		const backToSystem = await readTheme();
+		check(
+			'a third press returns to `system`',
+			backToSystem.state === 'system' && backToSystem.attribute === null,
+			`state=${backToSystem.state} attribute=${backToSystem.attribute}`
+		);
+		check(
+			'choosing `system` FORGETS the override rather than storing it',
+			backToSystem.stored === null || backToSystem.stored === '{}',
+			backToSystem.stored ?? '(nothing)'
+		);
+		check(
+			'and the page follows the OS again',
+			backToSystem.bg === themeTokens.dark,
+			`${backToSystem.bg}`
+		);
+
+		/*
+		 * One real surface, in dark, checked for the failure the sweep was about.
+		 *
+		 * `schedule.ts` lettered eight category chips in a stock white utility, which
+		 * measured about 1.2:1 once the fills became light. A palette gate cannot see
+		 * it -- the colour was in a class string, not a token -- so the check is that
+		 * a rendered chip's own text and background are actually far apart.
+		 *
+		 * The calendar is where those chips live, so this navigates there rather than
+		 * asserting about Home, which has none.
+		 */
+		await toggle.click();
+		await toggle.click();
+		await themed.waitForTimeout(SETTLE);
+		await themed.goto(BASE + '/calendar', { waitUntil: 'networkidle' });
+		await themed.waitForTimeout(SETTLE);
+		const chip = await themed.evaluate(() => {
+			const luminance = (colour) => {
+				const [r, g, b] = colour.match(/\d+(\.\d+)?/g).slice(0, 3).map(Number);
+				const channel = (v) => {
+					const c = v / 255;
+					return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+				};
+				return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+			};
+			// Any element whose own background is painted and which holds text: the
+			// category tags are the smallest such thing on this page.
+			const tags = [...document.querySelectorAll('span, div')].filter((node) => {
+				const style = getComputedStyle(node);
+				return (
+					node.childElementCount === 0 &&
+					(node.textContent ?? '').trim().length > 2 &&
+					style.backgroundColor !== 'rgba(0, 0, 0, 0)' &&
+					style.backgroundImage === 'none'
+				);
+			});
+			let worst = null;
+			for (const node of tags) {
+				const style = getComputedStyle(node);
+				const a = luminance(style.color);
+				const b = luminance(style.backgroundColor);
+				const contrast = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+				if (!worst || contrast < worst.contrast) {
+					worst = {
+						contrast,
+						text: (node.textContent ?? '').trim().slice(0, 24),
+						colour: style.color,
+						background: style.backgroundColor
+					};
+				}
+			}
+			return worst ? { ...worst, examined: tags.length } : null;
+		});
+
+		if (!chip) {
+			unproven(
+				'every filled chip on the calendar is legible in dark',
+				'found no element with its own background fill and text'
+			);
+		} else {
+			check(
+				'the worst filled chip on the calendar clears 4.5:1 in DARK',
+				chip.contrast >= 4.5,
+				`${chip.contrast.toFixed(2)}:1 on "${chip.text}" ` +
+					`(${chip.colour} on ${chip.background}), ${chip.examined} examined`
+			);
+		}
+
+		await themed.close();
+
+		/*
+		 * And on a phone it is a real touch target, which is the width the control's
+		 * SHAPE was decided by: a three-state segmented group needs about 132px at
+		 * touch size and the bar does not have it, which is why this is one cycling
+		 * button. That reasoning is only sound if the one button is actually 44px
+		 * here, so it gets measured rather than asserted in a comment.
+		 */
+		const themePhone = await browser.newPage({
+			viewport: PHONE,
+			hasTouch: true,
+			isMobile: true,
+			colorScheme: 'dark'
+		});
+		themePhone.on('pageerror', (error) => pageErrors.push(`theme phone: ${error}`));
+		await themePhone.goto(BASE + ROUTE, { waitUntil: 'networkidle' });
+		const phoneToggle = themePhone.locator('[data-theme-toggle]');
+		const phoneBox = await phoneToggle.boundingBox();
+		check(
+			'the theme control is a 44px touch target on a phone',
+			(phoneBox?.height ?? 0) >= 44 && (phoneBox?.width ?? 0) >= 44,
+			`${phoneBox?.width}x${phoneBox?.height}`
+		);
+		// The bar is the tightest horizontal space in the app and this change added
+		// a control to it. A 375px header that scrolls sideways is the regression.
+		check(
+			'adding it did not make the header scroll sideways at 375px',
+			(await themePhone.evaluate(() => {
+				const header = document.querySelector('header');
+				return header ? header.scrollWidth - header.clientWidth : -1;
+			})) <= 0,
+			'header scrollWidth vs clientWidth'
+		);
+		check(
+			'and it still works with no cursor available',
+			await (async () => {
+				await phoneToggle.click();
+				await themePhone.waitForTimeout(SETTLE);
+				return themePhone.evaluate(
+					() => document.documentElement.getAttribute('data-theme') === 'light'
+				);
+			})(),
+			'one tap, system -> light'
+		);
+		await themePhone.close();
+	}
 
 	/*
 	 * Warnings count, not just throws.
