@@ -155,11 +155,55 @@ describe("the design system's unenforced rules", () => {
     }
   });
 
+  it("uses only the three weights the design system sanctions", () => {
+    /*
+     * THE FONT SWAP TOOK AWAY WHAT USED TO ENFORCE THIS.
+     *
+     * The rule is 400 / 500 / 700, and it was self-policing while DM Sans was
+     * self-hosted at exactly those three weights: 600 was not in the browser, so
+     * a stray `font-semibold` rendered as a smeared synthesis and looked wrong
+     * in review.
+     *
+     * The system stack ships the whole range. Measured on macOS at 40px, all of
+     * 400/500/600/700 are distinct and evenly spaced -- so 600 is a real weight
+     * now and `font-semibold` renders cleanly. **The rule did not change; the
+     * thing that made breaking it visible did.** An invisible drift is the
+     * failure mode this repo treats as the worst one, so it gets a check.
+     *
+     * Nothing in `src/` used a banned weight when this was written. That is the
+     * point: the check is here to hold a line that is currently held, not to
+     * clean up after a violation.
+     *
+     * `font-bold`, `font-medium` and `font-normal` are the sanctioned three.
+     * Everything else in Tailwind's scale is rejected, including `font-black`
+     * and `font-thin` -- the rule is three weights, not "no semibold".
+     */
+    const BANNED = [
+      "thin", "extralight", "light", "semibold", "extrabold", "black",
+    ];
+    const pattern = new RegExp(`\\bfont-(?:${BANNED.join("|")})\\b`);
+
+    const sources = { ...MARKUP, ...SCRIPTS };
+    const offenders = Object.keys(sources)
+      .filter((path) => pattern.test(sources[path]))
+      .sort();
+    expect(offenders).toEqual([]);
+
+    // Non-vacuous, and the companion the absence above needs: the pattern must
+    // reject every banned weight and pass every sanctioned one.
+    for (const bad of BANNED) {
+      expect(pattern.test(`class="font-${bad}"`), `font-${bad} should be rejected`).toBe(true);
+    }
+    for (const good of ["font-normal", "font-medium", "font-bold", "font-mono"]) {
+      expect(pattern.test(`class="${good}"`), `${good} must pass`).toBe(false);
+    }
+  });
+
   it("never names a font in a component", () => {
     /*
      * The two-face rule, enforced. Components reach for `.thrive-numeric` (a
      * value) or `.thrive-eyebrow` (a small label), or they set nothing and get
-     * DM Sans, which is what words should be.
+     * the sans face, which is what words should be.
      *
      * `font-mono` in a component is the specific regression this guards: it is
      * a font assertion, and choosing the face is the design system's call.

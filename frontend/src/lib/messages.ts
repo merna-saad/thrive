@@ -569,7 +569,7 @@ export const messages = {
 			month: 'month',
 			week: 'week',
 			agenda: 'agenda',
-			/** The agenda-only grouping control. Words, so DM Sans. */
+			/** The agenda-only grouping control. Words, so the sans face. */
 			groupByLabel: 'group by',
 			groupByDay: 'day',
 			groupByCategory: 'type',

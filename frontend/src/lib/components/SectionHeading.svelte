@@ -15,7 +15,7 @@
 	 * of them needing a border.
 	 *
 	 * TWO FACES, split on words-versus-values (2026-08-22). The prefix is words,
-	 * so it takes `.thrive-eyebrow` and renders in DM Sans; the count is a value,
+	 * so it takes `.thrive-eyebrow` and renders in the sans; the count is a value,
 	 * so it takes `.thrive-numeric` and stays mono. Both were mono before, which
 	 * is how a face meant for numbers ended up carrying "phase 0" and "key".
 	 *
@@ -38,7 +38,7 @@
 		as = 'h2',
 		class: className
 	}: {
-		/** The slot: "phase 0", "3 items", "key". Words, so DM Sans. */
+		/** The slot: "phase 0", "3 items", "key". Words, so the sans. */
 		prefix?: string;
 		title: string;
 		/** Right-aligned. A bare number, or a fraction like "6/21". A value, so mono. */
@@ -54,7 +54,7 @@
 <div class={cn('border-b border-hairline pb-1.5', className)}>
 	<div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
 		{#if prefix}
-			<!-- No font at all: words get the document default, which is DM Sans.
+			<!-- No font at all: words get the document default, which is the sans.
 			     Not `.thrive-eyebrow` -- that class uppercases, and this prefix sits
 			     inline with the title in lowercase ("phase 0"), which is a different
 			     shape from a standalone eyebrow above a page heading. -->

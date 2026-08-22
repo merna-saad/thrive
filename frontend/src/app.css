@@ -1,15 +1,15 @@
 @import 'tailwindcss';
 
-/* Fonts, self-hosted via @fontsource. Latin subset and weight-pinned to match
-   what the Next app loaded through next/font:
-     DM Sans        400 prose, 500 row titles and emphasis, 700 headings
+/* ONE webfont now, not two. (2026-08-22)
      JetBrains Mono 400, 500 -- mono marks machine truth and never carries a
                     heading, so it has no use for 700.
    @fontsource ships `font-display: swap` in each of these files already.
-   Self-hosted on purpose: no Google Fonts link anywhere. */
-@import '@fontsource/dm-sans/latin-400.css';
-@import '@fontsource/dm-sans/latin-500.css';
-@import '@fontsource/dm-sans/latin-700.css';
+   Self-hosted on purpose: no Google Fonts link anywhere.
+
+   DM SANS IS GONE, and its three @fontsource imports with it. Interface text
+   takes the SYSTEM stack -- see `--font-sans` in layer 1 for the reasoning and
+   for what it costs. Six woff2 files stopped shipping; nothing loads a webfont
+   for prose any more. */
 @import '@fontsource/jetbrains-mono/latin-400.css';
 @import '@fontsource/jetbrains-mono/latin-500.css';
 
@@ -869,13 +869,40 @@
      must not collapse into each other -- see the note on --thrive-control-stroke. */
   --thrive-arrival-ring: 2px;
 
-  /* Typography stack. Both faces are self-hosted via @fontsource above; these
-     two variables are what the Next app's next/font call produced, kept under
-     the same names so the --font-sans / --font-mono chains below are unchanged.
+  /* ── Typography. THE SANS IS THE SYSTEM STACK as of 2026-08-22 ───────────
+     Mono is still self-hosted via @fontsource above. Sans is not a webfont at
+     all any more.
 
-     THE TWO-FACE RULE, tightened 2026-08-22:
+     WHY. DM Sans did not read naturally at any size, across four passes of the
+     type scale. The comparison that settled it was GitHub's UI, which uses the
+     system stack and renders visibly more crisply on the same screen -- because
+     the OS font is HINTED for that display in a way no webfont is. That is not
+     something a size or a weight can fix, so the face changed instead of the
+     scale changing a fifth time.
 
-         DM Sans for everything. JetBrains Mono for NUMBERS ONLY.
+     WHAT IT COSTS, on the record. **The app now looks slightly different on
+     macOS, Windows and Android**, because each resolves the stack to its own
+     face -- SF on Apple, Segoe on Windows, Roboto on Android. That is the trade,
+     accepted deliberately: looking NATIVE everywhere rather than IDENTICAL
+     everywhere. Two consequences to keep in mind:
+
+       - A screenshot from one machine is no longer a reference for another. Any
+         future type measurement has to say which platform it was taken on. The
+         numbers in this file are macOS, in headless chromium.
+       - Line lengths shift a little per platform, so `--container-measure` (68ch)
+         is doing more work than it was -- `ch` tracks the font, which is exactly
+         why it is `ch` and not `rem`.
+
+     `-apple-system` and `BlinkMacSystemFont` before the named faces, because on
+     Apple platforms the correct answer is the system face rather than anything
+     nameable; the named entries are the fallbacks that follow. `system-ui` and
+     `ui-sans-serif` are deliberately NOT in the chain -- they resolve to the
+     same thing on the platforms that matter and add two more ways for the
+     rendering to differ.
+
+     THE TWO-FACE RULE, unchanged in substance and reworded for the new face:
+
+         The system sans for everything. JetBrains Mono for NUMBERS ONLY.
 
      The previous wording ended "...compact dates, status eyebrows, and any
      label that is a system value rather than something a person wrote", and
@@ -892,7 +919,7 @@
 
      Mono LOSES: anything made of words. Eyebrows ("CALENDAR · FALL 2026"),
      view switchers, chips, tags, "next up", stream and filter names. Dates
-     written out in prose ("Thursday, August 20") are words and take DM Sans;
+     written out in prose ("Thursday, August 20") are words and take the sans;
      the time inside one ("11:00 AM") is a value and stays mono.
 
      The test, when it is genuinely unclear: would you ever want this to line
@@ -901,13 +928,18 @@
      Components ask for the treatment, not the face: `.thrive-numeric` and
      `.thrive-eyebrow` in @layer components. A component that writes
      `font-mono` directly is asserting a font, which is the design system's
-     call and not its own. */
-  --font-dm-sans: 'DM Sans';
+     call and not its own. `designSystem.spec.ts` fails the build on
+     `font-sans` or `font-mono` in markup, and that check did not need to change
+     for this swap -- which is the point of it having been written against the
+     RULE rather than against DM Sans. */
   --font-jetbrains-mono: 'JetBrains Mono';
 
+  /* No `--font-system` alias above this. A one-entry indirection for a stack
+     with exactly one consumer buys nothing, and `--font-dm-sans` only existed
+     because the Next app's next/font call produced a name. */
   --font-sans:
-    var(--font-dm-sans), ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
-    sans-serif;
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
+    Arial, sans-serif;
   --font-mono:
     var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 
@@ -1086,7 +1118,32 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* Type scale. Sizes unchanged; WEIGHT IS NOT BAKED IN.
+  /* ── SIZES AND LEADING SURVIVED THE FONT SWAP, and that was measured ──────
+     The font change of 2026-08-22 was expected to move the scale, because a
+     different face at the same pixel size does not read the same size. It did
+     not, and the reason is that the two faces happen to have almost identical
+     VERTICAL metrics:
+
+       per 100px em          DM Sans     system sans     change
+       cap height              70.00          70.46      +0.7%
+       x-height                50.40          50.78      +0.8%
+
+     Apparent size is governed by x-height, and 0.8% is not visible. So no size
+     step moved, and no `--*-lh` moved either -- leading is set in rem against
+     the size, so identical x-heights sit identically inside identical boxes.
+     Confirmed the blunt way as well: the document heights of `/`, `/calendar`,
+     `/appointments` and `/ask/resources` are byte-identical before and after,
+     and `check:layout` needed no new expectations.
+
+     WHERE THE FACES DO DIFFER IS HORIZONTAL -- the system sans is 9.3% narrower.
+     That is why the TRACKING changed and the sizes did not. See the note on
+     `--text-*--letter-spacing` below.
+
+     Do not read "the scale was already right" as luck that generalises. It is a
+     property of these two particular faces, and the next face change needs the
+     same two numbers measured again rather than this paragraph trusted.
+
+     Type scale. Sizes unchanged; WEIGHT IS NOT BAKED IN.
      Every step used to carry its own 500-700 font-weight, which made
      `font-semibold` on a 700 step actively *lighten* it. That worked under a
      two-weight rule. Under the three-weight rule it fights, so weight is set
@@ -1098,8 +1155,33 @@
        700  page titles and section headings, used sparingly
 
      Consequence, deliberate: a call site that sets no weight renders 400.
-     Only 400/500/700 load, so `font-semibold` (600) synthesises -- do not
-     use it. */
+
+     ── AND THE FONT SWAP TOOK AWAY WHAT WAS ENFORCING THIS ───────────────────
+     This used to end: "Only 400/500/700 load, so `font-semibold` (600)
+     synthesises -- do not use it." **That sentence is now false**, and it is the
+     one place the swap changed a rule rather than a value.
+
+     With DM Sans self-hosted at three weights, 600 was not in the browser, so a
+     stray `font-semibold` came out as a smeared synthesis -- visibly wrong, and
+     therefore self-policing. The system face ships the whole range. Measured on
+     "Handgloves quick" at 40px, all four are distinct and evenly spaced:
+
+       400  303.75px      600  321.09px
+       500  312.48px      700  329.86px
+
+     Even spacing is the tell that 600 is a REAL weight rather than a
+     synthesis -- a faked weight does not land on the same interval.
+
+     So the three-weight rule survives as a DESIGN decision and loses its
+     accidental enforcement: a `font-semibold` now renders cleanly and looks
+     fine, which means the drift would be invisible. That is the exact failure
+     mode this repo cares about most, so it is now checked --
+     `designSystem.spec.ts` rejects `font-semibold` and the other stock weight
+     utilities outside the three. Nothing in `src/` used one; the check exists to
+     keep it that way.
+
+     Nothing was gained by the range being available. Three weights was never a
+     limitation being worked around. */
   --text-3xs: var(--thrive-text-3xs); /* meta, counts, timers */
   --text-3xs--line-height: var(--thrive-text-3xs-lh);
 
@@ -1139,14 +1221,41 @@
   --text-3xl: var(--thrive-text-3xl); /* page titles only */
   --text-3xl--line-height: var(--thrive-text-3xl-lh);
 
-  /* Tracking on the top three steps only. Large type at default tracking is
-     the single most common tell of an unconsidered interface; body sizes are
-     left alone, where negative tracking costs readability rather than buying
-     polish. `lg` (22) lost its tracking this pass -- it is a section heading,
-     not display type. */
-  --text-xl--letter-spacing: -0.025em;
-  --text-2xl--letter-spacing: -0.03em;
-  --text-3xl--letter-spacing: -0.035em;
+  /* Tracking on the top TWO steps now. Large type at default tracking is the
+     single most common tell of an unconsidered interface; body sizes are left
+     alone, where negative tracking costs readability rather than buying polish.
+     `lg` (22) lost its tracking in the density pass -- it is a section heading,
+     not display type.
+
+     ── CUT WITH THE FONT SWAP, 2026-08-22 ─────────────────────────────────────
+     Was -0.025 / -0.03 / -0.035em on xl / 2xl / 3xl, tuned for DM Sans. Those
+     numbers were compensating for a WIDE GEOMETRIC FACE that genuinely reads
+     loose at display sizes. The system stack is not that face, and the two
+     tightenings were compounding:
+
+       the system sans is 9.3% narrower than DM Sans   (lowercase alphabet,
+                                                        measured per 100px em)
+       the old tracking took another 6.8-7.4% off      (measured on the real
+                                                        heading strings)
+
+     Together the headings rendered about 15% tighter than the design intended --
+     not a little tight, a different design. On Apple platforms it is worse than
+     that arithmetic suggests, because the system face applies its own optical
+     tracking at these sizes, so -3.5% was the third tightening in a row.
+
+     `xl` loses its tracking outright, which is the same argument that took it
+     off `lg`: at the desktop scale `xl` is 19.5px, SMALLER than the 22px `lg`
+     was when that decision was made. A step that size is a section heading.
+
+     What is left is deliberately small and deliberately still negative, because
+     the stack is not only Apple: Segoe UI and Roboto are not optically tracked
+     and are a little wider, so a slight pull helps there and is invisible on SF.
+
+     Measured after, on "Book time with someone" at 24px: 265.4px against
+     254.8px under the old value -- 4.2% looser, and 2.9% tighter than no
+     tracking at all. */
+  --text-2xl--letter-spacing: -0.01em;
+  --text-3xl--letter-spacing: -0.015em;
 
   /* Spacing: 4px base step -> p-1 = 4, p-2 = 8, p-4 = 16, p-6 = 24 ...
      A `var()` for the same reason the type steps are: the 64rem block shrinks it,
@@ -1544,14 +1653,20 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* The small label above a heading. WORDS, therefore DM Sans.
+  /* The small label above a heading. WORDS, therefore the sans.
      The uppercase-and-tracked treatment is what was actually doing the work
      here; mono was along for the ride. Bundling size, tracking, case and weight
      into one class is also what stops the next eyebrow being assembled from
      four utilities and coming out slightly different.
      Tracking is wide because uppercase at 12px needs the air -- this is the one
      place in the system that tracks a small size, and it is why the type scale
-     leaves tracking to the top three steps and to here. */
+     leaves tracking to the top three steps and to here.
+
+     THE 0.12em SURVIVED THE FONT SWAP, checked rather than assumed. It is
+     relative to the size rather than absolute, and it was never compensating for
+     a DM Sans quirk -- uppercase needs air in any face. Measured after the swap
+     the eyebrow reads the same; see the note on the type scale's tracking for the
+     one value that DID move. */
   .thrive-eyebrow {
     font-family: var(--font-sans);
     font-size: var(--text-3xs);

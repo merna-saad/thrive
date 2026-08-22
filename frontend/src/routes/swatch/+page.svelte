@@ -101,9 +101,9 @@
 		{ cls: 'text-sm', label: 'sm', px: '16 / 23', use: 'BODY DEFAULT' },
 		{ cls: 'text-base', label: 'base', px: '18 / 25', use: 'task titles, lead copy' },
 		{ cls: 'text-lg', label: 'lg', px: '22 / 28', use: 'section heading' },
-		{ cls: 'text-xl', label: 'xl', px: '27 / 33', use: 'tracking -0.025em' },
-		{ cls: 'text-2xl', label: '2xl', px: '34 / 39', use: 'tracking -0.03em' },
-		{ cls: 'text-3xl', label: '3xl', px: '40 / 44', use: 'page titles only, tracking -0.035em' }
+		{ cls: 'text-xl', label: 'xl', px: '27 / 33', use: 'no tracking since the font swap' },
+		{ cls: 'text-2xl', label: '2xl', px: '34 / 39', use: 'tracking -0.01em' },
+		{ cls: 'text-3xl', label: '3xl', px: '40 / 44', use: 'page titles only, tracking -0.015em' }
 	];
 
 	const radii = [
@@ -260,6 +260,12 @@
 			and tags. A face used for a third of the interface is not an accent, it is a second body
 			font.
 		</p>
+		<p class="max-w-measure text-xs text-body">
+			<strong class="font-medium text-ink">The sans is the system stack</strong>, not a webfont —
+			so this page renders in SF on a Mac, Segoe UI on Windows and Roboto on Android, and the
+			samples below are whichever of those you are reading on. Mono is still self-hosted
+			JetBrains Mono and looks the same everywhere.
+		</p>
 
 		<!-- The rule, worked. Left is a value, right is words. -->
 		<div class="space-y-2">
@@ -332,13 +338,14 @@
 
 		<!-- Weights, unchanged this pass. -->
 		<div class="space-y-1 border-t border-hairline-soft pt-4">
-			<p class="thrive-eyebrow">DM Sans weights — set at the call site</p>
+			<p class="thrive-eyebrow">three weights — set at the call site</p>
 			<p class="text-base font-normal text-ink">400 · Regular prose sits here.</p>
 			<p class="text-base font-medium text-ink">500 · Row titles and emphasis.</p>
 			<p class="text-base font-bold text-ink">700 · Page and section headings.</p>
 			<p class="text-3xs text-muted-ink">
-				600 is deliberately not loaded, so <code class="font-mono">font-semibold</code>
-				synthesises. Do not use it.
+				600 used to be unavailable, so <code class="font-mono">font-semibold</code> synthesised
+				and looked wrong. The system face ships the whole range, so it now renders cleanly —
+				which is why <code class="font-mono">designSystem.spec.ts</code> rejects it instead.
 			</p>
 		</div>
 

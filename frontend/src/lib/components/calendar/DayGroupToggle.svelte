@@ -16,7 +16,7 @@
 	 * it sits inline with the day's sections rather than up in the page chrome
 	 * where it would compete with the view switcher 7b brings.
 	 *
-	 * Words, so DM Sans. The Next version set these in mono, which is the drift
+	 * Words, so the sans. The Next version set these in mono, which is the drift
 	 * the two-face rule was tightened to stop -- "type" and "time" are not values
 	 * anybody scans in a column.
 	 */

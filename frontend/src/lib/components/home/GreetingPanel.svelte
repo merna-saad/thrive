@@ -68,7 +68,7 @@
 			{messages.home.greeting.line(greeting, firstName)}
 		</h1>
 
-		<!-- A date in prose is WORDS: DM Sans, not mono. That is the tightened
+		<!-- A date in prose is WORDS: the sans, not mono. That is the tightened
 		     two-face rule -- this line was mono in the Next app. -->
 		<p class="thrive-eyebrow">{dateLabel}</p>
 	</div>

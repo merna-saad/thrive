@@ -19,7 +19,7 @@
 	 * "next up" line in mono, on the reasoning that it was all "machine truth".
 	 * Under the tightened rule only VALUES take `.thrive-numeric`: the figure, the
 	 * "n of m done" fraction and the clock time. The breakdown ("4 classes") and
-	 * the words "next up:" are sentences, so they take DM Sans -- which is also
+	 * the words "next up:" are sentences, so they take the sans -- which is also
 	 * what stops this panel reading as a terminal.
 	 *
 	 * `next up:` puts indigo on the TIME, the reserved "this is where you are now"

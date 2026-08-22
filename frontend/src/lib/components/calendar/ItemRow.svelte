@@ -15,7 +15,7 @@
 	 * Extracted so the day list, the week columns and the agenda cannot drift on
 	 * how a class or a ticked to-do looks. The time is a value and takes
 	 * `.thrive-numeric`, so a column of times aligns; the title is something a
-	 * person wrote and takes DM Sans.
+	 * person wrote and takes the sans.
 	 *
 	 * Tickable rows carry a real checkbox that writes back to whichever store the
 	 * item came from, so ticking here and ticking on Home are the same act.
