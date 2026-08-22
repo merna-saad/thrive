@@ -4,6 +4,53 @@ Reusable patterns and lessons. Things worth knowing again.
 
 ---
 
+## 2026-08-21 (later) — "the app renders too large" is usually not one knob
+
+Asked twice in one day, and the answer was different both times.
+
+The first time it WAS the root: `--text-sm` is `1rem`, so a 16px root put the desk
+body at 16px rather than the 15 the design was drawn for, and a phone bump stacked
+on top to make 17. One rule fixed type, spacing and every rem-based control height
+at once.
+
+The second time the root was already right -- 93.75% at >=64rem, computing to 15px at
+both 1512 and 1920 -- and `--spacing` was already tighter than stock (0.25rem at a
+15px root is a 3.75px step, against Tailwind's 4px). Neither knob was responsible.
+What was generous was the STEP CHOSEN at each call site, and the worst offender was
+the one list that appears on every page: nav rail items at 41.25px with 3.75px gaps.
+
+**THE LESSON: measure the two global knobs first, then stop looking for a global
+knob.** Reporting "the root is already correct and here is what it computes to" is
+more useful than finding something to adjust.
+
+**And `--spacing` is not the lever it looks like.** In Tailwind v4 `min-h-11`,
+`size-3.5` and every control height derive from it, so a 10% reduction shrinks touch
+targets and icons along with the gaps. Scoping call sites to `lg:` compresses the
+air without touching either -- and it makes "mobile is unchanged" a measurable claim
+rather than an intention. Phone document heights came out byte-identical.
+
+## 2026-08-21 (later) — the design system usually already answers the question
+
+Two asks in one session were solved by finding the existing answer rather than
+writing one.
+
+The Ask THRIVE conversation rail sat on the page's own cream and read as text
+floating in a margin. The nav rail solves the identical problem with `bg-sunken`
+behind a `border-line` edge -- and `.thrive-panel[data-tone="sunken"]` IS that pair
+plus the panel radius. No new token, no new colour, and the contrast gate stayed
+58/58 because every pair involved was already computed.
+
+Same shape for the current-conversation marker: `TaskRow` already expresses "this
+row is special" as a 2px left stripe. Reusing it also surfaced the detail that
+matters -- the stripe has to be 2px on EVERY row and only change colour, or clicking
+through the list shuffles it sideways.
+
+**THE LESSON: when a request says "give it a distinct surface", the first move is to
+find what already has one.** `grep` for the component that solved it, not for the
+token that might.
+
+---
+
 ## 2026-08-21 — a design can be reverted and still leave the right residue
 
 `/appointments` shipped three day pickers in one session: a five-chip strip, then a

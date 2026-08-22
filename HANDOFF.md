@@ -4,6 +4,71 @@ Session log, newest first. What happened, what was decided, what is still open.
 
 ---
 
+## 2026-08-21 (later) — Calendar chrome, an unreproducible bug, density, and the Key
+
+**HEAD:** `3d38df1` · **640 tests · 213 interaction assertions · 51 layout targets ·
+58 contrast assertions · six gates green · green in all seven timezones.** 116
+commits, all pushed.
+
+Four requests, four commits.
+
+### `280cb2a` — the calendar page gets its gutter back
+
+- `--container-wide` (96rem) **deleted**. `/calendar` had its own cap while every
+  other route was on 80rem, which on a 1920px screen left the busiest page a 127px
+  gutter against everyone else's 248px. Nothing else used the token.
+- The eyebrow and the intro paragraph are gone; the page keeps its name. The view
+  switcher moved onto the heading row.
+- **The Key became a disclosure** rather than an 18rem column. Grid top 202 -> 169px
+  and width 927 -> 1198px at 1512.
+- This is the one change that makes something LESS discoverable. Paid for with a
+  trigger that names the filter in words, a count whenever a filter is on, and the
+  fact that nothing about reading the month depends on the legend.
+
+### `e89c1a7` — "Your day" moves under the month, and the gate that lied
+
+- **The reported bug does not reproduce.** All 42 cells drive the pane, in dev and
+  in the build, both advisors, 1512/1280/900, in-month, trailing, and after paging.
+- What DOES reproduce is the misreading, from two causes: the pane sat 270px above
+  the grid that changes it (and off-screen at an 800px viewport height), and classes
+  recur weekly so two Mondays show an identical row with only 11.25px of muted text
+  distinguishing them. Order swapped; the date is now the pane's subject.
+- **The assertion was the real defect.** It read "the first `<p>` in the pane" and
+  checked only that its text changed -- never the list, and never an adjacent-month
+  cell. See BUGS.md.
+
+### `bd2c66a` — density, and the history rail
+
+- **Neither suspect caused it.** The root is 93.75% at >=64rem and computes to 15px
+  at both 1512 and 1920. `--spacing` at 0.25rem is a 3.75px step at that root,
+  TIGHTER than stock Tailwind. The generosity was the step chosen per call site.
+- Nav rail pitch 45 -> 39.38px; type unchanged at every step. Every compression
+  scoped to `lg`+, and phone document heights are byte-identical before and after.
+- The conversation rail became `.thrive-panel[data-tone="sunken"]` -- the nav rail's
+  own treatment. Rows have a surface and a hairline at REST; the current one adds a
+  2px navy stripe, same width on every row so the list does not shuffle sideways.
+
+### `3d38df1` — the Key's streams are a column
+
+- Eleven chips in four ragged rows -> eleven rows, dots in one column, `w-full` so
+  the borders end together.
+- Labels and the three view toggles moved BESIDE the streams, so the panel is the
+  taller column (451px) rather than the sum. Internal scrolling was rejected: it
+  would hide filters inside a panel that is already collapsed.
+- The three toggles are stacked too. Judgement call, invited by the request.
+
+### Still open
+
+- **CONTEXT.md is four commits stale** and must be REGENERATED IN FULL, not patched.
+  It still describes `--container-wide`, the Key as a column beside the grid, and
+  "Your day" above the month.
+- The Key panel is 451px at 1512 and 790px on a phone when open. Acceptable behind a
+  disclosure; if it bites, columns for the streams list is the next lever.
+- The history rail's new surface is the one change that reaches mobile (+6px on
+  /ask at 390px). Deliberate: it was invisible there for the same reason.
+
+---
+
 ## 2026-08-21 — Phases 8 and 9, three redesigns, a deploy, and this doc pass
 
 **HEAD:** `81137b7` · **640 tests · 190 interaction assertions · 51 layout targets ·

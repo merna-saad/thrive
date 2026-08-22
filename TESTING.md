@@ -1,7 +1,7 @@
 # TESTING
 
-**Last verified:** 2026-08-21 at `81137b7`. **640 tests, 29 files, all
-passing.** Verified green in all seven timezones of the sweep below — and in 7a
+**Last verified:** 2026-08-21 at `3d38df1`. **640 tests, 29 files, all
+passing. 213 interaction assertions, 51 layout targets, 58 contrast assertions.** Verified green in all seven timezones of the sweep below — and in 7a
 the sweep **caught a real failure**, which is recorded there.
 
 ```bash
@@ -22,6 +22,38 @@ npm run check:interaction            # 97 assertions: popovers, task editing, ca
 `check-contrast.py` PARSES `app.css` rather than mirroring it, so a token edited
 there is checked there. `check:layout` needs a browser and skips loudly (exit 0)
 when it cannot find one — see the note below.
+
+---
+
+## 2026-08-21 (later) — 190 -> 213 interaction assertions
+
+Four requests added 23, and **one of them replaced a check that could not fail**:
+`check('the calendar is allowed more width than the rest', true, '<prose>')`. A
+literal `true` with a sentence for a reason is a line in the count and nothing else.
+It is now a comparison of two routes' measured gutters.
+
+The other lesson is in BUGS.md and is worth repeating here because it is a TESTING
+failure rather than a code one: the appointments grid assertion read *the first
+`<p>` in the pane* and checked only that its text changed. It never looked at the
+list the student actually reads, and it only ever clicked cells inside the displayed
+month -- so the adjacent-month path was untested while being green. It now walks
+both groups of cells until the pane's ROWS change, and reads the date by a
+`[data-my-day-date]` hook rather than by position.
+
+New this pass, by area:
+
+| Area | Assertions | What they hold |
+|---|---|---|
+| The calendar's Key as a disclosure | 6 | shut on arrival and absent from the DOM, names the filter in words, opens from the keyboard, both dimensions survive, 44px trigger on a phone |
+| The Key's streams as a column | 4 | one line per stream, one dot x-position across all 11, still a checked control, 44px row on a phone |
+| Appointments: control before result | 2 | the pane is below the month, and grid-top to pane-bottom fits one screen |
+| Appointments: the coupling | 10 | the pane's ROWS move for both an in-month and an adjacent-month cell, and the chips hold on every click of the walk |
+| The history rail as a region | 5 | a surface distinct from the page, a panel edge, rows that look clickable at rest, a current marker that is not hue alone, and a stripe that does not shift the list |
+
+`check:layout` needed no change for any of it. It measures each route's scroll
+height against its painted height rather than hardcoding either, so a height change
+is simply the new truth -- which is the property that makes it survive a density
+pass. 51/51 throughout.
 
 ---
 

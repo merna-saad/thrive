@@ -7,6 +7,64 @@ Note on links: this repo has no PRs — all commits go direct to `main`
 
 ---
 
+## 2026-08-21 (later) — a gate that could not fail, and a bug that was not one
+
+### The assertion read the first `<p>` and called it the date
+
+`e89c1a7`. The owner reported that clicking a day in `/appointments`' month grid did
+not move "Your day", and pointed out that `check:interaction` was supposed to assert
+exactly that and had been green throughout.
+
+**The feature was not broken.** All 42 cells drive the pane, in the dev server and
+in the built app, on both advisors, at 1512/1280/900px, for in-month cells, for
+trailing cells from an adjacent month, and after paging. `MiniCalendar` is fully
+controlled, `MyDayPane` reads the same `browseDay` that fills the cell navy, and
+nothing between them latches.
+
+**The assertion, however, could not have caught it if it had been.** Two holes:
+
+1. It read `section[aria-labelledby="my-day"] p` -- *the first paragraph in the
+   pane* -- and asserted only that the text differed. It never looked at the list.
+   Latch the rows and leave the date reactive and this stays green forever.
+2. It took the FIRST eligible cell, which is always inside the displayed month. The
+   adjacent-month trailing cells -- the ones a student reaches for at a month
+   boundary, and the ones the owner named -- had never been clicked once.
+
+And "the first `<p>`" is only the date line while the date line happens to be first.
+Both paragraphs now carry hooks (`[data-my-day-date]`, `[data-my-day-scope]`) so
+neither can stand in for the other.
+
+**THE PATTERN: an assertion that reads a position rather than an identity is a
+false green waiting for a layout change.** The fix is a hook on the element, and a
+check on the thing the user actually reads -- which was the list, not the date.
+
+### `check(name, true, 'a sentence')` is not an assertion
+
+`280cb2a`. `'the calendar is allowed more width than the rest'` was asserted as a
+literal `true` with prose for a reason. It could never go red, and its prose went
+stale the moment the cap changed -- it was still claiming 96rem after the token was
+deleted. Replaced with a real comparison of the two routes' measured gutters.
+
+**Grep for `check(` calls whose second argument is a literal.** They are load-bearing
+in the count and load-bearing nowhere else.
+
+### The symptom was real even though the bug was not
+
+Worth keeping separate from the two above. Two things made a working feature read as
+broken, and neither is a defect in the reactive graph:
+
+- **The result was 270px above the control**, and off-screen entirely at an 800px
+  viewport height, because the grid's last row was already past the fold.
+- **Weekly recurrence made two days look identical.** Aug 24 and Aug 31 both show
+  MGT 142 at 9:30. The only differentiator was `text-2xs text-muted-ink` (11.25px)
+  in the far corner of the heading row.
+
+**THE PATTERN: before hunting a reactivity bug, check whether the change is VISIBLE.
+"Nothing happened" and "something happened where I could not see it, and looked the
+same when I could" are the same bug report and different bugs.**
+
+---
+
 ## 2026-08-21 — after Phases 8 and 9: the redesigns and the deploy
 
 ### A `flex-1` silently beat a height token, and only a SKIP said so
