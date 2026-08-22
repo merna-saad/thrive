@@ -3781,16 +3781,19 @@ try {
 		 * 30.375px -- and so would the bell, which carries a byte-identical class
 		 * string. `lg:size-9` is `9 * var(--spacing)`, and the desktop density pass
 		 * took `--spacing` to 0.225rem at a 93.75% root, so every `size-9` in the
-		 * bar is 30.375px rather than the 36 the comment claims. That comment
-		 * predates the pass.
+		 * bar is 30.375px. The comment had simply not been re-measured after that
+		 * pass, and has since been corrected to say 30.375px.
 		 *
-		 * Not fixed here: the bar's target sizes are a density question about three
-		 * existing controls, not a theme question, and quietly resizing them under
-		 * cover of this change is how a diff stops being reviewable. Recorded
-		 * instead. What this gate asserts is the property that IS this change's
-		 * business -- the new control is the same size as the ones it sits beside,
-		 * so it cannot be the odd one out -- plus the standard that actually
-		 * applies to a pointer target, WCAG 2.5.8's 24px.
+		 * RESOLVED (owner, 2026-08-21): the density is deliberate and the controls
+		 * are not growing. 30.375px clears WCAG 2.5.8's 24px comfortably, and the
+		 * repo's "36px floor" was a house preference rather than a standard.
+		 *
+		 * This still does not assert a number copied out of that comment, and that
+		 * is the point rather than an accident: a comment stating a measurement
+		 * decays like any other verification claim. What it asserts is the property
+		 * that survives a density change -- the new control is the same size as the
+		 * ones it sits beside, so it cannot be the odd one out -- plus the standard
+		 * that actually applies to a pointer target.
 		 */
 		const bell = themed.locator('header button[aria-label*="Notification"]');
 		const toggleBox = await toggle.boundingBox();
@@ -3803,7 +3806,7 @@ try {
 		check(
 			'and it clears the 24px WCAG 2.5.8 asks of a pointer target',
 			(toggleBox?.height ?? 0) >= 24,
-			`${toggleBox?.height}px — note TopBar's comment says 36, see the note above`
+			`${toggleBox?.height}px — the desktop density is deliberate, see the note above`
 		);
 
 		const atRest = await readTheme();

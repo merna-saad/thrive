@@ -23,10 +23,30 @@
 	 * everywhere to hold two 44px touch targets, and it was paying that on
 	 * desktop where nothing touches it -- on every route, not just Home.
 	 *
-	 * So the CONTROLS are what change size: 44px on mobile, 36px above `lg`. The
-	 * bar's height follows from them rather than the other way round. WCAG 2.5.8
-	 * asks 24px of a pointer target and 2.5.5 asks 44px of a touch one; 36px on a
-	 * pointer is comfortably past the first and mobile keeps the second intact.
+	 * So the CONTROLS are what change size: 44px on mobile, **30.375px** above
+	 * `lg`. The bar's height follows from them rather than the other way round.
+	 * WCAG 2.5.8 asks 24px of a pointer target and 2.5.5 asks 44px of a touch one;
+	 * the desktop size is comfortably past the first and mobile keeps the second
+	 * intact.
+	 *
+	 * ## That number was wrong in this comment for a while, and it said 36px
+	 *
+	 * Corrected 2026-08-21. `lg:size-9` is `calc(var(--spacing) * 9)`, and the
+	 * desktop density pass took `--thrive-spacing` to 0.225rem at a 93.75% root --
+	 * so 9 x 3.375px is 30.375px, not the 36 this comment claimed. Nobody
+	 * re-measured the bar after that pass; the theme work's new assertion asked for
+	 * 36px on the strength of this paragraph and failed, which is how it surfaced.
+	 *
+	 * **The density is deliberate and the controls are NOT growing** (owner,
+	 * 2026-08-21). 30.375px clears the real accessibility floor for a pointer by a
+	 * comfortable margin, and this repo's own "36px" was a house preference rather
+	 * than a standard. The comment was the thing that was wrong.
+	 *
+	 * `check:interaction` no longer asserts a number typed here. It measures the
+	 * theme toggle against the bell beside it -- the property that actually matters,
+	 * that the three controls in this bar match -- plus WCAG 2.5.8's 24px. A
+	 * comment stating a measurement decays exactly like any other verification
+	 * claim, so the gate does not read it.
 	 */
 	let {
 		student,
