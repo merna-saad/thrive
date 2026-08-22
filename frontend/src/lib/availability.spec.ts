@@ -1,28 +1,25 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import type { SlotView } from "$lib/appointmentsView";
 import {
   availabilityByDay,
-  bookingWindowEnd,
   firstBookableDay,
-  isBookableDay,
-  openCountInWindow,
+  openSlotCount,
+  orderedDayKeys,
   publishedByDay,
   slotsForDay,
 } from "$lib/availability";
 
 /**
- * The booking window's arithmetic.
+ * What an advisor has open, as arithmetic.
  *
- * Nothing here reads a clock -- that is the property being protected as much as
- * the answers. Every function takes "today" as a day key, so these tests are
- * timezone-independent by construction and the seven-timezone sweep has nothing
- * to disagree about.
- *
- * The one exception is the last block, which freezes the clock on purpose to
- * check the FIXTURE against the window. That coupling is the reason
- * `BOOKING_WINDOW_DAYS` is 25 and not 5, and it is the thing that would break
- * silently if either number moved alone.
+ * Nothing here reads a clock and nothing takes "today" — which is the shape of
+ * what this module became. For one phase it owned a one-calendar-month BOOKING
+ * WINDOW separate from the fixture, and this file froze a Monday in a 31-day
+ * month to assert the coupling between the two. The chip strip made the window
+ * and the published set the same thing, so `bookingWindowEnd`, `isBookableDay`
+ * and `openCountInWindow` are gone and so are their tests. There is no longer a
+ * second opinion for them to arbitrate.
  */
 
 /** A slot, with only the fields the functions under test look at. */
@@ -43,37 +40,6 @@ function slot(
     ...overrides,
   };
 }
-
-describe("bookingWindowEnd", () => {
-  it("lands on the same date one month on", () => {
-    expect(bookingWindowEnd("2026-08-21")).toBe("2026-09-21");
-  });
-
-  it("rolls December into the next January", () => {
-    // The regression this exists for: `toDayKey` takes a 0-indexed month, so
-    // handing it `month + 1` unnormalised produced "2026-13-15" -- a string that
-    // sorts after every real day key, which would have opened the window
-    // forever instead of by one month.
-    expect(bookingWindowEnd("2026-12-15")).toBe("2027-01-15");
-  });
-
-  it("clamps to the end of a shorter target month rather than overflowing", () => {
-    // February has no 31st. JavaScript would roll this to March 3rd, handing a
-    // student who books on the 31st three days that a student booking on the
-    // 30th does not get.
-    expect(bookingWindowEnd("2027-01-31")).toBe("2027-02-28");
-    expect(bookingWindowEnd("2027-01-30")).toBe("2027-02-28");
-  });
-
-  it("knows February has 29 days in a leap year", () => {
-    expect(bookingWindowEnd("2028-01-31")).toBe("2028-02-29");
-  });
-
-  it("does not clamp when the target month is long enough", () => {
-    expect(bookingWindowEnd("2026-08-31")).toBe("2026-09-30");
-    expect(bookingWindowEnd("2026-07-31")).toBe("2026-08-31");
-  });
-});
 
 describe("availabilityByDay", () => {
   it("counts the open slots on each day", () => {
@@ -122,23 +88,19 @@ describe("publishedByDay", () => {
   it("is what tells a fully booked day from a day not worked", () => {
     /*
      * The pair is the point. A Saturday and a fully-booked Tuesday both have an
-     * open count of zero; only `publishedByDay` separates them, and the day list
-     * needs that separation to say "Fully booked" about one and leave the other
-     * out entirely. Calling a Saturday fully booked would be a lie.
+     * open count of zero; only `publishedByDay` separates them. A chip says
+     * "Full" about one and does not exist for the other, and calling a Saturday
+     * full would be a lie.
      */
     const slots = [
       slot("a", "2026-08-25", { available: false }),
       slot("b", "2026-08-25", { available: false }),
     ];
 
-    const open = availabilityByDay(slots);
-    const published = publishedByDay(slots);
-
-    expect(open["2026-08-25"]).toBeUndefined();
-    expect(published["2026-08-25"]).toBe(2);
-    // A Saturday: absent from both.
-    expect(open["2026-08-29"]).toBeUndefined();
-    expect(published["2026-08-29"]).toBeUndefined();
+    expect(availabilityByDay(slots)["2026-08-25"]).toBeUndefined();
+    expect(publishedByDay(slots)["2026-08-25"]).toBe(2);
+    // A Saturday: absent from both, so no chip at all.
+    expect(publishedByDay(slots)["2026-08-29"]).toBeUndefined();
   });
 
   it("leaves a day with no slots absent rather than zero", () => {
@@ -146,74 +108,82 @@ describe("publishedByDay", () => {
   });
 });
 
-describe("openCountInWindow", () => {
-  const open = {
-    "2026-08-20": 3, // before today
-    "2026-08-21": 2, // today
-    "2026-09-21": 1, // the window's last day
-    "2026-09-22": 5, // past it
-  };
+describe("orderedDayKeys", () => {
+  it("sorts chronologically, which for a day key is lexicographically", () => {
+    /*
+     * "YYYY-MM-DD" is zero-padded and big-endian, so string order IS date order.
+     * No parsing, and no timezone can get between the comparison and the answer.
+     */
+    const keys = orderedDayKeys({
+      "2026-09-02": 1,
+      "2026-08-31": 1,
+      "2026-09-10": 1,
+    });
 
-  it("counts today and the last day, and nothing outside", () => {
-    expect(openCountInWindow(open, "2026-08-21", "2026-09-21")).toBe(3);
+    expect(keys).toEqual(["2026-08-31", "2026-09-02", "2026-09-10"]);
   });
 
-  it("is zero when the window holds nothing", () => {
-    expect(openCountInWindow({}, "2026-08-21", "2026-09-21")).toBe(0);
+  it("crosses a year boundary correctly", () => {
+    expect(orderedDayKeys({ "2027-01-04": 1, "2026-12-31": 1 })).toEqual([
+      "2026-12-31",
+      "2027-01-04",
+    ]);
+  });
+
+  it("is empty for an advisor who publishes nothing", () => {
+    expect(orderedDayKeys({})).toEqual([]);
   });
 });
 
-describe("isBookableDay", () => {
-  const open = { "2026-08-21": 2, "2026-09-21": 1, "2026-09-22": 4 };
-  const today = "2026-08-21";
-  const end = "2026-09-21";
-
-  it("accepts a day with open times inside the window", () => {
-    expect(isBookableDay("2026-08-21", open, today, end)).toBe(true);
+describe("openSlotCount", () => {
+  it("counts what is still free, across every day", () => {
+    expect(
+      openSlotCount([
+        slot("a", "2026-08-21"),
+        slot("b", "2026-08-21", { available: false }),
+        slot("c", "2026-08-24"),
+      ]),
+    ).toBe(2);
   });
 
-  it("includes both ends of the window", () => {
-    expect(isBookableDay(today, open, today, end)).toBe(true);
-    expect(isBookableDay(end, open, today, end)).toBe(true);
-  });
-
-  it("refuses a day past the window even when it has open times", () => {
-    // The two refusals are independent, and this is the one a five-day fixture
-    // could never have exercised.
-    expect(open["2026-09-22"]).toBe(4);
-    expect(isBookableDay("2026-09-22", open, today, end)).toBe(false);
-  });
-
-  it("refuses a day before today", () => {
-    expect(isBookableDay("2026-08-20", open, today, end)).toBe(false);
-  });
-
-  it("refuses a day inside the window with nothing open", () => {
-    expect(isBookableDay("2026-08-22", open, today, end)).toBe(false);
+  it("is zero for a fully booked advisor", () => {
+    expect(openSlotCount([slot("a", "2026-08-21", { available: false })])).toBe(
+      0,
+    );
   });
 });
 
 describe("firstBookableDay", () => {
-  const today = "2026-08-21";
-  const end = "2026-09-21";
+  const days = ["2026-08-21", "2026-08-24", "2026-08-25"];
 
-  it("returns today when today is bookable", () => {
-    expect(firstBookableDay({ "2026-08-21": 1 }, today, end)).toBe("2026-08-21");
+  it("returns the first day when the first day has room", () => {
+    expect(firstBookableDay(days, { "2026-08-21": 2 })).toBe("2026-08-21");
   });
 
-  it("skips past a closed today and a closed weekend", () => {
-    // Friday 21 August 2026 is closed, Saturday and Sunday publish nothing, so
-    // the flow should open on the Monday. Opening on today instead would show an
-    // empty times column beside a day list full of options.
-    expect(firstBookableDay({ "2026-08-24": 3 }, today, end)).toBe("2026-08-24");
+  it("skips a full first day", () => {
+    /*
+     * The case this exists for. Today is usually the first chip and is frequently
+     * empty by mid-afternoon, because passed slots drop out of `available`.
+     * Opening there would show an empty times list beside chips that do have
+     * room, which reads as broken rather than as "not today".
+     */
+    expect(firstBookableDay(days, { "2026-08-24": 3 })).toBe("2026-08-24");
   });
 
-  it("ignores availability past the window", () => {
-    expect(firstBookableDay({ "2026-09-22": 9 }, today, end)).toBeNull();
+  it("respects the order it was given rather than the map's", () => {
+    // Object key order is insertion order, which is not the calendar's. The day
+    // keys are the ordering authority.
+    expect(
+      firstBookableDay(days, { "2026-08-25": 1, "2026-08-24": 1 }),
+    ).toBe("2026-08-24");
   });
 
-  it("is null when the whole window is closed", () => {
-    expect(firstBookableDay({}, today, end)).toBeNull();
+  it("is null when every published day is full", () => {
+    expect(firstBookableDay(days, {})).toBeNull();
+  });
+
+  it("is null when there are no days at all", () => {
+    expect(firstBookableDay([], { "2026-08-21": 5 })).toBeNull();
   });
 });
 
@@ -248,93 +218,8 @@ describe("slotsForDay", () => {
       "c",
     );
   });
-});
 
-// ---------------------------------------------------------------------------
-// The coupling between the fixture and the rule
-// ---------------------------------------------------------------------------
-
-describe("the published fixture covers the booking window", () => {
-  /**
-   * Monday 1 December 2025, 06:00 local.
-   *
-   * The worst case for the coupling, chosen rather than picked: a MONDAY start
-   * packs the business days into the fewest calendar days, and December is 31
-   * days long, so the window reaches its furthest while the fixture reaches its
-   * nearest. If it holds here it holds everywhere.
-   *
-   * This instant is what caught BOOKING_WINDOW_DAYS = 23 being one short.
-   *
-   * 06:00 is before every published slot, so nothing drops out as already past.
-   */
-  const FROZEN = new Date(2025, 11, 1, 6, 0, 0);
-
-  beforeEach(() => {
-    vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(FROZEN);
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it("publishes at least as far as the window reaches", async () => {
-    vi.resetModules();
-    const { buildSlotsFor } = await import("$lib/data/mock/appointments");
-    const { dayKeyOf } = await import("$lib/schedule");
-
-    const slots = buildSlotsFor("adv-gsa");
-    const lastPublished = slots
-      .map((candidate) => dayKeyOf(candidate.start))
-      .sort()
-      .at(-1);
-
-    const windowEnd = bookingWindowEnd(dayKeyOf(new Date()));
-
-    /*
-     * This is the assertion that justifies BOOKING_WINDOW_DAYS = 23.
-     *
-     * At 5 -- the Next fixture's value -- the window reached a month out while
-     * the fixture stopped after one week, so the month grid marked five days
-     * and left twenty-five looking like an advisor who never works. Lowering
-     * the window to match the fixture was the other way to make this pass, and
-     * it would have thrown away the point of the month calendar.
-     *
-     * If this ever goes red, raise the fixture. Do not lower the rule.
-     */
-    expect(lastPublished).toBeDefined();
-    expect(lastPublished! >= windowEnd).toBe(true);
-  });
-
-  it("does not publish so far that the card counts times the grid refuses", async () => {
-    vi.resetModules();
-    const { buildSlotsFor } = await import("$lib/data/mock/appointments");
-    const { dayKeyOf } = await import("$lib/schedule");
-
-    const todayKey = dayKeyOf(new Date());
-    const windowEnd = bookingWindowEnd(todayKey);
-
-    const slots = buildSlotsFor("adv-gsa").map((candidate) => ({
-      ...slot(candidate.id, dayKeyOf(candidate.start)),
-      available: candidate.available,
-    }));
-
-    const openByDay = availabilityByDay(slots);
-
-    /*
-     * The overshoot is real and bounded: the fixture is allowed to publish past
-     * the window, and `openCountInWindow` is what keeps the service card from
-     * counting those days. Asserting the two differ proves the clamp is load
-     * bearing rather than decorative -- if the fixture ever stopped overshooting
-     * this would go red and the clamp could be reconsidered.
-     */
-    const inWindow = openCountInWindow(openByDay, todayKey, windowEnd);
-    const everything = Object.values(openByDay).reduce(
-      (total, count) => total + count,
-      0,
-    );
-
-    expect(inWindow).toBeGreaterThan(0);
-    expect(inWindow).toBeLessThan(everything);
+  it("is empty for a day with nothing published", () => {
+    expect(slotsForDay(slots, "2026-08-29", "any")).toEqual([]);
   });
 });

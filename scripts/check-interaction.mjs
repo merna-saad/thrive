@@ -1690,218 +1690,110 @@ try {
 
 	await cal.close();
 
-	// ═══ Phase 8, redesigned: booking as one left-to-right flow ════════════
+	// ═══ Appointments: the chip strip, and a read-only month ═══════════════
 	/*
-	 * The redesign's claims, and each needs a real layout engine:
+	 * The month calendar as the day picker is reverted. What this block proves:
 	 *
-	 *  1. **The flow reads left to right.** Steps 1-4 must have increasing x at
-	 *     desktop and increasing y on a phone, with no horizontal reversal. This is
-	 *     the assertion that keeps the fix from rotting -- the old arrangement had
-	 *     three reversals and a 538px leftward jump between day and time.
-	 *  2. **No legend, and no mostly-grey grid.** There is no month grid at all;
-	 *     every row of the day list states its own condition in words.
-	 *  3. **Full, past and beyond-the-window are told apart.** Full is listed and
-	 *     says so; the other two are not options and the list's bounds say why.
-	 *  4. **One selection still drives the times AND "Your day".**
-	 *  5. **The double-booking race**, unchanged behaviour, re-proved against the
-	 *     new markup.
+	 *  1. The chips are the picker again, they are a strip rather than a grid, and
+	 *     each says how much is open.
+	 *  2. The month under "Your day" is a REFERENCE. It has no controls, no
+	 *     focusable cells, no paging, and is hidden from assistive technology with
+	 *     a real link out beside it. That last part is the whole justification, so
+	 *     it is asserted rather than assumed.
+	 *  3. Booking behaviour is untouched, including the double-booking race.
 	 */
 	const appt = await browser.newPage({ viewport: DESKTOP, acceptDownloads: true });
 	appt.on('pageerror', (error) => pageErrors.push(`appointments: ${error}`));
 	appt.on('console', (msg) => noisy(msg) && pageErrors.push(`appointments: ${msg.text()}`));
 	await appt.goto(BASE + '/appointments', { waitUntil: 'networkidle' });
 
-	/** The day list's rows, with everything a row says about itself. */
-	const readDays = () =>
-		[...document.querySelectorAll('[data-day]')].map((row) => ({
-			day: row.dataset.day,
-			open: Number(row.dataset.open ?? '0'),
-			disabled: row.disabled === true,
-			selected: row.getAttribute('aria-pressed') === 'true',
-			text: row.textContent.trim().replace(/\s+/g, ' '),
-			label: row.getAttribute('aria-label') ?? ''
+	/** The day chips, with everything a chip says about itself. */
+	const readChips = () =>
+		[...document.querySelectorAll('form[action="?/book"] [data-day]')].map((chip) => ({
+			day: chip.dataset.day,
+			open: Number(chip.dataset.open ?? '0'),
+			disabled: chip.disabled === true,
+			selected: chip.getAttribute('aria-pressed') === 'true',
+			text: chip.textContent.trim().replace(/\s+/g, ' '),
+			label: chip.getAttribute('aria-label') ?? ''
 		}));
 
-	/** What the times column and "Your day" are showing. */
 	const readPanes = () => ({
 		times: [...document.querySelectorAll('form[action="?/book"] button[aria-pressed]')]
 			.map((b) => b.textContent.trim().replace(/\s+/g, ' '))
-			.filter((t) => /\d/.test(t)),
+			.filter((t) => /:\d\d/.test(t)),
 		day:
 			document
 				.querySelector('section[aria-labelledby="my-day"] p')
 				?.textContent.trim()
-				.replace(/\s+/g, ' ') ?? '',
-		rows: document.querySelectorAll('section[aria-labelledby="my-day"] ul > li').length
+				.replace(/\s+/g, ' ') ?? ''
 	});
 
-	/** The centre of each step, for the reading-order assertions. */
-	const readPath = () => {
-		const centre = (el) => {
-			if (!el) return null;
-			const r = el.getBoundingClientRect();
-			return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2 + window.scrollY) };
-		};
-		const time = [...document.querySelectorAll('form[action="?/book"] button[aria-pressed]')]
-			.find((b) => /\d/.test(b.textContent) && !b.disabled);
-		return {
-			who: centre(document.querySelector('[data-service][aria-pressed="true"]')),
-			day: centre(
-				document.querySelector('[data-day][aria-pressed="true"]') ??
-					document.querySelector('[data-day]:not([disabled])')
-			),
-			time: centre(time),
-			about: centre(document.querySelector('#booking-reason')),
-			confirm: centre(document.querySelector('form[action="?/book"] button[type="submit"]'))
-		};
-	};
-
 	await appt.click('[data-service]:not([disabled])');
-	await appt.waitForSelector('[data-day]', { state: 'visible' });
+	await appt.waitForSelector('form[action="?/book"] [data-day]', { state: 'visible' });
 	await appt.waitForTimeout(SETTLE);
 
-	const days = await appt.evaluate(readDays);
-	const bookable = days.filter((row) => row.open > 0);
-	const full = days.filter((row) => row.open === 0);
+	const chips = await appt.evaluate(readChips);
+	const openChips = chips.filter((chip) => chip.open > 0);
 
 	check(
-		'there is no month grid any more',
-		(await appt.evaluate(() => document.querySelectorAll('[role="gridcell"]').length)) === 0,
-		'a forward-only window inside a month grid is half past days by construction'
+		'the day picker is a strip of chips, not a month of cells',
+		chips.length > 0 && chips.length <= 8,
+		`${chips.length} chips — five business days, not twenty-two`
 	);
 	check(
-		'the day list offers only days this advisor works',
-		days.length > 0 && days.length <= 32,
-		`${days.length} rows for a one-month window, not 42 cells`
+		'every chip says how much is open, or that it is full',
+		chips.every((chip) => /\d+ free|1 free|Full/.test(chip.text)),
+		'the one thing kept from the month-grid work'
 	);
 	check(
-		'most of what is on screen is actionable',
-		bookable.length / days.length >= 0.6,
-		`${bookable.length} of ${days.length} bookable — the grid was 9 of 35`
+		'a full day is disabled rather than selectable-and-then-empty',
+		chips.filter((chip) => chip.open === 0).every((chip) => chip.disabled),
+		`${chips.filter((c) => c.open === 0).length} full`
 	);
 	check(
-		'every row says its own state in words',
-		days.every((row) => /\d+ times?|1 time|Fully booked/.test(row.text)),
-		'so nothing needs a legend to decode'
-	);
-	check(
-		'the legend is gone',
-		await appt.evaluate(
-			() => !/A dot and a number mark the days/.test(document.body.innerText)
-		),
-		'a sentence explaining an interface means the interface was not explaining itself'
-	);
-	check(
-		'the count is ONE encoding, not a dot plus a number',
-		await appt.evaluate(
-			() =>
-				document.querySelectorAll('[data-day] span.rounded-pill, [data-day] .size-cal-dot')
-					.length === 0
-		),
-		'the number and the word "times" carry it'
+		'the panel opens on a chip that actually has times',
+		(await appt.evaluate(readPanes)).times.length > 0,
+		'not on today, which is frequently empty by the afternoon'
 	);
 
-	// ── The three refusals, told apart ─────────────────────────────────────
-	if (full.length === 0) {
-		unproven('a fully booked day says so and is refused', 'nothing is fully booked today');
-	} else {
-		check(
-			'a fully booked day says "Fully booked" and cannot be chosen',
-			full.every((row) => /Fully booked/.test(row.text) && row.disabled),
-			`${full.length} fully booked`
+	// ── The chips and the times are one movement ───────────────────────────
+	const hop = await appt.evaluate(() => {
+		const chip = document.querySelector('form[action="?/book"] [data-day][aria-pressed="true"]');
+		const time = [...document.querySelectorAll('form[action="?/book"] button[aria-pressed]')].find(
+			(b) => /:\d\d/.test(b.textContent) && !b.disabled
 		);
-	}
-	check(
-		'a day in the past is not offered at all',
-		days.every((row) => row.day >= new Date().toISOString().slice(0, 10) || true) &&
-			(await appt.evaluate(() => {
-				const rows = [...document.querySelectorAll('[data-day]')];
-				// The list is ascending, so the first row is the earliest offered day.
-				return rows.length > 0;
-			})),
-		'the past is not a state to draw, it is not an option'
-	);
-	check(
-		'the list names its own bounds, which is what makes the two absences legible',
-		await appt.evaluate(() =>
-			/Booking runs one month ahead\..*is the last day you can book\./.test(
-				document.body.innerText
-			)
-		),
-		'so a short list does not read as an advisor who is never free'
-	);
-	check(
-		'the list names the month, which is what replaced paging',
-		(await appt.evaluate(
-			() => [...document.querySelectorAll('.thrive-eyebrow')].filter((p) => /^[A-Z][a-z]+$/.test(p.textContent.trim())).length
-		)) > 0,
-		'the window spans at most two months and both are in the list'
-	);
-
-	// ── The reading order, which is the whole point ────────────────────────
-	const path = await appt.evaluate(readPath);
-	const legs = {
-		'who→day': path.who && path.day ? Math.round(Math.hypot(path.day.x - path.who.x, path.day.y - path.who.y)) : null,
-		'day→time': path.day && path.time ? Math.round(Math.hypot(path.time.x - path.day.x, path.time.y - path.day.y)) : null,
-		'time→about': path.time && path.about ? Math.round(Math.hypot(path.about.x - path.time.x, path.about.y - path.time.y)) : null,
-		'about→confirm': path.about && path.confirm ? Math.round(Math.hypot(path.confirm.x - path.about.x, path.confirm.y - path.about.y)) : null
-	};
-	const total = Object.values(legs).reduce((sum, v) => sum + (v ?? 0), 0);
-	const xs = ['day', 'time', 'about'].map((k) => path[k]?.x).filter((v) => v != null);
-	let reversals = 0;
-	for (let i = 1; i < xs.length; i += 1) if (xs[i] < xs[i - 1]) reversals += 1;
+		if (!chip || !time) return null;
+		const a = chip.getBoundingClientRect();
+		const b = time.getBoundingClientRect();
+		return { dx: Math.round(b.left - a.left), dy: Math.round(b.top - a.top) };
+	});
 
 	check(
-		'day, time and about run left to right with no reversal',
-		reversals === 0 && xs.length === 3,
-		`x: ${xs.join(' → ')} (was 1004 → 485 → 594 — one 538px leftward jump)`
-	);
-	check(
-		'the day→time step is a short hop, not a journey across the page',
-		(legs['day→time'] ?? Infinity) < 400,
-		`${legs['day→time']}px (was 538px, leftward)`
-	);
-	/*
-	 * The total, and it is asserted because the three-column version FAILED it.
-	 *
-	 * Laying the four steps out side by side fixed the direction changes but pushed
-	 * the total to 1362px, since three columns sweep the whole page width. Stacking
-	 * step 4 under step 3 brought it to 1118px. Without this assertion the redesign
-	 * would have shipped "no reversals" while quietly making the journey longer.
-	 */
-	check(
-		'the whole path is shorter than it was',
-		total < 1320,
-		`${total}px total (was 1320px; the rejected three-column version was 1362px)`
+		'choosing a day and then a time is one short move downward',
+		hop !== null && hop.dy > 0 && Math.abs(hop.dx) < 240,
+		hop ? `dx=${hop.dx} dy=${hop.dy} — both inside one panel` : 'not measurable'
 	);
 
 	// ── One selection, two panes ───────────────────────────────────────────
 	const before = await appt.evaluate(readPanes);
-	const firstSelected = days.find((row) => row.selected)?.day;
-	const nextOpen = bookable.find((row) => row.day !== firstSelected);
-
-	check(
-		'the flow opens on a day that actually has times',
-		before.times.length > 0,
-		'not on today, which is frequently shut'
-	);
+	const firstSelected = chips.find((chip) => chip.selected)?.day;
+	const nextOpen = openChips.find((chip) => chip.day !== firstSelected);
 
 	if (!nextOpen) {
 		unproven('choosing a day moves both panes together', 'only one bookable day');
 	} else {
-		await appt.click(`[data-day="${nextOpen.day}"]`);
+		await appt.click(`form[action="?/book"] [data-day="${nextOpen.day}"]`);
 		await appt.waitForTimeout(SETTLE);
 		const after = await appt.evaluate(readPanes);
-		const nowSelected = (await appt.evaluate(readDays)).find((row) => row.selected)?.day;
 
-		check('clicking a day selects it', nowSelected === nextOpen.day, `${nowSelected}`);
 		check(
-			'the times column follows the selection',
+			'the times follow the chosen chip',
 			after.times.join('|') !== before.times.join('|') && after.times.length > 0,
 			`${before.times.length} then ${after.times.length}`
 		);
 		check(
-			'"Your day" follows the SAME selection',
+			'"Your day" follows the SAME chip',
 			after.day !== before.day && after.day !== '',
 			`${before.day} then ${after.day}`
 		);
@@ -1916,10 +1808,68 @@ try {
 		'the deliberate exclusion, kept and stated'
 	);
 
+	// ── The month reference: present, and provably not a control ───────────
+	const reference = await appt.evaluate(() => {
+		const section = document.querySelector('section[aria-labelledby="appointments-month"]');
+		if (!section) return null;
+		const grid = section.querySelector('[data-day]');
+		return {
+			exists: true,
+			cells: section.querySelectorAll('[data-day]').length,
+			buttons: section.querySelectorAll('[data-day] button, button[data-day]').length,
+			gridcells: section.querySelectorAll('[role="gridcell"]').length,
+			focusable: section.querySelectorAll('[data-day][tabindex]:not([tabindex="-1"])').length,
+			hidden: section.querySelector('[aria-hidden="true"]') !== null,
+			cellTag: grid?.tagName ?? null,
+			chevrons: [...section.querySelectorAll('button[aria-label]')].filter((b) =>
+				/month/i.test(b.getAttribute('aria-label') ?? '')
+			).length,
+			linkOut: section.querySelector('a[href="/calendar"]') !== null,
+			saysSo: /Nothing here is clickable/.test(section.textContent ?? '')
+		};
+	});
+
+	if (!reference) {
+		unproven('the month reference is read-only', 'no month reference rendered');
+	} else {
+		check('a month reference renders under "Your day"', reference.cells === 42, `${reference.cells} cells`);
+		check(
+			'its cells are not buttons',
+			reference.cellTag === 'DIV' && reference.buttons === 0,
+			`cells are <${reference.cellTag?.toLowerCase()}> — the element changed, not just the handler`
+		);
+		check(
+			'nothing in it is focusable',
+			reference.focusable === 0,
+			'a focusable cell that does nothing is worse than no cell'
+		);
+		check('it claims no grid roles', reference.gridcells === 0);
+		check(
+			'it does not page',
+			reference.chevrons === 0,
+			'a chevron is a control, and the point of the mode is that there are none'
+		);
+		check(
+			'it is hidden from assistive technology',
+			reference.hidden === true,
+			'justified only by the link beside it'
+		);
+		check(
+			'and that link is real, so the information is not lost',
+			reference.linkOut === true,
+			'the same month, fully operable, at /calendar'
+		);
+		check(
+			'it says on screen that it is not clickable',
+			reference.saysSo === true,
+			'the honest way to make a non-interactive thing read as non-interactive'
+		);
+	}
+
 	// ── Booking, unchanged behaviour ───────────────────────────────────────
 	const pickedSlot = await appt.evaluate(() => {
 		const slot = [...document.querySelectorAll('form[action="?/book"] button[aria-pressed]')].find(
-			(b) => /\d/.test(b.textContent) && !b.disabled
+			(b) => /:\d\d/.test(b.textContent) && !b.disabled
 		);
 		slot?.click();
 		return slot?.textContent.trim().replace(/\s+/g, ' ') ?? null;
@@ -1965,14 +1915,14 @@ try {
 		for (const page of [racerA, racerB]) {
 			await page.goto(BASE + '/appointments', { waitUntil: 'networkidle' });
 			await page.click('[data-service]:not([disabled])');
-			await page.waitForSelector('[data-day]', { state: 'visible' });
+			await page.waitForSelector('form[action="?/book"] [data-day]', { state: 'visible' });
 			await page.waitForTimeout(SETTLE);
 		}
 
 		const contested = await racerA.evaluate(() => {
 			const slot = [
 				...document.querySelectorAll('form[action="?/book"] button[aria-pressed]')
-			].find((b) => /\d/.test(b.textContent) && !b.disabled);
+			].find((b) => /:\d\d/.test(b.textContent) && !b.disabled);
 			slot?.click();
 			return slot?.textContent.trim() ?? null;
 		});
@@ -1983,7 +1933,7 @@ try {
 			await racerB.evaluate(() => {
 				const slot = [
 					...document.querySelectorAll('form[action="?/book"] button[aria-pressed]')
-				].find((b) => /\d/.test(b.textContent) && !b.disabled);
+				].find((b) => /:\d\d/.test(b.textContent) && !b.disabled);
 				slot?.click();
 			});
 			await racerB.click('form[action="?/book"] button[type="submit"]');
@@ -2022,25 +1972,14 @@ try {
 
 	await appt.close();
 
-	// ── Phone: the same order, stacked ─────────────────────────────────────
+	// ── Phone ──────────────────────────────────────────────────────────────
 	const apptPhone = await browser.newPage({ viewport: PHONE, hasTouch: true, isMobile: true });
 	apptPhone.on('pageerror', (error) => pageErrors.push(`appointments-phone: ${error}`));
 	apptPhone.on('console', (msg) => noisy(msg) && pageErrors.push(`appointments-phone: ${msg.text()}`));
 	await apptPhone.goto(BASE + '/appointments', { waitUntil: 'networkidle' });
 	await apptPhone.click('[data-service]:not([disabled])');
-	await apptPhone.waitForSelector('[data-day]', { state: 'visible' });
+	await apptPhone.waitForSelector('form[action="?/book"] [data-day]', { state: 'visible' });
 	await apptPhone.waitForTimeout(SETTLE);
-
-	const phonePath = await apptPhone.evaluate(readPath);
-	const ys = ['who', 'day', 'time', 'about'].map((k) => phonePath[k]?.y).filter((v) => v != null);
-	let backtracks = 0;
-	for (let i = 1; i < ys.length; i += 1) if (ys[i] < ys[i - 1]) backtracks += 1;
-
-	check(
-		'on a phone the steps stack in the same order, with no scrolling back up',
-		backtracks === 0 && ys.length === 4,
-		`y: ${ys.join(' → ')} (the day picker used to sit 700px BELOW the times it precedes)`
-	);
 
 	const sideways = await apptPhone.evaluate(() => {
 		const before = window.scrollX;
@@ -2051,16 +1990,18 @@ try {
 	});
 
 	check(
-		'the open flow does not scroll sideways at 375px',
+		'the open panel does not scroll sideways at 375px',
 		sideways.maxScroll <= 1,
 		`scrolls ${sideways.maxScroll}px, document ${sideways.docWidth}px wide`
 	);
 	check(
-		'a day row is a real touch target on a phone',
+		'a day chip is a real touch target on a phone',
 		(await apptPhone.evaluate(
-			() => document.querySelector('[data-day]')?.getBoundingClientRect().height ?? 0
+			() =>
+				document.querySelector('form[action="?/book"] [data-day]')?.getBoundingClientRect()
+					.height ?? 0
 		)) >= 44,
-		'a full row rather than a 40px cell'
+		'MIGRATION section 9 defect 6 is an overflow on this route at this width'
 	);
 	await apptPhone.close();
 

@@ -10,8 +10,8 @@ import {
 } from "$lib/appointmentsView";
 import {
 	availabilityByDay,
-	bookingWindowEnd,
-	openCountInWindow,
+	openSlotCount,
+	orderedDayKeys,
 	publishedByDay,
 } from "$lib/availability";
 import { buildScheduleData } from "$lib/buildSchedule";
@@ -23,9 +23,9 @@ import {
 	getSlots,
 	SlotUnavailableError,
 } from "$lib/data";
-import { formatTime, formatWeekdayDate } from "$lib/format";
+import { formatTime } from "$lib/format";
 import { messages } from "$lib/messages";
-import { addDays, dayKeyOf, fromDayKey } from "$lib/schedule";
+import { addDays, dayKeyOf } from "$lib/schedule";
 import type { Actions, PageServerLoad } from "./$types";
 
 /**
@@ -33,11 +33,11 @@ import type { Actions, PageServerLoad } from "./$types";
  *
  * ## One clock read
  *
- * `new Date()` is called ONCE and three things come off it: the day the list
- * calls today, tomorrow, and the end of the booking window. The calendar page
- * calls `todayKey()` and gets a second internal read; this page passes the
- * instant it already has to `dayKeyOf` instead, which is the same string from
- * one read rather than two microseconds apart.
+ * `new Date()` is called ONCE and two things come off it: the day a chip calls
+ * "Today" and the one it calls "Tomorrow". The calendar page calls `todayKey()`
+ * and gets a second internal read; this page passes the instant it already has
+ * to `dayKeyOf` instead, which is the same string from one read rather than two
+ * microseconds apart.
  *
  * There is deliberately no `nowISO` here. Nothing on this page is editable in
  * the sense CONVENTIONS' narrowed exception covers -- a booking is created and
@@ -61,19 +61,13 @@ export const load: PageServerLoad = async () => {
 
 	const now = new Date();
 	const todayKey = dayKeyOf(now);
-	const windowEnd = bookingWindowEnd(todayKey);
 
 	/*
-	 * Tomorrow, for the day list's relative label, derived from the SAME instant.
+	 * Tomorrow, for a chip's relative label, derived from the SAME instant.
 	 * `addDays` walks local parts, so this is one calendar day later even across a
 	 * DST boundary -- which an elapsed-milliseconds addition would not be.
 	 */
 	const tomorrowKey = addDays(todayKey, 1);
-
-	/** The window's last day, in words, for the note under the day list. */
-	const windowEndLabel = formatWeekdayDate(
-		fromDayKey(windowEnd).toISOString(),
-	);
 
 	const services: ServiceView[] = advisors.map((advisor, index) => {
 		const slots: SlotView[] = slotsByAdvisor[index].map((slot) => ({
@@ -92,11 +86,12 @@ export const load: PageServerLoad = async () => {
 
 		const openByDay = availabilityByDay(slots);
 		/*
-		 * Both maps, because the day list has to tell "fully booked" apart from
-		 * "not a day this advisor works". Open counts alone cannot: both are zero,
-		 * and calling a Saturday fully booked would be a lie.
+		 * Both maps, because a chip has to tell "fully booked" apart from "not a day
+		 * this advisor works". Open counts alone cannot: both are zero, and there is
+		 * no chip at all for a day nobody works.
 		 */
 		const published = publishedByDay(slots);
+		const dayKeys = orderedDayKeys(published);
 
 		return {
 			advisor,
@@ -104,31 +99,24 @@ export const load: PageServerLoad = async () => {
 			slots,
 			openByDay,
 			/*
-			 * The day list, formatted here. Four of its six fields per row are
-			 * locale-formatted dates and the fifth is relative to today, so building
-			 * them on the server is what leaves `DayPicker` with no opinion about the
-			 * calendar at all.
-			 *
-			 * Note what the bounded list buys: the month grid this replaces had to
-			 * format two things on the CLIENT, because a grid that pages anywhere has
-			 * no finite set of months a `load` could pre-render. There is now no
-			 * client-side date formatting on this page.
+			 * The chips, formatted here. Three of their five fields are
+			 * locale-formatted dates and the fourth is relative to today, so building
+			 * them on the server leaves the strip with no opinion about the calendar
+			 * at all -- and means this page appears nowhere on CONVENTIONS' list of
+			 * accepted client-side date formats.
 			 */
 			days: toBookingDayViews(
 				openByDay,
 				published,
+				dayKeys,
 				todayKey,
-				windowEnd,
 				tomorrowKey,
 			),
-			windowEndLabel,
 			/*
-			 * Counted inside the WINDOW, not across everything published. The
-			 * fixture deliberately publishes a little past the window's end so it
-			 * can never run short, and a card claiming open times the calendar
-			 * refuses to offer is the page contradicting itself.
+			 * Every open slot, because the published set IS the window now. There is
+			 * no separate month-ahead rule for a card to contradict.
 			 */
-			openCount: openCountInWindow(openByDay, todayKey, windowEnd),
+			openCount: openSlotCount(slots),
 		};
 	});
 
@@ -147,10 +135,8 @@ export const load: PageServerLoad = async () => {
 		 * without another round trip.
 		 */
 		data,
-		/** The day the list marks "Today" and the strip may chip as today. */
+		/** The day the strip marks "Today" and the pane may chip as today. */
 		todayKey,
-		/** Last bookable day, inclusive. The product rule, applied once. */
-		windowEnd,
 	};
 };
 

@@ -42,31 +42,26 @@ const SLOT_MINUTES = 30;
 /**
  * How many business days of availability to publish.
  *
- * ## Why 25, and why it is NOT the booking rule
+ * ## Back to 5, and why
  *
- * Raised from 5 in Phase 8, when the day picker became a month calendar. Five
- * business days marked one week of a month grid and left the other twenty-five
- * days looking like an advisor who never works.
+ * Raised to 25 in Phase 8 when the day picker became a month calendar: five days
+ * marked one week of a 42-cell grid and left the rest looking like an advisor who
+ * never works.
  *
- * The BOOKING RULE is one calendar month ahead and it lives in
- * `$lib/availability`. This number only has to be large enough that the fixture
- * never runs out before that rule does:
+ * The month calendar has been reverted and the CHIP STRIP is the picker again, so
+ * the number goes back with it. A strip is a fixed row of visible options, and 25
+ * business days would be 25 chips -- which is not a strip, it is a grid drawn in
+ * one line. The alternative was keeping the wider fixture and showing only the
+ * first few chips, but then a student's availability would exist and be
+ * unreachable, which is worse than a shorter window honestly stated.
  *
- *   - one calendar month is at most 31 days, so the window can reach `today+31`
- *   - 25 business days reaches at least `today+32` from any start weekday --
- *     the tightest case is a Monday, where four full weeks plus five days lands
- *     on day 32
- *
- * So the fixture always overshoots the window by a day or two, and
- * `openCountInWindow` is what stops a service card counting the overshoot.
- *
- * 23 was tried first and was WRONG BY ONE: from a Monday it reached day 30
- * against a window that can reach 31, so the last day or two of the grid went
- * grey for no reason a student could see. `availability.spec.ts` freezes a
- * Monday in a 31-day month and asserts both directions of this coupling, so
- * moving either number alone goes red instead of quietly reopening that hole.
+ * So the window IS the fixture again: `bookingDays()` publishes five business
+ * days, the strip shows those five, and the page's copy says so. There is no
+ * separate one-calendar-month rule any more -- `bookingWindowEnd` and
+ * `isBookableDay` went with the grid, because with the fixture and the window the
+ * same thing there was nothing left for them to disagree about.
  */
-export const BOOKING_WINDOW_DAYS = 25;
+export const BOOKING_WINDOW_DAYS = 5;
 
 /**
  * The next N business days, starting today. Weekends are skipped rather than

@@ -45,10 +45,10 @@ async function freshData(): Promise<DataModule> {
  * timezone. 08:00 is before every published slot, so nothing is filtered out
  * as already past -- which is what makes the counts below assertable at all.
  *
- * The weekday used to matter: with a five-business-day window a Tuesday start
- * kept the whole window inside one week. Phase 8 raised the window to 23
- * business days, so it now spans weekends whatever day it starts on, and the
- * Tuesday is kept only so the frozen instant does not move.
+ * A Tuesday keeps the five-business-day window inside one week, which is what
+ * makes the day indices above predictable. (Phase 8 briefly raised the window to
+ * 25 business days, where the weekday stopped mattering; the chip strip brought
+ * it back to five.)
  */
 const FROZEN = new Date(2026, 8, 15, 8, 0, 0);
 
@@ -326,9 +326,9 @@ describe("generation is deterministic", () => {
     const second = await data.getSlots("adv-gsa");
 
     // BOOKING_WINDOW_DAYS business days x 5 published times. The literal is the
-    // pin: raising the window again should go red here and be confirmed, not
+    // pin: changing the window should go red here and be confirmed, not
     // recomputed silently from the constant it is meant to be checking.
-    expect(first).toHaveLength(125); // 25 business days x 5 times
+    expect(first).toHaveLength(25); // 5 business days x 5 times
     expect(second).toEqual(first);
   });
 
@@ -341,8 +341,8 @@ describe("generation is deterministic", () => {
     const slots = await data.getSlots("adv-gsa");
 
     expect(slots[0].id).toBe("slot-adv-gsa-0-0");
-    // Day index 24 is the 25th business day, time index 4 the fifth slot.
-    expect(slots.at(-1)?.id).toBe("slot-adv-gsa-24-4");
+    // Day index 4 is the fifth business day, time index 4 the fifth slot.
+    expect(slots.at(-1)?.id).toBe("slot-adv-gsa-4-4");
     for (const slot of slots) {
       expect(slot.id).toMatch(/^slot-adv-gsa-\d+-\d+$/);
     }

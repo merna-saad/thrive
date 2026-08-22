@@ -615,16 +615,11 @@ export const messages = {
 		 * bug rather than a rule.
 		 */
 		/**
-		 * Four steps, named in the order the page lays them out.
-		 *
-		 * The old intro said "pick a day with open times, then a time", which
-		 * described the interface rather than orienting the student -- and it
-		 * described an interface whose day picker was on the far side of the page
-		 * from its times. The numbered steps on screen do the orienting now, so this
-		 * says what the page is FOR and how far ahead it reaches.
+		 * Names the window, because a five-day strip otherwise looks like an
+		 * accident rather than a rule.
 		 */
 		intro:
-			'Academic advising and career coaching, bookable a month ahead. Choose who, then a day, then a time.',
+			'Book time with academic advising or career coaching. Times shown are the next five business days.',
 
 		/** The two services. Keyed by `Advisor.service`. */
 		serviceLabel: {
@@ -639,8 +634,8 @@ export const messages = {
 			 * leaving a component to slice the number back out of a finished phrase.
 			 */
 			openTimesSuffix: (count: number) =>
-				count === 1 ? 'open time this month' : 'open times this month',
-			noOpenTimes: 'No open times this month',
+				count === 1 ? 'open time this week' : 'open times this week',
+			noOpenTimes: 'No open times this week',
 			book: 'Book',
 			/** The pressed state's label. Says what is happening, not what to do. */
 			booking: 'Booking',
@@ -648,65 +643,43 @@ export const messages = {
 			bookWith: (name: string) => ` with ${name}`
 		},
 
-		/**
-		 * The four steps, named and numbered.
-		 *
-		 * "Nothing tells them where to start" was the first complaint about the old
-		 * arrangement, and a numbered step is the cheapest possible answer to it.
-		 * The numbers are values, so they take the numeric face.
-		 */
-		steps: {
-			who: 'Choose who you are meeting',
-			day: 'Choose a day',
-			time: 'Choose a time',
-			about: 'Say what it is about'
-		},
-
-		/** The day list. NO legend — every row says its own state. */
+		/** The day chips. Each says its own state; there is no legend. */
 		days: {
-			headingId: 'booking-days',
-			/** Relative words win where they apply; past that, the date is clearer. */
+			legend: 'Pick a day',
+			/** Relative words win where they apply; past that, the weekday is clearer. */
 			today: 'Today',
 			tomorrow: 'Tomorrow',
 			/**
-			 * The count, as words on the row.
+			 * The count under a chip's date.
 			 *
-			 * This replaces a dot plus a number, which was two encodings for one
-			 * fact and needed a sentence underneath the grid to decode. "4 times"
-			 * decodes itself.
+			 * Kept from the month-grid work, which is the one thing worth keeping from
+			 * it: a chip that says "4 free" tells a student where to look before they
+			 * press anything, where the original strip made them select a day to find
+			 * out it was empty.
 			 */
-			openTimes: (count: number) => (count === 1 ? '1 time' : `${count} times`),
-			/**
-			 * The word after the figure, so the figure can take the numeric face.
-			 * Same split as the service card's count, and for the same reason: a
-			 * component should never have to slice a number back out of a finished
-			 * phrase.
-			 */
-			openTimesSuffix: (count: number) => (count === 1 ? 'time' : 'times'),
-			/**
-			 * A working day whose slots are all taken.
-			 *
-			 * The ONE refusal this list draws, and it is drawn because it is the only
-			 * one a student could otherwise mistake for something else. A past day and
-			 * a day beyond the window are not listed at all — they are not options,
-			 * and the list's bounds say so without a word.
-			 */
-			fullyBooked: 'Fully booked',
-			/**
-			 * The list's bounds, stated once at the bottom.
-			 *
-			 * This is what makes the two undrawn refusals legible: the list starts
-			 * today because you cannot book the past, and it ends here because
-			 * booking runs a month ahead. Naming the last date means a student never
-			 * has to wonder whether the list is short because the advisor is busy.
-			 */
-			windowNote: (lastDay: string) =>
-				`Booking runs one month ahead. ${lastDay} is the last day you can book.`,
-			/** No working days at all inside the window. */
-			empty: 'No open days in the next month.',
-			/** Spoken name for a row, so the counts are not read as bare numbers. */
+			openCount: (count: number) => (count === 1 ? '1 free' : `${count} free`),
+			/** The word after the figure, so the figure can take the numeric face. */
+			openCountSuffix: (_count: number) => 'free',
+			/** A published day whose slots are all taken. Said, not implied. */
+			fullyBooked: 'Full',
+			/** Spoken name for a chip, so the count is not read as a bare number. */
 			dayLabel: (weekday: string, date: string, state: string) =>
-				`${weekday} ${date}, ${state}`
+				`${weekday} ${date}, ${state}`,
+			/** Every published day is full. Not an error — just a full week. */
+			empty: 'Nothing open in the next five business days.'
+		},
+
+		/** The read-only month reference under "Your day". */
+		monthReference: {
+			headingId: 'appointments-month',
+			title: 'Your month',
+			/**
+			 * Says what it is FOR, which is the honest way to make a non-interactive
+			 * thing read as non-interactive. "Reference" plus a real link out is more
+			 * useful than a tooltip explaining why clicking does nothing.
+			 */
+			note: 'A reference while you book. Nothing here is clickable.',
+			seeCalendar: 'Open the full calendar'
 		},
 
 		panel: {
@@ -723,13 +696,12 @@ export const messages = {
 
 			timesLegend: 'Available times',
 			/**
-			 * Still names the day, but for a different reason now.
+			 * Names the day the times belong to.
 			 *
-			 * When the day picker sat across the page this was orientation — "which
-			 * day are these?". Now the chosen day is the nearest thing to the left, so
-			 * this is confirmation rather than navigation. Kept because the times
-			 * column is what a student stares at while deciding, and a column of bare
-			 * clock times with no date above it is a column that could be any day.
+			 * The chips sit directly above, so this is confirmation rather than
+			 * orientation — but a column of bare clock times with no date above it is
+			 * a column that could be any day, and the chip's own selected state is a
+			 * fill rather than a sentence.
 			 */
 			timesFor: (day: string) => `on ${day}`,
 			/** Two dead ends, and they are not the same dead end. */

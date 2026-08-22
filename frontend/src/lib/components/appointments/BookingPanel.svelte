@@ -21,43 +21,28 @@
 	import { cn } from '$lib/utils';
 
 	/**
-	 * Steps 3 and 4: choose a time, say what it is about, confirm.
+	 * The booking form: pick a day, a meeting type, a time, say why, confirm.
 	 *
-	 * ## One form, one column, step 4 stacked under step 3
+	 * ## The chips are the picker again
 	 *
-	 * The request needs the chosen slot id and the reason together, so they live in
-	 * a single `<form>`. Two forms would have meant carrying the slot id in a hidden
-	 * field of the second one — the same coupling with an extra copy of the value.
+	 * Phase 8 replaced this strip with a month calendar and the calendar was
+	 * confusing, so the strip is back — one horizontal row of the five business
+	 * days this advisor publishes, which is what the fixture emits and therefore
+	 * what the strip can show without becoming a grid drawn in one line.
 	 *
-	 * The day picker sits immediately to the LEFT of this, outside the form, so the
-	 * path is day → time → reason → confirm: one step right, then straight down.
+	 * **One thing from the grid work is kept:** each chip carries its open COUNT,
+	 * so a student can see where to look before pressing anything. The original
+	 * strip made them select a day to discover it was empty. A day whose slots are
+	 * all taken says "Full" and is disabled rather than selectable-and-then-empty.
 	 *
-	 * **Three arrangements were measured and the middle one was rejected.** The
-	 * original put the day picker in the RIGHT column and the times in the left:
-	 * 1320px of travel at 1512px wide, three horizontal direction changes, and a
-	 * 538px LEFTWARD jump between choosing a day and choosing a time. Laying the
-	 * four steps out as three side-by-side columns fixed the direction changes but
-	 * made the total slightly LONGER — 1362px — because three columns sweep the full
-	 * page width. Stacking step 4 under step 3 keeps the order monotonic and brings
-	 * it to 1118px; the phone figure went 2239px → 1250px.
+	 * ## The day is still not this component's state
 	 *
-	 * `check:interaction` now asserts the ordering AND the total, so this cannot
-	 * quietly rot back.
-	 *
-	 * ## There is no day picker in here, and never was
-	 *
-	 * The Next version owned a `dayKey` of its own and mirrored an external
-	 * selection into it with React's adjust-during-render idiom — a `seenExternal`
-	 * shadow, a comparison, and two setState calls during the render pass
-	 * (MIGRATION.md §8.5, which asks whether that becomes a `$derived` or an
-	 * `$effect`).
-	 *
-	 * Neither. The day picker is a sibling, so the day is not this component's
-	 * state at all — it is a prop. And the side effect the idiom existed to
-	 * perform, clearing the chosen slot when the day moves, is not needed either:
-	 * `selectedSlot` is derived by looking the chosen id up in THIS day's slots, so
-	 * a day change drops the stale choice on its own. The whole mechanism dissolves
-	 * rather than porting.
+	 * It is a prop, chosen in `BookingArea`, because "Your day" and the month
+	 * reference beside it read the same selection. That is also what dissolved
+	 * MIGRATION.md §8.5's adjust-during-render: with one owner there is nothing to
+	 * reconcile, and the side effect it existed to perform — clearing the chosen
+	 * slot when the day moves — is unnecessary because `selectedSlot` is derived by
+	 * looking the chosen id up in THIS day's slots.
 	 *
 	 * ## Why a form rather than a click handler
 	 *
@@ -80,25 +65,28 @@
 		service,
 		dayKey,
 		dayLabel,
+		onSelectDay,
 		onClose
 	}: {
 		service: ServiceView;
-		/** The day chosen in step 2, or null before anything is chosen. */
+		/** The chosen day, or null when every published day is full. */
 		dayKey: string | null;
 		/**
 		 * That day in words, e.g. "Mon, Aug 24".
 		 *
-		 * A PROP now, not formatted here. The day list already carries every day's
-		 * finished labels from the server, so the panel takes one rather than
-		 * re-deriving it — which also takes this page off CONVENTIONS' list of
-		 * accepted client-side date formats.
+		 * A PROP, not formatted here. Every chip carries its finished labels from
+		 * the server, so the panel takes one rather than re-deriving it — which is
+		 * why this page appears nowhere on CONVENTIONS' list of accepted client-side
+		 * date formats.
 		 */
 		dayLabel: string;
+		onSelectDay: (dayKey: string) => void;
 		onClose: () => void;
 	} = $props();
 
 	const copy = messages.appointments.panel;
 	const confirmCopy = messages.appointments.confirmed;
+	const dayCopy = messages.appointments.days;
 
 	const MODE_FILTERS: { value: ModeFilter; label: string }[] = [
 		{ value: 'any', label: copy.modeAny },
@@ -221,7 +209,7 @@
 	<form
 		method="POST"
 		action="?/book"
-		class="flex min-w-0 flex-col gap-4"
+		class="flex min-w-0 flex-col gap-3"
 		use:enhance={() => {
 			pending = true;
 			error = null;
@@ -262,13 +250,79 @@
 		     form is the whole request and the action needs no client to call it. -->
 		<input type="hidden" name="slotId" value={selectedSlot?.id ?? ''} />
 
-		<!-- ── Step 3: the time ──────────────────────────────────────────────── -->
-		<div class="min-w-0">
-			<p class="thrive-eyebrow mb-1.5">
-				<span class="thrive-numeric">3</span>
-				· {messages.appointments.steps.time}
-			</p>
+		<!--
+			PICK A DAY. A horizontal strip of the days this advisor publishes.
 
+			Each chip carries the weekday (or "Today"/"Tomorrow" where those apply),
+			the date on the numeric face, and how much is open. A full day is disabled
+			and says "Full" rather than being selectable and then empty.
+		-->
+		<fieldset>
+			<legend class={FIELD_LABEL}>{dayCopy.legend}</legend>
+
+			{#if service.days.length === 0}
+				<p class="text-xs text-muted-ink">{dayCopy.empty}</p>
+			{:else}
+				<div class="flex flex-wrap gap-1.5">
+					{#each service.days as day (day.dayKey)}
+						{@const open = day.openCount > 0}
+						{@const active = day.dayKey === dayKey}
+						{@const state = open ? dayCopy.openCount(day.openCount) : dayCopy.fullyBooked}
+
+						<button
+							type="button"
+							data-day={day.dayKey}
+							data-open={day.openCount}
+							disabled={!open}
+							aria-pressed={active}
+							aria-label={dayCopy.dayLabel(
+								day.relativeLabel || day.weekdayLabel,
+								day.dateLabel,
+								state
+							)}
+							onclick={() => onSelectDay(day.dayKey)}
+							class={cn(
+								CHOICE_BASE,
+								'flex min-h-11 min-w-18 flex-col items-center justify-center px-2.5 py-1.5',
+								'disabled:cursor-not-allowed',
+								active
+									? 'border-line-strong bg-primary text-on-primary'
+									: open
+										? CHOICE_RESTING
+										: 'border-line bg-sunken text-muted-ink'
+							)}
+						>
+							<span class="font-medium">{day.relativeLabel || day.weekdayLabel}</span>
+							<span
+								class={cn(
+									'thrive-numeric text-3xs',
+									active ? 'text-on-primary' : 'text-muted-ink'
+								)}
+							>
+								{day.dateLabel}
+							</span>
+							<!-- The count, kept from the month-grid work. It is what lets a
+							     student see where to look before pressing anything. -->
+							<span
+								class={cn(
+									'text-3xs',
+									active ? 'text-on-primary' : open ? 'text-primary' : 'text-muted-ink'
+								)}
+							>
+								{#if open}
+									<span class="thrive-numeric">{day.openCount}</span>
+									{dayCopy.openCountSuffix(day.openCount)}
+								{:else}
+									{dayCopy.fullyBooked}
+								{/if}
+							</span>
+						</button>
+					{/each}
+				</div>
+			{/if}
+		</fieldset>
+
+		<div class="min-w-0">
 			<!-- Meeting type. Each slot is published as one mode or the other, so this
 			     NARROWS the list rather than changing a chosen time. -->
 			<fieldset>
@@ -341,13 +395,7 @@
 			</fieldset>
 		</div>
 
-		<!-- ── Step 4: what it is about, and the commitment ──────────────────── -->
 		<div class="min-w-0">
-			<p class="thrive-eyebrow mb-1.5">
-				<span class="thrive-numeric">4</span>
-				· {messages.appointments.steps.about}
-			</p>
-
 			<label for="booking-reason" class={FIELD_LABEL}>{copy.reasonLabel}</label>
 			<textarea
 				id="booking-reason"

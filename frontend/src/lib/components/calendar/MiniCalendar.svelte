@@ -42,6 +42,38 @@
 	 * exist because the same grid is meant to serve as a compact picker beside a
 	 * booking panel later, and a component that has to be edited to be reused in
 	 * the way it was designed for is not reusable.
+	 *
+	 * ## `readOnly` — the month as a REFERENCE rather than a control
+	 *
+	 * `/appointments` shows the student's month beside the booking panel, purely so
+	 * they can see what their month looks like while choosing. It is not the day
+	 * picker; the chips are.
+	 *
+	 * One assumption of this component does not transfer, and it is the load-bearing
+	 * one: **a cell is a control.** Every cell is a `<button>`, they share a roving
+	 * tabindex, and about eighty lines here exist solely to make them operable by
+	 * keyboard. A reference needs none of that and must actively not have it — a
+	 * focusable cell that does nothing is worse than no cell, because a keyboard
+	 * user tabs into a 42-stop grid to find that none of the stops do anything.
+	 *
+	 * So `readOnly` swaps the cell's ELEMENT rather than just its handler: `<div>`
+	 * instead of `<button>`, no tabindex, no grid roles, no hover, no keydown, and
+	 * no paging controls. What is reused is everything above the cell — the panel,
+	 * the month label, the weekday header, the six-by-seven arithmetic, the dot row
+	 * with its overflow counter and its reserved height — which is most of the
+	 * markup and all of the arithmetic.
+	 *
+	 * **It is `aria-hidden` in that mode, and that is a choice rather than a
+	 * shortcut.** The information is real, so hiding it needs justifying: the same
+	 * month, fully labelled and fully operable, is one link away at `/calendar`, and
+	 * the reference renders that link beside itself. A non-operable grid announced
+	 * cell by cell is noise, not access. If it were the only way to that
+	 * information the answer would have to be different.
+	 *
+	 * **It does not page.** Read-only and pageable is defensible, but chevrons are
+	 * controls, and a panel whose only controls page a grid you cannot otherwise
+	 * touch invites the click this mode exists to refuse. Frozen on the month
+	 * containing today is simpler and says what it is.
 	 */
 	let {
 		data,
@@ -51,7 +83,8 @@
 		monthKey,
 		onMonthChange,
 		showTodayButton = false,
-		size = 'compact'
+		size = 'compact',
+		readOnly = false
 	}: {
 		data: ScheduleData;
 		/** "YYYY-MM-DD" for the real today, decided by the server. */
@@ -65,6 +98,14 @@
 		showTodayButton?: boolean;
 		/** `comfortable` gives taller cells for use as a primary calendar. */
 		size?: 'compact' | 'comfortable';
+		/**
+		 * Render as a REFERENCE: no controls, no focus, no paging, `aria-hidden`.
+		 *
+		 * `onSelect` and `onMonthChange` are never called in this mode, so a caller
+		 * may pass no-ops. See the note above for why the cell changes element rather
+		 * than just losing its handler.
+		 */
+		readOnly?: boolean;
 	} = $props();
 
 	/** Days in a week, and the width of one grid row. */
@@ -230,7 +271,12 @@
 		     invisible 44px pseudo-element. The old shape overlapped its neighbour by
 		     12px and the overlap resolved to whichever button painted last -- so
 		     part of the visible "previous" chevron paged FORWARD. `gap-2` keeps 8px
-		     of clear air between the targets. -->
+		     of clear air between the targets.
+
+		     Absent entirely when read-only: a chevron is a control, and a panel whose
+		     only controls page a grid you cannot otherwise touch invites the click
+		     that mode exists to refuse. -->
+		{#if !readOnly}
 		<div class="flex shrink-0 items-center gap-2">
 			{#if showTodayButton}
 				<Button onclick={goToday} class="h-11">{copy.today}</Button>
@@ -242,27 +288,36 @@
 				<ChevronRight aria-hidden="true" class="size-4" />
 			</Button>
 		</div>
+		{/if}
 	</div>
 
 	<!-- Padding is one step off the panel edge only: every pixel spent here is
 	     taken off seven day cells, and the cells are the thing that has to stay
 	     tappable. What is left is enough for the focus ring to sit in. -->
+	<!-- `aria-hidden` in reference mode. The same month, fully labelled and fully
+	     operable, is one link away at /calendar, and the reference renders that
+	     link beside itself -- see the note at the top for why that is the honest
+	     trade rather than a shortcut. -->
+	<!-- `tabindex="-1"` stays a literal in both modes: it is negative, so it is
+	     never a tab stop either way, and a ternary here makes svelte-check warn
+	     that the value might be non-negative when it cannot narrow it. -->
 	<div
 		bind:this={gridEl}
-		role="grid"
-		aria-labelledby="mini-cal-label"
-		onkeydown={onKeyDown}
+		role={readOnly ? undefined : 'grid'}
+		aria-labelledby={readOnly ? undefined : 'mini-cal-label'}
+		aria-hidden={readOnly ? 'true' : undefined}
+		onkeydown={readOnly ? undefined : onKeyDown}
 		class="p-1"
 		tabindex="-1"
 	>
-		<div role="row" class="grid grid-cols-7 pb-1">
+		<div role={readOnly ? undefined : 'row'} class="grid grid-cols-7 pb-1">
 			{#each copy.weekdayInitials as initial, index (copy.weekdayNames[index])}
 				<!-- The role goes on a div and the abbreviation sits inside it. The Next
 				     version put `role="columnheader"` on the `<abbr>` itself, which is a
 				     grid role on a non-interactive element -- svelte-check rejects it,
 				     and it is right to: the header is a cell, and `<abbr>` is the
 				     shortening of the word inside that cell. Two jobs, two elements. -->
-				<div role="columnheader" class="text-center">
+				<div role={readOnly ? undefined : 'columnheader'} class="text-center">
 					<abbr
 						title={copy.weekdayNames[index]}
 						class="text-3xs text-muted-ink uppercase no-underline"
@@ -276,9 +331,12 @@
 		<!-- The rules between days are the container showing through the gaps.
 		     Drawing them as borders on the cells instead would double every
 		     interior line and leave the grid's outer edge uneven. -->
-		<div role="rowgroup" class="flex flex-col gap-0.5 border border-line bg-line">
+		<div
+			role={readOnly ? undefined : 'rowgroup'}
+			class="flex flex-col gap-0.5 border border-line bg-line"
+		>
 			{#each weeks as week (week[0])}
-				<div role="row" class="grid grid-cols-7 gap-0.5">
+				<div role={readOnly ? undefined : 'row'} class="grid grid-cols-7 gap-0.5">
 					{#each week as dayKey (dayKey)}
 						{@const date = fromDayKey(dayKey)}
 						{@const inMonth = date.getMonth() === month}
@@ -288,15 +346,23 @@
 						{@const shown = categories.length > MAX_DOTS ? MAX_DOTS - 1 : MAX_DOTS}
 						{@const overflow = categories.length - shown}
 
-						<button
-							type="button"
-							role="gridcell"
+						<!--
+							`<svelte:element>` so the CELL'S ELEMENT changes, not just its
+							handler. Read-only cells are plain `<div>`s: no type, no role, no
+							tabindex, no click, no hover. A focusable cell that does nothing is
+							worse than no cell, because a keyboard user tabs into a 42-stop grid
+							to find that none of the stops do anything.
+						-->
+						<svelte:element
+							this={readOnly ? 'div' : 'button'}
+							type={readOnly ? undefined : 'button'}
+							role={readOnly ? undefined : 'gridcell'}
 							data-day={dayKey}
-							aria-label={labelFor(dayKey, categories.length)}
-							aria-selected={isSelected}
-							aria-current={isToday ? 'date' : undefined}
-							tabindex={dayKey === tabStopKey ? 0 : -1}
-							onclick={() => onSelect(dayKey)}
+							aria-label={readOnly ? undefined : labelFor(dayKey, categories.length)}
+							aria-selected={readOnly ? undefined : isSelected}
+							aria-current={!readOnly && isToday ? 'date' : undefined}
+							tabindex={readOnly ? undefined : dayKey === tabStopKey ? 0 : -1}
+							onclick={readOnly ? undefined : () => onSelect(dayKey)}
 							class={cn(
 								'relative flex flex-col items-center justify-center gap-1',
 								roomy ? 'h-11' : 'h-9',
@@ -306,13 +372,17 @@
 								// to half muted put it at 2.1:1 -- the number stays at full
 								// muted ink and the recessed tone carries the meaning.
 								inMonth ? 'bg-surface text-body' : 'bg-sunken text-muted-ink',
-								!isSelected && 'hover:bg-primary-soft',
-								isSelected && 'bg-primary text-on-primary',
+								// No hover in reference mode: a fill that responds to the cursor
+								// is a promise that pressing will do something.
+								!isSelected && !readOnly && 'hover:bg-primary-soft',
+								isSelected && !readOnly && 'bg-primary text-on-primary',
 								// Today is marked by weight AND a ring, not hue alone, so it
-								// survives grayscale and stays visible while selected.
+								// survives grayscale and stays visible while selected. Kept in
+								// reference mode -- "where am I in the month" is the one thing
+								// a reference is FOR.
 								isToday && !isSelected && 'font-bold text-primary',
 								isToday &&
-									(isSelected
+									(isSelected && !readOnly
 										? 'ring-2 ring-on-primary ring-inset'
 										: 'ring-2 ring-primary ring-inset')
 							)}
@@ -351,7 +421,7 @@
 									</span>
 								{/if}
 							</span>
-						</button>
+						</svelte:element>
 					{/each}
 				</div>
 			{/each}

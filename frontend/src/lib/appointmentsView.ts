@@ -86,19 +86,22 @@ export interface AppointmentView {
 }
 
 /**
- * One offerable day, as the day list renders it.
+ * One offerable day, as a CHIP renders it.
  *
- * ## Why this exists and `DayOption` did not survive
+ * ## This is the Next tree's `DayOption`, with two fields added
  *
- * Phase 8 deleted the Next tree's `DayOption` because a month grid built its own
- * cell labels from a day key. The redesign brings a pre-formatted day view back,
- * and the reason is the interesting part: **a list row has to say its own state
- * in words**, and "4 times" / "fully booked" / "Today" are copy, not geometry.
- * A grid cell could get away with a dot because it had a legend; a row cannot,
- * and should not want one.
+ * The original carried `{ key, weekday, date, relative }` — one per chip in a
+ * strip of five business days. Phase 8 deleted it for a month grid that built its
+ * own cell labels, the grid has been reverted, and the chips need pre-formatted
+ * days again. So this is that type back, plus the two COUNTS, which the original
+ * did not have.
  *
- * Every field here is a finished string except the two counts, and the counts are
- * counts rather than dates.
+ * The counts are the one thing worth keeping from the grid work: with them a chip
+ * can say a day is full instead of just going quiet when it is selected, and
+ * `firstBookableDay` can open the panel on a day that has room. `monthHeading` is
+ * gone with the list it grouped.
+ *
+ * Every field is a finished string except the counts, and a count is not a date.
  */
 export interface BookingDayView {
   /** Local calendar day, "YYYY-MM-DD". The selection value, never displayed. */
@@ -114,15 +117,6 @@ export interface BookingDayView {
    * field means. The row prints it only when it is non-empty.
    */
   relativeLabel: string;
-  /**
-   * "August" on the FIRST row of each month, else empty.
-   *
-   * The list's only structural heading, and it is what replaces the month grid's
-   * paging: the window spans at most two months, so scrolling past this heading
-   * IS looking further ahead. Decided on the server because it depends on the row
-   * before it, which is exactly the sort of off-by-one that hides in a component.
-   */
-  monthHeading: string;
   /** Slots still free. Zero means fully booked, never "no such day". */
   openCount: number;
   /** Slots published at all. Always > 0 — a day with none is not in this list. */
@@ -138,15 +132,13 @@ export interface ServiceView {
   /** Still-bookable slots inside the window. Shown on the service card. */
   openCount: number;
   /**
-   * The days this advisor works inside the window, ascending.
+   * The days this advisor works, ascending. One chip each.
    *
    * Days with nothing published are ABSENT — a weekend is not a refusal, it is
-   * not a day this advisor works, and listing it as unavailable would be the
-   * mostly-grey month grid in a taller shape.
+   * not a day this advisor works, and a chip saying so would be a chip that
+   * exists only to be unavailable.
    */
   days: BookingDayView[];
-  /** "Mon, Sep 21" — the last day the window reaches, for the list's footer. */
-  windowEndLabel: string;
 }
 
 /**
@@ -211,50 +203,33 @@ export function toAppointmentView(
 }
 
 /**
- * The day list, formatted, from the two count maps.
+ * The chips, formatted, from the two count maps.
  *
  * ## Server-side, and this is one of the reasons the rule exists
  *
- * Four of the six fields on each row are locale-formatted dates, and the fifth
- * is a relative word that depends on what "today" is. Formatting them here means
- * `DayPicker` receives finished strings and holds no opinion about the calendar
- * at all -- it cannot disagree with the header above it about which day is today,
+ * Three of the five fields on a chip are locale-formatted dates and the fourth is
+ * a relative word that depends on what "today" is. Formatting them here means the
+ * strip receives finished strings and holds no opinion about the calendar at all
+ * -- it cannot disagree with the header above it about which day is today,
  * because it was never told an instant.
  *
- * Note what that buys over the month grid it replaces: `MiniCalendar` had to
- * format two things on the CLIENT, because a grid that pages to any month has no
- * finite set of months a `load` could pre-render. A list bounded by the window
- * has exactly one set of days, so nothing here needs the exception.
- *
- * `todayKey` and `windowEnd` come in as arguments. Nothing reads a clock.
+ * `todayKey` and `tomorrowKey` come in as arguments. Nothing reads a clock.
  */
 export function toBookingDayViews(
 	openByDay: OpenByDay,
 	publishedByDay: OpenByDay,
+	dayKeys: readonly string[],
 	todayKey: string,
-	windowEnd: string,
 	tomorrowKey: string,
 ): BookingDayView[] {
-	const dayKeys = Object.keys(publishedByDay)
-		.filter((dayKey) => dayKey >= todayKey && dayKey <= windowEnd)
-		.sort();
-
-	let lastMonth = "";
-
 	return dayKeys.map((dayKey) => {
 		const date = fromDayKey(dayKey);
-		const month = date.toLocaleDateString("en-US", { month: "long" });
 
 		/*
-		 * The heading prints only when the month CHANGES, which is why this is a
-		 * fold rather than a map over an independent predicate: the answer depends
-		 * on the row before it. Index 0 always prints -- the first row has nothing
-		 * behind it to be the same as -- which falls out of `lastMonth` starting
-		 * empty rather than needing its own branch.
+		 * "Today" and "Tomorrow" beat a weekday name where they apply, which is the
+		 * Next chip's own rule and a good one: those are the two days a student is
+		 * most likely to want and the two a weekday name places least well.
 		 */
-		const monthHeading = month === lastMonth ? "" : month;
-		lastMonth = month;
-
 		const relativeLabel =
 			dayKey === todayKey
 				? messages.appointments.days.today
@@ -270,7 +245,6 @@ export function toBookingDayViews(
 				day: "numeric",
 			}),
 			relativeLabel,
-			monthHeading,
 			openCount: openByDay[dayKey] ?? 0,
 			publishedCount: publishedByDay[dayKey] ?? 0,
 		};
