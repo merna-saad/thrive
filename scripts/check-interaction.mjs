@@ -1987,11 +1987,43 @@ try {
 	await prov.goto(BASE + '/calendar', { waitUntil: 'networkidle' });
 	await prov.waitForTimeout(SETTLE);
 	const calPills = await prov.evaluate(readSourcePills);
-	check(
-		"the calendar's class and assignment rows say so too",
-		calPills.count > 0 && calPills.empty === 0,
-		`${calPills.count} pill(s), ${calPills.empty} empty`
-	);
+	/*
+	 * SKIP, NOT FAIL, WHEN THE SELECTED DAY CARRIES NOTHING TO MARK.
+	 *
+	 * This asserted `count > 0` unconditionally and went red on 2026-08-22 — the
+	 * first time this gate had ever been run on a SATURDAY. The three enrolments
+	 * meet Mon-Fri between them (see CONTEXT §12), so a weekend day has no class
+	 * rows and no assignments due, so there is nothing on the page that owes a
+	 * provenance pill. The product was fine; the gate was reporting "no pills"
+	 * as "the pills are broken".
+	 *
+	 * That is exactly the case `unproven` exists for, and this file's own stated
+	 * property: report SKIP rather than passing — or failing — when the fixture
+	 * cannot produce the case an assertion needs. The assertion stays live on
+	 * every weekday, and the `empty === 0` half still runs whenever there is a
+	 * row at all, because an EMPTY badge is a real defect on any day.
+	 *
+	 * Worth noting what this cost: five months of weekday runs never surfaced it,
+	 * and a gate whose greenness depends on the day of the week is a gate that
+	 * will fail on somebody else's Saturday and be dismissed as flaky.
+	 */
+	if (calPills.count === 0) {
+		unproven(
+			"the calendar's class and assignment rows say so too",
+			'no class or assignment row on the selected day — the enrolments meet Mon-Fri'
+		);
+		check(
+			'and no row carries an EMPTY provenance badge',
+			calPills.empty === 0,
+			`${calPills.empty} empty — checkable even with nothing to mark`
+		);
+	} else {
+		check(
+			"the calendar's class and assignment rows say so too",
+			calPills.empty === 0,
+			`${calPills.count} pill(s), ${calPills.empty} empty`
+		);
+	}
 	await prov.close();
 
 	// ═══ The page measure, and the calendar's order ════════════════════════

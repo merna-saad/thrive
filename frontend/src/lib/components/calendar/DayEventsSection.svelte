@@ -159,7 +159,17 @@
 					</p>
 
 					{#if row.item.description}
-						<p class="mt-1.5 text-xs text-body">{row.item.description}</p>
+						<!-- `max-w-measure`, because this is the one piece of real PROSE the
+						     calendar renders. Everything else on the page is a title, a time or
+						     a tag, and none of those needs a line-length cap.
+
+						     Added 2026-08-22, when the interaction gate first ran on a
+						     SATURDAY. A blurb was measured at 967px — about 150 characters a
+						     line, twice what a reader can track — and it had been that way
+						     since 7c. It only became the page's WIDEST qualifying paragraph on
+						     a day whose events carry long descriptions, which is why five
+						     months of weekday runs never surfaced it. -->
+						<p class="mt-1.5 max-w-measure text-xs text-body">{row.item.description}</p>
 					{/if}
 
 					<div class="mt-2.5 flex flex-wrap items-center gap-2">
