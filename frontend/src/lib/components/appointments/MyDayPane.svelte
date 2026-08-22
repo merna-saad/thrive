@@ -3,6 +3,7 @@
 
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 	import Tag from '$lib/components/ui/Tag.svelte';
+	import SourcePill from '$lib/components/ui/SourcePill.svelte';
 	import { messages } from '$lib/messages';
 	import {
 		categoryLabel,
@@ -135,6 +136,7 @@
 							<Tag tone={item.category === 'appointment' ? 'primary' : 'neutral'}>
 								{categoryLabel[item.category]}
 							</Tag>
+							<SourcePill origin={item.origin} />
 						</span>
 
 						{#if item.detail}

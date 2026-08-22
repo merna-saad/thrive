@@ -7,6 +7,7 @@
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 	import SectionCard from '$lib/components/ui/SectionCard.svelte';
 	import ShowMore from '$lib/components/ui/ShowMore.svelte';
+	import SourcePill from '$lib/components/ui/SourcePill.svelte';
 
 	import type { ClassRow } from '$lib/homeView';
 
@@ -53,7 +54,10 @@
 							{row.time}
 						</span>
 						<span class="min-w-0 flex-1">
-							<span class="block text-sm break-words text-ink">{row.title}</span>
+							<span class="flex flex-wrap items-center gap-1.5">
+								<span class="min-w-0 text-sm break-words text-ink">{row.title}</span>
+								<SourcePill origin={row.origin} />
+							</span>
 							<span class="block truncate text-2xs font-medium text-muted-ink">
 								{row.location}
 							</span>

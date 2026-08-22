@@ -1,5 +1,5 @@
 import type { DueDescriptor } from '$lib/format';
-import type { Course, Event, Task } from '$lib/data';
+import type { Course, Event, SourceSystem, Task } from '$lib/data';
 
 /**
  * Home's view models.
@@ -18,6 +18,13 @@ import type { Course, Event, Task } from '$lib/data';
 export interface ClassRow {
 	/** Stable key: a course can meet twice in one day. */
 	id: string;
+	/**
+	 * Where the course came from. Carried through from `Course.origin` rather than
+	 * looked up in the component, which is this repo's rule for view models: the
+	 * row arrives with everything it needs. Absent means unknown, and unknown
+	 * renders no pill.
+	 */
+	origin?: SourceSystem;
 	/** Pre-formatted wall clock, e.g. "9:30 AM". */
 	time: string;
 	title: string;

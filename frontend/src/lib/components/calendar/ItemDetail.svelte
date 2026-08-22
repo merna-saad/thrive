@@ -7,6 +7,7 @@
 
 	import Button from '$lib/components/ui/Button.svelte';
 	import Tag from '$lib/components/ui/Tag.svelte';
+	import SourcePill from '$lib/components/ui/SourcePill.svelte';
 	import { clickOutside } from '$lib/actions/clickOutside';
 	import { escapeKey } from '$lib/actions/escapeKey';
 	import { focusTrap } from '$lib/actions/focusTrap';
@@ -216,6 +217,9 @@
 					{#if urgent}
 						<Tag tone="urgent">{copy.urgent}</Tag>
 					{/if}
+					<!-- The dialog is the one place a student goes to ask "what IS this",
+					     so provenance belongs here even more than on the row. -->
+					<SourcePill origin={row.origin} />
 				</p>
 
 				<h2 id={copy.headingId} class="mt-1.5 text-lg font-bold break-words text-ink">

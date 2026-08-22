@@ -2,7 +2,11 @@ import type { Course } from "../types";
 import { at, FRI, MON, THU, TUE, upcomingWeekday, WED } from "./relative-dates";
 
 /**
- * Merna's four courses this term.
+ * All four carry `origin: "canvas"`. A course roster comes from the LMS, so the
+ * class rows and the course cards are the first surfaces to say where they came
+ * from. See `SourceSystem` in `../types`.
+ *
+ * The four courses this term.
  *
  * MGT 253 is the one carrying a nudge. Exactly one course in trouble is the
  * point: it makes "focus here this week" legible instead of leaving the
@@ -12,6 +16,7 @@ export function buildMockCourses(): Course[] {
   return [
     {
       id: "crs-142",
+      origin: "canvas",
       code: "MGT 142",
       title: "Machine Learning for Business",
       instructor: "Prof. Nijs",
@@ -42,6 +47,7 @@ export function buildMockCourses(): Course[] {
     },
     {
       id: "crs-100",
+      origin: "canvas",
       code: "MGT 100",
       title: "Data Management & SQL",
       instructor: "Prof. Rivera",
@@ -72,6 +78,7 @@ export function buildMockCourses(): Course[] {
     },
     {
       id: "crs-253",
+      origin: "canvas",
       code: "MGT 253",
       title: "Data Visualization",
       instructor: "Prof. Kim",
@@ -97,6 +104,7 @@ export function buildMockCourses(): Course[] {
     },
     {
       id: "crs-256",
+      origin: "canvas",
       code: "MGT 256",
       title: "Marketing Analytics",
       instructor: "Prof. Alvarez",

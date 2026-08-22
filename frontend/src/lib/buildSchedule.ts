@@ -75,6 +75,10 @@ export async function buildScheduleData(): Promise<ScheduleData> {
 			// id. Without it two meetings of one course collide and `itemsForDay`
 			// renders one row where there are two.
 			id: `${course.id}-${index}`,
+			// Carried from the course, not assumed. A class row says where it came
+			// from because the COURSE knows; if a course arrives with no origin its
+			// meetings render no pill.
+			origin: course.origin,
 			dayOfWeek: meeting.dayOfWeek,
 			title: `${course.code} · ${course.title}`,
 			detail: meeting.location,
@@ -85,6 +89,7 @@ export async function buildScheduleData(): Promise<ScheduleData> {
 
 	const datedAssignments: DatedScheduleItem[] = assignments.map((assignment) => ({
 		id: `asg-${assignment.id}`,
+		origin: assignment.origin,
 		category: 'assignment',
 		title: assignment.title,
 		dayKey: dayKeyOf(assignment.dueDate),

@@ -36,6 +36,36 @@ export type Priority = "low" | "medium" | "high";
  */
 export type TaskSource = "class" | "career" | "admin" | "event";
 
+/**
+ * The SYSTEM a row came from, as opposed to what kind of thing it is.
+ *
+ * ## Why this is `origin` and not `source`
+ *
+ * `source` was taken, and it means something else. `Task.source` is a
+ * `TaskSource` -- "class" | "career" | "admin" | "event" -- which is the KIND OF
+ * WORK, not the system it arrived from. A second field called `source` on the
+ * same interface, meaning a different axis, is the kind of thing that gets read
+ * wrong once and then depended on. `origin` answers "where did this come from";
+ * `source` answers "what sort of work is this".
+ *
+ * ## Open by design
+ *
+ * Canvas is the only value populated today. Handshake and the student's own
+ * entries are named here because they are coming, and naming them now is what
+ * makes adding one a fixture change rather than a rewrite: the pill renders from
+ * a label map keyed by this union, so nothing in the app branches on "canvas".
+ *
+ * ## Absent means UNKNOWN, never "not from Canvas"
+ *
+ * The field is optional everywhere. An absent origin renders no pill, which is
+ * the correct behaviour for a row whose provenance nobody has recorded -- and it
+ * is why every existing row without one is unmarked rather than mislabelled.
+ * `sourceLabel` in `messages.ts` is a partial map for the same reason: a value
+ * Django sends that this build does not know renders nothing rather than leaking
+ * a raw slug into the interface.
+ */
+export type SourceSystem = "canvas" | "handshake" | "student";
+
 export type AssignmentStatus =
   | "not-started"
   | "in-progress"
@@ -158,6 +188,8 @@ export interface NextAssignment {
 
 export interface Course {
   id: string;
+  /** Where this came from. See `SourceSystem`. Absent means unknown. */
+  origin?: SourceSystem;
   /** Catalog code, e.g. "MGT 142". */
   code: string;
   title: string;
@@ -207,6 +239,8 @@ export interface Syllabus {
 
 export interface Assignment {
   id: string;
+  /** Where this came from. See `SourceSystem`. Absent means unknown. */
+  origin?: SourceSystem;
   courseId: string;
   title: string;
   dueDate: ISODateTime;
@@ -228,7 +262,19 @@ export interface Task {
   id: string;
   title: string;
   dueDate: ISODateTime;
+  /**
+   * The KIND of work. Not to be confused with `origin` below, which is the
+   * system it arrived from -- see `SourceSystem` for why the two are separate
+   * fields with separate names.
+   */
   source: TaskSource;
+  /**
+   * Where this came from. Declared so the model is uniform across the three row
+   * types, and DELIBERATELY UNSET in the fixtures: only classes and assignments
+   * are marked as coming from Canvas today, so Home's task rows carry no pill.
+   * Populating it here is a one-field fixture change if that should alter.
+   */
+  origin?: SourceSystem;
   priority: Priority;
   done: boolean;
   subtasks: Subtask[];

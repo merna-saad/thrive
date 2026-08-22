@@ -86,6 +86,7 @@ export const load: PageServerLoad = async () => {
 		.map(({ course, meeting }) => ({
 			// A course can meet twice in one day, so the key needs both parts.
 			id: `${course.id}-${meeting.startTime}`,
+			origin: course.origin,
 			time: formatClockTime(meeting.startTime),
 			title: `${course.code} · ${course.title}`,
 			location: meeting.location

@@ -276,6 +276,7 @@ interface NextAssignment { title: string; due: ISODateTime; }
 
 interface Course {
   id: string;
+  origin?: SourceSystem;   // NEW, see "Provenance" below
   code: string;        // "MGT 142"
   title: string;
   instructor: string;
@@ -313,6 +314,7 @@ the design intent is lost even though nothing breaks.
 ```ts
 interface Assignment {
   id: string;
+  origin?: SourceSystem;   // NEW, see "Provenance" below
   courseId: string;
   title: string;
   dueDate: ISODateTime;
@@ -328,7 +330,8 @@ interface Task {
   id: string;
   title: string;
   dueDate: ISODateTime;
-  source: TaskSource;
+  source: TaskSource;      // the KIND of work. NOT the origin -- see below
+  origin?: SourceSystem;   // NEW, and deliberately unset in the fixtures
   priority: Priority;
   done: boolean;
   subtasks: Subtask[];
@@ -336,6 +339,49 @@ interface Task {
   courseCode?: string;   // cached for display so a row needs no second lookup
 }
 ```
+
+### Provenance: the `origin` field (added 2026-08-21)
+
+A student should be able to see where a row came from. THRIVE pulls from several
+systems and Canvas is the first one named.
+
+```ts
+type SourceSystem = "canvas" | "handshake" | "student";
+```
+
+| | |
+|---|---|
+| **Type** | `SourceSystem`, a string enum. NOT a boolean. |
+| **Nullable** | YES. Optional on every type that carries it. |
+| **On** | `Course`, `Assignment`, `Task` |
+| **Do the providers return it today?** | `getCourses` and `getAssignments` DO -- every fixture row is `"canvas"`. `getTasks` does NOT: the field exists on the type and is unset in the fixtures. |
+
+**An absent `origin` means UNKNOWN, never "not from Canvas".** The frontend
+renders no pill for it, which is the correct behaviour for a row whose
+provenance nobody recorded. Do not send `""` or `"none"` to mean "unmarked" --
+omit the field, or send `null`.
+
+**It is called `origin` and not `source` because `source` was taken.**
+`Task.source` is a `TaskSource` -- `"class" | "career" | "admin" | "event"` --
+which is the KIND OF WORK, a different axis entirely. Two fields called `source`
+on one model meaning two things is a bug waiting to be written, so the systems
+axis is `origin`. Please keep both names.
+
+**A value this frontend does not know renders nothing rather than failing.** The
+label lookup is a partial map, so if Django starts sending `"handshake"` before a
+frontend release adds the label, rows show no pill instead of a raw slug. That
+means you can add a source ahead of the UI safely — but the pill will not appear
+until the label ships. Adding one is one message entry, no component changes.
+
+**Nothing branches on `"canvas"`.** One component renders the pill from the label
+map. That is deliberate: the second source must not require touching every render
+site.
+
+**Where it surfaces today:** Home's class rows and course cards, the calendar's
+item rows and its detail dialog, and the "Your day" pane on `/appointments`.
+Home's TASK rows show nothing, because `Task.origin` is unset. If tasks derived
+from Canvas assignments should be marked, that is a fixture/serializer change and
+no frontend change at all.
 
 ### Events
 

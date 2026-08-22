@@ -40,6 +40,34 @@ export const messages = {
 	/** Reused across surfaces. Kept here rather than duplicated per card. */
 	common: {
 		viewAll: 'View all',
+		/**
+		 * PROVENANCE, keyed by `SourceSystem`. Not a status.
+		 *
+		 * A PARTIAL map on purpose. Django can send an origin this build has never
+		 * heard of, and looking up a missing key must render nothing rather than leak
+		 * a raw slug like "handshake_v2" into the interface. `SourcePill` renders only
+		 * when the lookup hits, which is the same code path as an absent origin.
+		 *
+		 * Nothing in the app branches on "canvas". Adding Handshake is one entry here
+		 * plus a fixture field.
+		 */
+		source: {
+			label: {
+				canvas: 'Canvas',
+				handshake: 'Handshake',
+				student: 'You'
+			} as Partial<Record<string, string>>,
+			/**
+			 * The spoken form, because the visible pill is a bare product name.
+			 *
+			 * "Canvas" on its own tells a screen reader user the word and nothing about
+			 * why it is sitting beside an assignment title. The visible text stays one
+			 * word -- it is provenance and must not compete with the urgency and status
+			 * tags on the same row -- and the sentence goes in an `sr-only` span, which
+			 * is how every other quiet marker in this app carries its meaning.
+			 */
+			spoken: (name: string) => `From ${name}`
+		},
 		/** Names which section a "View all" leads to, for screen readers. */
 		viewAllIn: (section: string) => ` in ${section}`,
 		undo: 'Undo',

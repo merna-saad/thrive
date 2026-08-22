@@ -1700,6 +1700,97 @@ try {
 
 	await cal.close();
 
+	// ═══ Provenance: the Canvas pill ═══════════════════════════════════════
+	/*
+	 * `sources.spec.ts` pins the DECISION -- absent or unknown origin renders
+	 * nothing. What a unit test cannot see is whether the pill reached the rows,
+	 * because Vitest renders nothing at all.
+	 *
+	 * Three claims a browser can make and nothing else can:
+	 *
+	 *  1. It is ON a class row on Home, and on the calendar's rows.
+	 *  2. Its accessible name is a SENTENCE, not the bare product name. The
+	 *     visible text is `aria-hidden` and an `sr-only` span carries "From
+	 *     Canvas" -- a screen reader hearing only "Canvas" beside a title learns
+	 *     the word and nothing about why it is there.
+	 *  3. Rows with no origin carry NO pill. This is the negative that would
+	 *     otherwise ship as an empty badge on every row and be read as a styling
+	 *     glitch rather than reported as a bug.
+	 */
+	const prov = await browser.newPage({ viewport: DESKTOP });
+	prov.on('pageerror', (error) => pageErrors.push(`source: ${error}`));
+	prov.on('console', (msg) => noisy(msg) && pageErrors.push(`source: ${msg.text()}`));
+
+	const readSourcePills = () => {
+		const pills = [...document.querySelectorAll('span')].filter((s) => {
+			const hidden = s.querySelector(':scope > [aria-hidden="true"]');
+			const sr = s.querySelector(':scope > .sr-only');
+			return hidden && sr && /^(Canvas|Handshake|You)$/.test(hidden.textContent?.trim() ?? '');
+		});
+		return {
+			count: pills.length,
+			visible: pills[0]?.querySelector('[aria-hidden="true"]')?.textContent?.trim() ?? null,
+			spoken: pills[0]?.querySelector('.sr-only')?.textContent?.trim() ?? null,
+			/* Empty badge check: a bordered pill with no text at all. */
+			empty: pills.filter((p) => (p.textContent ?? '').trim() === '').length
+		};
+	};
+
+	await prov.goto(BASE + '/', { waitUntil: 'networkidle' });
+	await prov.waitForTimeout(SETTLE);
+	const homePills = await prov.evaluate(readSourcePills);
+
+	check(
+		'a class on Home says it came from Canvas',
+		homePills.count > 0,
+		`${homePills.count} provenance pill(s) on Home`
+	);
+	check(
+		'the pill speaks a sentence rather than a bare product name',
+		homePills.spoken !== null && /^From /.test(homePills.spoken) && homePills.visible === 'Canvas',
+		`visible "${homePills.visible}", spoken "${homePills.spoken}"`
+	);
+	check(
+		'no pill renders empty',
+		homePills.empty === 0,
+		`${homePills.empty} empty badge(s) — an absent origin must render nothing at all`
+	);
+
+	/*
+	 * And on Home's TASK rows, which is the negative case with a surface attached:
+	 * `Task` carries no origin in the fixtures, so a task row must have no pill
+	 * even though a class row three inches away does.
+	 */
+	const taskRowPills = await prov.evaluate(() => {
+		/* `.thrive-row` is ON the row element, which IS the listitem -- TaskRow
+		   renders `role="listitem"` itself rather than wrapping in an `<li>`. A row
+		   is a task row when it holds a checkbox; a class row does not. */
+		const rows = [...document.querySelectorAll('.thrive-row')].filter((r) =>
+			r.querySelector('input[type="checkbox"]')
+		);
+		return {
+			rows: rows.length,
+			withPill: rows.filter((r) =>
+				[...r.querySelectorAll('span')].some((s) => /^Canvas$/.test(s.textContent?.trim() ?? ''))
+			).length
+		};
+	});
+	check(
+		"Home's task rows carry no pill, because a task is not an assignment",
+		taskRowPills.rows > 0 && taskRowPills.withPill === 0,
+		`${taskRowPills.withPill} of ${taskRowPills.rows} task rows — unmarked by instruction, not by accident`
+	);
+
+	await prov.goto(BASE + '/calendar', { waitUntil: 'networkidle' });
+	await prov.waitForTimeout(SETTLE);
+	const calPills = await prov.evaluate(readSourcePills);
+	check(
+		"the calendar's class and assignment rows say so too",
+		calPills.count > 0 && calPills.empty === 0,
+		`${calPills.count} pill(s), ${calPills.empty} empty`
+	);
+	await prov.close();
+
 	// ═══ The page measure, and the calendar's order ════════════════════════
 	/*
 	 * Four spatial claims, all of which need a real layout engine.

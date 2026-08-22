@@ -9,6 +9,7 @@
 	import ProgressBar from '$lib/components/ui/ProgressBar.svelte';
 	import StatusBadge from '$lib/components/ui/StatusBadge.svelte';
 	import Tag from '$lib/components/ui/Tag.svelte';
+	import SourcePill from '$lib/components/ui/SourcePill.svelte';
 	import type { DueDescriptor } from '$lib/format';
 	import type { Course } from '$lib/data';
 
@@ -39,7 +40,12 @@
 <article data-flush="true" class="thrive-panel flex flex-col gap-2.5 p-3">
 	<div class="flex items-start justify-between gap-2">
 		<div class="min-w-0">
-			<Tag tone="primary">{course.code}</Tag>
+			<span class="flex flex-wrap items-center gap-1.5">
+				<Tag tone="primary">{course.code}</Tag>
+				<!-- Beside the code rather than beside the title, so provenance sits with
+				     the identifier and does not push the two-line title around. -->
+				<SourcePill origin={course.origin} />
+			</span>
 			<!-- Two lines, not an ellipsis. At 320px this column is about 135px wide
 			     and "Machine Learning for Business" needs 220px, so a single-line
 			     truncate hid the one thing the card is named for. -->

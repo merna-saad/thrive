@@ -1,4 +1,4 @@
-import type { EventType, Task } from "$lib/data";
+import type { EventType, SourceSystem, Task } from "$lib/data";
 // Type-only, so it is erased at build and this module stays usable from the
 // server despite `quickList` being a client module.
 import type { QuickItem } from "$lib/quickList";
@@ -158,6 +158,16 @@ export interface ScheduleItem {
   /** True when the student created this item themselves. */
   custom?: boolean;
   /**
+   * The SYSTEM this row came from, carried through from the provider row so a
+   * view can say so without a second lookup.
+   *
+   * Absent means unknown, and unknown renders no pill -- never "not from
+   * Canvas". Nothing in the app branches on a particular value: `SourcePill`
+   * looks the label up in `messages.sources`, so adding Handshake is a fixture
+   * change plus one message entry. See `SourceSystem` in `data/types`.
+   */
+  origin?: SourceSystem;
+  /**
    * The row this item was built from, attached at merge time.
    *
    * Exactly one of these is present on a tickable row, and neither is present
@@ -242,6 +252,8 @@ export interface DatedScheduleItem extends ScheduleItem {
 /** A class meeting, expanded onto whichever days the calendar shows. */
 export interface RecurringMeeting {
   id: string;
+  /** Where the course came from. See `SourceSystem`. Absent means unknown. */
+  origin?: SourceSystem;
   /** 0 = Sunday ... 6 = Saturday. */
   dayOfWeek: number;
   title: string;
@@ -336,6 +348,7 @@ export function itemsForDay(
     .filter((meeting) => meeting.dayOfWeek === weekday)
     .map((meeting) => ({
       id: `${meeting.id}-${dayKey}`,
+      origin: meeting.origin,
       category: "class" as const,
       title: meeting.title,
       timeLabel: meeting.timeLabel,

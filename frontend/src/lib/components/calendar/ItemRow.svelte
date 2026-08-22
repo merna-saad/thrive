@@ -3,6 +3,7 @@
 	import Info from '@lucide/svelte/icons/info';
 
 	import Tag from '$lib/components/ui/Tag.svelte';
+	import SourcePill from '$lib/components/ui/SourcePill.svelte';
 	import { messages } from '$lib/messages';
 	import { categoryLabel, categoryTag, type ScheduleItem } from '$lib/schedule';
 	import { isTickable } from '$lib/tickItem';
@@ -215,6 +216,13 @@
 		<span class={cn('rounded-xs px-1.5 py-0.5 text-3xs', categoryTag[item.category])}>
 			{categoryLabel[item.category].toLowerCase()}
 		</span>
+
+		<!-- Provenance, AFTER the category tag and before the details control.
+		     Deliberately last of the three markers: urgent is a status, the category
+		     says what kind of thing this is, and where it came from is the least
+		     urgent of the three. It renders nothing when the row has no origin, so
+		     rows that carry one do not shift the ones that do not. -->
+		<SourcePill origin={item.origin} />
 
 		<!-- The details control, LAST in the strip and right-anchored with it.
 		     A conditional control appearing at the leading edge of a right-anchored
