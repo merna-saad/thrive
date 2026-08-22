@@ -334,6 +334,20 @@
   /* Layout constants for the app shell */
   --thrive-rail-width: 15rem;
 
+  /* The calendar's Key column, above `xl` only.
+
+     11rem = 165px at the desktop root. Sized from its CONTENT rather than picked:
+     the longest stream row is "appointment" at 12.75px (~68px of text) plus an
+     8px dot, a gap and the row's own padding -- about 96px -- and the widest of
+     the three view toggles is "ignored events" with its count, about 110px
+     including the 17px checkbox. 165px clears both with room, and no stream name
+     wraps at any width the column is rendered at.
+
+     Narrow ON PURPOSE. It was 18rem when the Key was last a column and the grid
+     was 927px; the grid is the page's subject, so the Key takes the smallest
+     column its content actually needs. */
+  --thrive-key-width: 11rem;
+
   /* The header's height, and the one shell token that CHANGES BY BREAKPOINT.
      See the media override below layer 3.
 

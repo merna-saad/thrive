@@ -156,31 +156,24 @@
 	</SectionHeading>
 
 <!--
-	TWO COLUMNS, and they are the answer to "eleven rows makes this panel tall".
+	ONE COLUMN, because the panel is a 165px side column again.
 
-	Stacked one per line, the streams list is ~11 rows where the wrapping strip was
-	4 — about 350px instead of 105px. Three ways out were on the table:
+	It was briefly two, which was the right answer to a 1200px full-width panel and
+	the wrong one here — the Key is back beside the grid at `--thrive-key-width`
+	(11rem), and two columns inside 165px would wrap "appointment" onto two lines to
+	save vertical space the page has plenty of.
 
-	  - **A tighter row height.** Taken, as far as it goes: `lg:min-h-8` is 30px
-	    against the 41.25px a `min-h-11` row would have been. Not enough on its own.
-	  - **Internal scrolling.** REJECTED. A scroller inside a panel that is already
-	    behind a disclosure hides filters twice over, and the whole point of the
-	    count on the trigger is that a hidden filter is never invisible.
-	  - **Collapsing by default.** Already true, as of the layout pass earlier
-	    today: the Key is a disclosure on the calendar's heading row and it opens
-	    shut, so a tall panel costs nothing until it is asked for.
+	Height is no longer the problem it was. Beside the grid, the Key's ~400px sits
+	against a left column that is the month plus the entire day panel, so the panel
+	does not drive the page's height at any point. That is the whole reason the
+	column arrangement can afford eleven stacked rows and the full-width one could
+	not.
 
-	What is left is the width. The Key stopped being an 18rem side column in that
-	same pass and is now a full-width panel, so a single column of eleven rows would
-	leave most of 1198px empty and be needlessly tall at the same time. Labels and
-	the three view toggles move BESIDE the streams instead, which puts the panel's
-	height at the taller column rather than the sum of both.
-
-	THE TWO DIMENSIONS ARE STILL TWO DIMENSIONS. Side by side is not merged: each
-	keeps its own heading, its own `aria-labelledby` list, and its own toggle
-	function. Nothing was flattened into one list of chips.
+	THE TWO DIMENSIONS ARE STILL TWO DIMENSIONS. Stacked is not merged: each keeps
+	its own heading, its own `aria-labelledby` list, and its own toggle function.
+	Nothing was flattened into one list of chips.
 -->
-<div class="mt-3 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+<div class="mt-3 space-y-3">
 	<div class="min-w-0">
 		<!-- Dimension one: streams. A fixed list, in legend order, one per line. -->
 		<p id="key-streams" class="thrive-eyebrow">{copy.streams}</p>

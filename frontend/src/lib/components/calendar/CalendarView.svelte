@@ -433,12 +433,21 @@
 			<div class="flex flex-wrap items-center gap-2">
 				<ViewSwitcher {prefs} />
 
+				<!--
+					THE TRIGGER EXISTS ONLY BELOW `xl`.
+
+					Above it the Key is a permanent column and there is nothing to toggle,
+					so a control that says "Key and filters" beside a Key that is already
+					on screen would be a button with no job. `xl:hidden` rather than an
+					`{#if}` because the boundary is a viewport question and CSS answers it
+					without guessing during SSR — the same rule the week fallback follows.
+				-->
 				<button
 					type="button"
 					aria-expanded={keyOpen}
 					aria-controls={KEY_PANEL_ID}
 					onclick={() => (keyOpen = !keyOpen)}
-					class="inline-flex min-h-11 items-center gap-1.5 rounded-sm border border-line bg-surface px-2.5 text-2xs font-medium text-body transition-colors duration-(--motion-fast) ease-standard hover:border-line-strong hover:bg-primary-soft hover:text-primary-hover lg:min-h-9"
+					class="inline-flex min-h-11 items-center gap-1.5 rounded-sm border border-line bg-surface px-2.5 text-2xs font-medium text-body transition-colors duration-(--motion-fast) ease-standard hover:border-line-strong hover:bg-primary-soft hover:text-primary-hover lg:min-h-9 xl:hidden"
 				>
 					<SlidersHorizontal aria-hidden="true" class="size-3.5 shrink-0" />
 					{copy.keyToggle}
@@ -453,12 +462,40 @@
 			</div>
 		</div>
 
-		{#if keyOpen}
-			<div id={KEY_PANEL_ID}>
-				<KeyBar {prefs} {labels} ignoredEventCount={ignoredEventIds.length} />
-			</div>
-		{/if}
+		<!--
+			THE GRID AND THE KEY, SIDE BY SIDE ABOVE `xl`.
 
+			## Why the Key is back in a column, and what is different this time
+
+			It spent a few hours as a full-width disclosure above the calendar. That
+			fixed the width problem — the month grid went 927px to 1198px — and created
+			two worse ones: opening it pushed the whole month down the page, and eleven
+			stream rows stacked in a narrow left column left most of a 1200px panel
+			empty.
+
+			So it is a column again, but a NARROW one, sized from its content rather
+			than from a round number: `--thrive-key-width` is 11rem against the 18rem
+			it used to take. The grid gets 1024px instead of the 927px it had under the
+			old column — still less than the 1198px it had with no column at all, and
+			that trade is the point of the arrangement rather than a regression to
+			apologise for. A side panel and a full-width grid cannot both exist.
+
+			## The order is grid THEN key, at every width
+
+			This is what makes "opening the Key never pushes the calendar down" true
+			rather than approximately true. Below `xl` the Key is the second row of a
+			one-column grid, so revealing it appends BELOW the month — the grid does not
+			move by a pixel. Above `xl` the explicit `row-start-1` on both children
+			pulls it up beside the grid instead.
+
+			## `items-start`, so the Key does not stretch
+
+			Without it the Key's panel would grow to the height of the left column,
+			which on the calendar is the grid plus the whole day panel — a 165px-wide
+			box several thousand pixels tall.
+		-->
+		<div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_var(--thrive-key-width)] xl:items-start">
+			<div class="min-w-0 space-y-3 xl:col-start-1 xl:row-start-1">
 	{#if prefs.view === 'agenda'}
 		{@render agenda()}
 	{:else if prefs.view === 'week'}
@@ -517,7 +554,33 @@
 		/>
 		{@render dayPanel()}
 	{/if}
+			</div>
 
+			<!--
+				THE KEY. Second in DOM order, second column above `xl`.
+
+				`hidden`/`block` rather than an `{#if}`, because this element has two
+				jobs at two widths and only one instance may exist: duplicating it would
+				duplicate eleven checkboxes, and a screen reader would find two "Class"
+				toggles for one filter.
+
+				`hidden` is `display: none`, which takes the panel out of the
+				accessibility tree AND out of the tab order — the property the earlier
+				`{#if}` was chosen for. What it does not do is remove it from
+				`querySelectorAll`, which is why the gate now asserts VISIBILITY rather
+				than presence below `xl`.
+
+				`xl:block` is unconditional, so above `xl` the panel is always there
+				whatever `keyOpen` happens to be. The trigger is `xl:hidden` for the same
+				reason, and the two cannot disagree because neither is asked to.
+			-->
+			<div
+				id={KEY_PANEL_ID}
+				class={cn('min-w-0 xl:col-start-2 xl:row-start-1 xl:block', keyOpen ? 'block' : 'hidden')}
+			>
+				<KeyBar {prefs} {labels} ignoredEventCount={ignoredEventIds.length} />
+			</div>
+		</div>
 	</div>
 
 	<!--

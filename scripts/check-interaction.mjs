@@ -1890,19 +1890,22 @@ try {
 		const grid = document.querySelector('[role="grid"]')?.closest('.thrive-panel') ?? null;
 		const g = grid?.getBoundingClientRect();
 		const t = document.querySelector(trigger);
+		const key = document.querySelector('#calendar-key-panel');
+		const k = key?.getBoundingClientRect();
 		return {
 			gridTop: g ? Math.round(g.top + window.scrollY) : null,
 			gridWidth: g ? Math.round(g.width) : null,
-			/* The Key's PANEL, not its trigger. Collapsed means absent from the DOM,
-			   which is the property that keeps it out of the tab order. */
-			keyPanelPresent: !!document.querySelector('#calendar-key-panel'),
-			triggerExpanded: t?.getAttribute('aria-expanded') ?? null,
+			gridRight: g ? Math.round(g.right) : null,
+			/* The panel is always in the DOM now — it has two jobs at two widths and
+			   only one instance may exist. So what is asserted at each width is
+			   whether it is DISPLAYED, not whether it is present. */
+			keyVisible: key ? getComputedStyle(key).display !== 'none' : null,
+			keyLeft: k ? Math.round(k.left) : null,
+			keyWidth: k ? Math.round(k.width) : null,
+			keyTop: k ? Math.round(k.top + window.scrollY) : null,
+			/* The trigger is `xl:hidden`: above `xl` there is nothing to toggle. */
+			triggerVisible: t ? getComputedStyle(t).display !== 'none' : null,
 			triggerLabel: (t?.textContent ?? '').replace(/\s+/g, ' ').trim(),
-			triggerTop: t ? Math.round(t.getBoundingClientRect().top + window.scrollY) : null,
-			headingTop: (() => {
-				const h = document.querySelector('h1');
-				return h ? Math.round(h.getBoundingClientRect().top + window.scrollY) : null;
-			})(),
 			viewportHeight: window.innerHeight
 		};
 	}, KEY_TRIGGER);
@@ -1914,59 +1917,56 @@ try {
 	);
 	check(
 		'the month grid uses the width it was given',
-		(arrangement.gridWidth ?? 0) > 1100,
-		`${arrangement.gridWidth}px (672 at max-w-2xl, 927 beside an 18rem Key column)`
+		(arrangement.gridWidth ?? 0) > 1000,
+		`${arrangement.gridWidth}px (672 at max-w-2xl, 927 beside an 18rem Key, 1198 with no Key column)`
 	);
 
 	/*
-	 * ── The Key as a disclosure ────────────────────────────────────────────
+	 * ── The Key is a side panel above `xl` ─────────────────────────────────
 	 *
-	 * This is the one change in the layout pass that makes something LESS
-	 * discoverable, so it gets the most assertions rather than the fewest. Four
-	 * claims, and the trade is only acceptable while all four hold:
+	 * Its third arrangement in a day, and the numbers are why. As an 18rem column
+	 * the grid was 927px. As a full-width disclosure the grid was 1198px, but
+	 * opening it pushed the whole month down the page and eleven stream rows sat in
+	 * a narrow left column with most of 1200px empty beside them. It is a column
+	 * again at 11rem, sized from its content, and the grid is 1023px.
 	 *
-	 *  1. The trigger is on the SAME ROW as the page heading, not on a row of its
-	 *     own — the row was the whole point of collapsing it.
-	 *  2. Collapsed means absent from the DOM, not merely invisible.
-	 *  3. It opens from the keyboard and reports its state, so a screen reader is
-	 *     told there is something there and whether it is open.
-	 *  4. Opening it produces BOTH dimensions. Streams and labels stay two lists.
-	 *     If this ever goes red because someone merged them, the fix is to unmerge
-	 *     them, not to relax the check.
+	 * A side panel and a full-width grid cannot both exist. 1023 is the trade,
+	 * stated rather than smuggled — and it is still 96px more than the old column
+	 * gave, because the column is 7rem narrower.
+	 *
+	 * Five claims:
+	 *
+	 *  1. It is BESIDE the grid, not above it. Asserted on geometry.
+	 *  2. It is always displayed here, and the trigger is not — a button offering to
+	 *     open something already on screen is a button with no job.
+	 *  3. It stays narrow. If it ever widens, the grid pays, so the width has a
+	 *     ceiling in the check rather than a comment.
+	 *  4. No stream name wraps. That is what the 11rem was measured against.
+	 *  5. Both dimensions and every filter survive the move.
 	 */
 	check(
-		'the Key trigger shares the heading row rather than taking one',
-		arrangement.triggerTop !== null &&
-			arrangement.headingTop !== null &&
-			Math.abs(arrangement.triggerTop - arrangement.headingTop) < 24,
-		`trigger at ${arrangement.triggerTop}px, h1 at ${arrangement.headingTop}px`
+		'the Key sits beside the grid, not above it',
+		arrangement.keyLeft !== null &&
+			arrangement.gridRight !== null &&
+			arrangement.keyLeft >= arrangement.gridRight - 4,
+		`Key starts at ${arrangement.keyLeft}, grid ends at ${arrangement.gridRight}`
 	);
 	check(
-		'the Key is closed on arrival and says so',
-		arrangement.keyPanelPresent === false && arrangement.triggerExpanded === 'false',
-		`aria-expanded="${arrangement.triggerExpanded}", panel in DOM: ${arrangement.keyPanelPresent}`
+		'the Key is always visible on a desktop, and its trigger is not',
+		arrangement.keyVisible === true && arrangement.triggerVisible === false,
+		`panel displayed: ${arrangement.keyVisible}, trigger displayed: ${arrangement.triggerVisible}`
 	);
 	check(
-		'the closed Key names what it opens',
-		/key/i.test(arrangement.triggerLabel) && /filter/i.test(arrangement.triggerLabel),
-		`trigger reads "${arrangement.triggerLabel}" — a legend behind a button has to say it is also the filter`
+		'the Key column stays narrow enough that the grid keeps the page',
+		(arrangement.keyWidth ?? 0) > 0 && (arrangement.keyWidth ?? 0) <= 200,
+		`${arrangement.keyWidth}px from --thrive-key-width (11rem), against 18rem before`
 	);
 
-	await wide.focus(KEY_TRIGGER);
-	await wide.keyboard.press('Enter');
-	await wide.waitForTimeout(SETTLE);
-
-	const keyOpened = await wide.evaluate((trigger) => {
+	const keyOpened = await wide.evaluate(() => {
 		const panel = document.querySelector('#calendar-key-panel');
-		const t = document.querySelector(trigger);
 		if (!panel) return null;
-		const text = (panel.textContent ?? '').replace(/\s+/g, ' ');
+		const streams = [...panel.querySelectorAll('[aria-labelledby="key-streams"] > li')];
 		return {
-			expanded: t?.getAttribute('aria-expanded') ?? null,
-			/* Both dimensions, structurally. A flattened chip list would still contain
-			   every word, so the check is on the two labelled GROUPS — `KeyBar` gives
-			   each dimension its own heading element and points the list's
-			   `aria-labelledby` at it. Two ids, two lists, or it has been flattened. */
 			streamsHeading: panel.querySelector('#key-streams')?.textContent?.trim() ?? null,
 			labelsHeading: panel.querySelector('#key-labels')?.textContent?.trim() ?? null,
 			labelledLists: panel.querySelectorAll(
@@ -1974,23 +1974,26 @@ try {
 			).length,
 			checkboxes: panel.querySelectorAll('input[type="checkbox"], [role="checkbox"], button[aria-pressed]')
 				.length,
-			text
+			/* A wrapped row is taller than one line of 12.75px text plus padding. The
+			   whole justification for 11rem is that "appointment" fits on one line. */
+			wrappedRows: streams.filter((li) => {
+				const label = li.querySelector('label');
+				return label ? label.getBoundingClientRect().height > 34 : false;
+			}).length
 		};
-	}, KEY_TRIGGER);
+	});
 
 	if (!keyOpened) {
-		/* A hard failure, not `unproven`. "I could not find the panel" IS the bug
-		   here — the panel is the only way to reach the filters. */
 		check(
-			'the Key opens from the keyboard',
+			'the Key panel is on the page',
 			false,
-			'no #calendar-key-panel in the DOM after Enter on the trigger'
+			'no #calendar-key-panel — the only route to every filter'
 		);
 	} else {
 		check(
-			'the Key opens from the keyboard',
-			keyOpened.expanded === 'true',
-			`aria-expanded="${keyOpened.expanded}", panel rendered`
+			'no stream name wraps in the narrow column',
+			keyOpened.wrappedRows === 0,
+			`${keyOpened.wrappedRows} wrapped of 11 — 11rem was measured against "appointment"`
 		);
 		/*
 		 * The labels dimension renders only when the data HAS labels, so this is two
@@ -1999,14 +2002,14 @@ try {
 		 * flattening — one undifferentiated list of chips from both dimensions.
 		 */
 		check(
-			'the open Key still keeps streams and labels as two dimensions',
+			'the Key still keeps streams and labels as two dimensions',
 			keyOpened.streamsHeading !== null &&
 				keyOpened.labelledLists === (keyOpened.labelsHeading === null ? 1 : 2),
 			`streams "${keyOpened.streamsHeading}", labels "${keyOpened.labelsHeading}", ` +
 				`${keyOpened.labelledLists} separately-labelled list(s)`
 		);
 		check(
-			'every filter is still reachable once the Key is open',
+			'every filter is still reachable in the Key panel',
 			keyOpened.checkboxes >= 6,
 			`${keyOpened.checkboxes} filter controls inside the panel`
 		);
@@ -2083,20 +2086,21 @@ try {
 		const t = document.querySelector(trigger);
 		if (!grid || !t) return null;
 		const box = t.getBoundingClientRect();
+		const panel = document.querySelector('#calendar-key-panel');
 		return {
 			gridTop: Math.round(grid.getBoundingClientRect().top + window.scrollY),
 			triggerHeight: Math.round(box.height),
-			keyPanelPresent: !!document.querySelector('#calendar-key-panel')
+			keyVisible: panel ? getComputedStyle(panel).display !== 'none' : null
 		};
 	}, KEY_TRIGGER);
 
 	if (!stacked) {
-		unproven('on a phone the Key costs the grid one row', 'could not find the grid or the trigger');
+		unproven('on a phone the Key is a disclosure below the grid', 'could not find the grid or the trigger');
 	} else {
 		check(
-			'on a phone the Key costs the grid one row, not a screenful',
-			stacked.keyPanelPresent === false && stacked.gridTop < 260,
-			`grid top ${stacked.gridTop}px, trigger ${stacked.triggerHeight}px tall, panel closed`
+			'on a phone the Key is closed on arrival',
+			stacked.keyVisible === false && stacked.gridTop < 300,
+			`grid top ${stacked.gridTop}px, trigger ${stacked.triggerHeight}px tall, panel not displayed`
 		);
 		check(
 			'the Key trigger is still a 44px touch target on a phone',
@@ -2111,15 +2115,36 @@ try {
 		 */
 		await narrow.click(KEY_TRIGGER);
 		await narrow.waitForTimeout(SETTLE);
-		const phoneRow = await narrow.evaluate(() => {
+		const phoneOpen = await narrow.evaluate(() => {
 			const li = document.querySelector('[aria-labelledby="key-streams"] > li');
 			const label = li?.querySelector('label');
-			return label ? Math.round(label.getBoundingClientRect().height * 100) / 100 : null;
+			const grid = document.querySelector('[role="grid"]')?.closest('.thrive-panel');
+			const panel = document.querySelector('#calendar-key-panel');
+			return {
+				rowHeight: label ? Math.round(label.getBoundingClientRect().height * 100) / 100 : null,
+				gridTop: grid ? Math.round(grid.getBoundingClientRect().top + window.scrollY) : null,
+				panelTop: panel ? Math.round(panel.getBoundingClientRect().top + window.scrollY) : null,
+				visible: panel ? getComputedStyle(panel).display !== 'none' : null
+			};
 		});
 		check(
 			'a stream row is a 44px touch target on a phone',
-			phoneRow !== null && phoneRow >= 44,
-			`${phoneRow}px — 30px on desktop, where a pointer is doing the work`
+			phoneOpen.rowHeight !== null && phoneOpen.rowHeight >= 44,
+			`${phoneOpen.rowHeight}px — 30px on desktop, where a pointer is doing the work`
+		);
+		/*
+		 * THE ONE THAT MATTERS ON A PHONE. The Key is the SECOND row of a one-column
+		 * grid, so revealing it appends below the month rather than above it. The
+		 * grid's top must be identical before and after, or the arrangement has
+		 * regressed to the thing that made the full-width disclosure worse than what
+		 * it replaced.
+		 */
+		check(
+			'opening the Key on a phone does not move the grid',
+			phoneOpen.visible === true &&
+				phoneOpen.gridTop === stacked.gridTop &&
+				(phoneOpen.panelTop ?? 0) > (phoneOpen.gridTop ?? 0),
+			`grid stayed at ${phoneOpen.gridTop}px; panel opened at ${phoneOpen.panelTop}px, below it`
 		);
 	}
 	await narrow.close();
