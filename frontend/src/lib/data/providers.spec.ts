@@ -82,6 +82,7 @@ describe("the provider surface", () => {
   const PROVIDERS = [
     "getStudent",
     "getCourses",
+    "getSuggestedCourses",
     "getSyllabi",
     "getAssignments",
     "getTasks",
@@ -109,12 +110,18 @@ describe("the provider surface", () => {
     "getConversation",
   ] as const;
 
-  it("exports all 27 providers and SlotUnavailableError from $lib/data", async () => {
+  it("exports all 28 providers and SlotUnavailableError from $lib/data", async () => {
     const data = await freshData();
 
     // 25 through Phase 7; the two Ask THRIVE conversation reads landed in
-    // Phase 9. The literal is the pin -- widening the seam should be a decision.
-    expect(PROVIDERS).toHaveLength(27);
+    // Phase 9; `getSuggestedCourses` landed with the real course catalogue. The
+    // literal is the pin -- widening the seam should be a decision.
+    //
+    // NOTE the list is hand-written, so adding a provider does NOT fail this
+    // test -- it silently stops covering the new one. That is why the count is
+    // asserted separately from the loop: the number is what forces someone to
+    // come back here.
+    expect(PROVIDERS).toHaveLength(28);
     for (const name of PROVIDERS) {
       expect(typeof data[name], `${name} is missing from the barrel`).toBe(
         "function",
@@ -192,9 +199,10 @@ describe("the provider surface", () => {
       data.setCurrentVersion("res-001"),
       data.getConversations(),
       data.getConversation("conv-001"),
+      data.getSuggestedCourses("Fall 2026"),
     ];
 
-    expect(calls).toHaveLength(27);
+    expect(calls).toHaveLength(28);
     for (const call of calls) {
       expect(call).toBeInstanceOf(Promise);
     }
@@ -428,7 +436,13 @@ describe("fixtures are dated relative to now", () => {
     const data = await freshData();
 
     const courses = await data.getCourses();
-    expect(courses).toHaveLength(4);
+    /*
+     * THREE, since the real MSBA catalogue replaced four invented courses.
+     * `getCourses` returns ENROLMENTS -- the current term only -- and the
+     * catalogue's Summer 2026 holds three. The other nine live in
+     * `catalogue.ts` and come back from `getSuggestedCourses`.
+     */
+    expect(courses).toHaveLength(3);
     for (const course of courses) {
       expect(Date.parse(course.nextAssignment.due)).toBeGreaterThan(
         FROZEN.getTime(),
@@ -511,8 +525,10 @@ describe("shaping happens behind the provider boundary", () => {
 
     const prefill = await data.getRequestPrefill();
 
-    expect(prefill.currentUnits).toBe(14); // 4 + 4 + 4 + 2
-    expect(prefill.currentCourses).toHaveLength(4);
+    // 4 + 4 + 4. Three enrolled courses at the standard four units, where it
+    // used to be four courses one of which was a 2-unit invention.
+    expect(prefill.currentUnits).toBe(12);
+    expect(prefill.currentCourses).toHaveLength(3);
     expect(prefill.studentName).toBe("Merna");
     expect(prefill.unitsRequired).toBe(52);
   });
@@ -685,8 +701,9 @@ describe("course action requests", () => {
     expect(request.submittedAt).toBeNull();
     expect(request.course).toBe("MGT 256"); // trimmed
     expect(request.reason).toBe("supports my goal");
-    // Prefill is snapshotted onto the request, not looked up later.
-    expect(request.prefill.currentUnits).toBe(14);
+    // Prefill is snapshotted onto the request, not looked up later. 12 for the
+    // same reason as the test above: three real courses at four units each.
+    expect(request.prefill.currentUnits).toBe(12);
   });
 
   it("floats drafts above submitted requests, then sorts newest first", async () => {
@@ -779,12 +796,19 @@ describe("the living resume", () => {
     expect(version.id).toBe("res-004");
     expect(version.isCurrent).toBe(true);
     // Everything the student has now, not just what was on res-003.
+    /*
+     * "Recommender systems" where this used to read "Marketing analytics". Both
+     * that skill and A/B testing used to hang off a fourth enrolled course; with
+     * three real courses they belong to MGTA461, the elective actually being
+     * taken, and the skill was renamed to match what that course teaches.
+     */
     expect(diff.addedSkills).toEqual([
       "Tableau",
-      "Marketing analytics",
+      "Recommender systems",
       "A/B testing",
     ]);
-    expect(diff.addedCourses).toEqual(["MGT 256 · Marketing Analytics"]);
+    /* And the fourth resume course went with the fourth enrolment. */
+    expect(diff.addedCourses).toEqual([]);
     expect(diff.summaryChanged).toBe(true);
     // Experience is student-authored, so it carries forward untouched.
     expect(version.experience.map((e) => e.id)).toEqual([

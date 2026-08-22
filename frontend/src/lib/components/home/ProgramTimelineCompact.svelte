@@ -2,7 +2,9 @@
 	import { cn } from '$lib/utils';
 	import { messages } from '$lib/messages';
 	import { abbreviateTerm, phaseStatusWord } from '$lib/programStrip';
+	import TermPlanPanel from './TermPlanPanel.svelte';
 	import type { ProgramTimeline } from '$lib/data';
+	import type { TermPlan } from '$lib/homeView';
 
 	/**
 	 * The program as a strip. The full stepper lives on /degree.
@@ -19,9 +21,37 @@
 	 * measured height for a boundary that was not saying anything. It keeps its
 	 * `<section>` and its `aria-labelledby`: the landmark was never the panel.
 	 */
-	let { timeline }: { timeline: ProgramTimeline } = $props();
+	let {
+		timeline,
+		termPlans
+	}: {
+		timeline: ProgramTimeline;
+		/** What each phase holds, keyed by phase id. Built in the load. */
+		termPlans: Record<string, TermPlan>;
+	} = $props();
 
 	const current = $derived(timeline.phases.find((phase) => phase.id === timeline.currentPhaseId));
+
+	/**
+	 * Which phase's plan is open, or null. AN ACCORDION: one at a time.
+	 *
+	 * Six triggers over ONE region, which is the shape that keeps this honest at
+	 * six terms — six independent regions would mean six panels can be open at
+	 * once and Home stops fitting a screen by the third. Pressing the open one
+	 * closes it, so the strip is never stuck open.
+	 *
+	 * Not persisted. An open panel is a momentary intent, the same call the card
+	 * collapse and the calendar's selected day make.
+	 */
+	let openPhase = $state<string | null>(null);
+
+	const PANEL_ID = 'program-term-plan';
+
+	const openPlan = $derived(openPhase ? (termPlans[openPhase] ?? null) : null);
+
+	function toggle(phaseId: string) {
+		openPhase = openPhase === phaseId ? null : phaseId;
+	}
 </script>
 
 <section aria-labelledby="program-strip-heading">
@@ -64,6 +94,31 @@
 				aria-current={phase.status === 'current' ? 'step' : undefined}
 				class="min-w-0 flex-1"
 			>
+				<!--
+					EVERY pip is a button, including the current term.
+
+					A strip where five of six things are pressable and one is not reads
+					as broken — the same argument that made the appointments month grid
+					clickable again. The current term has real content to show (the
+					enrolled classes and when they meet), so it opens too; what differs
+					is what comes back, not whether anything does.
+
+					`min-h-11` for a 44px touch target on a phone, which the pip and its
+					8px bar could never be on their own. `aria-expanded` is per-trigger
+					and `aria-controls` names the one shared region — six triggers over
+					one region is an accordion, and only the pressed one reports itself
+					expanded.
+				-->
+				<button
+					type="button"
+					aria-expanded={openPhase === phase.id}
+					aria-controls={PANEL_ID}
+					aria-label={openPhase === phase.id
+						? messages.home.timeline.plan.close(phase.term)
+						: messages.home.timeline.plan.open(phase.term)}
+					onclick={() => toggle(phase.id)}
+					class="block w-full min-h-11 rounded-sm px-0.5 pt-1 pb-0.5 transition-colors duration-(--motion-fast) ease-standard hover:bg-sunken lg:min-h-0"
+				>
 				<span
 					aria-hidden="true"
 					class={cn(
@@ -101,7 +156,28 @@
 						phase.optional
 					)}
 				</span>
+				</button>
 			</li>
 		{/each}
 	</ol>
+
+	<!--
+		The plan opens BELOW the strip, in the reading order, rather than in a
+		popover anchored to a pip.
+
+		Three reasons. The last pip sits at the right edge of the panel, so a
+		popover would either cover the pips it came from or need the clamp to shove
+		it back over them. The content wants WIDTH — a course title runs to 55
+		characters and the popover token is 272px. And a row under the strip needs
+		no anchoring geometry at all, which is the thing most likely to be subtly
+		wrong at six positions across four breakpoints.
+
+		Kept out of the DOM when shut, so it is out of the tab order rather than
+		merely invisible.
+	-->
+	<div id={PANEL_ID}>
+		{#if openPlan}
+			<TermPlanPanel plan={openPlan} />
+		{/if}
+	</div>
 </section>

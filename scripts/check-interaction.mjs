@@ -1700,6 +1700,175 @@ try {
 
 	await cal.close();
 
+	// ═══ The program strip's term plans ════════════════════════════════════
+	/*
+	 * Six triggers over one region, and the claims worth making are about MEANING
+	 * rather than mechanics.
+	 *
+	 * The failure this guards is a student reading a suggestion as a registration.
+	 * A list of course codes under a term heading looks exactly like an enrolment,
+	 * so three things carry the difference and all three are asserted: the
+	 * heading's wording, a standing note saying nothing was registered, and the AI
+	 * attribution. If any one of them goes the list starts lying.
+	 */
+	const strip = await browser.newPage({ viewport: DESKTOP });
+	strip.on('pageerror', (error) => pageErrors.push(`strip: ${error}`));
+	strip.on('console', (msg) => noisy(msg) && pageErrors.push(`strip: ${msg.text()}`));
+	await strip.goto(BASE + '/', { waitUntil: 'networkidle' });
+	await strip.waitForTimeout(SETTLE);
+
+	const PIP = '[aria-controls="program-term-plan"]';
+
+	const shut = await strip.evaluate((sel) => {
+		const pips = [...document.querySelectorAll(sel)];
+		return {
+			count: pips.length,
+			expanded: pips.filter((p) => p.getAttribute('aria-expanded') === 'true').length,
+			/* Shut means ABSENT from the DOM, so it is out of the tab order. */
+			panelChildren: document.querySelector('#program-term-plan')?.children.length ?? null,
+			named: pips.every((p) => /show classes for/i.test(p.getAttribute('aria-label') ?? '')),
+			docHeight: document.documentElement.scrollHeight
+		};
+	}, PIP);
+
+	check(
+		'every term on the strip is pressable, including the current one',
+		shut.count === 6,
+		`${shut.count} pips — a strip where five of six are pressable reads as broken`
+	);
+	check(
+		'each pip says what it opens',
+		shut.named === true,
+		'"Show classes for Fall 2026" — a pip is otherwise an 8px bar with no name'
+	);
+	check(
+		'nothing is open on arrival, and the region is empty rather than hidden',
+		shut.expanded === 0 && shut.panelChildren === 0,
+		`${shut.expanded} expanded, ${shut.panelChildren} children in the region`
+	);
+
+	const pips = await strip.$$(PIP);
+
+	/* The CURRENT term: enrolments, which are facts. */
+	await pips[0].click();
+	await strip.waitForTimeout(SETTLE);
+	const enrolled = await strip.evaluate((sel) => {
+		const panel = document.querySelector('#program-term-plan');
+		const text = (panel?.textContent ?? '').replace(/\s+/g, ' ');
+		return {
+			text,
+			rows: panel?.querySelectorAll('li').length ?? 0,
+			expanded: [...document.querySelectorAll(sel)].filter(
+				(p) => p.getAttribute('aria-expanded') === 'true'
+			).length
+		};
+	}, PIP);
+
+	check(
+		'the current term opens its ENROLLED classes, not suggestions',
+		/your classes/i.test(enrolled.text) &&
+			!/suggested/i.test(enrolled.text) &&
+			enrolled.rows > 0,
+		`${enrolled.rows} rows, headed "Your classes" — these are facts, so no badge and no disclaimer`
+	);
+	check(
+		'an enrolled row says when the class meets',
+		/\b(Mon|Tue|Wed|Thu|Fri)/.test(enrolled.text) && /\d:\d\d/.test(enrolled.text),
+		'the meeting pattern, formatted on the server like every other date here'
+	);
+	check(
+		'the real catalogue is what renders',
+		/MGTA45[23]/.test(enrolled.text),
+		'real course numbers, not the invented MGT 142 / MGT 100 placeholders'
+	);
+
+	/*
+	 * A FUTURE term: suggestions, which are not.
+	 *
+	 * Index 2 (Winter 2027) rather than the next one along, deliberately: it is the
+	 * only future term in the catalogue holding BOTH a core course and electives,
+	 * so the "core is distinguishable" check has something to distinguish. Fall
+	 * 2026 is three electives, and the assertion passed there by finding no core at
+	 * all -- which is the vacuous-pass shape this repo has been bitten by twice.
+	 */
+	await pips[2].click();
+	await strip.waitForTimeout(SETTLE);
+	const suggested = await strip.evaluate((sel) => {
+		const panel = document.querySelector('#program-term-plan');
+		const text = (panel?.textContent ?? '').replace(/\s+/g, ' ');
+		return {
+			text,
+			rows: panel?.querySelectorAll('li').length ?? 0,
+			svgs: panel?.querySelectorAll('svg').length ?? 0,
+			spoken: [...(panel?.querySelectorAll('.sr-only') ?? [])].map((s) => s.textContent.trim()),
+			expanded: [...document.querySelectorAll(sel)].filter(
+				(p) => p.getAttribute('aria-expanded') === 'true'
+			).length
+		};
+	}, PIP);
+
+	check(
+		'a future term is unmistakably SUGGESTIONS',
+		/suggested for/i.test(suggested.text) && !/your classes/i.test(suggested.text),
+		`headed "Suggested for", ${suggested.rows} rows`
+	);
+	check(
+		'and says out loud that nothing was registered',
+		/nothing here is registered/i.test(suggested.text) &&
+			/nothing was sent to the program/i.test(suggested.text),
+		'the heading alone cannot out-argue a list that looks like an enrolment'
+	);
+	check(
+		'the AI attribution is present, with an icon and a spoken sentence',
+		/ai suggested/i.test(suggested.text) &&
+			suggested.svgs > 0 &&
+			suggested.spoken.some((s) => /suggested by the thrive assistant/i.test(s)),
+		`"AI suggested" plus the sparkle, spoken as "${suggested.spoken.find((s) => /assistant/i.test(s)) ?? '(none)'}"`
+	);
+	check(
+		'core is distinguishable from elective in the list',
+		/\bcore\b/.test(suggested.text) && /\belective\b/.test(suggested.text),
+		'a core course is not really a suggestion, and the tag is text rather than a colour'
+	);
+	check(
+		'a core course carries no invented recommendation',
+		/required for the degree/i.test(suggested.text),
+		'"Required for the degree" — writing advice beside something compulsory would be pretending'
+	);
+	check(
+		'only one term is open at a time',
+		suggested.expanded === 1,
+		'six panels open at once and Home stops fitting a screen by the third'
+	);
+
+	/* Pressing the open pip closes it, so the strip is never stuck open. */
+	await pips[2].click();
+	await strip.waitForTimeout(SETTLE);
+	const reclosed = await strip.evaluate(
+		() => document.querySelector('#program-term-plan')?.children.length ?? null
+	);
+	check(
+		'pressing an open term closes it again',
+		reclosed === 0,
+		'an accordion with no way back is a strip stuck open'
+	);
+	await strip.close();
+
+	/* And the pip is a real touch target on a phone, where it is an 8px bar. */
+	const stripPhone = await browser.newPage({ viewport: PHONE, hasTouch: true, isMobile: true });
+	await stripPhone.goto(BASE + '/', { waitUntil: 'networkidle' });
+	await stripPhone.waitForTimeout(SETTLE);
+	const pipHeight = await stripPhone.evaluate((sel) => {
+		const p = document.querySelector(sel);
+		return p ? Math.round(p.getBoundingClientRect().height) : null;
+	}, PIP);
+	check(
+		'a term pip is a 44px touch target on a phone',
+		pipHeight !== null && pipHeight >= 44,
+		`${pipHeight}px around an 8px bar`
+	);
+	await stripPhone.close();
+
 	// ═══ Provenance: the Canvas pill ═══════════════════════════════════════
 	/*
 	 * `sources.spec.ts` pins the DECISION -- absent or unknown origin renders

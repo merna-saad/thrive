@@ -95,12 +95,21 @@ describe("the fixtures mark exactly what was asked for", () => {
   });
 
   /*
-   * And leaves tasks unmarked. Home's Tasks card renders `Task`, which is not an
-   * assignment -- so those rows carry no pill, which is the instruction rather
-   * than an oversight. If that should change it is a fixture field, not a code
-   * change, and this test is where it would be noticed.
+   * And leaves tasks unmarked. SETTLED, do not relitigate.
+   *
+   * The obvious objection is that a task with a `courseId` came from a class, so
+   * it came from Canvas, so it should say so. The answer is that the pill does
+   * not mean "this was influenced by Canvas" -- it means **THIS ROW IS A CANVAS
+   * OBJECT**. A task is the student's own object even when it came from a class:
+   * they can rename it, repriotise it, move its due date, tick it, and delete it,
+   * and none of that touches anything in Canvas. An assignment is not any of
+   * those things; it is a record Canvas owns and THRIVE displays.
+   *
+   * So this is not a scope decision that might go the other way later. Marking
+   * tasks would make the pill mean two different things on two rows of the same
+   * list, which is worse than marking nothing (owner, 2026-08-21).
    */
-  it("leaves tasks unmarked, so Home's task rows show no pill", () => {
+  it("leaves tasks unmarked, because a task is the student's own object", () => {
     const tasks = buildMockTasks();
     expect(tasks.length).toBeGreaterThan(0);
     for (const task of tasks) {

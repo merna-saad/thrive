@@ -2,7 +2,7 @@
 	import ProgramTimelineCompact from './ProgramTimelineCompact.svelte';
 	import GreetingPanel from './GreetingPanel.svelte';
 	import type { DegreeProgress, ProgramTimeline, Student } from '$lib/data';
-	import type { EventRowData, TaskRowData } from '$lib/homeView';
+	import type { EventRowData, TaskRowData, TermPlan } from '$lib/homeView';
 
 	/**
 	 * Everything above the grid, in ONE panel.
@@ -30,6 +30,7 @@
 		student,
 		degree,
 		timeline,
+		termPlans,
 		dateLabel,
 		greeting,
 		taskItems,
@@ -38,6 +39,8 @@
 		student: Student;
 		degree: DegreeProgress;
 		timeline: ProgramTimeline;
+		/** What each phase on the strip holds. Built in the load. */
+		termPlans: Record<string, TermPlan>;
 		dateLabel: string;
 		greeting: string;
 		taskItems: TaskRowData[];
@@ -47,7 +50,7 @@
 </script>
 
 <div data-emphasis="strong" class="thrive-panel space-y-2 p-2.5">
-	<ProgramTimelineCompact {timeline} />
+	<ProgramTimelineCompact {timeline} {termPlans} />
 
 	<!-- Decorative, and it passes the hairline test: take it away and the strip
 	     still does not read as part of the greeting. -->

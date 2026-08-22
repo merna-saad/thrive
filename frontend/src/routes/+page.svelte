@@ -96,6 +96,7 @@
 		student={data.student}
 		degree={data.degree}
 		timeline={data.timeline}
+		termPlans={data.termPlans}
 		dateLabel={data.dateLabel}
 		greeting={data.greeting}
 		taskItems={taskRows}

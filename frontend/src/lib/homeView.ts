@@ -1,5 +1,5 @@
 import type { DueDescriptor } from '$lib/format';
-import type { Course, Event, SourceSystem, Task } from '$lib/data';
+import type { Course, CourseRequirement, Event, SourceSystem, Task } from '$lib/data';
 
 /**
  * Home's view models.
@@ -29,6 +29,48 @@ export interface ClassRow {
 	time: string;
 	title: string;
 	location: string;
+}
+
+/**
+ * One row in a term's plan, whether it is an enrolment or a suggestion.
+ *
+ * ONE shape for both, deliberately. The two lists differ in what they MEAN, not
+ * in what they hold, and the difference is carried by `TermPlan.kind` plus the
+ * copy around the list. Two row types would mean two components rendering the
+ * same four fields, drifting apart at the first edit.
+ */
+export interface TermCourseRow {
+	code: string;
+	title: string;
+	/** Absent when the catalogue lists none — the capstone has no instructor. */
+	instructor?: string;
+	requirement: CourseRequirement;
+	/**
+	 * Why this was suggested. Suggested terms only, and absent on core courses
+	 * there too, because "it is required" is what `requirement` already says.
+	 */
+	reason?: string;
+	/**
+	 * Pre-formatted meeting pattern, e.g. "Mon/Wed 9:30 AM". Enrolled terms only:
+	 * a course in a future term has no meeting times, and inventing a blank line
+	 * for one would put an empty field on every suggested row.
+	 */
+	scheduleLabel?: string;
+}
+
+/**
+ * What one term holds, keyed by phase id in `TermPlan`s below.
+ *
+ * `kind` is the load-bearing field. An ENROLLED term is a statement of fact; a
+ * SUGGESTED term is a recommendation. They are told apart on the DATA rather
+ * than on the phase's status, which matters as time passes: a term the student
+ * has enrolments in is enrolled whether the timeline calls it current or
+ * complete, and everything else is a suggestion.
+ */
+export interface TermPlan {
+	term: string;
+	kind: 'enrolled' | 'suggested';
+	courses: TermCourseRow[];
 }
 
 /** One course, with everything its card needs already computed. */

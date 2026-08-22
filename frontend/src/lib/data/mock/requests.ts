@@ -39,7 +39,7 @@ function seedOnce() {
   store.requests.push({
     id: "req-000",
     type: "out of major",
-    course: "MGT 256 · Marketing Analytics",
+    course: "MGTA495 · Special Topics in Business Analytics: Marketing Analytics",
     reason:
       "Marketing Analytics sits outside the MSBA core but supports my goal of moving into a data science role on a marketing team.",
     status: "approved",
@@ -49,7 +49,7 @@ function seedOnce() {
       program: "MSBA",
       track: "11 month",
       term: "Summer 2026",
-      currentCourses: ["MGT 142", "MGT 100", "MGT 253"],
+      currentCourses: ["MGTA452", "MGTA453", "MGTA461"],
       currentUnits: 12,
       unitsCompleted: 34,
       unitsRequired: 52,

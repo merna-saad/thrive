@@ -93,7 +93,7 @@ and reading it in the `load` — not a formatting change.
 
 ---
 
-## 3. The 27 providers
+## 3. The 28 providers
 
 `R` = read, `W` = writes to a store. Purpose is one sentence; the rules that the
 signature does not show are in §5.
@@ -103,7 +103,8 @@ signature does not show are in §5.
 | | Signature | | Notes |
 |---|---|---|---|
 | R | `getStudent(): Promise<Student>` | ✅ | The signed-in student. One record. |
-| R | `getCourses(): Promise<Course[]>` | ✅ | Current-term enrolment. |
+| R | `getCourses(): Promise<Course[]>` | ✅ | Current-term ENROLMENT only — three rows, not the catalogue. |
+| R | `getSuggestedCourses(term): Promise<CourseSuggestion[]>` | ✅ | **NEW.** The recommender's seam. Called once per program phase on Home. |
 | R | `getSyllabi(): Promise<Syllabus[]>` | **UNREACHED** | One per course. |
 | R | `getAssignments(): Promise<Assignment[]>` | ✅ | **Sorted `dueDate` ascending.** |
 | R | `getTasks(): Promise<Task[]>` | ✅ | **`done` sorts last, then `dueDate` ascending.** |
@@ -276,8 +277,9 @@ interface NextAssignment { title: string; due: ISODateTime; }
 
 interface Course {
   id: string;
-  origin?: SourceSystem;   // NEW, see "Provenance" below
-  code: string;        // "MGT 142"
+  origin?: SourceSystem;         // see "Provenance" below
+  code: string;                  // "MGTA452" -- see "Course codes" below
+  requirement: CourseRequirement; // NEW, REQUIRED. "core" | "elective"
   title: string;
   instructor: string;
   schedule: CourseMeeting[];
@@ -339,6 +341,104 @@ interface Task {
   courseCode?: string;   // cached for display so a row needs no second lookup
 }
 ```
+
+### Course codes, and core versus elective (added 2026-08-21)
+
+**The invented course fixtures are gone.** They were four made-up courses
+("MGT 142 Machine Learning for Business" and friends) carried over from the
+prototype. The real MSBA catalogue replaced them: twelve courses across four
+terms, with the real course numbers, titles and instructors.
+
+**Codes are `MGTA###`, with one exception.** `MGT449` is an MGT course
+cross-listed into the program. **Do not parse a prefix off a course code** — a
+regex expecting `MGTA` is wrong about that row, and normalising it would make the
+code disagree with the catalogue.
+
+```ts
+type CourseRequirement = "core" | "elective";
+```
+
+| | |
+|---|---|
+| **Type** | `CourseRequirement`, a string enum. NOT a boolean. |
+| **Nullable** | NO. Required on `Course` and on `CatalogueCourse`. |
+| **Core courses today** | MGTA452, MGTA453, MGTA454, MGTA455 |
+
+**Why not `isCore`.** It is a classification with obvious room to grow — a
+concentration requirement, a capstone treated separately, an elective that only
+counts toward one track — and two consumers that need it for different reasons.
+**Degree progress** counts units toward a requirement, and "8 of 16 core units"
+is a different sentence from "8 of 16 units". **The recommender** needs to know a
+core course is not really a suggestion, so a suggestions list can say which rows
+the student has no choice about.
+
+Neither is a rendering question, which is why it is on the type rather than
+derived from a hardcoded list of codes in a component.
+
+### Two shapes for a course, and the difference is load-bearing
+
+```ts
+// A course the student is TAKING. Has meeting times, progress, a standing.
+interface Course { /* as above */ }
+
+// A course in the CATALOGUE. Has none of those, because they do not exist yet.
+interface CatalogueCourse {
+  code: string;
+  title: string;
+  instructor?: string;   // may name several people, may be absent
+  term: string;          // "Fall 2026" -- matches ProgramPhase.term exactly
+  requirement: CourseRequirement;
+  units: number;
+}
+```
+
+**`getCourses()` returns ENROLMENTS ONLY** — the current term. It returns three
+rows today, not twelve. A course in a term that has not happened has no progress,
+no standing, no grade and no schedule, and serving zeroes for them would put four
+fields on screen that mean nothing and read as real.
+
+**`instructor` is optional on the catalogue shape and required on `Course`.** The
+capstone has no instructor listed. Send the field absent rather than `"TBD"` — the
+frontend says "Instructor to be announced" itself.
+
+**`term` must match `ProgramTimeline.phases[].term` exactly**, e.g. `"Fall 2026"`.
+That string is the join key between the catalogue and the program strip, and a
+mismatch shows as an empty term rather than an error.
+
+### `getSuggestedCourses(term)` — NEW PROVIDER (added 2026-08-21)
+
+```ts
+function getSuggestedCourses(term: string): Promise<CourseSuggestion[]>
+
+interface CourseSuggestion extends CatalogueCourse {
+  reason?: string;   // one sentence. Absent on core courses.
+}
+```
+
+**This is the recommender's seam.** Today the body filters the catalogue by term
+and attaches a fixture sentence to each elective. Replace the body; the signature
+is the contract.
+
+| | |
+|---|---|
+| **An unknown or empty term** | Return `[]`. NOT an error. A term with nothing scheduled and a term that does not exist are the same answer from the student's side, and a throw would take Home down over a typo. |
+| **`reason` on a core course** | Omit it. "Why is this here" has one answer for a required course, and `requirement` already says it. The frontend writes "Required for the degree" itself. |
+| **`reason` on an elective** | One sentence. Optional even here — the service may decline to explain a row, and the UI renders the row without a reason rather than with the word "undefined". |
+| **Ordering** | Not currently significant. The frontend renders in the order given, so if the recommender ranks, send it ranked. |
+
+**Called once per program phase when Home loads** — six calls today, in one
+`Promise.all`. **That is worth knowing before you build the real thing**: six RAG
+calls on every dashboard load to populate panels the student may never open is
+wasteful, and at that point the frontend should move to an on-demand fetch. The
+shape does not prevent it; nothing about `CourseSuggestion` assumes it arrived
+early.
+
+**The suggestions are AI-attributed in the UI.** They render with a sparkle icon,
+the words "AI suggested", and a standing note saying nothing is registered and
+nothing was sent to the program. If this provider ever starts returning something
+that is NOT a recommendation — a registrar's actual schedule, say — that copy
+becomes a lie and the frontend has to change with it. Say so rather than reusing
+the endpoint.
 
 ### Provenance: the `origin` field (added 2026-08-21)
 

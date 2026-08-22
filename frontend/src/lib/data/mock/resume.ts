@@ -10,52 +10,56 @@ import { at } from "./relative-dates";
  * Skills, tied to the courses that produced them.
  *
  * The course link is the whole point of the feature: a student should be able
- * to see that "SQL" on their resume came from MGT 100, not wonder where it
+ * to see that "SQL" on their resume came from MGTA453, not wonder where it
  * appeared from.
  */
 export const mockSkills: Skill[] = [
-  // MGT 100 · Data Management & SQL
-  { id: "skl-sql", name: "SQL", source: "course", courseId: "crs-100" },
+  // MGTA453 · Business Analytics
+  { id: "skl-sql", name: "SQL", source: "course", courseId: "crs-mgta453" },
   {
     id: "skl-datamodel",
     name: "Relational data modeling",
     source: "course",
-    courseId: "crs-100",
+    courseId: "crs-mgta453",
   },
-  // MGT 142 · Machine Learning for Business
+  // MGTA452 · Collecting and Analyzing Large Data
   {
     id: "skl-ml",
     name: "Machine learning",
     source: "course",
-    courseId: "crs-142",
+    courseId: "crs-mgta452",
   },
   {
     id: "skl-modeleval",
     name: "Model evaluation",
     source: "course",
-    courseId: "crs-142",
+    courseId: "crs-mgta452",
   },
-  { id: "skl-python", name: "Python", source: "course", courseId: "crs-142" },
-  // MGT 253 · Data Visualization
+  { id: "skl-python", name: "Python", source: "course", courseId: "crs-mgta452" },
+  // MGTA461 · Web Mining and Recommender Systems
   {
     id: "skl-dataviz",
     name: "Data visualization",
     source: "course",
-    courseId: "crs-253",
+    courseId: "crs-mgta461",
   },
-  { id: "skl-tableau", name: "Tableau", source: "course", courseId: "crs-253" },
-  // MGT 256 · Marketing Analytics
+  { id: "skl-tableau", name: "Tableau", source: "course", courseId: "crs-mgta461" },
+  /*
+   * These two used to hang off a fourth enrolled course. There are three now, and
+   * both skills belong to the elective the student is actually taking -- a
+   * recommender course is where ranking and A/B testing come from.
+   */
   {
-    id: "skl-mktg",
-    name: "Marketing analytics",
+    id: "skl-recsys",
+    name: "Recommender systems",
     source: "course",
-    courseId: "crs-256",
+    courseId: "crs-mgta461",
   },
   {
     id: "skl-abtest",
     name: "A/B testing",
     source: "course",
-    courseId: "crs-256",
+    courseId: "crs-mgta461",
   },
   // Added by the student
   { id: "skl-git", name: "Git & version control", source: "manual" },
@@ -65,25 +69,19 @@ export const mockSkills: Skill[] = [
 /** Course entries, phrased as what the student can now do. */
 export const mockResumeCourses: ResumeCourse[] = [
   {
-    code: "MGT 142",
-    title: "Machine Learning for Business",
-    highlight:
-      "Built and cross-validated predictive models on business datasets.",
+    code: "MGTA452",
+    title: "Collecting and Analyzing Large Data",
+    highlight: "Built and validated pipelines over large business datasets.",
   },
   {
-    code: "MGT 100",
-    title: "Data Management & SQL",
+    code: "MGTA453",
+    title: "Business Analytics",
     highlight: "Modeled and queried relational data at scale.",
   },
   {
-    code: "MGT 253",
-    title: "Data Visualization",
-    highlight: "Designed interactive dashboards for non-technical audiences.",
-  },
-  {
-    code: "MGT 256",
-    title: "Marketing Analytics",
-    highlight: "Measured campaign response and customer segmentation.",
+    code: "MGTA461",
+    title: "Web Mining and Recommender Systems",
+    highlight: "Designed and evaluated a recommender over web-scale data.",
   },
 ];
 

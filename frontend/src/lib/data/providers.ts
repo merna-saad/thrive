@@ -41,6 +41,7 @@ import type {
   AppointmentSlot,
   Assignment,
   Course,
+  CourseSuggestion,
   Conversation,
   CourseRequest,
   CourseRequestInput,
@@ -76,6 +77,7 @@ import {
 
 import { buildMockAssignments } from "./mock/assignments";
 import { buildMockConversations } from "./mock/conversations";
+import { buildMockCatalogue } from "./mock/catalogue";
 import { buildMockCourses } from "./mock/courses";
 import { mockDegreeProgress } from "./mock/degree";
 import { buildMockEvents } from "./mock/events";
@@ -95,6 +97,70 @@ export function getStudent(): Promise<Student> {
 export function getCourses(): Promise<Course[]> {
   return resolveAfterDelay(buildMockCourses());
 }
+
+/**
+ * COURSES SUGGESTED FOR A FUTURE TERM.
+ *
+ * ## Why this is a provider and not a lookup in a component
+ *
+ * Because a real recommender replaces the BODY of this function and nothing else.
+ * Today it reads the catalogue and writes a reason per elective; tomorrow it is a
+ * call to whatever the RAG service exposes, ranked, personalised, and possibly
+ * returning nothing for a term it has no opinion about. A component reaching into
+ * the catalogue directly would have to be rewritten for that; a component
+ * awaiting this does not.
+ *
+ * ## What it does today, honestly
+ *
+ * It filters the catalogue by term and attaches a sentence to each ELECTIVE. The
+ * sentences are fixture text, not a model's output — the suggestion is real in
+ * shape and invented in substance, which is the same standing as every other mock
+ * provider here.
+ *
+ * ## Core courses get no reason, and that is the design
+ *
+ * "Why is this here" has one answer for a core course — it is required — and the
+ * `requirement` field already says so. Writing a recommendation next to something
+ * the student has no choice about would be the interface pretending to advise
+ * where it is actually informing.
+ *
+ * ## An unknown term returns an empty array, not an error
+ *
+ * A term with nothing scheduled and a term that does not exist are the same
+ * answer from the student's side: there is nothing to show. The caller renders an
+ * empty state either way, and a throw would make a mistyped term take the page
+ * down.
+ */
+export function getSuggestedCourses(term: string): Promise<CourseSuggestion[]> {
+  const suggestions: CourseSuggestion[] = buildMockCatalogue()
+    .filter((course) => course.term === term)
+    .map((course) => ({
+      ...course,
+      reason:
+        course.requirement === "core" ? undefined : SUGGESTION_REASONS[course.code],
+    }));
+
+  return resolveAfterDelay(suggestions);
+}
+
+/**
+ * Fixture text standing in for a recommender's output, keyed by course code.
+ *
+ * A partial map read with `?.`, so a catalogue course with no sentence written
+ * for it yet renders as a suggestion with no reason rather than as "undefined".
+ * That is the same shape the real service will have: it may decline to explain a
+ * row.
+ */
+const SUGGESTION_REASONS: Partial<Record<string, string>> = {
+  MGTA464: "Builds directly on the data collection work you are doing now.",
+  MGTA403: "Strengthens the programming your capstone will lean on.",
+  MGTA451: "Broad coverage across the three functions employers ask about.",
+  MGTA402: "The one course on this list about presenting what you found.",
+  MGTA444: "Client-facing project work, close to a data scientist's first year.",
+  MGTA495: "Marketing analytics in depth, which matches your stated goal.",
+  MGT449: "Generative AI applied to business problems.",
+  MGTA461: "Recommender systems, which is where web-scale data pays off.",
+};
 
 export function getSyllabi(): Promise<Syllabus[]> {
   return resolveAfterDelay(buildMockSyllabi());

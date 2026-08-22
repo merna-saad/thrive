@@ -172,6 +172,51 @@ export const messages = {
 			/** Spoken form of one pip, which is otherwise colour-only. */
 			phaseStatus: (label: string, term: string, status: string, optional: boolean) =>
 				`${label}, ${term}, ${status}${optional ? ', optional' : ''}`,
+
+			/**
+			 * THE TERM PLAN, which is what a pip opens.
+			 *
+			 * Two kinds of answer and they must never read alike. A term the student
+			 * is IN has enrolments -- facts, with meeting times. A term ahead of them
+			 * has SUGGESTIONS -- a recommendation somebody made, which they are free
+			 * to ignore. The copy carries that difference rather than leaving a
+			 * heading to imply it.
+			 */
+			plan: {
+				/** The accessible name of a pip. Says it opens something. */
+				open: (term: string) => `Show classes for ${term}`,
+				close: (term: string) => `Hide classes for ${term}`,
+				/** Heading for a term the student is already taking. */
+				enrolledHeading: (term: string) => `Your classes · ${term}`,
+				/**
+				 * Heading for a future term.
+				 *
+				 * "Suggested", not "Your classes". The word is the whole safeguard
+				 * against a student reading a recommendation as a registration.
+				 */
+				suggestedHeading: (term: string) => `Suggested for ${term}`,
+				/**
+				 * Said out loud, under the heading, because a list of course codes
+				 * looks exactly like an enrolment whatever the heading says.
+				 */
+				suggestedNote:
+					'Suggestions only. Nothing here is registered, and nothing was sent to the program.',
+				/** The AI attribution. Names who made the recommendation. */
+				aiBadge: 'AI suggested',
+				/**
+				 * Spoken form of the badge. The two words alone do not say what was
+				 * suggested or by what.
+				 */
+				aiBadgeSpoken: 'Suggested by the THRIVE assistant',
+				/** Core is not really a suggestion, and the tag says which is which. */
+				coreTag: 'core',
+				electiveTag: 'elective',
+				/** A core course in a suggestions list needs no reason. */
+				coreReason: 'Required for the degree.',
+				/** Meeting pattern label on an enrolled row. */
+				noInstructor: 'Instructor to be announced',
+				empty: 'No classes listed for this term yet.'
+			},
 			statusComplete: 'completed',
 			statusCurrent: 'in progress',
 			statusUpcoming: 'not started'

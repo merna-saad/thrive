@@ -186,11 +186,34 @@ export interface NextAssignment {
   due: ISODateTime;
 }
 
+/**
+ * Core or elective. Part of a course's IDENTITY, not a display concern.
+ *
+ * ## Why a union and not a boolean
+ *
+ * `isCore: true` answers one question and closes the door on the next. This is a
+ * CLASSIFICATION with two members today and obvious room for more — a
+ * concentration requirement, a capstone treated separately from ordinary core,
+ * an elective that only counts toward one track. Same reasoning as
+ * `SourceSystem`: name the thing rather than flag one case of it.
+ *
+ * ## Two consumers, and they need it for different reasons
+ *
+ * **Degree progress** counts units toward a requirement, and "8 of 16 core units"
+ * is a different sentence from "8 of 16 units". **The recommender** needs it to
+ * know a core course is not really a suggestion — it is a scheduling fact — so a
+ * suggestions list can say which rows the student has no choice about.
+ *
+ * Neither is a rendering question, which is why this lives on the type rather
+ * than being derived from a list of codes somewhere in a component.
+ */
+export type CourseRequirement = "core" | "elective";
+
 export interface Course {
   id: string;
   /** Where this came from. See `SourceSystem`. Absent means unknown. */
   origin?: SourceSystem;
-  /** Catalog code, e.g. "MGT 142". */
+  /** Catalog code, e.g. "MGTA 452". */
   code: string;
   title: string;
   instructor: string;
@@ -208,8 +231,54 @@ export interface Course {
   nudge?: string;
   syllabusId: string;
   units: number;
+  /** Core or elective. See `CourseRequirement`. */
+  requirement: CourseRequirement;
   /** Current letter or percentage grade, when one exists yet. */
   currentGrade?: string;
+}
+
+/**
+ * A course in the CATALOGUE, which is a different thing from an enrolment.
+ *
+ * `Course` describes a course the student is taking: it has meeting times, a
+ * progress figure, a standing, a next assignment and possibly a grade. None of
+ * those exist for a course in a term that has not happened yet, and inventing
+ * them — a progress of 0, a standing of "onTrack", an empty schedule — would put
+ * four fields on screen that mean nothing and read as real.
+ *
+ * So the catalogue is its own shape, and it is deliberately SMALL: what a student
+ * needs to decide whether to take something, and nothing else.
+ */
+export interface CatalogueCourse {
+  code: string;
+  title: string;
+  /**
+   * The instructor of record, as the catalogue lists it. May name more than one
+   * person, and may be absent — the capstone in the current catalogue has no
+   * instructor listed, and inventing one would be worse than showing none.
+   */
+  instructor?: string;
+  /** The term it is offered in, e.g. "Fall 2026". Matches `ProgramPhase.term`. */
+  term: string;
+  requirement: CourseRequirement;
+  units: number;
+}
+
+/**
+ * A course put in front of the student for a future term.
+ *
+ * A `CatalogueCourse` plus the one thing that makes it a suggestion rather than a
+ * listing: WHY. The reason is text the recommender produces, and it is optional
+ * because a core course does not need one — the answer to "why is this here" is
+ * "it is required", which the `requirement` field already says.
+ *
+ * The type is separate from `CatalogueCourse` so that a real recommender can add
+ * a confidence, a ranking or a set of alternatives without touching the
+ * catalogue's own shape.
+ */
+export interface CourseSuggestion extends CatalogueCourse {
+  /** One sentence, from the recommender. Absent on core courses. */
+  reason?: string;
 }
 
 /** One weighted component of a course grade, e.g. "Final project, 30%". */

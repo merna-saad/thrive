@@ -4,6 +4,7 @@ import {
 	getEvents,
 	getProgramTimeline,
 	getStudent,
+	getSuggestedCourses,
 	getTasks
 } from '$lib/data';
 import {
@@ -15,7 +16,14 @@ import {
 	greetingFor,
 	isWithinDays
 } from '$lib/format';
-import type { ClassRow, CourseRow, EventRowData, TaskRowData } from '$lib/homeView';
+import type {
+	ClassRow,
+	CourseRow,
+	EventRowData,
+	TaskRowData,
+	TermCourseRow,
+	TermPlan
+} from '$lib/homeView';
 import type { PageServerLoad } from './$types';
 
 /** How many events count toward the "this week" stat. */
@@ -117,10 +125,68 @@ export const load: PageServerLoad = async () => {
 		thisWeek: isWithinDays(event.start, WEEK_WINDOW_DAYS, now)
 	}));
 
+	/*
+	 * WHAT EACH TERM ON THE STRIP HOLDS, built here rather than on click.
+	 *
+	 * A term the student has ENROLMENTS in is a statement of fact and comes from
+	 * `courses`. Every other term is a SUGGESTION and comes from
+	 * `getSuggestedCourses`. The test is the data, not the phase's status: a term
+	 * with enrolments is enrolled whether the timeline calls it current or
+	 * complete, which keeps this correct as time passes rather than only today.
+	 *
+	 * ## Why all six terms are fetched up front
+	 *
+	 * Because it means no component touches a provider, no loading state has to be
+	 * designed, and every date and meeting pattern is formatted here against the
+	 * one instant — which is the whole of the date rule. Six calls against a mock
+	 * layer is nothing.
+	 *
+	 * **This is the shape to revisit when a real recommender lands.** Calling a RAG
+	 * service six times on every Home load to populate panels the student may never
+	 * open is wasteful, and at that point this should become an on-demand fetch
+	 * behind an endpoint. Nothing about `TermPlan` prevents that — the component
+	 * already receives a finished list and would simply receive it later.
+	 */
+	const enrolledTerms = new Set(courses.map((course) => course.term));
+
+	const termPlans: Record<string, TermPlan> = {};
+	await Promise.all(
+		timeline.phases.map(async (phase) => {
+			if (enrolledTerms.has(phase.term)) {
+				const rows: TermCourseRow[] = courses
+					.filter((course) => course.term === phase.term)
+					.map((course) => ({
+						code: course.code,
+						title: course.title,
+						instructor: course.instructor,
+						requirement: course.requirement,
+						/* Formatted HERE, like every other date on this page. */
+						scheduleLabel: formatMeetingPattern(course.schedule)
+					}));
+				termPlans[phase.id] = { term: phase.term, kind: 'enrolled', courses: rows };
+				return;
+			}
+
+			const suggested = await getSuggestedCourses(phase.term);
+			termPlans[phase.id] = {
+				term: phase.term,
+				kind: 'suggested',
+				courses: suggested.map((course) => ({
+					code: course.code,
+					title: course.title,
+					instructor: course.instructor,
+					requirement: course.requirement,
+					reason: course.reason
+				}))
+			};
+		})
+	);
+
 	return {
 		student,
 		degree,
 		timeline,
+		termPlans,
 		taskItems,
 		todaysClasses,
 		courseRows,
