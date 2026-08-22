@@ -24,16 +24,42 @@ import type { CatalogueCourse } from "../types";
  * two things that can be checked: the capstone lands in the final term, and the
  * two foundational core courses land in the first.
  *
- * **If the real catalogue groups them differently, this is the file to fix and
- * nothing else needs to change** — the suggestions provider reads terms from
- * here, and `Course` (the enrolment shape) only ever holds the current term.
+ * **If the real catalogue groups them differently, this is the first file to fix
+ * but NOT the only one.** An earlier version of this comment claimed nothing else
+ * would need to change, which is wrong. The full list, so nobody has to rediscover
+ * it:
  *
- * ## Units are not from the source list either
+ *  - `courses.ts` — the three ENROLMENTS are whatever Summer 2026 holds. Change
+ *    that term's membership and this file has to follow, including the fabricated
+ *    schedule, grade and standing on each row.
+ *  - `tasks.ts`, `assignments.ts`, `syllabi.ts`, `resume.ts` — all reference the
+ *    three enrolled course ids. They follow `courses.ts`.
+ *  - `catalogue.spec.ts` — four assertions encode this grouping rather than a
+ *    rule: the exact code ORDER, the capstone's term, `getSuggestedCourses("Fall
+ *    2026")`'s contents, and which term has both a core course and an elective.
+ *  - `check-interaction.mjs` — opens a specific pip index for the
+ *    core-versus-elective check, and matches `MGTA45[23]` on the current term.
  *
- * The list gave no unit counts. 4 is the standard MSBA course, and
- * `student.ts`'s `unitsRequired` is what actually drives the degree percentage,
- * so nothing here is load-bearing for that figure. Marked so nobody reads it as
- * transcribed.
+ * The things that are REAL RULES and survive any regrouping: every catalogue term
+ * must be one the timeline names, and the catalogue must agree with the enrolment
+ * fixture on every shared field. Both are asserted, and those are the two that
+ * matter.
+ *
+ * ## EVERY `units` VALUE HERE IS A PLACEHOLDER
+ *
+ * 4 across the board, and **that is not from the real catalogue** — the course
+ * list as supplied carried no unit counts. 4 is the standard MSBA course, so it
+ * is a reasonable stand-in, but no row here should be read as transcribed and
+ * none should be quoted to a student as fact.
+ *
+ * Nothing depends on it today: `student.ts`'s `unitsRequired` is what drives the
+ * degree percentage, and the request prefill sums the three ENROLMENTS from
+ * `courses.ts` rather than reading this file. So correcting these is a
+ * twelve-line edit with no downstream work — which is the reason to correct them
+ * rather than leave a placeholder in place indefinitely.
+ *
+ * Left as-is deliberately (owner, 2026-08-21), and flagged here rather than
+ * fixed.
  *
  * ## A NOTE THAT IS NOT ABOUT THE DATA
  *
