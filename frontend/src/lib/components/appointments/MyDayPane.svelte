@@ -72,22 +72,41 @@
 </script>
 
 <section aria-labelledby={copy.headingId} class="thrive-panel p-3">
-	<div class="flex flex-wrap items-baseline justify-between gap-2">
-		<h2 id={copy.headingId} class="text-base font-medium text-ink">{copy.title}</h2>
+	<!--
+		THE DATE IS THE PANE'S SUBJECT, not an annotation in the corner.
 
-		{#if dayKey}
-			<p class="flex items-center gap-1.5 text-2xs text-muted-ink">
-				{heading}
-				{#if dayKey === todayKey}
-					<Tag tone="primary">{copy.todayChip}</Tag>
-				{/if}
-			</p>
-		{/if}
-	</div>
+		It used to be `text-2xs text-muted-ink` on the far right of the heading row,
+		which is how a click here could read as a no-op: classes recur weekly in this
+		data, so two Mondays three weeks apart show the same title at the same time,
+		and the ONLY thing that distinguished them was the smallest, faintest text on
+		the panel. Move the day and the pane looked identical.
+
+		So the day now sits under the title at body weight, in ink rather than muted,
+		and it is what changes when the grid above is clicked. `aria-live` is on this
+		line as well as the list, because on a day whose items happen to match the
+		last one, the date is the only thing that moved and it is the thing worth
+		announcing.
+	-->
+	<h2 id={copy.headingId} class="text-base font-medium text-ink">{copy.title}</h2>
+
+	{#if dayKey}
+		<p
+			data-my-day-date
+			aria-live="polite"
+			class="mt-0.5 flex flex-wrap items-center gap-1.5 text-sm font-medium text-ink"
+		>
+			{heading}
+			{#if dayKey === todayKey}
+				<Tag tone="primary">{copy.todayChip}</Tag>
+			{/if}
+		</p>
+	{/if}
 
 	<!-- Stated, not left to be noticed. A student who knows they have three things
-	     due needs to be told why none of them are here. -->
-	<p class="mt-1 text-3xs text-muted-ink">{copy.scope}</p>
+	     due needs to be told why none of them are here. Carries a hook so a gate
+	     cannot mistake it for the date line: "the first <p> in the section" was
+	     exactly how the old assertion read the wrong element. -->
+	<p data-my-day-scope class="mt-1 text-3xs text-muted-ink">{copy.scope}</p>
 
 	{#if items.length === 0}
 		<EmptyState icon={CalendarCheck} message={copy.empty} class="mt-2.5" />

@@ -18,9 +18,14 @@
 	 *
 	 * ## What clicking does, and what it deliberately does not
 	 *
-	 * It moves "Your day" and nothing else. The booking chips, the meeting type and
-	 * the available times are untouched, because BOOKING and BROWSING are two
-	 * different questions on this page:
+	 * It moves "Your day", which sits DIRECTLY BENEATH this grid so the result of a
+	 * click is in the same glance as the click. It was above until this commit, and
+	 * a control below the thing it changes is how a working feature came to be
+	 * reported as broken.
+	 *
+	 * Nothing else moves. The booking chips, the meeting type and the available
+	 * times are untouched, because BOOKING and BROWSING are two different questions
+	 * on this page:
 	 *
 	 *  - the chips ask "which day am I booking" and drive the times
 	 *  - this grid asks "what does my month look like" and drives "Your day"
@@ -87,9 +92,10 @@
 
 	<!--
 		One line saying what a click does, rather than the old one saying that
-		nothing does. Kept rather than dropped: the grid is BELOW the pane it
-		changes, so "what did that just do" is a fair question and the answer is
-		cheaper than making the student find out.
+		nothing does. Kept now that "Your day" sits directly beneath rather than
+		above: the answer is visible in the same glance, but the line also says WHICH
+		pane moves, which a grid on a page with two day-shaped things on it still
+		owes the reader.
 	-->
 	<p class="text-3xs text-muted-ink">{copy.note}</p>
 

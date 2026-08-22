@@ -2216,7 +2216,7 @@ try {
 	if (!month) {
 		unproven('the month grid is clickable', 'no month grid rendered');
 	} else {
-		check('a month grid renders under "Your day"', month.cells === 42, `${month.cells} cells`);
+		check('a month grid renders above "Your day"', month.cells === 42, `${month.cells} cells`);
 		check(
 			'its cells are real controls again',
 			month.cellTag === 'BUTTON' && month.gridcells === 42,
@@ -2245,95 +2245,204 @@ try {
 			'read-only-and-frozen was defensible; controls that refuse to page are not'
 		);
 
-		// ── The one-way coupling ────────────────────────────────────────────
-		const before = await appt.evaluate(() => {
+		// ── The result sits BELOW the control ───────────────────────────────
+		/*
+		 * "Your day" was above the grid that changes it. At 1512 the pane ran
+		 * 358-503px and the grid 629-876px, so the click was 270px below its own
+		 * result, and at an 800px viewport height the grid's last row was already
+		 * past the fold -- scrolling down to click scrolled the answer away. That
+		 * arrangement is most of why a working feature was reported as broken, so the
+		 * order is now asserted rather than left to a comment.
+		 */
+		const order = await appt.evaluate(() => {
+			const box = (sel) => {
+				const el = document.querySelector(sel);
+				if (!el) return null;
+				const r = el.getBoundingClientRect();
+				return { top: Math.round(r.top + window.scrollY), bottom: Math.round(r.bottom + window.scrollY) };
+			};
+			return {
+				month: box('section[aria-labelledby="appointments-month"]'),
+				pane: box('section[aria-labelledby="my-day"]'),
+				grid: box('section[aria-labelledby="appointments-month"] [role="grid"]')
+			};
+		});
+
+		check(
+			'"Your day" sits below the month that changes it',
+			order.month !== null && order.pane !== null && order.pane.top >= order.month.bottom - 4,
+			`month ends ${order.month?.bottom}px, pane starts ${order.pane?.top}px ` +
+				`(pane was 358-503 with the grid at 629-876)`
+		);
+		check(
+			'the click and its result are within one screen of each other',
+			order.grid !== null && order.pane !== null && order.pane.bottom - order.grid.top < 700,
+			`grid top ${order.grid?.top}px to pane bottom ${order.pane?.bottom}px = ` +
+				`${(order.pane?.bottom ?? 0) - (order.grid?.top ?? 0)}px`
+		);
+
+		// ── The one-way coupling, and that the PANE'S CONTENT follows ───────
+		/*
+		 * WHAT THE OLD VERSION OF THIS CHECK ACTUALLY ASSERTED, and why it was green
+		 * while the owner was watching a click do nothing.
+		 *
+		 * It read `section[aria-labelledby="my-day"] p` -- "the first paragraph in
+		 * the pane" -- and asserted only that its text differed after the click. Two
+		 * holes:
+		 *
+		 *  1. **It never looked at the list.** The date line moving is not the claim
+		 *     worth making; the ITEMS are what a student reads. Latch the list and
+		 *     leave the date reactive and this check stays green on a pane that shows
+		 *     the wrong day's classes.
+		 *  2. **It picked the first eligible cell**, which is all but always inside
+		 *     the displayed month. The adjacent-month trailing cells -- the ones a
+		 *     student reaches for when the day they want is at a month boundary --
+		 *     were never clicked once.
+		 *
+		 * And the selector itself was a hazard: "the first `<p>`" is only the date
+		 * line while the date line happens to be first. It is now `[data-my-day-date]`
+		 * and the scope line carries `[data-my-day-scope]`, so neither can stand in
+		 * for the other.
+		 *
+		 * The target days are chosen for CONTENT that differs, not just a different
+		 * key. Classes recur weekly in this data, so two Mondays show an identical
+		 * row; asserting "the text changed" against a day picked without regard to
+		 * that is a check that fails for a reason nobody wants to debug.
+		 */
+		const readCoupling = () => {
 			const chips = [...document.querySelectorAll('form[action="?/book"] [data-day]')];
+			const pane = document.querySelector('section[aria-labelledby="my-day"]');
 			return {
 				chip: chips.find((c) => c.getAttribute('aria-pressed') === 'true')?.dataset.day ?? null,
+				chipOrder: chips.map((c) => c.dataset.day).join('|'),
 				times: [...document.querySelectorAll('form[action="?/book"] button[aria-pressed]')]
 					.map((b) => b.textContent.trim().replace(/\s+/g, ' '))
 					.filter((t) => /:\d\d/.test(t))
 					.join('|'),
-				day:
+				/* The date line, by its own hook. */
+				date: pane?.querySelector('[data-my-day-date]')?.textContent.trim().replace(/\s+/g, ' ') ?? '',
+				/* And the rows, which is what the student is actually reading. */
+				items: [...(pane?.querySelectorAll('li') ?? [])]
+					.map((li) => li.textContent.trim().replace(/\s+/g, ' '))
+					.join('||'),
+				selected:
 					document
-						.querySelector('section[aria-labelledby="my-day"] p')
-						?.textContent.trim()
-						.replace(/\s+/g, ' ') ?? ''
+						.querySelector(
+							'section[aria-labelledby="appointments-month"] [data-day][aria-selected="true"]'
+						)
+						?.dataset.day ?? null
 			};
+		};
+
+		/*
+		 * Candidates in two groups: cells INSIDE the displayed month, and the leading
+		 * or trailing cells belonging to an ADJACENT one.
+		 *
+		 * The second group is the path the owner named and the path that had never
+		 * been clicked. A 42-cell grid cannot hold one month, so these always exist;
+		 * finding none means the query is wrong, and that is a hard failure rather
+		 * than an `unproven`.
+		 */
+		const candidates = await appt.evaluate(() => {
+			const section = document.querySelector('section[aria-labelledby="appointments-month"]');
+			const cells = [...section.querySelectorAll('[data-day]')];
+			const chipDays = new Set(
+				[...document.querySelectorAll('form[action="?/book"] [data-day]')].map((c) => c.dataset.day)
+			);
+			/* The displayed month is whichever one most of the 42 cells belong to. */
+			const tally = new Map();
+			for (const c of cells) {
+				const m = (c.dataset.day ?? '').slice(0, 7);
+				tally.set(m, (tally.get(m) ?? 0) + 1);
+			}
+			const shown = [...tally.entries()].sort((a, b) => b[1] - a[1])[0][0];
+			const days = (inShown) =>
+				cells
+					.filter(
+						(c) =>
+							!chipDays.has(c.dataset.day) &&
+							((c.dataset.day ?? '').slice(0, 7) === shown) === inShown
+					)
+					.map((c) => c.dataset.day);
+			return { shown, inMonth: days(true), adjacent: days(false) };
 		});
 
 		/*
-		 * A day in the grid that is NOT the one already selected, and not a chip's
-		 * day either, so "Your day" genuinely has to move and the chips genuinely
-		 * have to stay.
+		 * Walk a group until the pane's ROWS change, rather than guessing which day
+		 * has different content from the outside.
+		 *
+		 * Guessing is what made the first version of this check fragile: the cell's
+		 * dot count comes from `categoriesForDay`, which includes deadlines, and the
+		 * pane deliberately excludes them -- so a cell with dots can sit above an
+		 * empty pane, legitimately. Clicking and reading is the only way to know, and
+		 * it also means every click on the way is a chip-stability sample.
 		 */
-		const target = await appt.evaluate(() => {
-			const section = document.querySelector('section[aria-labelledby="appointments-month"]');
-			const chipDays = new Set(
-				[...document.querySelectorAll('form[action="?/book"] [data-day]')].map(
-					(c) => c.dataset.day
-				)
-			);
-			const cell = [...section.querySelectorAll('[data-day]')].find(
-				(c) =>
-					c.getAttribute('aria-selected') !== 'true' &&
-					!chipDays.has(c.dataset.day) &&
-					// Today or later, so the narrative reads as browsing ahead rather than
-					// into the past. Browsing the past is allowed; it is just a worse
-					// example to assert on.
-					(c.dataset.day ?? '') >= new Date().toLocaleDateString('en-CA')
-			);
-			return cell?.dataset.day ?? null;
-		});
+		const walkUntilRowsMove = async (days) => {
+			let lastMove = null;
+			for (const day of days) {
+				const before = await appt.evaluate(readCoupling);
+				await appt.click(`section[aria-labelledby="appointments-month"] [data-day="${day}"]`);
+				await appt.waitForTimeout(SETTLE);
+				const after = await appt.evaluate(readCoupling);
+				/* Every click, not just the interesting one, has to leave booking alone. */
+				if (after.chip !== before.chip || after.chipOrder !== before.chipOrder) {
+					return { day, before, after, chipsMoved: true };
+				}
+				if (after.times !== before.times) return { day, before, after, timesMoved: true };
+				if (after.date === before.date || after.date === '') {
+					return { day, before, after, dateStuck: true };
+				}
+				if (after.items !== before.items) return { day, before, after, moved: true };
+				lastMove = { day, before, after };
+			}
+			return lastMove ? { ...lastMove, exhausted: true } : null;
+		};
 
-		if (!target) {
-			unproven('clicking a day moves "Your day"', 'no distinct day available in the grid');
-		} else {
-			await appt.click(`section[aria-labelledby="appointments-month"] [data-day="${target}"]`);
-			await appt.waitForTimeout(SETTLE);
+		for (const [kind, days] of [
+			['inside the displayed month', candidates.inMonth],
+			['from an adjacent month', candidates.adjacent]
+		]) {
+			if (days.length === 0) {
+				check(
+					`the grid offers days ${kind} to click`,
+					false,
+					`none found — displayed month ${candidates.shown}`
+				);
+				continue;
+			}
 
-			const after = await appt.evaluate(() => {
-				const chips = [...document.querySelectorAll('form[action="?/book"] [data-day]')];
-				return {
-					chip:
-						chips.find((c) => c.getAttribute('aria-pressed') === 'true')?.dataset.day ?? null,
-					times: [...document.querySelectorAll('form[action="?/book"] button[aria-pressed]')]
-						.map((b) => b.textContent.trim().replace(/\s+/g, ' '))
-						.filter((t) => /:\d\d/.test(t))
-						.join('|'),
-					day:
-						document
-							.querySelector('section[aria-labelledby="my-day"] p')
-							?.textContent.trim()
-							.replace(/\s+/g, ' ') ?? '',
-					selected:
-						document
-							.querySelector(
-								'section[aria-labelledby="appointments-month"] [data-day][aria-selected="true"]'
-							)
-							?.dataset.day ?? null
-				};
-			});
+			const walk = await walkUntilRowsMove(days);
 
 			check(
-				'clicking a day moves "Your day"',
-				after.day !== before.day && after.day !== '',
-				`${before.day} -> ${after.day}`
+				`THE BOOKING CHIPS DO NOT MOVE for any day ${kind}`,
+				walk !== null && !walk.chipsMoved,
+				walk?.chipsMoved
+					? `chip went ${walk.before.chip} -> ${walk.after.chip} on ${walk.day}`
+					: `${days.length} day(s) clicked, chip stayed on ${walk?.after.chip}`
 			);
 			check(
-				'the clicked day is marked selected in the grid',
-				after.selected === target,
-				`${after.selected}`
-			);
-			check(
-				'THE BOOKING CHIPS DO NOT MOVE',
-				after.chip === before.chip,
-				`chip stayed on ${after.chip} — booking and browsing are separate`
-			);
-			check(
-				'and neither do the available times',
-				after.times === before.times,
+				`and neither do the available times, for any day ${kind}`,
+				walk !== null && !walk.timesMoved,
 				'the times belong to the chip, not to the grid'
+			);
+			check(
+				`clicking a day ${kind} moves the date "Your day" names`,
+				walk !== null && !walk.dateStuck,
+				walk?.dateStuck
+					? `stuck on "${walk.after.date}" after clicking ${walk.day}`
+					: `last: ${walk?.before.date} -> ${walk?.after.date} [${walk?.day}]`
+			);
+			check(
+				`clicking a day ${kind} repaints the pane's own rows`,
+				walk !== null && walk.moved === true,
+				walk?.moved
+					? `${walk.day}: "${walk.before.items.slice(0, 40) || '(none)'}" -> "${walk.after.items.slice(0, 40) || '(none)'}"`
+					: `walked all ${days.length} day(s) and the rows never changed`
+			);
+			check(
+				`the day ${kind} is marked selected in the grid`,
+				walk !== null && walk.after.selected === walk.day,
+				`${walk?.after.selected} after clicking ${walk?.day}`
 			);
 		}
 

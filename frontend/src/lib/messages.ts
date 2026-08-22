@@ -702,12 +702,12 @@ export const messages = {
 			 * a caption explaining why an affordance does not work, which is a losing
 			 * argument against a grid full of dots.
 			 *
-			 * Kept rather than dropped, even though the interaction is fairly obvious,
-			 * because the grid sits BELOW the pane it changes: a student who clicks and
-			 * sees something move above the fold of their attention deserves to have
-			 * been told where to look.
+			 * Kept rather than dropped now that "Your day" sits directly beneath this
+			 * grid instead of above it. The line no longer has to make up for a result
+			 * that lands off-screen -- but this page has two day-shaped things on it,
+			 * and naming the one that moves is still worth a line.
 			 */
-			note: 'Pick a day to see what is on it.',
+			note: 'Pick a day to see what is on it, below.',
 			seeCalendar: 'Open the full calendar'
 		},
 

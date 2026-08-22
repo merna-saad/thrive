@@ -13,19 +13,28 @@
 	 * The booking surface's one stateful node.
 	 *
 	 * Service cards across the top, then two columns: the booking panel on the
-	 * left, and on the right the student's own day with a read-only month beneath
+	 * left, and on the right the student's month with the day it selects beneath
 	 * it.
 	 *
 	 * ```
 	 *  [ card ]        [ card ]
 	 *  ───────────────────────────────────
-	 *  Pick a day      │  Your day
-	 *  [Today][Tue]…   │  9:30  MGT 100
-	 *  Meeting type    │  14:00 Advising
-	 *  Available times │
-	 *  [reason]        │  Your month
-	 *  [Confirm]       │  [ month grid ]
+	 *  Pick a day      │  Your month
+	 *  [Today][Tue]…   │  [ month grid ]   <- the control
+	 *  Meeting type    │
+	 *  Available times │  Your day         <- the result
+	 *  [reason]        │  9:30  MGT 100
+	 *  [Confirm]       │  14:00 Advising
 	 * ```
+	 *
+	 * ## The result goes UNDER the control, as of this commit
+	 *
+	 * "Your day" was on top and the grid beneath it, which put the thing being
+	 * changed above the thing that changes it. At 1512 the pane ran 358-503px and
+	 * the grid 629-876px, so a click landed 270px below the pane it moved; on an
+	 * 800px-tall laptop the grid's last row was already past the fold, so scrolling
+	 * down to click scrolled the answer off the screen. The reported symptom was
+	 * "clicking does nothing", and this arrangement is most of why.
 	 *
 	 * This is the original arrangement. Phase 8 replaced the chip strip with a
 	 * month calendar in the right column, which put the day picker across the page
@@ -33,8 +42,8 @@
 	 * Both are reverted. The chips are the picker and they sit at the top of the
 	 * panel, where the first decision belongs.
 	 *
-	 * The month grid survives on this page as a REFERENCE under "Your day" — same
-	 * component, `readOnly`, no controls. See `MonthReference`.
+	 * The month grid survives on this page as a second, narrower question — "what
+	 * does my month look like" — and it is a real control. See `MonthBrowser`.
 	 *
 	 * ## FOUR pieces of state, and two of them are days
 	 *
@@ -164,9 +173,10 @@
 
 	{#if active}
 		<!--
-			Stacks below `lg`: the panel first, then the day and the month beneath it,
-			which is the order the decision is made in. The month reference is last
-			on purpose — it is the least urgent thing on the page and the tallest.
+			Stacks below `lg`: the panel first, then the month, then the day it
+			selects. Control before result at every width, so the vertical order is
+			the same one the eye follows and there is no arrangement that only works
+			on a wide screen.
 		-->
 		<div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
 			<section class="thrive-panel min-w-0 p-3">
@@ -182,10 +192,6 @@
 			</section>
 
 			<div class="min-w-0 space-y-4">
-				<!-- Reads `browseDay`, which the grid below it writes and the chips also
-				     write. See the note on the one-way coupling. -->
-				<MyDayPane {data} dayKey={browseDay} {todayKey} />
-
 				<MonthBrowser
 					{data}
 					{todayKey}
@@ -194,6 +200,10 @@
 					onSelect={chooseBrowseDay}
 					onMonthChange={(next) => (browseMonth = next)}
 				/>
+
+				<!-- Reads `browseDay`, which the grid ABOVE it writes and the chips also
+				     write. See the note on the one-way coupling. -->
+				<MyDayPane {data} dayKey={browseDay} {todayKey} />
 			</div>
 		</div>
 	{/if}
