@@ -30,7 +30,7 @@
 	const Icon = $derived(item.icon);
 </script>
 
-<div class="mx-auto w-full max-w-page space-y-4">
+<div class="mx-auto w-full max-w-page space-y-4 lg:space-y-3">
 	<div class="flex items-start gap-2.5">
 		<span
 			class="grid size-10 shrink-0 place-items-center rounded-md border border-line bg-primary-soft"

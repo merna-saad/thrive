@@ -265,7 +265,7 @@
 		{/if}
 
 		<!-- --- Edits ------------------------------------------------------- -->
-		<div class="mt-4 border-t border-hairline pt-3">
+		<div class="mt-4 border-t border-hairline pt-3 lg:mt-3">
 			<p class="thrive-eyebrow">{copy.editEyebrow}</p>
 
 			<label class="mt-2 flex items-center gap-2 text-3xs text-muted-ink">
@@ -300,7 +300,7 @@
 		</div>
 
 		<!-- --- Actions ----------------------------------------------------- -->
-		<div class="mt-4 flex flex-wrap items-center gap-2">
+		<div class="mt-4 flex flex-wrap items-center gap-2 lg:mt-3">
 			<Button class="min-h-11" disabled={!canExport} onclick={() => downloadItemIcs(item)}>
 				<CalendarPlus aria-hidden="true" class="size-3.5" />
 				{copy.addToCalendar}
@@ -363,7 +363,7 @@
 
 		<!-- The standing promise. This is the surface where a student types things
 		     into a browser and could reasonably assume they went somewhere. -->
-		<p data-tone="sunken" class="thrive-panel mt-4 p-2.5 text-xs text-muted-ink">
+		<p data-tone="sunken" class="thrive-panel mt-4 p-2.5 text-xs text-muted-ink lg:mt-3">
 			<span class="font-medium text-ink">{copy.localOnlyLabel}</span>
 			{copy.localOnly}
 		</p>

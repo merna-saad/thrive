@@ -23,7 +23,13 @@
 
 <svelte:head><title>{pageTitle(copy.documentTitle)}</title></svelte:head>
 
-<div class="mx-auto w-full max-w-page space-y-6">
+<!--
+	`lg:space-y-4` is the density pass, 2026-08-21. Every compression in that pass
+	is scoped to `lg` and above, because the complaint was about a wide screen at
+	100% zoom and because below `lg` this app's vertical rhythm is load-bearing for
+	touch: the phone numbers are deliberately, verifiably unchanged.
+-->
+<div class="mx-auto w-full max-w-page space-y-6 lg:space-y-4">
 	<header class="mx-auto w-full max-w-5xl">
 		<p class="thrive-eyebrow">{copy.eyebrow}</p>
 		<h1 class="mt-1 text-3xl font-bold text-ink">{copy.title}</h1>

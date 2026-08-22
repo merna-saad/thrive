@@ -64,7 +64,7 @@
 		<main
 			id="main-content"
 			tabindex="-1"
-			class="w-full px-3 pt-4 pb-[calc(var(--thrive-bottomnav-height)+var(--thrive-page-gutter-bottom))] sm:px-5 lg:px-page-x lg:pb-page-bottom"
+			class="w-full px-3 pt-4 lg:pt-3 pb-[calc(var(--thrive-bottomnav-height)+var(--thrive-page-gutter-bottom))] sm:px-5 lg:px-page-x lg:pb-page-bottom"
 		>
 			{@render children()}
 		</main>

@@ -95,7 +95,7 @@
 	     adjacent day columns run together and read as one wrapped sentence. -->
 	<div
 		data-done={done ? 'true' : undefined}
-		class="thrive-row border-l-2 border-line px-1.5 py-1"
+		class="thrive-row border-l-2 border-line px-1.5 py-1 lg:py-0.5"
 	>
 		<span class={cn('thrive-numeric flex items-center gap-1 text-3xs', done ? 'text-faint' : 'text-muted-ink')}>
 			{#if item.urgent}
@@ -123,7 +123,7 @@
 		</span>
 	</div>
 {:else}
-	<div data-done={done ? 'true' : undefined} class="thrive-row flex items-baseline gap-2 px-2 py-1.5">
+	<div data-done={done ? 'true' : undefined} class="thrive-row flex items-baseline gap-2 px-2 py-1.5 lg:py-1">
 	<!-- The checkbox is a SIBLING of the title, never a wrapper round the row: a
 	     label spanning the whole row would make every control inside it tick the
 	     item off. The title still labels the box, via `for`, which is what makes

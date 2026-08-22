@@ -2894,6 +2894,82 @@ try {
 			(await ask.locator('nav[aria-label="Saved conversations"] a[href="/ask/resources"]').count()) === 1,
 			'a link to the bare destination, which IS a new conversation here'
 		);
+
+		/*
+		 * ── The rail reads as a region, and its rows read as controls ────────
+		 *
+		 * It shipped on the page's own cream with a single right-hand border, and it
+		 * read as text floating in a margin rather than as a panel. Rows carried
+		 * `border-transparent` with no fill until hover, so there was no affordance
+		 * until a pointer had already arrived -- and none at all for a reader who
+		 * never hovers.
+		 *
+		 * Asserted against COMPUTED colour rather than against class names, because
+		 * the claim is "it looks like a panel", and a class list can say `bg-sunken`
+		 * while something else wins the cascade.
+		 */
+		const railSkin = await ask.evaluate(() => {
+			const rail = document.querySelector('nav[aria-label="Saved conversations"]');
+			if (!rail) return null;
+			const rs = getComputedStyle(rail);
+			const page = getComputedStyle(document.body).backgroundColor;
+			const rows = [...rail.querySelectorAll('a[href*="?c="]')];
+			const resting = rows.find((r) => r.getAttribute('aria-current') !== 'page');
+			const current = rows.find((r) => r.getAttribute('aria-current') === 'page');
+			const seen = (el) => {
+				if (!el) return null;
+				const s = getComputedStyle(el);
+				return {
+					bg: s.backgroundColor,
+					border: s.borderTopColor,
+					leftWidth: s.borderLeftWidth,
+					leftColour: s.borderLeftColor
+				};
+			};
+			return {
+				page,
+				railBg: rs.backgroundColor,
+				railBorder: rs.borderTopWidth,
+				railRadius: rs.borderTopLeftRadius,
+				resting: seen(resting),
+				current: seen(current)
+			};
+		});
+
+		if (!railSkin) {
+			check('the history rail reads as its own region', false, 'rail not found');
+		} else {
+			check(
+				'the history rail has a surface of its own, not the page behind it',
+				railSkin.railBg !== railSkin.page && railSkin.railBg !== 'rgba(0, 0, 0, 0)',
+				`rail ${railSkin.railBg} on a ${railSkin.page} page`
+			);
+			check(
+				'and the edge treatment the rest of the app uses for a panel',
+				parseFloat(railSkin.railBorder) >= 1 && parseFloat(railSkin.railRadius) > 0,
+				`${railSkin.railBorder} hairline, ${railSkin.railRadius} radius`
+			);
+			check(
+				'a saved conversation looks clickable before it is hovered',
+				railSkin.resting !== null &&
+					railSkin.resting.bg !== 'rgba(0, 0, 0, 0)' &&
+					railSkin.resting.border !== 'rgba(0, 0, 0, 0)',
+				`resting row: ${railSkin.resting?.bg} behind a ${railSkin.resting?.border} edge`
+			);
+			check(
+				'the current conversation is marked by more than a tint',
+				railSkin.current !== null &&
+					railSkin.resting !== null &&
+					railSkin.current.bg !== railSkin.resting.bg &&
+					railSkin.current.leftColour !== railSkin.resting.leftColour,
+				`current has a ${railSkin.current?.leftColour} stripe; resting has ${railSkin.resting?.leftColour}`
+			);
+			check(
+				'the stripe does not shift the list sideways',
+				railSkin.current?.leftWidth === railSkin.resting?.leftWidth,
+				`both ${railSkin.current?.leftWidth} — coloured differently, not widened`
+			);
+		}
 		check(
 			'the saved messages render',
 			opened.bubbles > 1,

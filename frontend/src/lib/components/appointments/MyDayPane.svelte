@@ -71,7 +71,7 @@
 	);
 </script>
 
-<section aria-labelledby={copy.headingId} class="thrive-panel p-3">
+<section aria-labelledby={copy.headingId} class="thrive-panel p-3 lg:p-2.5">
 	<!--
 		THE DATE IS THE PANE'S SUBJECT, not an annotation in the corner.
 
@@ -119,7 +119,7 @@
 		-->
 		<ul aria-live="polite" class="mt-2.5 divide-y divide-line">
 			{#each items as item (item.id)}
-				<li class="flex items-start gap-2.5 py-2">
+				<li class="flex items-start gap-2.5 py-2 lg:py-1.5">
 					<!-- Times are values and they line up in a column, so the numeric
 					     face with tabular figures. -->
 					<span class="thrive-numeric w-16 shrink-0 pt-0.5 text-2xs text-muted-ink">

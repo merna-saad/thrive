@@ -78,10 +78,23 @@
 	A `<nav>` landmark, because this IS navigation: every row is a link to a URL.
 	Named, so a screen reader user can tell it from the two other navigations on the
 	page.
+
+	## It is a PANEL now, not a margin
+
+	It used to be bare content on the page's cream with a single `xl:border-r`, and
+	it read as text floating in a margin rather than as a region. Nothing was
+	invented to fix that: the nav rail already solves the same problem with
+	`bg-sunken` behind a `border-line` edge, and `.thrive-panel[data-tone="sunken"]`
+	IS that pair — the recessed fill, the 1px hairline and the panel radius, all
+	from the tokens that define every other container in the app.
+
+	`p-2.5` rather than the panel default (1.25rem), matching the density the rest
+	of the app's panels are set at.
 -->
 <nav
 	aria-label={copy.rail.historyLabel}
-	class="flex shrink-0 flex-col gap-1.5 xl:w-60 xl:border-r xl:border-line xl:pr-4"
+	data-tone="sunken"
+	class="thrive-panel flex shrink-0 flex-col gap-1.5 p-2.5 xl:w-60"
 >
 	<div class="flex flex-wrap items-baseline justify-between gap-2">
 		<p class="thrive-eyebrow">{copy.rail.historyHeading}</p>
@@ -137,14 +150,29 @@
 							conversation.updatedLabel
 						)}
 						class={cn(
-							'block h-full rounded-md border px-2.5 py-2 transition-colors duration-(--motion-fast) ease-standard',
-							// The open conversation keeps the control-weight stroke as well as
-							// the tint. The stroke is the part that survives not being able to
-							// separate the fill from the surface behind it, and `aria-current`
-							// carries it non-visually.
+							// `border-l-2` on EVERY row, coloured differently rather than
+						// widened, so the title's left edge is in the same place whether a
+						// row is open or not. A stripe that appears only on the current row
+						// would shift the whole list sideways as you click through it. The
+						// 2px stripe is the same idiom `TaskRow` uses for priority.
+						'block h-full rounded-md border border-l-2 px-2.5 py-2 transition-colors duration-(--motion-fast) ease-standard lg:py-1.5',
+							// EVERY row has a surface and an edge at REST, which is the change
+							// that makes this read as a list of things you can click. It used
+							// to be `border-transparent` with no fill until hover, so on the
+							// page's cream the rows were indistinguishable from prose and the
+							// only affordance was a pointer that had already arrived.
+							//
+							// On the sunken rail a white row is a raised one, so the stack
+							// reads as cards without a single new token.
+							//
+							// The open conversation keeps the control-weight stroke AS WELL AS
+							// the tint, and adds a navy bar down its leading edge. Three cues,
+							// none of them hue alone: the stroke survives not being able to
+							// separate the fill from the surface behind it, the bar survives
+							// greyscale, and `aria-current` carries it non-visually.
 							open
-								? 'border-line-strong bg-primary-soft'
-								: 'border-transparent hover:border-line hover:bg-surface'
+								? 'border-line-strong border-l-primary bg-primary-soft'
+								: 'border-line border-l-line bg-surface hover:border-line-strong hover:bg-primary-soft'
 						)}
 					>
 						<span class="line-clamp-2 text-2xs text-ink">{conversation.title}</span>

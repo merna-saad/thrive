@@ -70,7 +70,7 @@
 	content and the log's own `overflow-y-auto` never engages — the document grows
 	instead, which is precisely the shape `check:layout` exists to catch.
 -->
-<div class="mx-auto flex w-full max-w-page min-h-0 flex-col gap-4">
+<div class="mx-auto flex w-full max-w-page min-h-0 flex-col gap-4 lg:gap-3">
 	<!-- The section's one `h1`. The chat window's title is an `h2` under it: there
 	     is one page here and the destination is a region within it. -->
 	<header>
@@ -92,7 +92,7 @@
 		Below `xl` this stacks, and `AskHistory` flips to a horizontal strip — see the
 		note there for why two rails plus a chat cannot fit a phone.
 	-->
-	<div class="flex min-h-0 flex-col gap-4 xl:flex-row xl:items-start xl:gap-4">
+	<div class="flex min-h-0 flex-col gap-4 lg:gap-3 xl:flex-row xl:items-start xl:gap-3">
 		<AskHistory conversations={data.conversations} {destination} />
 
 		{@render children()}

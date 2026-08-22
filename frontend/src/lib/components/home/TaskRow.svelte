@@ -258,7 +258,7 @@
 >
 	<!-- Wraps below `sm`, so the controls take their own line and the title keeps
 	     the full width. See the note on defect 3 above. -->
-	<div class="flex flex-wrap items-start gap-x-2 gap-y-1 px-2 py-1.5 sm:flex-nowrap">
+	<div class="flex flex-wrap items-start gap-x-2 gap-y-1 px-2 py-1.5 sm:flex-nowrap lg:py-1">
 		<!-- `mt-0.5` aligns the box with the first line of the title rather than the
 		     centre of a two-line block. -->
 		<input

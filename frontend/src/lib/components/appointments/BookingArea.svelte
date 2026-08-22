@@ -160,8 +160,8 @@
 	}
 </script>
 
-<div class="space-y-4">
-	<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+<div class="space-y-4 lg:space-y-3">
+	<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:gap-3">
 		{#each services as service (service.advisor.id)}
 			<ServiceCard
 				{service}
@@ -178,8 +178,8 @@
 			the same one the eye follows and there is no arrangement that only works
 			on a wide screen.
 		-->
-		<div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-			<section class="thrive-panel min-w-0 p-3">
+		<div class="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-3">
+			<section class="thrive-panel min-w-0 p-3 lg:p-2.5">
 				{#key active.advisor.id}
 					<BookingPanel
 						service={active}
@@ -191,7 +191,7 @@
 				{/key}
 			</section>
 
-			<div class="min-w-0 space-y-4">
+			<div class="min-w-0 space-y-4 lg:space-y-3">
 				<MonthBrowser
 					{data}
 					{todayKey}
