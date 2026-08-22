@@ -95,6 +95,28 @@
 		'transition-colors duration-(--motion-fast) ease-standard lg:min-h-0 lg:py-1 ' +
 		'has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary';
 
+	/**
+	 * A STREAM is a row now, not a chip in a wrapping strip.
+	 *
+	 * Eleven chips wrapped into four ragged rows, which is the hardest possible
+	 * shape to scan: no two rows start in the same place, and the dot -- the thing
+	 * that ties a name to a colour in the grid -- landed at a different x on every
+	 * line. One per line puts every dot in one column, so the legend can be read
+	 * down its left edge.
+	 *
+	 * `w-full` is what makes the dots align: without it each row shrinks to its
+	 * text and the border ends somewhere different on every line, which looks like
+	 * a mistake even though the dots would still line up.
+	 *
+	 * `min-h-11` below `lg` so a stream is a full touch target on a phone, and
+	 * `lg:min-h-8` (30px) above it -- eleven rows is the point at which a desktop
+	 * row height stops being free.
+	 */
+	const streamRow =
+		'flex w-full min-h-11 cursor-pointer items-center gap-2 rounded-sm border px-2 text-2xs ' +
+		'transition-colors duration-(--motion-fast) ease-standard lg:min-h-8 ' +
+		'has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary';
+
 	/** Off reads as switched OFF, not absent: the chip stays, struck through. */
 	const chipOn = 'border-line-strong bg-surface text-body';
 	const chipOff = 'border-line bg-transparent text-faint line-through';
@@ -133,61 +155,110 @@
 		{/snippet}
 	</SectionHeading>
 
-	<!-- Dimension one: streams. A fixed list, in legend order. -->
-	<p id="key-streams" class="thrive-eyebrow mt-3">{copy.streams}</p>
-	<ul aria-labelledby="key-streams" class="mt-1.5 flex flex-wrap gap-1.5">
-		{#each legendOrder as category (category)}
-			{@const on = !prefs.hidden.includes(category)}
-			{@const name = categoryLabel[category]}
-			<li>
-				<label class={cn(chip, on ? chipOn : chipOff)}>
-					<input
-						type="checkbox"
-						checked={on}
-						onchange={() => toggleCategory(category)}
-						aria-label={copy.streamToggle(name, on)}
-						class="sr-only"
-					/>
-					<span
-						aria-hidden="true"
-						class={cn('size-2 shrink-0 rounded-pill', on ? categoryDot[category] : 'bg-faint')}
-					></span>
-					{name.toLowerCase()}
-				</label>
-			</li>
-		{/each}
-	</ul>
+<!--
+	TWO COLUMNS, and they are the answer to "eleven rows makes this panel tall".
 
-	<!--
-		Dimension two: labels. Open-ended, and absent entirely when nothing is
-		labelled — an empty "labels" heading would advertise a dimension this
-		student does not use.
+	Stacked one per line, the streams list is ~11 rows where the wrapping strip was
+	4 — about 350px instead of 105px. Three ways out were on the table:
 
-		No dot. A label has no colour because it has no stream, and giving it one
-		would be the first step to it reading as a stream.
-	-->
-	{#if labels.length > 0}
-		<p id="key-labels" class="thrive-eyebrow mt-3">{copy.labels}</p>
-		<ul aria-labelledby="key-labels" class="mt-1.5 flex flex-wrap gap-1.5">
-			{#each labels as label (label)}
-				{@const on = !prefs.hiddenLabels.includes(label)}
+	  - **A tighter row height.** Taken, as far as it goes: `lg:min-h-8` is 30px
+	    against the 41.25px a `min-h-11` row would have been. Not enough on its own.
+	  - **Internal scrolling.** REJECTED. A scroller inside a panel that is already
+	    behind a disclosure hides filters twice over, and the whole point of the
+	    count on the trigger is that a hidden filter is never invisible.
+	  - **Collapsing by default.** Already true, as of the layout pass earlier
+	    today: the Key is a disclosure on the calendar's heading row and it opens
+	    shut, so a tall panel costs nothing until it is asked for.
+
+	What is left is the width. The Key stopped being an 18rem side column in that
+	same pass and is now a full-width panel, so a single column of eleven rows would
+	leave most of 1198px empty and be needlessly tall at the same time. Labels and
+	the three view toggles move BESIDE the streams instead, which puts the panel's
+	height at the taller column rather than the sum of both.
+
+	THE TWO DIMENSIONS ARE STILL TWO DIMENSIONS. Side by side is not merged: each
+	keeps its own heading, its own `aria-labelledby` list, and its own toggle
+	function. Nothing was flattened into one list of chips.
+-->
+<div class="mt-3 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+	<div class="min-w-0">
+		<!-- Dimension one: streams. A fixed list, in legend order, one per line. -->
+		<p id="key-streams" class="thrive-eyebrow">{copy.streams}</p>
+		<ul aria-labelledby="key-streams" class="mt-1.5 flex flex-col gap-0.5">
+			{#each legendOrder as category (category)}
+				{@const on = !prefs.hidden.includes(category)}
+				{@const name = categoryLabel[category]}
 				<li>
-					<label class={cn(chip, on ? 'border-line-strong bg-sunken text-body' : chipOff)}>
+					<label class={cn(streamRow, on ? chipOn : chipOff)}>
 						<input
 							type="checkbox"
 							checked={on}
-							onchange={() => toggleLabel(label)}
-							aria-label={copy.labelToggle(label, on)}
+							onchange={() => toggleCategory(category)}
+							aria-label={copy.streamToggle(name, on)}
 							class="sr-only"
 						/>
-						{label}
+						<span
+							aria-hidden="true"
+							class={cn('size-2 shrink-0 rounded-pill', on ? categoryDot[category] : 'bg-faint')}
+						></span>
+						{name.toLowerCase()}
 					</label>
 				</li>
 			{/each}
 		</ul>
-	{/if}
+	</div>
 
-	<div class="mt-3 flex flex-wrap items-center gap-x-4 border-t border-hairline pt-2.5">
+	<div class="min-w-0 space-y-3">
+		<!--
+			Dimension two: labels. Open-ended, and absent entirely when nothing is
+			labelled — an empty "labels" heading would advertise a dimension this
+			student does not use.
+
+			Stacked to match the streams, so the two dimensions read as the same KIND
+			of list rather than one being a strip and the other a column.
+
+			No dot. A label has no colour because it has no stream, and giving it one
+			would be the first step to it reading as a stream. It is also why these rows
+			are NOT `w-full` the way the stream rows are: `items-start` shrinks each to
+			its text, so a label is visibly a different kind of thing rather than a
+			stream row with the dot missing.
+		-->
+		{#if labels.length > 0}
+			<div>
+				<p id="key-labels" class="thrive-eyebrow">{copy.labels}</p>
+				<ul aria-labelledby="key-labels" class="mt-1.5 flex flex-col items-start gap-0.5">
+					{#each labels as label (label)}
+						{@const on = !prefs.hiddenLabels.includes(label)}
+						<li>
+							<label class={cn(chip, on ? 'border-line-strong bg-sunken text-body' : chipOff)}>
+								<input
+									type="checkbox"
+									checked={on}
+									onchange={() => toggleLabel(label)}
+									aria-label={copy.labelToggle(label, on)}
+									class="sr-only"
+								/>
+								{label}
+							</label>
+						</li>
+					{/each}
+				</ul>
+			</div>
+		{/if}
+
+		<!--
+			The three view toggles, STACKED as well.
+
+			They were a horizontal row, which was right beside a horizontal strip of
+			chips and reads as a leftover beside two vertical lists. Same reasoning as
+			the streams: one control per line, and their checkboxes form a column the
+			way the dots do.
+
+			The rule above them is kept. They are not a third dimension — they change
+			what the calendar shows about items it is already showing — and the line is
+			what says so.
+		-->
+		<div class="flex flex-col gap-0.5 border-t border-hairline pt-2.5">
 		<label class={toggleRow}>
 			<input
 				type="checkbox"
@@ -227,7 +298,9 @@
 				<span class="thrive-numeric">{copy.ignoredCount(ignoredEventCount)}</span>
 			{/if}
 		</label>
+		</div>
 	</div>
+</div>
 
 	<!-- Not an error state, but the one case where the page below is empty for a
 	     reason the student caused and might not remember causing. -->

@@ -35,3 +35,6 @@ Thumbs.db
 # Logs
 npm-debug.log*
 yarn-error.log*
+
+# Throwaway measurement probes (browser geometry, density checks).
+frontend/.probe-*.mjs

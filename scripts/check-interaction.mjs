@@ -2010,6 +2010,55 @@ try {
 			keyOpened.checkboxes >= 6,
 			`${keyOpened.checkboxes} filter controls inside the panel`
 		);
+
+		/*
+		 * ── The streams are a column, and the dots line up ──────────────────
+		 *
+		 * Eleven chips used to wrap into four ragged rows, where the dot -- the thing
+		 * that ties a name to a colour in the grid -- landed at a different x on
+		 * every line. One per line is the claim, and "the dots form ONE column" is
+		 * the part that is actually load-bearing: a `flex-col` list whose rows are
+		 * not `w-full` would still be one per line while the dots stayed put, so
+		 * asserting the layout direction alone would not catch the regression.
+		 */
+		const streams = await wide.evaluate(() => {
+			const items = [...document.querySelectorAll('[aria-labelledby="key-streams"] > li')];
+			if (items.length === 0) return null;
+			const dots = items.map((li) => {
+				const d = li.querySelector('span[aria-hidden="true"]');
+				return d ? Math.round(d.getBoundingClientRect().left) : null;
+			});
+			const rows = items.map((li) => li.getBoundingClientRect());
+			return {
+				count: items.length,
+				distinctTops: new Set(rows.map((r) => Math.round(r.top))).size,
+				dotColumns: new Set(dots).size,
+				rowHeight: Math.round(rows[0].height * 100) / 100,
+				/* Struck-through when off is the non-colour cue, and it has to survive
+				   the row rewrite. */
+				pressedStates: items.filter((li) => li.querySelector('input:checked')).length
+			};
+		});
+
+		if (!streams) {
+			check('the Key lists every stream', false, 'no stream rows found');
+		} else {
+			check(
+				'each stream is on its own line',
+				streams.distinctTops === streams.count,
+				`${streams.count} streams on ${streams.distinctTops} lines (was 11 on 4)`
+			);
+			check(
+				'and every dot sits in one column',
+				streams.dotColumns === 1,
+				`${streams.dotColumns} distinct dot x-position(s) across ${streams.count} rows`
+			);
+			check(
+				'a stream row is still a real, checked control',
+				streams.pressedStates > 0,
+				`${streams.pressedStates} of ${streams.count} checked — the checkbox carries the state, not the fill`
+			);
+		}
 	}
 	await wide.close();
 
@@ -2053,6 +2102,24 @@ try {
 			'the Key trigger is still a 44px touch target on a phone',
 			stacked.triggerHeight >= 44,
 			`${stacked.triggerHeight}px`
+		);
+
+		/*
+		 * And the rows INSIDE it. The streams became one-per-line rows at
+		 * `lg:min-h-8` (30px), which is a desktop height -- on a phone they have to
+		 * stay a full 44px, and `min-h-11` at a 16px root is exactly that.
+		 */
+		await narrow.click(KEY_TRIGGER);
+		await narrow.waitForTimeout(SETTLE);
+		const phoneRow = await narrow.evaluate(() => {
+			const li = document.querySelector('[aria-labelledby="key-streams"] > li');
+			const label = li?.querySelector('label');
+			return label ? Math.round(label.getBoundingClientRect().height * 100) / 100 : null;
+		});
+		check(
+			'a stream row is a 44px touch target on a phone',
+			phoneRow !== null && phoneRow >= 44,
+			`${phoneRow}px — 30px on desktop, where a pointer is doing the work`
 		);
 	}
 	await narrow.close();
