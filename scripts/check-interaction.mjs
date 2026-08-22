@@ -1690,6 +1690,158 @@ try {
 
 	await cal.close();
 
+	// ═══ The page measure, and the calendar's order ════════════════════════
+	/*
+	 * Two spatial claims, both of which need a real layout engine.
+	 *
+	 *  1. **A page fills the room it has.** The measure went from 72rem to 96rem,
+	 *     which at 1512px means the content stops leaving ~120px empty either side
+	 *     of itself. Asserted as a RELATIONSHIP to the available room rather than as
+	 *     a pixel count, so it survives a different viewport.
+	 *  2. **The calendar shows the calendar first.** The Key used to sit above the
+	 *     month grid and pushed its top edge to 472px on a 1052px laptop. It is now
+	 *     a column beside it, and the grid starts at 223px.
+	 *
+	 * The prose assertion is the counterweight: widening the container must NOT
+	 * widen the paragraphs, or the page trades one problem for a worse one.
+	 */
+	const wide = await browser.newPage({ viewport: DESKTOP });
+	wide.on('pageerror', (error) => pageErrors.push(`width: ${error}`));
+	wide.on('console', (msg) => noisy(msg) && pageErrors.push(`width: ${msg.text()}`));
+
+	const readMeasure = () => {
+		const box = (el) => (el ? el.getBoundingClientRect() : null);
+		/*
+		 * `main`'s CONTENT box, not its border box. It carries the page's side
+		 * gutters (`sm:px-5`), so comparing the page's measure against the outer
+		 * width would report a 40px shortfall that is the gutter doing its job.
+		 */
+		const mainEl = document.querySelector('#main-content');
+		const mainStyle = mainEl ? getComputedStyle(mainEl) : null;
+		const main =
+			mainEl && mainStyle
+				? {
+						width:
+							mainEl.clientWidth -
+							parseFloat(mainStyle.paddingLeft) -
+							parseFloat(mainStyle.paddingRight)
+					}
+				: null;
+		const content = box(document.querySelector('#main-content > *'));
+		let prose = 0;
+		for (const el of document.querySelectorAll('p')) {
+			const r = el.getBoundingClientRect();
+			if (r.height > 0 && (el.textContent ?? '').trim().length > 60) {
+				prose = Math.max(prose, Math.round(r.width));
+			}
+		}
+		return {
+			main: main ? Math.round(main.width) : null,
+			content: content ? Math.round(content.width) : null,
+			prose
+		};
+	};
+
+	for (const route of ['/', '/calendar', '/appointments', '/ask/resources']) {
+		await wide.goto(BASE + route, { waitUntil: 'networkidle' });
+		await wide.waitForTimeout(SETTLE);
+		const m = await wide.evaluate(readMeasure);
+
+		check(
+			`${route} fills the room it has`,
+			m.content !== null && m.main !== null && m.main - m.content <= 4,
+			`content ${m.content}px inside ${m.main}px of gutter box (was 1152 inside 1232)`
+		);
+
+		if (m.prose > 0) {
+			check(
+				`${route} does not widen its prose with its container`,
+				m.prose <= 800,
+				`widest paragraph ${m.prose}px — capped by --container-measure at 68ch`
+			);
+		}
+	}
+
+	// ── The calendar's vertical order ───────────────────────────────────────
+	await wide.goto(BASE + '/calendar', { waitUntil: 'networkidle' });
+	await wide.evaluate(() =>
+		localStorage.setItem('thrive:calendar-prefs', JSON.stringify({ value: { view: 'month' } }))
+	);
+	await wide.reload({ waitUntil: 'networkidle' });
+	await wide.waitForTimeout(SETTLE);
+
+	const arrangement = await wide.evaluate(() => {
+		const grid = document.querySelector('[role="grid"]')?.closest('.thrive-panel') ?? null;
+		const key = document.querySelector('[role="group"], [aria-label], fieldset');
+		// The Key is the panel holding the stream checkboxes.
+		const keyPanel = [...document.querySelectorAll('.thrive-panel')].find((el) =>
+			/stream|key/i.test(el.textContent ?? '')
+		);
+		const g = grid?.getBoundingClientRect();
+		const k = keyPanel?.getBoundingClientRect();
+		return {
+			gridTop: g ? Math.round(g.top + window.scrollY) : null,
+			gridWidth: g ? Math.round(g.width) : null,
+			keyLeft: k ? Math.round(k.left) : null,
+			gridRight: g ? Math.round(g.right) : null,
+			viewportHeight: window.innerHeight
+		};
+	});
+
+	check(
+		'the month grid starts well above the fold',
+		arrangement.gridTop !== null && arrangement.gridTop < 320,
+		`grid top ${arrangement.gridTop}px of a ${arrangement.viewportHeight}px viewport (was 472)`
+	);
+	check(
+		'the month grid uses the width it was given',
+		(arrangement.gridWidth ?? 0) > 850,
+		`${arrangement.gridWidth}px (was 672, capped at max-w-2xl)`
+	);
+	if (arrangement.keyLeft === null) {
+		unproven('the Key sits beside the grid, not above it', 'could not identify the Key panel');
+	} else {
+		check(
+			'the Key sits beside the grid, not above it',
+			arrangement.keyLeft >= (arrangement.gridRight ?? 0) - 4,
+			`Key starts at ${arrangement.keyLeft}, grid ends at ${arrangement.gridRight}`
+		);
+	}
+	await wide.close();
+
+	// ── And on a phone the grid still comes BEFORE the Key ─────────────────
+	const narrow = await browser.newPage({ viewport: PHONE, hasTouch: true, isMobile: true });
+	narrow.on('pageerror', (error) => pageErrors.push(`width-phone: ${error}`));
+	await narrow.goto(BASE + '/calendar', { waitUntil: 'networkidle' });
+	await narrow.evaluate(() =>
+		localStorage.setItem('thrive:calendar-prefs', JSON.stringify({ value: { view: 'month' } }))
+	);
+	await narrow.reload({ waitUntil: 'networkidle' });
+	await narrow.waitForTimeout(SETTLE);
+
+	const stacked = await narrow.evaluate(() => {
+		const grid = document.querySelector('[role="grid"]')?.closest('.thrive-panel');
+		const keyPanel = [...document.querySelectorAll('.thrive-panel')].find((el) =>
+			/stream|key/i.test(el.textContent ?? '')
+		);
+		if (!grid || !keyPanel) return null;
+		return {
+			gridTop: Math.round(grid.getBoundingClientRect().top + window.scrollY),
+			keyTop: Math.round(keyPanel.getBoundingClientRect().top + window.scrollY)
+		};
+	});
+
+	if (!stacked) {
+		unproven('on a phone the grid comes before the Key', 'could not identify both panels');
+	} else {
+		check(
+			'on a phone the grid comes before the Key',
+			stacked.gridTop < stacked.keyTop,
+			`grid ${stacked.gridTop}px, Key ${stacked.keyTop}px — DOM order, not a media-swapped copy`
+		);
+	}
+	await narrow.close();
+
 	// ═══ Appointments: the chip strip, and a read-only month ═══════════════
 	/*
 	 * The month calendar as the day picker is reverted. What this block proves:

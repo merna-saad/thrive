@@ -360,8 +360,16 @@ export const messages = {
 		documentTitle: 'Calendar',
 		eyebrow: 'calendar · fall 2026',
 		title: 'Everything, one page',
-		intro:
-			'Classes, deadlines, tasks, appointments, your own to-dos, and what you could sign up for. Filter it, group it, add to it.',
+		/**
+		 * ONE line, not two.
+		 *
+		 * The old version listed all six streams and then all three verbs, which is
+		 * a paragraph explaining a page whose Key already names every stream and
+		 * whose controls are visible. Two lines of it pushed the month grid's top
+		 * edge down by about a line and a half of prose, on the page where getting
+		 * to the grid sooner was the whole complaint.
+		 */
+		intro: 'Everything you are committed to, and everything you could opt into.',
 
 		/* --- The month grid ------------------------------------------------- */
 		grid: {

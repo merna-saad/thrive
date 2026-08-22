@@ -357,15 +357,43 @@
 {/snippet}
 
 <!--
-	Capped and centred rather than full width. A month grid stops being readable
-	when its columns stretch across a desktop; a list and seven columns both use
-	the room, so they get `max-w-5xl`.
+	THE KEY SITS BESIDE THE GRID, NOT ABOVE IT.
+
+	The page used to stack heading, description, switcher, Key, and only then the
+	grid — which put the month grid's top edge at 472px on a 1052px laptop, so the
+	thing people came for started near the fold while a Key nobody had asked for
+	yet took the space above it.
+
+	Now it is a two-column grid above `xl`: the switcher, the calendar and the day
+	panel on the left, the Key in a narrow column on the right. The Key loses
+	nothing — same component, same filters, same counts.
+
+	`sticky` on the Key's column so it stays with the grid on the long views. The
+	agenda is nine thousand pixels tall; a filter that scrolls away is a filter you
+	have to scroll back for.
+
+	## The DOM order puts the grid FIRST, and the column placement moves the Key
+
+	Below `xl` this is one column, and in that case the grid comes first and the Key
+	follows it — which is the right order there too, for the same reason it is wrong
+	above the grid on a desktop. Above `xl` the explicit `col-start` / `row-start`
+	put the Key back on the right without changing the DOM, so a screen reader and a
+	keyboard meet the grid before the filter at every width.
+
+	## No max-width any more
+
+	It used to cap the month at `max-w-2xl` (672px) and everything else at
+	`max-w-5xl`, on the reasoning that a month grid stops being readable when its
+	columns stretch. That was true of a full-bleed page; it is not true of a page
+	whose measure is 96rem with a Key column taking 18rem of it, and the squeeze it
+	produced was the actual complaint: a 672px grid with blank space beside it.
 -->
-<div class={cn('mx-auto w-full space-y-3', prefs.view === 'month' ? 'max-w-2xl' : 'max-w-5xl')}>
+<div class="w-full">
 	<p aria-live="polite" class="sr-only">{announcement}</p>
 
-	<ViewSwitcher {prefs} />
-	<KeyBar {prefs} {labels} ignoredEventCount={ignoredEventIds.length} />
+	<div class="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,18rem)] xl:gap-4">
+		<div class="min-w-0 space-y-3 xl:col-start-1 xl:row-start-1">
+			<ViewSwitcher {prefs} />
 
 	{#if prefs.view === 'agenda'}
 		{@render agenda()}
@@ -425,6 +453,20 @@
 		/>
 		{@render dayPanel()}
 	{/if}
+
+		</div>
+
+		<!--
+			The Key. Second in the DOM so the grid is reached first, and placed into
+			the right-hand column above `xl` by an explicit grid position rather than
+			by source order.
+		-->
+		<div class="min-w-0 xl:col-start-2 xl:row-start-1">
+			<div class="xl:sticky xl:top-4">
+				<KeyBar {prefs} {labels} ignoredEventCount={ignoredEventIds.length} />
+			</div>
+		</div>
+	</div>
 
 	<!--
 		The dialog, mounted OUTSIDE the view branches.

@@ -139,7 +139,7 @@
 	<header>
 		<p class="thrive-eyebrow">design system · port verification</p>
 		<h1 class="mt-1 text-3xl font-bold text-ink">Swatch</h1>
-		<p class="mt-1.5 max-w-prose text-sm text-body">
+		<p class="mt-1.5 max-w-measure text-sm text-body">
 			Every colour token, every type step, both border weights, both faces. Throwaway route
 			for comparing this against the Next app side by side.
 		</p>
@@ -148,7 +148,7 @@
 	<!-- ── Brand ────────────────────────────────────────────────────────── -->
 	<section class="thrive-panel space-y-4">
 		<h2 class="text-lg font-bold text-ink">Brand — UC San Diego</h2>
-		<p class="max-w-prose text-xs text-body">
+		<p class="max-w-measure text-xs text-body">
 			Official values from
 			<code class="font-mono text-3xs">brand.ucsd.edu/visual-brand/color</code>, not
 			approximations. Navy replaced forest green as primary on 2026-08-22.
@@ -179,7 +179,7 @@
 		<h2 class="text-lg font-bold text-ink">
 			The yellow accent — constrained by measurement, not taste
 		</h2>
-		<p class="max-w-prose text-xs text-body">
+		<p class="max-w-measure text-xs text-body">
 			Yellow is 1.50:1 on card, 1.43:1 on cream, 1.31:1 on sunken. WCAG 1.4.11 asks 3:1 of any
 			graphic that carries meaning, so on every light surface in this system yellow is
 			<strong class="font-medium text-ink">decoration</strong> and cannot be the only thing
@@ -237,7 +237,7 @@
 		<h2 class="text-lg font-bold text-ink">
 			Two faces — sans for words, mono for numbers
 		</h2>
-		<p class="max-w-prose text-xs text-body">
+		<p class="max-w-measure text-xs text-body">
 			Tightened 2026-08-22. The old rule ended “…and any label that is a system value”, and
 			almost any label can be argued into that, so mono spread to eyebrows, switchers, chips
 			and tags. A face used for a third of the interface is not an accent, it is a second body
@@ -273,7 +273,7 @@
 					</tbody>
 				</table>
 			</div>
-			<p class="max-w-prose text-3xs text-muted-ink">
+			<p class="max-w-measure text-3xs text-muted-ink">
 				The test when it is genuinely unclear: would you ever want this to line up in a column
 				with the thing above it? Column → mono. Sentence → sans.
 			</p>
@@ -287,7 +287,7 @@
 					<span class="rounded-xs bg-sunken px-2 py-1 text-2xs text-body">{item}</span>
 				{/each}
 			</div>
-			<p class="max-w-prose text-3xs text-muted-ink">
+			<p class="max-w-measure text-3xs text-muted-ink">
 				All words. Eyebrows, view switchers, stream and filter chips, “next up”, class and
 				task tags.
 			</p>
@@ -337,7 +337,7 @@
 		<h2 class="text-lg font-bold text-ink">
 			Border weights — the distinction that must not collapse
 		</h2>
-		<p class="max-w-prose text-xs text-body">
+		<p class="max-w-measure text-xs text-body">
 			Two separate concepts, never merged into one token. Getting this wrong is silent: the
 			layout looks fine and the accessibility guarantee is gone.
 		</p>
@@ -482,7 +482,7 @@
 		<h2 class="text-lg font-bold text-ink">
 			Type scale — weight is NOT baked in
 		</h2>
-		<p class="max-w-prose text-xs text-body">
+		<p class="max-w-measure text-xs text-body">
 			Every step below renders at 400 because none of them sets a weight. That is the rule,
 			not a bug: set weight at the call site or you get 400.
 		</p>

@@ -725,28 +725,40 @@
   /* Hairline exposed as a colour, for divide-* and every panel edge. */
   --color-hairline: var(--thrive-hairline);
 
-  /* The page's measure, as `max-w-page` and `max-w-page-wide`.
-     `--container-*` is Tailwind v4's own namespace for max-width utilities, so
-     these are real tokens rather than arbitrary values.
+  /* The page's measure, as `max-w-page`, plus the PROSE measure as
+     `max-w-measure`. `--container-*` is Tailwind v4's own namespace for
+     max-width utilities, so both are real tokens rather than arbitrary values.
 
-     THE SHELL NO LONGER SETS ONE. `AppShell`'s `main` used to carry
-     `max-w-6xl`, which meant one number governed every route and a page that
-     wanted more width could not ask for it without widening Home too. Now the
-     shell provides the gutters and each page names its own measure — which is
-     the right division anyway: how wide a page should be is a property of what
-     is on it.
+     THE SHELL DOES NOT SET ONE. `AppShell`'s `main` used to carry `max-w-6xl`,
+     which meant one number governed every route and a page that wanted more
+     width could not ask for it without widening Home too. Now the shell provides
+     the gutters and each page names its measure.
 
-     `page` is 72rem, exactly what `max-w-6xl` was, so nothing moved for the
-     routes that were already right.
+     ## Why 96rem and not 72
 
-     `page-wide` is 90rem, and only Ask THRIVE uses it. A chat log is the one
-     surface here that genuinely wants the room: it is a column of message
-     bubbles beside a history strip, and at 72rem on a 1512px screen it left
-     120px of dead margin either side. The TEXT is still capped — see
-     `--thrive-chat-measure` — so the extra width goes to the panel and the
-     layout, never to the line length. */
-  --container-page: 72rem;
-  --container-page-wide: 90rem;
+     72rem was `max-w-6xl`, inherited from the Next scaffold. At 1512px with the
+     240px rail it left the content 1152px inside 1272px of available room, so
+     roughly 120px sat empty either side — and on /calendar the month grid was
+     squeezed to 672px while that space stayed blank, which is the wrong way
+     round: the grid is the one thing on the page that genuinely benefits from
+     width.
+
+     96rem (1536px) is wider than the room a 1512px screen has beside the rail, so
+     at that size the page simply fills it and the gutters do the framing. It
+     still centres on a genuinely wide monitor rather than stretching forever.
+
+     ## And why the prose cap is SEPARATE
+
+     A paragraph at 1500px is not readable — the eye loses the start of the next
+     line. So the container fills the page and the TEXT does not: page intros and
+     standing notes take `max-w-measure`.
+
+     `ch` rather than `rem`, because the constraint is characters per line and
+     `ch` tracks the font. A rem value would drift the moment the type scale moved.
+     68ch sits inside the 45-75 range that is usually quoted and matches what
+     Tailwind's own `prose` was giving us. */
+  --container-page: 96rem;
+  --container-measure: 68ch;
 
   /* Motion. Use as: duration-(--motion-base) ease-standard */
   --motion-fast: var(--thrive-motion-fast);

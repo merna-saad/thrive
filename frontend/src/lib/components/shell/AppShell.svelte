@@ -46,9 +46,10 @@
 			`max-w-6xl` used to live on this element, which made one number the measure
 			of every route in the app — so a page that wanted more room could not have
 			it without widening Home by accident. The shell now provides the gutters
-			and each page names its own measure with `max-w-page` (72rem, exactly what
-			this was) or `max-w-page-wide`. How wide a page should be is a property of
-			what is on it, not of the frame around it.
+			and each page names its own measure with `max-w-page`. How wide a page
+			should be is a property of what is on it, not of the frame around it —
+			and prose inside it is capped separately with `max-w-measure`, because a
+			paragraph does not want the width a month grid does.
 		-->
 		<main
 			id="main-content"

@@ -254,12 +254,12 @@
 				would make the three surfaces indistinguishable, which is the whole
 				thing they are not.
 			-->
-			<div class="max-w-prose rounded-lg border border-line bg-sunken p-3">
+			<div class="max-w-measure rounded-lg border border-line bg-sunken p-3">
 				<p class="thrive-eyebrow flex items-center gap-1.5">
 					<Sparkles aria-hidden="true" class="size-3.5" />
 					{entry.emptyHeading}
 				</p>
-				<p class="mt-1.5 max-w-prose text-sm text-body">{entry.emptyBody}</p>
+				<p class="mt-1.5 max-w-measure text-sm text-body">{entry.emptyBody}</p>
 
 				<ul class="mt-2.5 space-y-1">
 					{#each entry.examples as example (example)}
@@ -308,7 +308,11 @@
 
 	<!-- Outside the form and below it, so it reads as a property of the page rather
 	     than as an error about what was just typed. Said before anything is typed. -->
-	<p class="border-t border-line px-2.5 py-1.5 text-3xs text-muted-ink">
+	<!-- The cap goes on the paragraph, not on a span inside it. A full-width `<p>`
+	     wrapping a capped span LOOKS identical and is not the same thing: the
+	     element that owns the text is the element whose line length matters, and a
+	     gate measuring paragraph widths reads the wrapper. -->
+	<p class="max-w-measure border-t border-line px-2.5 py-1.5 text-3xs text-muted-ink">
 		{copy.chat.notSaved}
 	</p>
 </section>

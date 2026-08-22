@@ -27,7 +27,7 @@
 	<header class="mx-auto w-full max-w-5xl">
 		<p class="thrive-eyebrow">{copy.eyebrow}</p>
 		<h1 class="mt-1 text-3xl font-bold text-ink">{copy.title}</h1>
-		<p class="mt-1.5 max-w-prose text-sm text-body">{copy.intro}</p>
+		<p class="mt-1.5 max-w-measure text-sm text-body">{copy.intro}</p>
 	</header>
 
 	<BookingArea services={data.services} data={data.data} todayKey={data.todayKey} />
@@ -48,7 +48,8 @@
 		<AppointmentList items={data.appointments} />
 
 		<!-- The standing promise, on the surface where a student is most likely to
-		     assume otherwise. -->
-		<p class="text-3xs text-muted-ink">{copy.disclaimer}</p>
+		     assume otherwise. Capped: it is prose, and the page is now wide enough
+		     that an uncapped sentence would run past a readable line. -->
+		<p class="max-w-measure text-3xs text-muted-ink">{copy.disclaimer}</p>
 	</section>
 </div>

@@ -15,7 +15,7 @@
 	 *
 	 * ## The width
 	 *
-	 * `max-w-page-wide` (90rem) rather than the `max-w-page` (72rem) every other
+	 * `max-w-page` (90rem) rather than the `max-w-page` (72rem) every other
 	 * route uses. This is the one surface that genuinely wants the room: at 72rem on
 	 * a 1512px screen the chat sat in a column with 120px of dead margin either
 	 * side, and a second rail was eating another 224px of it.
@@ -70,13 +70,13 @@
 	content and the log's own `overflow-y-auto` never engages — the document grows
 	instead, which is precisely the shape `check:layout` exists to catch.
 -->
-<div class="mx-auto flex w-full max-w-page-wide min-h-0 flex-col gap-4">
+<div class="mx-auto flex w-full max-w-page min-h-0 flex-col gap-4">
 	<!-- The section's one `h1`. The chat window's title is an `h2` under it: there
 	     is one page here and the destination is a region within it. -->
 	<header>
 		<p class="thrive-eyebrow">{copy.eyebrow}</p>
 		<h1 class="mt-1 text-3xl font-bold text-ink">{copy.title}</h1>
-		<p class="mt-1.5 max-w-prose text-sm text-body">{copy.intro}</p>
+		<p class="mt-1.5 max-w-measure text-sm text-body">{copy.intro}</p>
 	</header>
 
 	<!-- Only below `lg`, where the navigation rail is not on screen. -->
