@@ -373,12 +373,30 @@
      its inner rhythm are the same number. */
   --thrive-page-gutter-x: 2.5rem;
 
-  /* The top four type steps, as raw tokens because they are RESPONSIVE.
+  /* EVERY type step is a raw token, because every step is RESPONSIVE.
 
-     These are the PHONE values -- the ones that were the only values until
-     2026-08-21 -- and the media query further down shrinks them above 40rem.
-     Declared here rather than inline in `@theme` so a utility compiles to
-     `var(--thrive-text-3xl)` and the override can reach it. */
+     These are the PHONE values and they are the ones that have always been here.
+     Two media queries shrink them: the top four above 40rem (a display-type
+     decision from earlier on 2026-08-21) and ALL NINE above 64rem (the desktop
+     density pass, later the same day).
+
+     Declared here rather than inline in `@theme` for a mechanical reason, not a
+     stylistic one: `@theme inline` BAKES a literal into the utility, so
+     `.text-3xl{font-size:2.5rem}` has no variable left for a media query to
+     override. A theme value that is itself a `var()` is inlined AS THE REFERENCE,
+     so the raw token stays reachable. The bottom five steps were literals until
+     this pass, which is why they could not be made responsive without moving them
+     here first. */
+  --thrive-text-3xs: 0.75rem; /* 12 */
+  --thrive-text-3xs-lh: 1rem; /* 16 */
+  --thrive-text-2xs: 0.8125rem; /* 13 */
+  --thrive-text-2xs-lh: 1.125rem; /* 18 */
+  --thrive-text-xs: 0.875rem; /* 14 */
+  --thrive-text-xs-lh: 1.25rem; /* 20 */
+  --thrive-text-sm: 1rem; /* 16 -- body default */
+  --thrive-text-sm-lh: 1.4375rem; /* 23 -- 1.44 */
+  --thrive-text-base: 1.125rem; /* 18 */
+  --thrive-text-base-lh: 1.5625rem; /* 25 -- 1.39 */
   --thrive-text-lg: 1.375rem; /* 22 */
   --thrive-text-lg-lh: 1.75rem; /* 28 */
   --thrive-text-xl: 1.6875rem; /* 27 */
@@ -387,6 +405,10 @@
   --thrive-text-2xl-lh: 2.4375rem; /* 39 */
   --thrive-text-3xl: 2.5rem; /* 40 */
   --thrive-text-3xl-lh: 2.75rem; /* 44 -- 1.10 */
+
+  /* The spacing step, as a raw token for the same reason: the desktop pass
+     shrinks it. See the 64rem block. */
+  --thrive-spacing: 0.25rem; /* 4px at a 16px root */
 
   /* The dashboard card body height, desktop only. See `.thrive-card-body`.
 
@@ -696,20 +718,20 @@
      Consequence, deliberate: a call site that sets no weight renders 400.
      Only 400/500/700 load, so `font-semibold` (600) synthesises -- do not
      use it. */
-  --text-3xs: 0.75rem; /* 12 -- meta, counts, timers */
-  --text-3xs--line-height: 1rem; /* 16 */
+  --text-3xs: var(--thrive-text-3xs); /* meta, counts, timers */
+  --text-3xs--line-height: var(--thrive-text-3xs-lh);
 
-  --text-2xs: 0.8125rem; /* 13 -- section labels, chips */
-  --text-2xs--line-height: 1.125rem; /* 18 */
+  --text-2xs: var(--thrive-text-2xs); /* section labels, chips */
+  --text-2xs--line-height: var(--thrive-text-2xs-lh);
 
-  --text-xs: 0.875rem; /* 14 -- secondary copy */
-  --text-xs--line-height: 1.25rem; /* 20 */
+  --text-xs: var(--thrive-text-xs); /* secondary copy */
+  --text-xs--line-height: var(--thrive-text-xs-lh);
 
-  --text-sm: 1rem; /* 16 -- body default */
-  --text-sm--line-height: 1.4375rem; /* 23 -- 1.44 */
+  --text-sm: var(--thrive-text-sm); /* body default */
+  --text-sm--line-height: var(--thrive-text-sm-lh);
 
-  --text-base: 1.125rem; /* 18 -- task titles, lead copy */
-  --text-base--line-height: 1.5625rem; /* 25 -- 1.39 */
+  --text-base: var(--thrive-text-base); /* task titles, lead copy */
+  --text-base--line-height: var(--thrive-text-base-lh);
 
   /* THE TOP FOUR STEPS ARE RESPONSIVE, so they reference raw tokens instead of
      carrying literals. See `--thrive-text-*` in layer 1 and the override below
@@ -744,8 +766,10 @@
   --text-2xl--letter-spacing: -0.03em;
   --text-3xl--letter-spacing: -0.035em;
 
-  /* Spacing: 4px base step -> p-1 = 4, p-2 = 8, p-4 = 16, p-6 = 24 ... */
-  --spacing: 0.25rem;
+  /* Spacing: 4px base step -> p-1 = 4, p-2 = 8, p-4 = 16, p-6 = 24 ...
+     A `var()` for the same reason the type steps are: the 64rem block shrinks it,
+     and a literal here would be baked into every utility beyond reach. */
+  --spacing: var(--thrive-spacing);
 
   /* Radii, softened. The old 2/4/6/8/10 was sized so a 2px stroke could state
      an edge without the corner fighting it. With the stroke gone, tight
@@ -869,23 +893,36 @@
 
    ## What is NOT responsible, checked rather than assumed
 
-   The 106.25% root bump is `@media (width < 40rem)`. It is a MOBILE bump -- it
-   raises a 15px body to 16px on a handset -- and it does not apply at any width
-   this rule is about. Shrinking or delaying it would have changed phones, which is
-   the one thing this change must not do.
+   The root size was suspected and cleared. At the time this rule was written the
+   root carried a 106.25% bump under `@media (width < 40rem)` -- a MOBILE bump,
+   raising a 15px body to 16px on a handset, which does not apply at any width this
+   rule is about.
+
+   THAT BUMP IS GONE. It was replaced later the same day by the rule further down
+   this file: the root is 100% below 64rem and 93.75% at 64rem and up. The reason
+   is recorded there -- `--text-sm` is `1rem`, so a 16px root put the desk body at
+   16px rather than the 15 the design was drawn for, and the phone bump stacked on
+   top of that to make 17.
+
+   Neither the old bump nor the new rule is what this block is fixing, which is the
+   point of writing both down: the top four steps were simply drawn large for a
+   72rem page.
 
    ## Why an override rather than editing the tokens
 
-   Editing them would shrink the phone too, because the root bump multiplies
-   whatever it is given. Mobile is deliberately unchanged, so the small sizes have
-   to be the wide-screen ones. Same mechanism as `--thrive-topbar-height` above:
-   override the RAW token in a media query so every call site follows and no
-   component needs a breakpoint.
+   Editing them would shrink the phone too. Mobile is deliberately unchanged, so
+   the small sizes have to be the wide-screen ones. Same mechanism as
+   `--thrive-topbar-height` above: override the RAW token in a media query so every
+   call site follows and no component needs a breakpoint.
 
    ## Why 40rem, and only the top four
 
-   40rem because it is the boundary the root bump already uses, so the system has
-   one type breakpoint rather than two.
+   40rem because it was the boundary the root bump used when this was written, so
+   the system had one type breakpoint rather than two. The root's breakpoint has
+   since moved to 64rem and this one stayed at 40 -- deliberately, because the two
+   answer different questions: 40rem is "is this a handset", and 64rem is "is the
+   desktop shell up". Re-basing this on 64rem would leave tablets on phone-sized
+   display type.
 
    Only `lg` and up, because `base` (18) and below are body copy, row titles and
    metadata, and 16px body is the readability floor -- there is nothing to give
@@ -908,6 +945,89 @@
 
     --thrive-text-3xl: 2rem; /* 40 -> 32 */
     --thrive-text-3xl-lh: 2.25rem; /* 36 -- 1.13 */
+  }
+}
+
+/* ==========================================================================
+   THE DESKTOP SCALE. (2026-08-21, the density pass)
+
+   Asked for four times. The first three passes measured and reported that the
+   root computes to 15px and the spacing step to 3.75px, both of which are true
+   and neither of which was the answer. The app read too large at 100% zoom on a
+   1512px screen, so this block makes it smaller.
+
+   ## Graduated, not uniform
+
+   The largest steps were the most oversized, so they come down hardest and the
+   smallest barely move. At the 15px root this resolves to:
+
+       step   before  after   change
+       3xs    11.25   11.25    0%    floor -- meta, counts, timers
+       2xs    12.19   12.00   -1.6%
+       xs     13.13   12.75   -2.9%
+       sm     15.00   14.25   -5.0%   BODY. Deliberately the gentlest real cut.
+       base   16.88   15.75   -6.7%
+       lg     18.75   17.25   -8.0%
+       xl     22.50   19.50  -13.3%
+       2xl    26.25   21.75  -17.1%
+       3xl    30.00   24.00  -20.0%   page titles
+
+   `3xl / sm` goes 2.00 to 1.68. A page title is still two-thirds again the size
+   of body copy and unmistakably a title; what it stops doing is shouting. Every
+   step stays strictly larger than the one below it, so no two steps collapse into
+   each other and the hierarchy is intact.
+
+   `3xs` does not move. It is already 11.25px and carries counts and timers; a
+   floor is a floor.
+
+   ## The vertical rhythm comes down with it
+
+   Type without spacing reads thin rather than dense, so `--thrive-spacing` drops
+   0.25rem -> 0.225rem: a 3.75px step becomes 3.375px, and every `gap-*`, `p-*`
+   and `space-y-*` in the app follows without a single component changing.
+
+   THAT KNOB ALSO MOVES CONTROL HEIGHTS AND ICONS, which is the thing to know
+   before touching it again. `min-h-11` is `calc(var(--spacing) * 11)`, so it goes
+   41.25px -> 37.13px on desktop -- still above this repo's 36px floor for a
+   pointer target, and WCAG 2.5.8 only asks 24px. `size-3.5` goes 13.13 -> 11.81px.
+   Both are intended here. Neither would be acceptable on a phone, which is
+   exactly why this block starts at 64rem.
+
+   ## Why 64rem, and what is guaranteed below it
+
+   64rem is where the desktop shell appears -- the rail replaces the bottom bar,
+   and it is the breakpoint `--thrive-topbar-height` and the root size already
+   switch on. Below it NOTHING in this block applies: the phone keeps a 16px root,
+   a 4px spacing step, a 16px body and `min-h-11` at a full 44px. Mobile is
+   unchanged, and that is verifiable rather than asserted -- the phone document
+   heights are identical before and after.
+
+   The 40rem block above still shrinks the top four steps for tablets. The two
+   blocks answer different questions -- 40rem is "is this a handset", 64rem is "is
+   the desktop shell up" -- and 64rem simply wins where both apply, being later.
+   ========================================================================== */
+@media (width >= 64rem) {
+  :root {
+    --thrive-spacing: 0.225rem; /* 3.75px -> 3.375px */
+
+    --thrive-text-3xs: 0.75rem; /* 11.25 -- unchanged, the floor */
+    --thrive-text-3xs-lh: 1rem; /* 15 */
+    --thrive-text-2xs: 0.8rem; /* 12.19 -> 12.00 */
+    --thrive-text-2xs-lh: 1.1rem; /* 16.5 -- 1.38 */
+    --thrive-text-xs: 0.85rem; /* 13.13 -> 12.75 */
+    --thrive-text-xs-lh: 1.2rem; /* 18 -- 1.41 */
+    --thrive-text-sm: 0.95rem; /* 15.00 -> 14.25 */
+    --thrive-text-sm-lh: 1.35rem; /* 20.25 -- 1.42 */
+    --thrive-text-base: 1.05rem; /* 16.88 -> 15.75 */
+    --thrive-text-base-lh: 1.45rem; /* 21.75 -- 1.38 */
+    --thrive-text-lg: 1.15rem; /* 18.75 -> 17.25 */
+    --thrive-text-lg-lh: 1.5rem; /* 22.5 -- 1.30 */
+    --thrive-text-xl: 1.3rem; /* 22.50 -> 19.50 */
+    --thrive-text-xl-lh: 1.65rem; /* 24.75 -- 1.27 */
+    --thrive-text-2xl: 1.45rem; /* 26.25 -> 21.75 */
+    --thrive-text-2xl-lh: 1.8rem; /* 27 -- 1.24 */
+    --thrive-text-3xl: 1.6rem; /* 30.00 -> 24.00 */
+    --thrive-text-3xl-lh: 1.9rem; /* 28.5 -- 1.19 */
   }
 }
 

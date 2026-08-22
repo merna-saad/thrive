@@ -111,7 +111,7 @@
 			href={item.href}
 			aria-current={selfCurrent ? 'page' : undefined}
 			title={item.description}
-			class="group relative flex min-h-10 flex-1 items-center gap-2.5 rounded-md border px-2.5 py-1.5 text-2xs font-medium transition-colors duration-(--motion-fast) ease-standard
+			class="group relative flex min-h-11 flex-1 items-center gap-2.5 rounded-md border px-2.5 py-1.5 text-2xs font-medium transition-colors duration-(--motion-fast) ease-standard
 				{nested ? 'pl-8' : ''}
 				{selfCurrent
 				? // Solid fill plus the control-weight stroke. The stroke is the part

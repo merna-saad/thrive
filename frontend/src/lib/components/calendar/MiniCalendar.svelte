@@ -322,7 +322,17 @@
 							onclick={() => onSelect(dayKey)}
 							class={cn(
 								'relative flex flex-col items-center justify-center gap-1',
-								roomy ? 'h-11' : 'h-9',
+								// A 44px cell on a phone, a 30px one on a desktop. The desktop step
+								// is what lets six weeks fit without the grid feeling sparse:
+								// 41.25px cells put the grid at 292px and most of that was air
+								// above and below a 15px number.
+								//
+								// ONE STEP SMALLER THAN THIS CLIPS, measured rather than guessed.
+								// `lg:h-9` (30.38px) left 8 of the 42 cells reporting
+								// `scrollHeight > clientHeight`: a cell with a dot row needs 32px
+								// -- an 18px number box, a 3.375px gap, an 8px dot and the cell's
+								// own padding. `lg:h-10` is 33.75px and fits with slack.
+								roomy ? 'h-11 lg:h-10' : 'h-9 lg:h-9',
 								'transition-colors duration-(--motion-fast) ease-standard',
 								// "Not this month" is said with the cell's FILL, not with a
 								// faded number. These are real buttons, and dimming the digit
@@ -342,7 +352,20 @@
 						>
 							<!-- A day number is a value. `.thrive-numeric` carries the face and
 							     tabular figures, so 1 and 11 sit in the same column. -->
-							<span class={cn('thrive-numeric leading-none', roomy ? 'text-sm' : 'text-2xs')}>
+							<span class={cn(
+									// `leading-none` LOSES here, and has since this component was
+									// written. A `text-*` utility ships a line-height of its own and
+									// wins, so the number's box is 18px rather than 12.75. That was
+									// invisible while cells were 41.25px tall and became visible the
+									// moment they were not -- 8 of the 42 clipped their dot row.
+									//
+									// Left as-is rather than forced. The cell is sized to the box the
+									// browser actually produces, because a utility fight settled by
+									// stylesheet order is a worse thing to depend on than a height
+									// that was measured.
+									'thrive-numeric leading-none',
+									roomy ? 'text-sm lg:text-xs' : 'text-2xs lg:text-3xs'
+								)}>
 								{date.getDate()}
 							</span>
 
