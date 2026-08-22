@@ -4,6 +4,168 @@ Reusable patterns and lessons. Things worth knowing again.
 
 ---
 
+## 2026-08-21 (fourth pass) — what a second theme teaches about the first one
+
+### A hue collision lives in the hue corridor, not in the lightness
+
+The most transferable thing in the pass. The light chroma pass had to shift
+`needs-help` 288° → 296° because raising its chroma walked it into the reserved
+`indigo`. Building the dark set, **the identical collision reappeared** — held at
+296 with a 1.30× boost, the dark violet came out dE 0.0728 from the dark indigo,
+the same crowding at the opposite end of the lightness range. It needed the same
+kind of fix again, 4° further out.
+
+`later` was the same story with a twist: its light 2.46× chroma gain existed to
+escape `muted`, and on dark that problem **had already gone away** (0.0926 before
+any boost, because dark surfaces let a low-chroma slate read as blue). Applying
+the boost anyway bought a *new* dE 0.046 collision with indigo — worse than either
+theme's worst pair — to solve nothing.
+
+> **Re-tuning a palette for a second theme does not inherit the first theme's
+> fixes, and it does not inherit its problems either.** Each theme has to be
+> measured against every reserved colour on its own. Check both what a chroma
+> change moves you toward and whether the thing it was escaping still applies.
+
+### Losing an axis of separation is a cost, and it should be named
+
+On light, navy and indigo separate on **lightness first** (14.18 vs 5.59) and
+saturation second. Dark forces navy to be light, so the first axis is simply gone
+and only saturation is left. The pair went dE 0.271 → 0.144.
+
+The temptation is to write "still well separated" and move on. Better to record
+the ratio — it is still ~2× the grid's worst pair, and the 3.1× chroma gap is the
+same proportion light runs — **and** that it halved. A future pass tightening
+either token needs to know which theme has the headroom.
+
+### A colour's ROLE must hold in every theme, even when the measurement stops
+
+Yellow is 1.43:1 on cream and **9.06–12.16:1 on dark**. The measurement that made
+"decoration only" obvious disappears in dark; it clears both bars comfortably.
+
+It stays decoration-only anyway, and the reasoning generalises: **a meaning that
+is legible in one theme and not the other needs a second carrier in that theme**,
+and "this means X, in a different colour depending on your OS setting" is worse
+than a flourish. The light ceiling still enforces the rule, because a promotion
+would have to be legible in light to be worth making. Dark got *floors* instead,
+which pin the fact the note rests on rather than duplicating the constraint.
+
+> **When a constraint's justification evaporates in one theme, check whether the
+> constraint was really about the measurement.** Usually the measurement was just
+> the thing that made it obvious.
+
+### And the legible PAIRING can invert while the colour does not move
+
+Yellow on navy: 9.45 in light, **1.39 in dark** — worse than yellow on cream —
+because `primary` lifts to a light steel. Yellow on the surface: 1.50 in light,
+10.98 in dark. Same two tokens, opposite answers.
+
+So a component drawing a yellow mark on a navy ground is correct in light and
+invisible in dark. **A pairing is not a property of the two colours; it is a
+property of the two colours in a theme.** Gate each theme's own pairing rather
+than looking for one rule that covers both.
+
+### A named colour walks through a check that rejects hex
+
+`designSystem.spec.ts` had rejected `#fff` in markup since it was written. Eight
+entries in `schedule.ts` said the stock Tailwind white, and it sailed through for
+two reasons at once: the check only looked for hex notation, and the file is a
+`.ts`, where the colour rule had never been applied at all.
+
+In a light-only app the bug was **unobservable** — `--thrive-on-primary` *is*
+white, so the token and the stock colour rendered identically. The theme is what
+made them differ, at 2.85–2.96:1.
+
+> **Write the colour rule against the PALETTE, not against the notation.** "No
+> hex" catches the careless case; "nothing outside our tokens" catches the case
+> that looks correct. And a rule that only scans markup will miss the class-string
+> maps, which is where the interesting colour decisions actually live.
+
+**2.9:1 is the number to fear.** Not 1.2:1 — that is obviously broken to anyone
+who opens the page. 2.9:1 looks fine in a screenshot, looks fine while clicking
+around, and fails AA for label text. A gate is the only thing that says so.
+
+### A token that inverts underneath an expression makes the expression a bug
+
+`bg-ink/20` for a dialog scrim was *correct reasoning*: the ink colour at low
+alpha is a use of the palette rather than a new entry in it, and the comment said
+so. It became a 20% **white** veil the moment ink stopped being dark — a scrim
+that lightens the page it exists to recede.
+
+> **An alpha composite of a token inherits everything that token does, including
+> flipping.** Before deriving one colour from another, ask whether the derived
+> thing has a direction the source does not. A scrim is always a darkening; ink is
+> not always dark.
+
+### The cheapest proof that there is no flash is to remove the JavaScript
+
+The claim was "a student on the default gets the correct first paint, because CSS
+resolves `prefers-color-scheme` before paint with nothing in the path". Timing a
+screenshot would be flaky and would not prove the mechanism.
+
+Running the page with **`javaScriptEnabled: false`** proves it exactly: if an
+OS-dark browser paints dark with no JS at all, then no JS was ever needed, so
+there is nothing for a flash to happen *during*.
+
+> **To prove something does not depend on JavaScript, turn JavaScript off.** It
+> converts a timing question into a structural one.
+
+### Test the theme against the OS setting that DISAGREES with it
+
+The whole theme block in `check:interaction` runs on an OS-dark browser. On an
+OS-light one, writing `data-theme="light"` and doing nothing at all produce the
+same pixels — an assertion satisfiable by a no-op, the family this repo already
+has four instances of.
+
+Same shape one level down: the reload check asserts the **attribute** beside the
+colour. Breaking `applyTheme` reports `state=dark attribute=null` — the store was
+fine and the DOM was not, and colour-alone or store-alone would have stayed green.
+
+### A themed custom property is not a colour, and lies differently per environment
+
+`getComputedStyle(root).getPropertyValue('--thrive-bg')` returns, for the same
+source:
+
+- **dev** — the literal `light-dark(#faf9f5, #161512)`
+- **production** — `var(--lightningcss-light,#faf9f5) var(--lightningcss-dark,#161512)`,
+  because LightningCSS downlevels `light-dark()` into the space-toggle trick
+
+Neither is a colour and neither is stable. **Read a used value off a real
+element.** This is the same lesson as "computed colour rather than class names",
+one layer deeper: a class list can lie about what wins the cascade, and a custom
+property can lie about what it even is.
+
+### Losing a "by construction" guarantee is acceptable if a gate replaces it
+
+The soft tints read `color-mix(…, var(--thrive-urgent) 9%, white)`, and that
+`var()` was what made them unable to drift from the base hue — a real guarantee,
+recorded as such. `light-dark()` cannot nest inside another, so the light arm had
+to name the hex outright.
+
+Rather than accept the drift or abandon the mechanism, the gate now asserts each
+light mix names the light arm of the token it claims to tint. **The guarantee
+moved from "by construction" to "by gate"; it did not go.** Worth noticing that
+this failure would have been invisible to every contrast check — tint and hue
+would both still pass their own pairs, and only their *relationship* would be
+wrong.
+
+### A gate can be right about a comment being wrong
+
+The first version of the toggle's size assertion asked for 36px, taken from
+`TopBar`'s own comment. It failed at 30.375px — and so would the bell beside it,
+whose class string is byte-identical. `lg:size-9` is `9 × var(--spacing)`, and the
+density pass moved `--spacing` to 0.225rem at a 93.75% root.
+
+Two lessons, and the second is the one that matters. First: **a comment stating a
+measurement decays exactly like any other verification claim**, and this repo
+already knew that. Second: **when a new assertion fails, check whether it is
+describing the neighbours too** before changing anything. The fix was not to
+resize the control or lower the number — it was to assert the property that was
+actually this change's business (the new control matches its neighbours) and
+record the discrepancy as a loose end, rather than resize three existing controls
+under cover of a theme diff.
+
+---
+
 ## 2026-08-21 (third pass) — a test can encode an inference instead of a rule
 
 The course catalogue arrived without term groupings, so they were inferred: twelve

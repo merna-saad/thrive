@@ -4,6 +4,108 @@ Dated session summaries, most recent first.
 
 ---
 
+## 2026-08-21 (fourth pass) — a dark theme
+
+**HEAD:** `20622dc` · **679 tests · 261 interaction assertions · 51 layout targets ·
+127 contrast assertions across BOTH THEMES · six gates green.** 129 commits.
+
+Three commits. The app was light-only by decision until this pass; `app.css` had
+kept `@custom-variant dark` pointed at a class nothing applied so that it stayed
+possible.
+
+### `f81ccdd` — the palette, the switch, and a contrast gate that checks both
+
+- **Derived, not inverted.** Each dark value holds the light hue exactly and
+  solves for the lightness that reproduces the light theme's own ratio against the
+  dark surfaces, then takes chroma up 1.30× — because lifting lightness *costs*
+  chroma, the gamut narrowing toward white. Every status hue lands 5.58–5.61:1 on
+  the dark card against 4.76–5.87 on the light one.
+- **One `light-dark()` per token, not a second `:root` block.** Two copies of forty
+  values needs a third, since an explicit choice and a system preference are
+  different selectors and one must sit in a media query. A half-retuned token is a
+  wrong colour in one theme that nothing catches. Parsing one is also *exact*,
+  unlike the `color-mix()` this gate refuses to guess at.
+- **`primary` could not be lifted and kept its separation.** PMS 2767 is 1.16:1 on
+  the dark card. Navy IS dark. The dark value is the brand hue as a light steel,
+  separating from the reserved `indigo` on saturation alone — the axis the light
+  theme already names. Cost stated rather than hidden: **dE 0.144 against 0.271.**
+- **`on-primary` flips white → `#09121f`.** Every solid fill is light on dark, so
+  one token flip retunes every chip in `tones.ts`, eight call sites and the
+  checkbox tick.
+- **`later` takes NO chroma boost.** Its light 2.46× gain existed to escape
+  `muted`, which dark surfaces solve for free — and boosting walked it to **dE
+  0.046** from indigo, worse than either theme's worst pair, a fresh collision
+  bought to fix a problem that had gone away.
+- **`needs-help` needed the same 4° hue shift the light chroma pass gave it.** Same
+  crowding, at the other end of the lightness range. The collision is in the hue
+  corridor, not the lightness; each theme buys its own way out.
+- Dark grid's worst pair **0.0759** vs light's **0.0727**. Marginally better,
+  pairs reshuffled. One real loss: `muted`/`primary`, 0.2484 → 0.0964.
+- **Yellow's value does not move and its measurement does:** 1.43:1 on cream,
+  **9.06–12.16:1 on dark**. Role stays decoration-only anyway — a meaning that
+  holds in one theme and not the other needs two carriers. Light ceilings stay,
+  dark gets floors. **And the legible pairing inverts:** yellow on navy is 9.45 in
+  light and **1.39** in dark; yellow on the dark surface is 10.98.
+- **Three states, and `system` is stored as an ABSENCE** — property 4 of the
+  override layer. No key, no `data-theme` attribute, so the default's markup is
+  what the server already sends.
+- **No blocking inline script. Strategy A stands.** `color-scheme: light dark` lets
+  the browser resolve `prefers-color-scheme` before paint with nothing in the
+  path, so a student on the default gets the right first paint. An explicit choice
+  against the OS costs one un-personalised frame — that strategy's existing cost on
+  one more preference.
+- **Contrast gate: 58 → 127 assertions, both themes.** Verified to fail seven ways,
+  including two structural failures with no visual symptom on a light machine.
+
+### `ac33bf6` — the surfaces that had assumed a light background
+
+- **Eight of `categoryTag`'s eleven entries lettered their chips in a stock
+  Tailwind white** instead of `text-on-primary`. Invisible in a light-only app —
+  the token IS white there. On dark: **2.85–2.96:1**, eight failing chips on the
+  map that paints the calendar's stream identity. 2.9:1 is the dangerous number:
+  it looks fine in a screenshot and fails AA.
+- **`designSystem.spec.ts` could not have caught it** — it rejected hex, and a
+  *named* Tailwind colour walked through. Now rejects the whole stock palette, with
+  a companion test proving each pattern still matches and `indigo`/`yellow`
+  exempted as real tokens while their numbered variants are not.
+- **`--thrive-scrim` is a new token.** `bg-ink/20` was justified as "the ink colour
+  at low alpha" — true until ink stopped being dark. On dark it is a 20% *white*
+  veil that lightens the page it exists to recede. 20% ink / 60% black; the light
+  arm spelled as the mix Tailwind's `/20` compiled to, so it is provably unchanged.
+- Three comments had gone false and are corrected: AskHistory's rows are inset
+  rather than raised on dark (kept — separation intact at 1.15 vs 1.21),
+  AddTaskForm's select no longer needs explicit colours for the reason it gave, and
+  `/swatch` now says on the page that its hexes are the light theme's.
+
+### `20622dc` — proving the toggle works and the choice survives a reload
+
+- **The first-paint claim is tested with JavaScript DISABLED.** If an OS-dark
+  browser paints dark with no JS, no JS was ever needed, so there is nothing for a
+  flash to happen during. Timing a screenshot proves nothing.
+- **The whole block runs on an OS-DARK browser on purpose.** On an OS-light one,
+  `data-theme="light"` and doing nothing are indistinguishable.
+- **The reload check asserts the attribute beside the colour**, and breaking
+  `applyTheme` shows why: `state=dark attribute=null` — store fine, DOM not.
+- The worst filled chip on the calendar must clear 4.5:1 in dark; with the bug
+  reinstated it reports **2.94:1**.
+- `theme.spec.ts`: 12 tests. Normalisation against fourteen things a localStorage
+  can hold, the cycle as a property rather than three hand-checked steps, and
+  `system` persisting as an absence. **Stored key pinned against a hardcoded
+  literal on both sides**, so unit and browser cannot agree by sharing a
+  transformation.
+- **An assertion I wrote was wrong and the gate said so:** it asked 36px of the
+  control on the strength of `TopBar`'s comment, and failed at 30.375px — as the
+  bell would too. `size-9` is `9 × var(--spacing)` and the density pass moved that.
+  Recorded as a loose end, not fixed under cover of this change.
+
+**Known issues / next priorities:** nobody has looked at the dark theme on a real
+screen — every claim is a measurement. The seven light `*-soft` tints are still
+unmeasured (they are `color-mix`). `TopBar`'s target sizes want a decision.
+`prefers-contrast` and forced-colors untouched. CONTEXT.md was patched rather than
+regenerated for this pass — §6, §8, §15, §16, §18.
+
+---
+
 ## 2026-08-21 (third pass) — the desktop scale, the Key's third home, provenance, and the real catalogue
 
 **HEAD:** `37c1cd1` · **665 tests · 234 interaction assertions · 51 layout targets ·

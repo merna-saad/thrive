@@ -235,6 +235,52 @@ interface Student {
 `consent` is part of the model rather than an afterthought because this app reads
 from a lot of systems. Nothing currently enforces it — see §8.
 
+#### Theme preference belongs on this record, and does not live here yet
+
+Added 2026-08-21, when the app gained a dark theme.
+
+The student's theme choice — `"system" | "light" | "dark"` — is currently a
+`localStorage` key (`thrive:theme`, through the one override-store mechanism).
+**That is the wrong home for it once there are real accounts,** and the reason is
+the same argument that kept chat history out of the browser: a preference stored
+per device is a preference that is *wrong* on the second device. A student who
+sets dark on a laptop and opens THRIVE on a phone gets light, which reads as the
+setting not having saved.
+
+It is weaker than the chat-history case, and worth saying so rather than
+overstating it: a display preference is arguably per-device on purpose — a
+student may genuinely want dark on a phone at night and light on a desk monitor.
+So this is not a defect to be fixed the moment accounts land; it is a decision to
+be **made** then, with the per-device reading being a legitimate answer.
+
+What the backend should offer when it does land:
+
+```ts
+type ThemeChoice = "system" | "light" | "dark";
+
+interface Student {
+  // ...
+  theme?: ThemeChoice;   // absent → "system". See below: absent must not mean "light".
+}
+```
+
+**`absent` must mean "follow the system", never "light".** That is not a detail:
+the frontend already stores `system` as the *absence* of a value rather than as
+the string, because the un-personalised state has to be the state that needs no
+markup — it is what makes the first paint correct without a blocking script. A
+column defaulting to `"light"` would push a real choice onto every student who
+has never expressed one and undo that.
+
+**Writing it is a `PATCH` on the student, not a new endpoint.** It is one
+nullable column and belongs with the other per-student preferences whenever
+those exist; a `/theme` route would be the first of a family of one-field
+endpoints.
+
+**The frontend seam is `frontend/src/lib/theme.ts`** and nothing else — no
+component touches storage, same as every other store. When this arrives, the
+store call inside `setTheme` becomes the write and `theme()` reads from the
+loaded student, with the browser value as the offline fallback.
+
 ### Program timeline — fully derived, store none of it
 
 ```ts

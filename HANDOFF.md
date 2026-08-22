@@ -4,6 +4,63 @@ Session log, newest first. What happened, what was decided, what is still open.
 
 ---
 
+## 2026-08-21 (fourth pass) — a dark theme
+
+**HEAD:** `20622dc` · **679 tests · 261 interaction assertions · 51 layout targets ·
+127 contrast assertions across both themes · six gates green.** 129 commits.
+
+Three commits: the palette and the switch, the sweep, the tests. Full detail in
+CHANGELOG; CONTEXT §6 carries the palette table and §8 the first-paint reasoning.
+
+### What was decided
+
+- **One `light-dark()` per token, not a second `:root` block.** The alternative
+  needs three copies of forty values, because an explicit choice and a system
+  preference are different selectors and one must live in a media query.
+- **The dark palette is derived, not inverted** — hold the hue, solve for the
+  lightness that reproduces the light theme's own ratio, then raise chroma 1.30×.
+- **`system` is stored as an absence and emits no attribute.** Property 4 of the
+  override layer, and the reason the default's markup is what the server sends.
+- **No blocking inline script; Strategy A stands.** The default is correct on the
+  first paint because CSS resolves it. An explicit choice against the OS costs one
+  un-personalised frame, and that is stated rather than hidden.
+- **Yellow's role does not change even though its measurement does.**
+- **The theme control is one cycling button in `TopBar`**, chosen because a
+  three-state group needs ~132px at touch size and the 375px bar has not got it.
+- **`TopBar`'s 30.375px controls are left alone** rather than fixed under cover of
+  this diff.
+- **CONTEXT.md was patched, not regenerated.** §6, §8, §15, §16, §18. A full
+  regeneration is arguably due for a delta this size — flagged for the owner rather
+  than decided here.
+
+### Still open
+
+1. **Nobody has looked at the dark theme on a real screen.** Every claim about it is
+   a measurement. `later`/`indigo` at dE 0.0759 is the pair most likely to draw a
+   complaint on the month grid, and the coral at `#ff6343` is the value most likely
+   to read hot. **This is the first thing to do next.**
+2. **`TopBar`'s target sizes want a decision.** Three controls at 30.375px on
+   desktop against a comment claiming 36px and a repo floor of 36px. Either the
+   floor moves, the comment is corrected, or the controls grow.
+3. **The seven light `*-soft` tints are still unmeasured** — they are `color-mix()`,
+   which the contrast gate will not evaluate. The dark seven now are. Closing it
+   means literals in light, which moves light values.
+4. **The timezone sweep has not been re-run** since this pass. Nothing here touches
+   a date, so it is very likely green; that is not the same as verified.
+5. **`prefers-contrast` and forced-colors have never been considered.**
+6. **`/swatch` documents the light theme only**, and now says so on the page.
+   Still slated for deletion before Release 1.
+7. **Theme preference belongs on the user record** once accounts exist. Noted in
+   BACKEND.md under `Student`, including that `absent` must mean "system" and never
+   "light". Recorded as a decision to be *made* then, not a defect — a display
+   preference is arguably per-device on purpose.
+
+### Carried forward from earlier passes
+
+Everything in the third pass's list below still stands unless it appears above.
+
+---
+
 ## 2026-08-21 (third pass) — the desktop scale, the Key's third home, provenance, and the real catalogue
 
 **HEAD:** `37c1cd1` · **665 tests · 234 interaction assertions · 51 layout targets ·

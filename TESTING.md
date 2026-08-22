@@ -1,8 +1,46 @@
 # TESTING
 
-**Last verified:** 2026-08-21 at `37c1cd1`. **665 tests, 31 files, all
-passing. 234 interaction assertions, 51 layout targets, 58 contrast assertions.** Verified green in all seven timezones of the sweep below — and in 7a
+**Last verified:** 2026-08-21 at `20622dc`. **679 tests, 32 files, all
+passing. 261 interaction assertions, 51 layout targets, 127 contrast assertions
+across BOTH THEMES.** Verified green in all seven timezones of the sweep below — and in 7a
 the sweep **caught a real failure**, which is recorded there.
+
+> **The timezone sweep has NOT been re-run since the theme pass.** Nothing in that
+> pass touches a date, so it is very likely still green — but "likely" is not the
+> claim this file is for, and a verification claim decays exactly like a comment.
+> Re-run it before the next release.
+
+### What the theme pass added (2026-08-21)
+
+- **`theme.spec.ts`, 12 tests.** Normalisation against fourteen things a
+  `localStorage` can actually hold; the cycle as a *property* (three presses from
+  any state is a round trip, and the states seen on the way are all of them) rather
+  than three hand-checked steps; and `system` persisting as an **absence**.
+  Verified to fail: storing `system` as a value → 1 red, giving it an attribute →
+  1 red, dropping a state from the cycle → 2 red.
+- **The stored key is pinned against a hardcoded literal on BOTH sides** — here
+  and in `check:interaction`. Deliberately duplicated: the standing rule is that a
+  key-space test must not share a transformation with the code, and two gates that
+  derived the key the same way could agree while both being wrong.
+- **`designSystem.spec.ts` gained two tests.** One rejects the whole stock Tailwind
+  palette (the old check only saw hex, which is how eight chips shipped). The other
+  is its **companion**: every pattern is proved to match a sample offender, and
+  proved *not* to match the THRIVE tokens that share those words (`text-indigo`,
+  `border-yellow`). An absence assertion over 200 files is worthless if a typo in
+  one entry silently stops matching.
+- **`check-contrast.py`: 58 → 127 assertions, both themes.** Verified to fail seven
+  ways. Two of those are structural and are the ones worth having, because they
+  have **no visual symptom for whoever is testing**: delete the `dark:` variant's
+  media arm and every student whose OS is dark but who never touched the toggle
+  silently gets light, which looks perfectly correct on a light machine.
+- **`check:interaction`: 234 → 261.** The first-paint claim is tested with
+  **JavaScript disabled**, which converts a flaky timing question into a structural
+  one. The whole block runs against an **OS-dark** browser, because on an OS-light
+  one `data-theme="light"` and doing nothing are indistinguishable.
+
+**What no gate covers:** whether the dark theme looks good. Every claim about it is
+a measurement, and a measurement does not catch "this teal is ugly" or "the coral
+is too hot at night". Nobody has seen it on a real screen yet.
 
 ```bash
 cd frontend

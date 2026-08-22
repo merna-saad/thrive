@@ -1,4 +1,4 @@
-<!-- updated-at: 37c1cd1 -->
+<!-- updated-at: 20622dc -->
 
 # CONTEXT
 
@@ -298,6 +298,155 @@ Three layers: raw `--thrive-*` tokens → shadcn semantic vars remapped onto the
 `@theme inline` exposing both as Tailwind utilities.
 
 **Direction: soft cream, hairline, Rady navy with a yellow accent.**
+
+### TWO THEMES as of 2026-08-21, and the palette is derived rather than inverted
+
+The app was light-only until this pass. `app.css` had kept
+`@custom-variant dark` pointed at a class nothing applied, specifically so this
+stayed possible.
+
+**Every colour token is one `light-dark(light, dark)` declaration.** Not a second
+`:root` block, and that is a decision with a reason: two copies of forty values
+needs a *third*, because an explicit choice and a system preference are different
+selectors and one of them has to sit inside a media query. A token half-retuned
+is then a wrong colour in one theme, which is exactly the drift
+`check-contrast.py` was rewritten to parse this file to prevent. One declaration
+cannot be half retuned, and the gate reads both arms out of it exactly — unlike
+`color-mix()`, which it still refuses to guess at.
+
+**How each dark value was arrived at:** hold the light theme's HUE exactly, solve
+for the lightness that reproduces the light theme's own contrast ratio against
+the dark surfaces, then raise chroma 1.30× — because lifting lightness *costs*
+chroma, the sRGB gamut narrowing toward white, so a hue that keeps its ratio has
+less saturation available than the same hue on light. Every status hue lands at
+5.58–5.61:1 on the dark card against 4.76–5.87 on the light one. Worked in oklch,
+measured before being written.
+
+| Token | Light | Dark | Dark: card / sunken |
+|---|---|---|---|
+| `bg` / `surface` / `sunken` | `#faf9f5` / `#ffffff` / `#f1efea` | `#161512` / `#201f1b` / `#2f2e29` | — |
+| `ink` | `#17181c` | `#eeede8` | 14.07 / 11.60 |
+| `body` | `#3a3b42` | `#b9bbc2` | 8.60 / 7.09 |
+| `muted` | `#6b6c72` | `#97999f` | 5.79 / **4.78** |
+| `faint` | `#85868c` | `#78787e` | 3.76 / 3.10 |
+| `hairline` / `-soft` | `#e6e3dc` / `#efece6` | `#34332f` / `#282724` | 1.30 / 1.10 — decorative, unchecked |
+| `primary` | `#182b49` | `#9fb5d7` | 7.91 / 6.52 |
+| `primary-hover` / `-active` | `#22395e` / `#101d33` | `#b3c7e7` / `#89a0c3` | 9.61 / 6.19 |
+| `on-primary` | `#ffffff` | `#09121f` | 9.00 on primary |
+| `primary-soft` | `#e9edf3` | `#273140` | 6.29 holding primary |
+| `primary-fill` / `on-` | `#9dbcdb` / `#0d1b2e` | `#2c5377` / `#edf3f8` | 7.19 |
+| `scrim` | ink at 20% | black at 60% | new token, see below |
+| `yellow` | `#ffcd00` | `#ffcd00` | **10.98 / 9.06** |
+| `indigo` | `#4c5bd4` | `#788eff` | 5.59 / 4.61 |
+| `on-track` | `#00716c` | `#14a8a0` | 5.61 / 4.62 |
+| `watch` | `#946000` | `#ce8800` | 5.61 / 4.63 |
+| `needs-help` | `#7851c2` | `#b07bff` | 5.59 / 4.61 |
+| `urgent` | `#b8462f` | `#ff6343` | 5.59 / 4.61 |
+| `civic` | `#994ea3` | `#d56de2` | 5.59 / 4.61 |
+| `later` | `#4c74ad` | `#6e98d4` | 5.58 / 4.60 |
+| the six `*-soft` tints | `color-mix(… , white)` | literal hexes | 4.60–4.64 holding their own hue |
+
+**One surface relationship INVERTS on purpose.** On light `sunken` is *darker*
+than the card; on dark it is *lighter*. It is the row hover fill, and a fill
+darker than an already-dark card is invisible. `surface` stays raised relative to
+`bg` in both, which is the relationship that does carry.
+
+#### The three tokens that could not simply be lifted
+
+**`primary`: PMS 2767 is 1.16:1 on the dark card.** Navy *is* a dark colour;
+there is no dark surface it can sit on and be seen. So the dark value is the
+brand hue (259) held exactly, lifted to a light steel.
+
+That destroys an axis of separation. On light, navy and the reserved `indigo`
+separate on **lightness first** (14.18 vs 5.59) and saturation second. Lift navy
+and both are light blues, so only the second axis is left — the one the light
+theme already names, "indigo is vivid, navy is nearly desaturated". Held at
+chroma 0.055 against indigo's 0.168. **Honestly: dE 0.144 on dark against 0.271
+on light.** Still nearly twice the grid's worst pair, and the 3.1× chroma ratio
+is the same ratio light runs — the same *kind* of separation at the same
+proportion, thinner.
+
+**`on-primary` flips, white → `#09121f`.** It is the one token whose value
+depends on the theme rather than surviving it: every solid fill is dark on light
+and light on dark, so the text on one cannot be white in both. Flipping ONE token
+retunes every chip in `tones.ts`, all eight `text-on-primary` call sites and the
+checkbox's tick — which is the whole argument for the token existing.
+
+**`later` takes NO chroma boost, unlike the other six.** Its light-theme 2.46×
+gain existed to escape `muted`; on dark that pair measures 0.0926 *before* any
+boost, because dark surfaces let a low-chroma slate read as blue unaided.
+Meanwhile the boost has a new cost: at 1.30× it landed **dE 0.046** from the
+reserved indigo — worse than either theme's worst pair, a fresh collision bought
+to solve a problem that had gone away.
+
+**And `needs-help` needed the same 4° hue shift the light chroma pass gave it,
+for the same reason.** Held at H 296 it came out dE 0.0728 from dark indigo — the
+same crowding, reappearing at the other end of the lightness range. Re-centred to
+300: 0.0875 against indigo, civic holding at 0.0770.
+
+> **A hue collision lives in the hue corridor, not in the lightness.** Re-tuning
+> for a second theme does not inherit the first theme's fix. Each theme buys its
+> own way out, and a chroma change is never a free move — check it against every
+> RESERVED colour, in every theme.
+
+**The dark grid's worst pair is dE 0.0759 (`later`/`indigo`) against the light
+grid's 0.0727 (`needs-help`/`indigo`)** — marginally better overall, with the
+pairs reshuffled. The one real loss is `muted`/`primary`, 0.2484 → 0.0964, which
+is the navy lift's bill rather than the dot set's.
+
+#### Yellow: the measurement changed and the role did not
+
+**The value does not move.** It is the only colour token identical in both
+themes — the brand yellow is already light. What moves is what it measures:
+
+| | card | page | sunken |
+|---|---|---|---|
+| light | 1.50 | 1.43 | 1.31 |
+| dark | **10.98** | **12.16** | **9.06** |
+
+So on dark it clears the graphic bar by 3× and the text bar by 2×, everywhere.
+**The role stays decoration-only anyway,** and the reason is no longer the ratio:
+a meaning that holds in one theme and reads at 1.43:1 in the other needs a second
+carrier in that theme, and "the meaning has two colours depending on your OS" is
+worse than "yellow is decoration". The light **ceilings** still enforce it — a
+promotion would have to be legible in light to be worth making — and dark gets
+**floors** that pin the new fact, so a future pass that lightened the dark
+surfaces enough to drag yellow under 3:1 would be told.
+
+**And the one legible pairing inverts outright.** On light, yellow works on navy
+(9.45) and nowhere else. On dark, `primary` is a light steel, so yellow on it
+collapses to **1.39** — worse than yellow on cream — while yellow on the dark
+surface is 10.98. A component drawing a yellow mark on a navy ground is correct
+in light and invisible in dark. The gate checks each theme's own pairing.
+
+#### The eleventh component class, and the soft tints' new gate
+
+**`--thrive-scrim` is a new token** — the first in a while, and it needed
+arguing. `ItemDetail` drew its scrim as `bg-ink/20`, justified in a comment as
+"the ink colour at low alpha, a use of the palette rather than a new entry in
+it". True until ink stopped being dark: on dark that expression is a 20% *white*
+veil that lightens the page it exists to recede. **A scrim is always a darkening,
+so it is the one colour that must not follow the ink.** Alphas differ by
+measurement — 20% of ink on light, 60% black on dark, where the dialog sits only
+0.04 in lightness above the page behind it. The light arm is spelled as the same
+`color-mix(… 20%, transparent)` Tailwind's `/20` compiled to, so it is provably
+the colour it always was.
+
+**The soft tints are `color-mix()` on light and literal hexes on dark**, and the
+asymmetry is honest rather than tidy: a gate cannot evaluate a mix, and these
+tints carry text — `bg-urgent-soft text-urgent` owes 4.5:1 and **nothing had ever
+measured it**. The dark seven are measured (4.60–4.64). The light seven still are
+not, and the gate's footer names them. It is the *light* theme that has unchecked
+colours here, and it always did.
+
+**One property was lost and replaced by a gate.** The tints read
+`color-mix(…, var(--thrive-urgent) 9%, white)`, and that `var()` is what made
+them unable to drift from the base hue. A `light-dark()` cannot nest inside
+another, so the light arm names the hex outright — and a repeated hex can fall out
+of step, silently, since tint and hue would both still pass their own pairs.
+`check-contrast.py` now asserts each light mix names the light arm of the token it
+claims to tint. **The guarantee moved from "by construction" to "by gate"; it did
+not go.**
 
 ### The palette is the campus brand
 
@@ -921,6 +1070,49 @@ convenient line.
 
 Group Projects, still queued in §18, is the same wall for a different reason:
 shared between people by definition.
+
+### The theme is the fifteenth key, and its default is an ABSENCE
+
+`theme.ts`, on `createOverrideStore` under one fixed key (`thrive:theme`) — the
+same compromise `calendarPrefs.ts` and `floatingPanel.ts` make. Three states:
+`system | light | dark`, defaulting to `system`.
+
+**`system` is stored as the absence of an override, not as the string.**
+`setTheme('system')` passes `undefined`, which is property 4 — a write matching
+the source value forgets the override. So a student who cycles all the way round
+leaves no key behind, and the persisted state of the default is identical to a
+fresh browser's. It also emits **no `data-theme` attribute**, because absence is
+what `app.css` reads as "follow the OS" — which is the same markup the server
+already sends.
+
+**And that is the whole answer to the first paint.** The server cannot know a
+student's theme. The usual fix is a blocking inline script in `<head>` that reads
+storage before paint — a *second* hydration strategy, and this app has one.
+Strategy A stands; there is no blocking read.
+
+Instead the default is expressed in **CSS**: `color-scheme: light dark` on
+`:root`, every colour token a `light-dark()` pair, so the browser resolves
+`prefers-color-scheme` itself before the first paint with nothing in the path.
+
+- A student on `system` — the default, the state with no stored key — gets the
+  **correct first paint**. No flash, and no script needed to avoid one.
+- A student who explicitly chose the theme their OS is *not* set to sees **one
+  frame** of the other theme before `hydrateStores()` runs.
+
+That is strategy A's existing cost on one more preference, paid by the subset who
+opted out of the default — smaller than the flash the script would remove, and by
+fewer people, so the exception is not worth its precedent. **It is a real flash
+and a student who picks light on a dark machine will see it.**
+
+`check:interaction` proves the mechanism by driving the page with **JavaScript
+disabled**: if an OS-dark browser paints dark with no JS at all, no JS was ever
+needed, so there is nothing for a flash to happen during. Timing a screenshot
+would be flaky and would prove nothing.
+
+**Theme preference belongs on the user record once accounts exist** — `BACKEND.md`
+carries the note, including that `absent` must mean "system" and never "light".
+It is a weaker case than chat history's, and recorded as a decision to be *made*
+then rather than a defect: a display preference is arguably per-device on purpose.
 
 ### Four properties that must survive
 
@@ -2324,12 +2516,12 @@ No console warnings or errors at any width, in any view.
 
 | Command | What it proves |
 |---|---|
-| `npm test` | **665 tests**, 31 files. Pure logic and source scans. **Nothing renders.** |
-| `npm run check` | Types agree over 466 files. **Does NOT prove the page renders** |
+| `npm test` | **679 tests**, 32 files. Pure logic and source scans. **Nothing renders.** |
+| `npm run check` | Types agree over 472 files. **Does NOT prove the page renders** |
 | `npm run build` | It compiles, with `adapter-netlify` |
-| `python3 scripts/check-contrast.py` | 58 assertions: 42 pairs, 6 ceilings, 10 structural |
+| `python3 scripts/check-contrast.py` | **127 assertions, BOTH THEMES**: 45+50 pairs, 6+3 ceilings, 7 coupling, 14 structural |
 | `npm run check:layout` | **17 targets × 3 viewports** in a real browser |
-| `npm run check:interaction` | **234 assertions** in a real browser |
+| `npm run check:interaction` | **261 assertions** in a real browser |
 | the timezone sweep | The suite in seven zones, UTC+14 to UTC−11 |
 
 **Both browser gates build their own server first** (`npm run build:node`,
@@ -2349,6 +2541,32 @@ real hole: `check:layout` used to be able to measure yesterday's output and pass
 **Property 2 has teeth.** Two gates parse a source file rather than restating it:
 `check-contrast.py` parses `app.css` — which is why the chroma pass needed no gate
 edit at all — and `check-interaction.mjs` parses `features.ts` for `floatingTodo`.
+**The interaction gate now parses `app.css` too**, for the two `--thrive-bg`
+arms, rather than writing `rgb(22, 21, 18)` into an assertion — which would have
+reintroduced the exact drift that rewrite killed, with the extra twist that the
+gate would then assert a colour the app no longer uses and report PASS.
+
+**The contrast gate checks both themes** (2026-08-21), 58 assertions → 127. Every
+pair runs twice against its own theme's surfaces. Three things are deliberately
+asymmetric and each says so at its definition: yellow's ceiling is a light fact
+and its floor a dark one; the yellow/navy pairing inverts; and the soft tints can
+only be measured on dark. **Anything else that differs between the themes is a
+bug in the palette, not a property of it.**
+
+**Never read a themed token as a custom property.** `getPropertyValue('--thrive-bg')`
+returns no colour, and returns a *different* non-colour per environment: in dev
+the literal `light-dark(…)`, in the production build LightningCSS's
+`var(--lightningcss-light, …)` space-toggle downlevel of it. Read a **used** value
+off a real element. Verified by reading the compiled asset, not assumed.
+
+**One assertion I wrote was wrong and the gate said so**, which is worth keeping:
+it asked 36px of the theme control, on the strength of `TopBar`'s own comment
+("44px on mobile, 36px above `lg`"). It failed at 30.375px — and so would the
+bell, whose class string is byte-identical. `lg:size-9` is `9 × var(--spacing)`,
+and the density pass took `--spacing` to 0.225rem at a 93.75% root, so **every
+`size-9` in the bar is 30.375px and that comment predates the pass.** The
+assertion now checks the property that is actually this change's business — the
+new control matches its neighbours — plus WCAG 2.5.8's real 24px. See §18.
 
 **`check:layout` asserts the page cannot scroll further than it paints.** It does
 **not** use `documentElement.scrollHeight` — that is the property that reported
@@ -2516,6 +2734,28 @@ that threw `ReferenceError` on every request. **And it is held at 0 warnings.**
   Not to be fixed; it is why the link is not shared.
 - **The calendar grid at 1023px is being looked at and is not to be changed
   meanwhile** (owner, 2026-08-21).
+- **There are two themes, and every colour token is ONE `light-dark()` pair.** Not
+  a second `:root` block — that needs three copies, and a half-retuned token is a
+  wrong colour nothing catches.
+- **The dark palette holds each hue exactly and solves for lightness.** It is not
+  an inversion, and a dark value that fails the bar gets retuned rather than the
+  bar lowered.
+- **`system` is the theme default and is stored as an ABSENCE**, emitting no
+  `data-theme` attribute. Absent must never come to mean "light".
+- **No blocking inline script for the theme. Strategy A stands.** The default is
+  correct on the first paint because CSS resolves it, not because JS beat the
+  paint. An explicit choice against the OS costs one un-personalised frame.
+- **Yellow stays decoration-only in BOTH themes**, even though it measures 9.06:1
+  at worst on dark. A meaning that holds in one theme and not the other needs two
+  carriers, which is worse than a flourish.
+- **The theme control is one cycling button in `TopBar`**, on every route. A
+  three-state segmented group needs ~132px at touch size and the 375px bar does
+  not have it; duplicating it per breakpoint is what the shell already refuses.
+- **`--thrive-scrim` is its own token because a scrim is always a darkening.** It
+  is the one colour that must not follow the ink.
+- **The bar's `size-9` controls are 30.375px on desktop, not the 36 `TopBar`'s
+  comment claims**, and that is a pre-existing density question left alone by the
+  theme pass rather than quietly fixed under cover of it (§18).
 
 **One still wants a second opinion:** a single
 `svelte-ignore a11y_no_noninteractive_tabindex` on the chat log. axe's
@@ -2715,6 +2955,28 @@ Calm, plain, honest about what is simulated.
 ---
 
 ## 18. Open loose ends
+
+### From the theme pass (2026-08-21)
+
+- **`TopBar`'s `size-9` controls are 30.375px on desktop**, while the component's
+  comment says 36px and this repo's stated pointer floor is 36px. Pre-existing —
+  the density pass took `--spacing` to 0.225rem and nobody re-measured the bar.
+  WCAG 2.5.8 only asks 24px so nothing is failing a standard, but the comment is
+  wrong and three controls are smaller than intended. **Left alone deliberately**:
+  it is a density question about existing controls, not a theme question.
+- **The seven light `*-soft` tints are still unmeasured.** They are `color-mix()`,
+  which the contrast gate will not evaluate, so `bg-*-soft text-*` has never been
+  checked in the light theme. The dark seven now are. Closing it means replacing
+  the light mixes with literals, which moves light values — out of scope for a
+  pass whose constraint was that light must not change.
+- **`/swatch` documents the light theme only.** It now says so on the page. Still
+  slated for deletion before Release 1, so not worth teaching it two palettes.
+- **The dark theme has not been looked at by a person on a real screen.** Every
+  claim in §6 is a measurement, and measurements do not catch "this teal is ugly"
+  or "the coral is too hot at 2am". `later`/`indigo` at dE 0.0759 is the pair most
+  likely to draw a complaint on the month grid.
+- **`prefers-contrast` and forced-colors are untouched.** Neither was in scope and
+  neither has ever been considered here.
 
 **Blocking before any multi-person demo**
 

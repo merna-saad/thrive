@@ -7,6 +7,86 @@ Note on links: this repo has no PRs — all commits go direct to `main`
 
 ---
 
+## 2026-08-21 (fourth pass) — three defects a second theme exposed
+
+All three had been in the tree for some time. None was observable in a light-only
+app, which is the pattern worth carrying: **a theme is a differential test of
+every assumption the palette had already made.**
+
+### Eight calendar category chips lettered in a stock Tailwind white
+
+**`ac33bf6`** · `frontend/src/lib/schedule.ts`
+
+`categoryTag` had eight of eleven entries pairing a THRIVE fill with Tailwind's
+own `white` rather than `text-on-primary`. `tones.ts` — which paints the same kind
+of chip — had used the token all along.
+
+**Why it was invisible:** `--thrive-on-primary` *is* `#ffffff` in the light theme,
+so the token and the raw colour rendered identically. Every gate was green.
+
+**What it measured once the theme existed:** 2.85–2.96:1 across the eight, against
+the 4.5:1 AA asks of label text. On the one map that carries the calendar's stream
+identity.
+
+**The dangerous part is the number.** 2.9:1 is not obviously broken — it looks
+fine in a screenshot and fine while clicking around. A 1.2:1 bug reports itself.
+
+**Fixed:** all eight use `text-on-primary`, which flips white → `#09121f` between
+themes, so they retune with the palette instead of against it. **No light pixel
+changed**, because the token is white there.
+
+**Gate:** `designSystem.spec.ts` now rejects the whole stock Tailwind palette
+rather than only hex notation — the check that should have caught this and could
+not. Plus `check:interaction` asserts the worst filled chip on `/calendar` clears
+4.5:1 in dark; with the bug reinstated it reports 2.94:1.
+
+**Pattern to watch:** a colour rule written against *notation* (`no hex`) instead
+of against the *palette*, and a rule applied only to markup when the interesting
+colour decisions live in `.ts` class-string maps.
+
+### The dialog scrim lightened the page it exists to recede
+
+**`ac33bf6`** · `frontend/src/lib/components/calendar/ItemDetail.svelte`
+
+The scrim was `bg-ink/20`, with a comment justifying it: "the ink colour at low
+alpha, which is a use of the palette rather than a new entry in it." Correct
+reasoning, and correct while `ink` was dark.
+
+On dark, `ink` is `#eeede8`. The expression became a **20% white veil** over the
+page behind a modal — the opposite of a scrim.
+
+**Fixed:** `--thrive-scrim`, its own token, because a scrim is always a darkening
+and is therefore the one colour that must not follow the ink. 20% ink on light /
+60% black on dark — the alphas differ because the dark dialog sits only 0.04 in
+lightness above the page behind it, so the scrim has to do more of the separating.
+The light arm is spelled as the same `color-mix(… 20%, transparent)` that
+Tailwind's `/20` modifier compiled to, so the light value is provably unchanged.
+
+**Pattern to watch:** **an alpha composite of a token inherits everything that
+token does, including inverting.** Before deriving one colour from another, ask
+whether the derived thing has a direction its source does not.
+
+### `TopBar`'s controls are 30.375px, not the 36px its comment claims
+
+**Not fixed** — recorded in CONTEXT §18. Found by a new assertion that asked 36px
+of the theme toggle on the strength of that comment, and failed; the bell beside it
+has a byte-identical class string and would fail too.
+
+`lg:size-9` is `9 × var(--spacing)`, and the desktop density pass took `--spacing`
+to 0.225rem at a 93.75% root. The comment predates the pass. WCAG 2.5.8 asks 24px
+so nothing fails a standard, but three controls are smaller than intended and the
+comment is wrong.
+
+**Left alone deliberately:** it is a density question about existing controls, not
+a theme question, and resizing three controls under cover of a theme diff is how a
+diff stops being reviewable.
+
+**Pattern to watch:** a comment that states a measurement is a verification claim
+and decays like one. And when a new assertion fails, **check whether it describes
+the neighbours too** before changing anything.
+
+---
+
 ## 2026-08-21 (third pass) — dead data a rule found, and two fixture gaps
 
 ### A suggestion reason for a course that can never show one
