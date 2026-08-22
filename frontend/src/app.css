@@ -373,6 +373,21 @@
      its inner rhythm are the same number. */
   --thrive-page-gutter-x: 2.5rem;
 
+  /* The top four type steps, as raw tokens because they are RESPONSIVE.
+
+     These are the PHONE values -- the ones that were the only values until
+     2026-08-21 -- and the media query further down shrinks them above 40rem.
+     Declared here rather than inline in `@theme` so a utility compiles to
+     `var(--thrive-text-3xl)` and the override can reach it. */
+  --thrive-text-lg: 1.375rem; /* 22 */
+  --thrive-text-lg-lh: 1.75rem; /* 28 */
+  --thrive-text-xl: 1.6875rem; /* 27 */
+  --thrive-text-xl-lh: 2.0625rem; /* 33 */
+  --thrive-text-2xl: 2.125rem; /* 34 */
+  --thrive-text-2xl-lh: 2.4375rem; /* 39 */
+  --thrive-text-3xl: 2.5rem; /* 40 */
+  --thrive-text-3xl-lh: 2.75rem; /* 44 -- 1.10 */
+
   /* The dashboard card body height, desktop only. See `.thrive-card-body`.
 
      MEASURED, NOT GUESSED. Driven in a real browser against the built page;
@@ -696,17 +711,29 @@
   --text-base: 1.125rem; /* 18 -- task titles, lead copy */
   --text-base--line-height: 1.5625rem; /* 25 -- 1.39 */
 
-  --text-lg: 1.375rem; /* 22 */
-  --text-lg--line-height: 1.75rem; /* 28 */
+  /* THE TOP FOUR STEPS ARE RESPONSIVE, so they reference raw tokens instead of
+     carrying literals. See `--thrive-text-*` in layer 1 and the override below
+     40rem.
 
-  --text-xl: 1.6875rem; /* 27 */
-  --text-xl--line-height: 2.0625rem; /* 33 */
+     This matters because of how `@theme inline` compiles: a literal value is
+     BAKED into the utility (`.text-3xl{font-size:2.5rem}`), so overriding the
+     theme variable in a media query does nothing at all. A value that is itself a
+     `var()` is inlined AS the reference (`.text-3xl{font-size:var(--thrive-text-3xl)}`),
+     which is what makes the raw token overridable. `--thrive-topbar-height` works
+     the same way, and this was verified by reading the compiled CSS rather than
+     assumed -- the first attempt overrode `--text-3xl` directly and changed
+     nothing measurable. */
+  --text-lg: var(--thrive-text-lg);
+  --text-lg--line-height: var(--thrive-text-lg-lh);
 
-  --text-2xl: 2.125rem; /* 34 */
-  --text-2xl--line-height: 2.4375rem; /* 39 */
+  --text-xl: var(--thrive-text-xl);
+  --text-xl--line-height: var(--thrive-text-xl-lh);
 
-  --text-3xl: 2.5rem; /* 40 -- page titles only */
-  --text-3xl--line-height: 2.75rem; /* 44 -- 1.10 */
+  --text-2xl: var(--thrive-text-2xl);
+  --text-2xl--line-height: var(--thrive-text-2xl-lh);
+
+  --text-3xl: var(--thrive-text-3xl); /* page titles only */
+  --text-3xl--line-height: var(--thrive-text-3xl-lh);
 
   /* Tracking on the top three steps only. Large type at default tracking is
      the single most common tell of an unconsidered interface; body sizes are
@@ -825,6 +852,58 @@
 @media (width >= 64rem) {
   :root {
     --thrive-topbar-height: 3rem;
+  }
+}
+
+/* THE TOP FOUR TYPE STEPS SHRINK ABOVE 40REM. (2026-08-21)
+
+   The scale below was drawn for a 72rem page. It renders IDENTICALLY at 1512 and
+   1920 -- there is no viewport scaling above 40rem -- so nothing was growing; the
+   top steps were simply drawn large, and a wider container gave them more room to
+   look it. Measured before this rule: a page heading at 40px, the greeting at
+   27px, a card heading at 22px.
+
+   ## What is NOT responsible, checked rather than assumed
+
+   The 106.25% root bump is `@media (width < 40rem)`. It is a MOBILE bump -- it
+   raises a 15px body to 16px on a handset -- and it does not apply at any width
+   this rule is about. Shrinking or delaying it would have changed phones, which is
+   the one thing this change must not do.
+
+   ## Why an override rather than editing the tokens
+
+   Editing them would shrink the phone too, because the root bump multiplies
+   whatever it is given. Mobile is deliberately unchanged, so the small sizes have
+   to be the wide-screen ones. Same mechanism as `--thrive-topbar-height` above:
+   override the RAW token in a media query so every call site follows and no
+   component needs a breakpoint.
+
+   ## Why 40rem, and only the top four
+
+   40rem because it is the boundary the root bump already uses, so the system has
+   one type breakpoint rather than two.
+
+   Only `lg` and up, because `base` (18) and below are body copy, row titles and
+   metadata, and 16px body is the readability floor -- there is nothing to give
+   back down there. The steps that move are the ones used once or twice per screen.
+
+   The ratios tighten at the top, which is what a display scale wants: 40/34/27/22
+   was ~1.24 between each of the big steps, and 32/28/24/20 is ~1.16. Hierarchy is
+   preserved -- a page title is still 2x body -- while the largest step stops
+   shouting. */
+@media (width >= 40rem) {
+  :root {
+    --thrive-text-lg: 1.25rem; /* 22 -> 20 */
+    --thrive-text-lg-lh: 1.625rem; /* 26 -- 1.30 */
+
+    --thrive-text-xl: 1.5rem; /* 27 -> 24 */
+    --thrive-text-xl-lh: 1.875rem; /* 30 -- 1.25 */
+
+    --thrive-text-2xl: 1.75rem; /* 34 -> 28 */
+    --thrive-text-2xl-lh: 2.125rem; /* 34 -- 1.21 */
+
+    --thrive-text-3xl: 2rem; /* 40 -> 32 */
+    --thrive-text-3xl-lh: 2.25rem; /* 36 -- 1.13 */
   }
 }
 
