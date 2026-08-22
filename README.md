@@ -19,7 +19,12 @@ plugs into is already built and documented.
 
 ## Where to start
 
-**Read `CONTEXT.md` first.** It is the snapshot: what this is, how it works, and
+**Building the backend? Read `BACKEND.md` and stop there for now.** It is the
+contract — every provider, every type, and the rules behind them — and it is
+enough to start. The doc guide below says which of the other files are frontend
+build history you can skip.
+
+**Working on the frontend? Read `CONTEXT.md` first.** It is the snapshot: what this is, how it works, and
 every decision that has been made and why. It is written so that someone arriving
 cold can pick up the work without asking anyone, and it is regenerated in full each
 time rather than patched, so nothing in it is half-updated.
@@ -28,7 +33,7 @@ time rather than patched, so nothing in it is half-updated.
 entry points, what each file is for, and which files answer which questions.
 Reading it costs less than opening ten files to orient yourself.
 
-**Then `CONVENTIONS.md`, before you write any code.** It holds seven rules that
+**Then `CONVENTIONS.md`, before you write any code.** It holds ten rules that
 **nothing in the tooling enforces**. Each exists because breaking it produced a real
 bug that was hard to see — a checkbox that ticked and silently reverted, a store
 that two pages each read correctly and differently, a date that was right in one
@@ -41,9 +46,11 @@ which only works if you have read them.
 
 ```
 thrive/
-├── frontend/    the SvelteKit app — everything that currently runs
-├── backend/     the Django API — a README and nothing else yet
-└── scripts/     repo-wide checks that belong to neither side
+├── BACKEND.md    the contract Django has to satisfy — start here for backend work
+├── netlify.toml  the deploy config, at the root because that is where Netlify reads it
+├── frontend/     the SvelteKit app — everything that currently runs
+├── backend/      the Django API — a README and nothing else yet
+└── scripts/      repo-wide checks that belong to neither side
 ```
 
 `frontend/` is the whole application today: UI, routing, and a data layer that
@@ -99,11 +106,20 @@ it**:
   graded BLOCKING, and it is inherited deliberately — Django is the fix.
 - **The form actions have no auth check** and are reachable by direct POST
   (§9 defect 2).
+- **A booking can vanish on its own.** Netlify runs the server as a function that
+  sleeps after a spell of inactivity. Waking it starts a fresh process, and the
+  mock stores live in that process — so the first visit after a quiet period is
+  both slow AND arrives to an empty appointment list. Nobody cancelled anything;
+  the store was reset. On the Mac Studio the same thing happens on a restart or a
+  hot reload, just less often.
 
 None of that is new; it has been true since the data layer was built against
 fixtures. A public URL is what makes it matter. **Do not share the link outside
 the team, and do not put anything real into it** — no actual names, no actual
 questions you would not want a stranger to read.
+
+**If you are demoing, book what you need to show in the same sitting.** Nothing
+survives a cold start, so a booking made yesterday is very likely gone.
 
 ---
 
@@ -117,59 +133,148 @@ primitives are hand-built and live in `frontend/src/lib/components/ui/`.
 
 ## The docs
 
-Eleven files at the repo root. They are ordered here by what a newcomer needs
-first, not alphabetically.
+Twelve files at the repo root, which is a lot to arrive at. **What you read
+depends on which side you are working on.**
+
+### If you are building the backend, read two things
+
+| File | What it answers |
+|---|---|
+| **`BACKEND.md`** | **Start here.** The contract: all 27 providers with exact signatures, every domain type written out, the date format, and the rules a signature does not show — what may be null, what an empty result means, where an error is thrown. Derived from the code, not from memory. |
+| `README.md` § "How the data layer works" | The section below. The same thing in prose, read once. |
+
+Then, when you need them: `CONVENTIONS.md` for the date rule in full, and
+`MIGRATION.md` §2 and §9 for the prototype's provider inventory and its known
+defects.
+
+**You can skip these. They are frontend build history.**
+
+`CHANGELOG.md`, `HANDOFF.md`, `FINDINGS.md`, `BUGS.md`, `TESTING.md` and
+`CODEMAP.md` are all about how this frontend came to be the way it is — session
+diaries, layout arguments, contrast measurements, Svelte reactivity lessons. They
+are genuinely useful if you touch the frontend and near-useless otherwise. Nothing
+in them is required reading to implement the contract.
+
+`CONTEXT.md` is the full picture of the whole project. Worth an hour eventually,
+not before writing your first model.
+
+### The full list
 
 | File | What it answers | Who needs it |
 |---|---|---|
-| `CONTEXT.md` | What this is, how it works now, and every standing decision with its reasoning. **Start here.** | Everyone |
-| `CODEMAP.md` | Where things are. Entry points, file map, what each module is for. | Anyone opening the code |
-| `CONVENTIONS.md` | The rules nothing enforces automatically. **Read before writing code.** | Anyone writing code |
-| `MIGRATION.md` | The frozen prototype, inventoried: routes, all 25 providers with signatures, date rules, components, design system, stores, tests, known defects. The spec each phase works from. | Both sides — it is the only copy |
-| `HANDOFF.md` | The diary. What happened each session, what was decided, what is still open. Newest first. | Picking up mid-stream |
-| `TESTING.md` | What is covered, what is not, and why some things can only be checked in a browser. | Before adding tests |
-| `BUGS.md` | Defects found and fixed, plus ones deliberately recorded and not fixed, with the reason. | Before "fixing" something odd |
-| `FINDINGS.md` | Reusable lessons. Patterns worth knowing again, usually learned the hard way. | Worth a skim |
-| `DEPENDENCIES.md` | Every package and why it is here, including ones that were rejected. | Before adding one |
+| `BACKEND.md` | The provider contract, the domain types, and the rules behind them. | **Backend** |
+| `CONTEXT.md` | What this is, how it works now, and every standing decision with its reasoning. | Everyone, eventually |
+| `CODEMAP.md` | Where things are. Entry points, file map, what each module is for. | Frontend |
+| `CONVENTIONS.md` | The rules nothing enforces automatically. **Read before writing frontend code.** | Frontend; §1 matters to both |
+| `MIGRATION.md` | The frozen prototype, inventoried: routes, providers with signatures, date rules, components, design system, stores, tests, known defects. | Both — it is the only copy |
+| `HANDOFF.md` | The diary. What happened each session, what was decided, what is still open. | Picking up mid-stream |
+| `TESTING.md` | What is covered, what is not, and why some things can only be checked in a browser. | Frontend |
+| `BUGS.md` | Defects found and fixed, plus ones deliberately recorded and not fixed. | Frontend |
+| `FINDINGS.md` | Reusable lessons, usually learned the hard way. | Frontend |
+| `DEPENDENCIES.md` | Every package and why it is here, including rejected ones. | Frontend |
 | `setup_info.md` | Environment, versions, how to run each gate, and the gotchas that cost time. | Setting up |
 | `CHANGELOG.md` | Dated session summaries, newest first. | Catching up |
 
 Only `CONTEXT.md` is regenerated in full. The rest are appended to, so their
 history is intact.
 
+**One caveat on `MIGRATION.md`:** it documents the frozen Next.js prototype, not
+this repo, and it says 25 providers because that was true when it was written.
+There are 27. `BACKEND.md` §9 lists every place the two disagree.
+
 ---
 
-## For the backend
+## How the data layer works
 
-Django is not started, and this is the least obvious part of the repo, so it is
-worth being explicit about what is already decided.
+Django is not started. This is the least obvious part of the repo and the part a
+backend engineer needs first, so it is worth being explicit. **`BACKEND.md` has the
+detail; this is the shape, to read once.**
 
-**The frontend reaches all of its data through one provider layer**, at
-`frontend/src/lib/data/`. Its public surface is `data/index.ts`, which exports
-exactly three things: the domain types, **25 provider functions**, and two label
-maps. Nothing in the app reaches past that — the mock fixtures underneath it are
-private, and a component that needs something not on the provider surface has found
-a gap to widen rather than a file to import.
+### One seam, 27 functions
 
-Three properties make that layer a seam rather than a placeholder:
+Every screen gets its data from one layer at `frontend/src/lib/data/`. Its public
+surface is `data/index.ts`, exporting exactly three things: the domain types, the
+**27 provider functions**, and two label maps. Nothing in the app reaches past
+that. The mock fixtures underneath are private, and a component that needs
+something not on the provider surface has found a gap to widen rather than a file
+to import.
 
-- **Every provider returns a `Promise`**, including the ones that could answer
-  synchronously today. That is deliberate: when a body becomes a real HTTP call,
-  **the signature does not change and no caller has to be touched.**
-- **The signatures are the contract.** `MIGRATION.md` §2 lists all 25 with their
-  exact arguments and return types. Django replaces the bodies; the shapes stay.
-- **Dates are classified and formatted on the SERVER**, inside SvelteKit's `load`
-  functions, and components receive pre-formatted strings. So **Django never has to
-  format a date** — it can return plain ISO instants and the rest is handled here.
-  `CONVENTIONS.md` states the rule and what to look for in a diff.
+**Every provider returns a `Promise`, including ones that could answer
+synchronously today.** That is the whole point: when a body becomes a real HTTP
+call, the signature does not change and no caller is touched. **Django replaces the
+bodies; the signatures do not move.** That is why the UI will not change when the
+backend arrives.
 
-What Django is actually for, in priority order: the three mock stores currently
-live at module scope in the Node process, which means concurrent users would see
-each other's data and everything resets on restart. That is fine for one developer
-and is the blocking item before any multi-person demo. `MIGRATION.md` §9 grades it
-and explains why.
+Sorting and filtering that every caller would otherwise repeat is already done
+behind the seam, and should stay there. Six providers guarantee an order and their
+callers do not re-sort — change one and the UI changes silently.
 
-Start at `frontend/src/lib/data/providers.ts` and `MIGRATION.md` §2.
+**About a third of them have no caller yet.** 14 of 27 are reached; the rest are
+implemented and tested but the surfaces that would use them are not built.
+`BACKEND.md` marks which.
+
+### Dates: Django never formats one
+
+Every provider returns **ISO-8601 strings** — `"2026-08-11T09:00:00-07:00"` for an
+instant, `"2026-08-11"` for a calendar date. The frontend classifies and formats
+every date **server-side, from a single clock read per page**, and components
+receive finished strings like `"Overdue"` or `"2:30 PM"`.
+
+This is the thing most likely to be got wrong, so plainly: **a string like `"Due
+tomorrow"` or `"Aug 11"` is unusable here.** It cannot be reclassified, cannot be
+compared, and is wrong for anyone in a different timezone from the server. Send the
+instant and nothing else.
+
+A consequence worth knowing before someone asks: because the server decides what
+"today" is, a deployment running in UTC shows a different day than a viewer in
+California for a few hours either side of midnight. **That is the rule working.**
+
+### Three id key spaces, and no fourth
+
+Browser-persisted state is keyed on three id spaces: the task's own id, a calendar
+item id, and a raw event id. **Inventing a fourth has already caused two real bugs
+here** — both times one surface wrote under a transformed key while another read
+the untransformed one, each self-consistent and neither able to see the other, and
+both invisible for weeks because round-trip tests passed throughout.
+
+The test for a new space is: *is this a fact about the event, or about the row?*
+When these move server-side, the identity each table keys on is that decision made
+permanent. Ask before adding one. `BACKEND.md` §6.
+
+### What is browser-only today and must move
+
+All of this is in `localStorage`, so it is per-browser rather than per-student, and
+wrong the moment there are real accounts:
+
+- **The override stores** — task edits: done, titles, priorities, due dates, order,
+  self-added tasks, and notes.
+- **The ignore and join stores** — dismissed events, and "count me in".
+- **Chat history**, which **cannot live in `localStorage` at all**: conversations
+  are large, grow without bound, and a student on a second laptop would find an
+  empty history indistinguishable from never having asked anything. It is already a
+  provider for that reason.
+
+One shape has to survive the move: **these record only what the student personally
+changed, keyed by id, with "absent" meaning "use the source value".** A plain set
+of done-ids cannot express *"I unticked something that ships as done"* — reload and
+it silently re-ticks. `BACKEND.md` §7.
+
+### What does not exist, and needs designing rather than porting
+
+- **Authentication and per-user isolation.** There is no login, no session, and
+  `getStudent()` returns one hardcoded record. The three mock stores are
+  module-scope objects **shared by every visitor and wiped on restart** — so two
+  people book over each other today. This is the blocking item and the main thing
+  Django is for.
+- **`StudentConsent` is modelled and unenforced.** The flags exist; nothing reads
+  them before fetching. Where consent is checked is an open design question.
+- **Group projects.** Scoped, not built, and the first surface that is shared
+  between people by definition rather than being one student's private view. None
+  of the existing patterns cover it.
+- **A retrieval service behind Ask THRIVE.** Three destinations exist as shells.
+  There is no write provider for conversations and no designed shape for one.
+
+Start at `BACKEND.md`, then `frontend/src/lib/data/providers.ts`.
 
 ---
 
