@@ -677,16 +677,23 @@ export const messages = {
 			empty: 'Nothing open in the next five business days.'
 		},
 
-		/** The read-only month reference under "Your day". */
-		monthReference: {
+		/** The clickable month under "Your day". */
+		monthBrowser: {
 			headingId: 'appointments-month',
 			title: 'Your month',
 			/**
-			 * Says what it is FOR, which is the honest way to make a non-interactive
-			 * thing read as non-interactive. "Reference" plus a real link out is more
-			 * useful than a tooltip explaining why clicking does nothing.
+			 * Says what a click DOES.
+			 *
+			 * This replaced "A reference while you book. Nothing here is clickable." --
+			 * a caption explaining why an affordance does not work, which is a losing
+			 * argument against a grid full of dots.
+			 *
+			 * Kept rather than dropped, even though the interaction is fairly obvious,
+			 * because the grid sits BELOW the pane it changes: a student who clicks and
+			 * sees something move above the fold of their attention deserves to have
+			 * been told where to look.
 			 */
-			note: 'A reference while you book. Nothing here is clickable.',
+			note: 'Pick a day to see what is on it.',
 			seeCalendar: 'Open the full calendar'
 		},
 
@@ -752,7 +759,16 @@ export const messages = {
 			headingId: 'my-day',
 			title: 'Your day',
 			todayChip: 'today',
-			empty: 'Nothing booked this day. Any time works.',
+			/**
+			 * Neutral, because this pane now answers two questions.
+			 *
+			 * It used to read "Nothing booked this day. Any time works." -- true and
+			 * useful while the only way to change the day was to pick a booking chip.
+			 * Now the month grid can point it at any day at all, including days nobody
+			 * is trying to book, and "any time works" about next Thursday is an offer
+			 * the page cannot make. This says the state and stops.
+			 */
+			empty: 'Nothing scheduled this day.',
 			/**
 			 * The exclusion, stated rather than left to be noticed.
 			 *

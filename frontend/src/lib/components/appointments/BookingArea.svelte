@@ -1,8 +1,10 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
+
 	import type { ServiceView } from '$lib/appointmentsView';
 	import { firstBookableDay } from '$lib/availability';
 	import BookingPanel from '$lib/components/appointments/BookingPanel.svelte';
-	import MonthReference from '$lib/components/appointments/MonthReference.svelte';
+	import MonthBrowser from '$lib/components/appointments/MonthBrowser.svelte';
 	import MyDayPane from '$lib/components/appointments/MyDayPane.svelte';
 	import ServiceCard from '$lib/components/appointments/ServiceCard.svelte';
 	import type { ScheduleData } from '$lib/schedule';
@@ -34,12 +36,26 @@
 	 * The month grid survives on this page as a REFERENCE under "Your day" — same
 	 * component, `readOnly`, no controls. See `MonthReference`.
 	 *
-	 * ## Two pieces of state
+	 * ## FOUR pieces of state, and two of them are days
 	 *
 	 *  - `activeId` — which advisor. The cards set it, the panel renders from it.
-	 *  - `selectedKey` — the chosen day. Here rather than in the panel because
-	 *    "Your day" reads it too, and two things reading a day that each kept their
-	 *    own copy is how they come to disagree.
+	 *  - `bookingDay` — the day being BOOKED. Drives the chips and the times.
+	 *  - `browseDay` — the day being LOOKED AT. Drives "Your day".
+	 *  - `browseMonth` — which month the grid shows. A view, not a choice.
+	 *
+	 * ## Why two days rather than one
+	 *
+	 * Booking and browsing are different questions, and the month grid made that
+	 * visible. A student comparing next Thursday against their classes has not
+	 * changed their mind about booking Tuesday, so the grid must not move the chips.
+	 *
+	 * **The coupling runs one way.** Choosing a CHIP moves both, because seeing what
+	 * a slot would collide with is the entire reason "Your day" is on this page.
+	 * Choosing a day in the grid moves only `browseDay`. One direction, stated here
+	 * because a reader will reasonably wonder why the two are not symmetrical.
+	 *
+	 * They start equal, so the page opens coherent rather than pointing two panes at
+	 * two different days for no reason.
 	 *
 	 * ## The initial day is derived, not "today"
 	 *
@@ -64,20 +80,42 @@
 	} = $props();
 
 	let activeId = $state<string | null>(null);
-	let selectedKey = $state<string | null>(null);
+	let bookingDay = $state<string | null>(null);
+	let browseDay = $state<string | null>(null);
+	/**
+	 * Seeded from today's month, then owned by the student.
+	 *
+	 * `untrack` states the latch out loud, the same way `ItemDetail` latches its
+	 * row: this is the STARTING month, not a mirror of `todayKey`. An
+	 * `invalidateAll` after a booking re-runs `load` and hands the same `todayKey`
+	 * back, and a month the student has paged to must survive that rather than
+	 * snapping home.
+	 */
+	let browseMonth = $state(untrack(() => monthOf(todayKey)));
 
 	const active = $derived(
 		services.find((service) => service.advisor.id === activeId) ?? null
 	);
 
-	/** The chosen day's finished labels, so the panel formats nothing. */
+	/** The booked day's finished labels, so the panel formats nothing. */
 	const activeDay = $derived(
-		active?.days.find((day) => day.dayKey === selectedKey) ?? null
+		active?.days.find((day) => day.dayKey === bookingDay) ?? null
 	);
 
 	const dayLabel = $derived(
 		activeDay ? `${activeDay.weekdayLabel}, ${activeDay.dateLabel}` : ''
 	);
+
+	/**
+	 * "YYYY-MM-01" for whichever month a day belongs to.
+	 *
+	 * String slicing rather than `Date` arithmetic: a day key is already local
+	 * calendar parts, so taking its first seven characters cannot shift a month the
+	 * way parsing and re-formatting an instant can.
+	 */
+	function monthOf(dayKey: string): string {
+		return `${dayKey.slice(0, 7)}-01`;
+	}
 
 	function toggle(service: ServiceView) {
 		if (activeId === service.advisor.id) {
@@ -86,10 +124,30 @@
 		}
 
 		activeId = service.advisor.id;
-		selectedKey = firstBookableDay(
+		bookingDay = firstBookableDay(
 			service.days.map((day) => day.dayKey),
 			service.openByDay
 		);
+		// They start equal, so the page opens with both panes on one day.
+		browseDay = bookingDay;
+		browseMonth = monthOf(browseDay ?? todayKey);
+	}
+
+	/**
+	 * A CHIP was pressed: move both.
+	 *
+	 * The grid follows the booking day here, and pulls its month along, so choosing
+	 * a chip for a day in the next month does not leave the grid on this one.
+	 */
+	function chooseBookingDay(dayKey: string) {
+		bookingDay = dayKey;
+		browseDay = dayKey;
+		browseMonth = monthOf(dayKey);
+	}
+
+	/** A GRID CELL was pressed: move only what is being looked at. */
+	function chooseBrowseDay(dayKey: string) {
+		browseDay = dayKey;
 	}
 </script>
 
@@ -115,17 +173,27 @@
 				{#key active.advisor.id}
 					<BookingPanel
 						service={active}
-						dayKey={selectedKey}
+						dayKey={bookingDay}
 						{dayLabel}
-						onSelectDay={(dayKey) => (selectedKey = dayKey)}
+						onSelectDay={chooseBookingDay}
 						onClose={() => (activeId = null)}
 					/>
 				{/key}
 			</section>
 
 			<div class="min-w-0 space-y-4">
-				<MyDayPane {data} dayKey={selectedKey} {todayKey} />
-				<MonthReference {data} {todayKey} />
+				<!-- Reads `browseDay`, which the grid below it writes and the chips also
+				     write. See the note on the one-way coupling. -->
+				<MyDayPane {data} dayKey={browseDay} {todayKey} />
+
+				<MonthBrowser
+					{data}
+					{todayKey}
+					selectedKey={browseDay ?? ''}
+					monthKey={browseMonth}
+					onSelect={chooseBrowseDay}
+					onMonthChange={(next) => (browseMonth = next)}
+				/>
 			</div>
 		</div>
 	{/if}

@@ -2017,62 +2017,232 @@ try {
 		'the deliberate exclusion, kept and stated'
 	);
 
-	// ── The month reference: present, and provably not a control ───────────
-	const reference = await appt.evaluate(() => {
+	// ── The month grid is CLICKABLE, and moves only "Your day" ─────────────
+	/*
+	 * It shipped for one commit as a read-only reference, with cells as `<div>`s and
+	 * a caption saying nothing was clickable. A month grid with dots invites a click
+	 * and a grid that refuses one reads as broken, so it is a control again.
+	 *
+	 * The interesting assertion is the NEGATIVE one: clicking it must not move the
+	 * booking chips. Booking and browsing are two questions on this page, the
+	 * coupling runs one way, and a unit test cannot see either.
+	 */
+	const readMonth = () => {
 		const section = document.querySelector('section[aria-labelledby="appointments-month"]');
 		if (!section) return null;
-		const grid = section.querySelector('[data-day]');
+		const cells = [...section.querySelectorAll('[data-day]')];
 		return {
-			exists: true,
-			cells: section.querySelectorAll('[data-day]').length,
-			buttons: section.querySelectorAll('[data-day] button, button[data-day]').length,
+			cells: cells.length,
+			cellTag: cells[0]?.tagName ?? null,
 			gridcells: section.querySelectorAll('[role="gridcell"]').length,
-			focusable: section.querySelectorAll('[data-day][tabindex]:not([tabindex="-1"])').length,
-			hidden: section.querySelector('[aria-hidden="true"]') !== null,
-			cellTag: grid?.tagName ?? null,
-			chevrons: [...section.querySelectorAll('button[aria-label]')].filter((b) =>
+			focusable: cells.filter((c) => c.getAttribute('tabindex') === '0').length,
+			/*
+			 * The GRID's own hidden state, not any descendant's. The dot row inside
+			 * each cell is legitimately `aria-hidden` -- it repeats what the cell's
+			 * accessible name already says in words -- so a query for any hidden
+			 * element in this section matches by design and proves nothing.
+			 */
+			hidden: section.querySelector('[role="grid"]')?.getAttribute('aria-hidden') === 'true',
+			selected: section.querySelector('[data-day][aria-selected="true"]')?.dataset.day ?? null,
+			today: section.querySelector('[data-day][aria-current="date"]')?.dataset.day ?? null,
+			pages: [...section.querySelectorAll('button[aria-label]')].filter((b) =>
 				/month/i.test(b.getAttribute('aria-label') ?? '')
 			).length,
 			linkOut: section.querySelector('a[href="/calendar"]') !== null,
-			saysSo: /Nothing here is clickable/.test(section.textContent ?? '')
+			note: section.querySelector('p')?.textContent?.trim() ?? ''
 		};
-	});
+	};
 
-	if (!reference) {
-		unproven('the month reference is read-only', 'no month reference rendered');
+	const month = await appt.evaluate(readMonth);
+
+	if (!month) {
+		unproven('the month grid is clickable', 'no month grid rendered');
 	} else {
-		check('a month reference renders under "Your day"', reference.cells === 42, `${reference.cells} cells`);
+		check('a month grid renders under "Your day"', month.cells === 42, `${month.cells} cells`);
 		check(
-			'its cells are not buttons',
-			reference.cellTag === 'DIV' && reference.buttons === 0,
-			`cells are <${reference.cellTag?.toLowerCase()}> — the element changed, not just the handler`
+			'its cells are real controls again',
+			month.cellTag === 'BUTTON' && month.gridcells === 42,
+			`cells are <${month.cellTag?.toLowerCase()}> with gridcell roles`
 		);
 		check(
-			'nothing in it is focusable',
-			reference.focusable === 0,
-			'a focusable cell that does nothing is worse than no cell'
-		);
-		check('it claims no grid roles', reference.gridcells === 0);
-		check(
-			'it does not page',
-			reference.chevrons === 0,
-			'a chevron is a control, and the point of the mode is that there are none'
+			'it is reachable by keyboard, with one tab stop',
+			month.focusable === 1,
+			'a roving tabindex, reused from the calendar rather than rewritten'
 		);
 		check(
-			'it is hidden from assistive technology',
-			reference.hidden === true,
-			'justified only by the link beside it'
+			'it is no longer hidden from assistive technology',
+			month.hidden === false,
+			'it was aria-hidden while it was a reference; it is a control now'
 		);
 		check(
-			'and that link is real, so the information is not lost',
-			reference.linkOut === true,
-			'the same month, fully operable, at /calendar'
+			'the caption says what a click DOES',
+			/Pick a day to see what is on it/.test(month.note) &&
+				!/Nothing here is clickable/.test(month.note),
+			month.note
 		);
+		check('the link to the real calendar is kept', month.linkOut === true);
 		check(
-			'it says on screen that it is not clickable',
-			reference.saysSo === true,
-			'the honest way to make a non-interactive thing read as non-interactive'
+			'it pages between months',
+			month.pages === 2,
+			'read-only-and-frozen was defensible; controls that refuse to page are not'
 		);
+
+		// ── The one-way coupling ────────────────────────────────────────────
+		const before = await appt.evaluate(() => {
+			const chips = [...document.querySelectorAll('form[action="?/book"] [data-day]')];
+			return {
+				chip: chips.find((c) => c.getAttribute('aria-pressed') === 'true')?.dataset.day ?? null,
+				times: [...document.querySelectorAll('form[action="?/book"] button[aria-pressed]')]
+					.map((b) => b.textContent.trim().replace(/\s+/g, ' '))
+					.filter((t) => /:\d\d/.test(t))
+					.join('|'),
+				day:
+					document
+						.querySelector('section[aria-labelledby="my-day"] p')
+						?.textContent.trim()
+						.replace(/\s+/g, ' ') ?? ''
+			};
+		});
+
+		/*
+		 * A day in the grid that is NOT the one already selected, and not a chip's
+		 * day either, so "Your day" genuinely has to move and the chips genuinely
+		 * have to stay.
+		 */
+		const target = await appt.evaluate(() => {
+			const section = document.querySelector('section[aria-labelledby="appointments-month"]');
+			const chipDays = new Set(
+				[...document.querySelectorAll('form[action="?/book"] [data-day]')].map(
+					(c) => c.dataset.day
+				)
+			);
+			const cell = [...section.querySelectorAll('[data-day]')].find(
+				(c) =>
+					c.getAttribute('aria-selected') !== 'true' &&
+					!chipDays.has(c.dataset.day) &&
+					// Today or later, so the narrative reads as browsing ahead rather than
+					// into the past. Browsing the past is allowed; it is just a worse
+					// example to assert on.
+					(c.dataset.day ?? '') >= new Date().toLocaleDateString('en-CA')
+			);
+			return cell?.dataset.day ?? null;
+		});
+
+		if (!target) {
+			unproven('clicking a day moves "Your day"', 'no distinct day available in the grid');
+		} else {
+			await appt.click(`section[aria-labelledby="appointments-month"] [data-day="${target}"]`);
+			await appt.waitForTimeout(SETTLE);
+
+			const after = await appt.evaluate(() => {
+				const chips = [...document.querySelectorAll('form[action="?/book"] [data-day]')];
+				return {
+					chip:
+						chips.find((c) => c.getAttribute('aria-pressed') === 'true')?.dataset.day ?? null,
+					times: [...document.querySelectorAll('form[action="?/book"] button[aria-pressed]')]
+						.map((b) => b.textContent.trim().replace(/\s+/g, ' '))
+						.filter((t) => /:\d\d/.test(t))
+						.join('|'),
+					day:
+						document
+							.querySelector('section[aria-labelledby="my-day"] p')
+							?.textContent.trim()
+							.replace(/\s+/g, ' ') ?? '',
+					selected:
+						document
+							.querySelector(
+								'section[aria-labelledby="appointments-month"] [data-day][aria-selected="true"]'
+							)
+							?.dataset.day ?? null
+				};
+			});
+
+			check(
+				'clicking a day moves "Your day"',
+				after.day !== before.day && after.day !== '',
+				`${before.day} -> ${after.day}`
+			);
+			check(
+				'the clicked day is marked selected in the grid',
+				after.selected === target,
+				`${after.selected}`
+			);
+			check(
+				'THE BOOKING CHIPS DO NOT MOVE',
+				after.chip === before.chip,
+				`chip stayed on ${after.chip} — booking and browsing are separate`
+			);
+			check(
+				'and neither do the available times',
+				after.times === before.times,
+				'the times belong to the chip, not to the grid'
+			);
+		}
+
+		// ── Today stays distinguishable from the selection ──────────────────
+		const bothOnToday = await appt.evaluate(() => {
+			const section = document.querySelector('section[aria-labelledby="appointments-month"]');
+			const todayCell = section.querySelector('[data-day][aria-current="date"]');
+			if (!todayCell) return null;
+			todayCell.click();
+			return todayCell.dataset.day;
+		});
+
+		if (!bothOnToday) {
+			unproven('today stays distinguishable when it is also selected', 'today not in view');
+		} else {
+			await appt.waitForTimeout(SETTLE);
+			const overlap = await appt.evaluate((day) => {
+				const cell = document.querySelector(
+					`section[aria-labelledby="appointments-month"] [data-day="${day}"]`
+				);
+				const cs = getComputedStyle(cell);
+				return {
+					selected: cell.getAttribute('aria-selected') === 'true',
+					current: cell.getAttribute('aria-current') === 'date',
+					// The ring is what carries "today" once the fill carries "selected".
+					ring: cs.getPropertyValue('--tw-ring-color') !== '' || cs.outlineWidth !== '0px',
+					bold: Number(cs.fontWeight) >= 600 || cs.backgroundColor !== 'rgba(0, 0, 0, 0)'
+				};
+			}, bothOnToday);
+
+			check(
+				'today stays distinguishable when it is also the selection',
+				overlap.selected && overlap.current,
+				'two attributes on one cell — the fill says selected, the ring says today'
+			);
+		}
+
+		// ── An empty day reads as empty, not as broken ──────────────────────
+		const emptyDay = await appt.evaluate(() => {
+			const section = document.querySelector('section[aria-labelledby="appointments-month"]');
+			// A cell with no category dots is a day with nothing on it.
+			const cell = [...section.querySelectorAll('[data-day]')].find(
+				(c) => c.querySelectorAll('span.rounded-pill').length === 0
+			);
+			cell?.click();
+			return cell?.dataset.day ?? null;
+		});
+
+		if (!emptyDay) {
+			unproven('an empty day gives an empty state', 'every day in view has something on it');
+		} else {
+			await appt.waitForTimeout(SETTLE);
+			const pane = await appt.evaluate(
+				() => document.querySelector('section[aria-labelledby="my-day"]')?.textContent ?? ''
+			);
+
+			check(
+				'an empty day reads as nothing scheduled, not as a failure',
+				/Nothing scheduled this day/.test(pane),
+				'a state, not an error'
+			);
+			check(
+				'and it still says the pane shows classes and booked time only',
+				/Classes and booked time only/.test(pane),
+				'the exclusion is exactly what a student would misread on an empty day'
+			);
+		}
 	}
 
 	// ── Booking, unchanged behaviour ───────────────────────────────────────
