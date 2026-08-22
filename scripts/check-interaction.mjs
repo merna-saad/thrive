@@ -1711,11 +1711,15 @@ try {
 	 *     went 72rem -> 96rem to fix ~120px of dead margin, and overshot so far that
 	 *     the cap stopped biting at 1512 and the gutter collapsed to the shell's
 	 *     20px of padding. Content ran to the edge.
-	 *  3. **The cap bites on a big monitor.** At 1920 the page must STOP rather than
-	 *     stretch, and the calendar must be allowed more than the rest.
+	 *  3. **The cap bites on a big monitor.** At 1920 every page must STOP rather
+	 *     than stretch, on the SAME cap. `/calendar` had its own 96rem cap for a
+	 *     while; that is gone, because it left the busiest page with a 127px gutter
+	 *     while every other route had 248px.
 	 *  4. **The calendar shows the calendar first.** The Key used to sit above the
-	 *     month grid and pushed its top edge to 472px on a 1052px laptop. It is now
-	 *     a column beside it, and the grid starts at 223px.
+	 *     month grid and pushed its top edge to 472px on a 1052px laptop; then it
+	 *     was a column beside it and the grid started at 223px but was only 927px
+	 *     wide. It is now a disclosure on the header row: grid top 169px, 1198px
+	 *     wide.
 	 *
 	 * The prose assertion is the counterweight to all of it: changing a container
 	 * must NOT change the paragraphs, or the page trades one problem for a worse one.
@@ -1785,9 +1789,10 @@ try {
 		 * and it is narrower than that box only because a cap said so -- never for
 		 * some third reason nobody chose.
 		 */
-		const capped = m.content !== null && m.root !== null && [80, 96].some(
-			(rem) => Math.abs(m.content - rem * m.root) <= 4
-		);
+		const capped =
+			m.content !== null &&
+			m.root !== null &&
+			Math.abs(m.content - 80 * m.root) <= 4;
 		check(
 			`${route} is limited by its gutter or by its cap, and nothing else`,
 			m.content !== null &&
@@ -1820,21 +1825,30 @@ try {
 	 */
 	await wide.setViewportSize({ width: 1920, height: 1052 });
 
+	/** Gutter per route at 1920, so the routes can be compared to each other. */
+	const gutterAt1920 = new Map();
+
 	/*
 	 * Ceilings in REM, resolved against the measured root. `--container-page` is
-	 * 80rem and `--container-wide` is 96rem; writing 1280 and 1536 here encoded a
-	 * 16px root as a fact and broke when it became 15.
+	 * 80rem; writing 1280 here encoded a 16px root as a fact and broke when it
+	 * became 15.
+	 *
+	 * One cap for all four routes now. `--container-wide` (96rem) existed for
+	 * `/calendar` and has been deleted along with the token -- so if a route ever
+	 * wants a second cap, this loop is where it has to be declared, rather than a
+	 * page quietly reaching for a general-purpose "wide".
 	 */
 	for (const [route, capRem] of [
 		['/', 80],
 		['/appointments', 80],
 		['/ask/resources', 80],
-		['/calendar', 96]
+		['/calendar', 80]
 	]) {
 		await wide.goto(BASE + route, { waitUntil: 'networkidle' });
 		await wide.waitForTimeout(SETTLE);
 		const m = await wide.evaluate(readMeasure);
 		const ceiling = capRem * (m.root ?? 16);
+		gutterAt1920.set(route, m.gutterRight);
 
 		check(
 			`${route} stops growing at its cap on a 1920px screen`,
@@ -1843,10 +1857,21 @@ try {
 		);
 	}
 
+	/*
+	 * THE CHECK THAT REPLACED "the calendar is allowed more width than the rest".
+	 *
+	 * That one was asserted as a literal `true` with a sentence for a reason, which
+	 * is not an assertion at all -- and the sentence went stale the moment the cap
+	 * did. The claim worth holding is the one the owner actually asked for: the
+	 * calendar gets THE SAME breathing room as everything else. On a 1920px screen
+	 * the old 96rem cap left it a 127px gutter while every other route had 248px.
+	 */
 	check(
-		'the calendar is allowed more width than the rest',
-		true,
-		'96rem against 80rem — the month grid, the week columns and the agenda all use it'
+		'the calendar has the same gutter as every other route at 1920px',
+		gutterAt1920.get('/calendar') !== null &&
+			gutterAt1920.get('/calendar') === gutterAt1920.get('/'),
+		`calendar ${gutterAt1920.get('/calendar')}px, home ${gutterAt1920.get('/')}px ` +
+			`(calendar was 127px against home's 248px on the 96rem cap)`
 	);
 
 	await wide.setViewportSize({ width: DESKTOP.width, height: DESKTOP.height });
@@ -1859,46 +1884,136 @@ try {
 	await wide.reload({ waitUntil: 'networkidle' });
 	await wide.waitForTimeout(SETTLE);
 
-	const arrangement = await wide.evaluate(() => {
+	const KEY_TRIGGER = '[aria-controls="calendar-key-panel"]';
+
+	const arrangement = await wide.evaluate((trigger) => {
 		const grid = document.querySelector('[role="grid"]')?.closest('.thrive-panel') ?? null;
-		const key = document.querySelector('[role="group"], [aria-label], fieldset');
-		// The Key is the panel holding the stream checkboxes.
-		const keyPanel = [...document.querySelectorAll('.thrive-panel')].find((el) =>
-			/stream|key/i.test(el.textContent ?? '')
-		);
 		const g = grid?.getBoundingClientRect();
-		const k = keyPanel?.getBoundingClientRect();
+		const t = document.querySelector(trigger);
 		return {
 			gridTop: g ? Math.round(g.top + window.scrollY) : null,
 			gridWidth: g ? Math.round(g.width) : null,
-			keyLeft: k ? Math.round(k.left) : null,
-			gridRight: g ? Math.round(g.right) : null,
+			/* The Key's PANEL, not its trigger. Collapsed means absent from the DOM,
+			   which is the property that keeps it out of the tab order. */
+			keyPanelPresent: !!document.querySelector('#calendar-key-panel'),
+			triggerExpanded: t?.getAttribute('aria-expanded') ?? null,
+			triggerLabel: (t?.textContent ?? '').replace(/\s+/g, ' ').trim(),
+			triggerTop: t ? Math.round(t.getBoundingClientRect().top + window.scrollY) : null,
+			headingTop: (() => {
+				const h = document.querySelector('h1');
+				return h ? Math.round(h.getBoundingClientRect().top + window.scrollY) : null;
+			})(),
 			viewportHeight: window.innerHeight
 		};
-	});
+	}, KEY_TRIGGER);
 
 	check(
 		'the month grid starts well above the fold',
 		arrangement.gridTop !== null && arrangement.gridTop < 320,
-		`grid top ${arrangement.gridTop}px of a ${arrangement.viewportHeight}px viewport (was 472)`
+		`grid top ${arrangement.gridTop}px of a ${arrangement.viewportHeight}px viewport (472 above the Key, 202 beside it)`
 	);
 	check(
 		'the month grid uses the width it was given',
-		(arrangement.gridWidth ?? 0) > 850,
-		`${arrangement.gridWidth}px (was 672, capped at max-w-2xl)`
+		(arrangement.gridWidth ?? 0) > 1100,
+		`${arrangement.gridWidth}px (672 at max-w-2xl, 927 beside an 18rem Key column)`
 	);
-	if (arrangement.keyLeft === null) {
-		unproven('the Key sits beside the grid, not above it', 'could not identify the Key panel');
+
+	/*
+	 * ── The Key as a disclosure ────────────────────────────────────────────
+	 *
+	 * This is the one change in the layout pass that makes something LESS
+	 * discoverable, so it gets the most assertions rather than the fewest. Four
+	 * claims, and the trade is only acceptable while all four hold:
+	 *
+	 *  1. The trigger is on the SAME ROW as the page heading, not on a row of its
+	 *     own — the row was the whole point of collapsing it.
+	 *  2. Collapsed means absent from the DOM, not merely invisible.
+	 *  3. It opens from the keyboard and reports its state, so a screen reader is
+	 *     told there is something there and whether it is open.
+	 *  4. Opening it produces BOTH dimensions. Streams and labels stay two lists.
+	 *     If this ever goes red because someone merged them, the fix is to unmerge
+	 *     them, not to relax the check.
+	 */
+	check(
+		'the Key trigger shares the heading row rather than taking one',
+		arrangement.triggerTop !== null &&
+			arrangement.headingTop !== null &&
+			Math.abs(arrangement.triggerTop - arrangement.headingTop) < 24,
+		`trigger at ${arrangement.triggerTop}px, h1 at ${arrangement.headingTop}px`
+	);
+	check(
+		'the Key is closed on arrival and says so',
+		arrangement.keyPanelPresent === false && arrangement.triggerExpanded === 'false',
+		`aria-expanded="${arrangement.triggerExpanded}", panel in DOM: ${arrangement.keyPanelPresent}`
+	);
+	check(
+		'the closed Key names what it opens',
+		/key/i.test(arrangement.triggerLabel) && /filter/i.test(arrangement.triggerLabel),
+		`trigger reads "${arrangement.triggerLabel}" — a legend behind a button has to say it is also the filter`
+	);
+
+	await wide.focus(KEY_TRIGGER);
+	await wide.keyboard.press('Enter');
+	await wide.waitForTimeout(SETTLE);
+
+	const keyOpened = await wide.evaluate((trigger) => {
+		const panel = document.querySelector('#calendar-key-panel');
+		const t = document.querySelector(trigger);
+		if (!panel) return null;
+		const text = (panel.textContent ?? '').replace(/\s+/g, ' ');
+		return {
+			expanded: t?.getAttribute('aria-expanded') ?? null,
+			/* Both dimensions, structurally. A flattened chip list would still contain
+			   every word, so the check is on the two labelled GROUPS — `KeyBar` gives
+			   each dimension its own heading element and points the list's
+			   `aria-labelledby` at it. Two ids, two lists, or it has been flattened. */
+			streamsHeading: panel.querySelector('#key-streams')?.textContent?.trim() ?? null,
+			labelsHeading: panel.querySelector('#key-labels')?.textContent?.trim() ?? null,
+			labelledLists: panel.querySelectorAll(
+				'[aria-labelledby="key-streams"], [aria-labelledby="key-labels"]'
+			).length,
+			checkboxes: panel.querySelectorAll('input[type="checkbox"], [role="checkbox"], button[aria-pressed]')
+				.length,
+			text
+		};
+	}, KEY_TRIGGER);
+
+	if (!keyOpened) {
+		/* A hard failure, not `unproven`. "I could not find the panel" IS the bug
+		   here — the panel is the only way to reach the filters. */
+		check(
+			'the Key opens from the keyboard',
+			false,
+			'no #calendar-key-panel in the DOM after Enter on the trigger'
+		);
 	} else {
 		check(
-			'the Key sits beside the grid, not above it',
-			arrangement.keyLeft >= (arrangement.gridRight ?? 0) - 4,
-			`Key starts at ${arrangement.keyLeft}, grid ends at ${arrangement.gridRight}`
+			'the Key opens from the keyboard',
+			keyOpened.expanded === 'true',
+			`aria-expanded="${keyOpened.expanded}", panel rendered`
+		);
+		/*
+		 * The labels dimension renders only when the data HAS labels, so this is two
+		 * claims rather than one: streams is always its own labelled list, and when
+		 * labels appear they appear as a SECOND one. What it rules out is the
+		 * flattening — one undifferentiated list of chips from both dimensions.
+		 */
+		check(
+			'the open Key still keeps streams and labels as two dimensions',
+			keyOpened.streamsHeading !== null &&
+				keyOpened.labelledLists === (keyOpened.labelsHeading === null ? 1 : 2),
+			`streams "${keyOpened.streamsHeading}", labels "${keyOpened.labelsHeading}", ` +
+				`${keyOpened.labelledLists} separately-labelled list(s)`
+		);
+		check(
+			'every filter is still reachable once the Key is open',
+			keyOpened.checkboxes >= 6,
+			`${keyOpened.checkboxes} filter controls inside the panel`
 		);
 	}
 	await wide.close();
 
-	// ── And on a phone the grid still comes BEFORE the Key ─────────────────
+	// ── And on a phone the grid still comes BEFORE the Key's trigger ───────
 	const narrow = await browser.newPage({ viewport: PHONE, hasTouch: true, isMobile: true });
 	narrow.on('pageerror', (error) => pageErrors.push(`width-phone: ${error}`));
 	await narrow.goto(BASE + '/calendar', { waitUntil: 'networkidle' });
@@ -1908,25 +2023,36 @@ try {
 	await narrow.reload({ waitUntil: 'networkidle' });
 	await narrow.waitForTimeout(SETTLE);
 
-	const stacked = await narrow.evaluate(() => {
+	/*
+	 * On a phone the trigger is ABOVE the grid, which is the opposite of the old
+	 * claim and is correct: it is one 44px row, not an 18rem panel, so it costs the
+	 * grid one row rather than a screenful. What still has to hold is that the
+	 * PANEL does not push the grid down until it is asked to.
+	 */
+	const stacked = await narrow.evaluate((trigger) => {
 		const grid = document.querySelector('[role="grid"]')?.closest('.thrive-panel');
-		const keyPanel = [...document.querySelectorAll('.thrive-panel')].find((el) =>
-			/stream|key/i.test(el.textContent ?? '')
-		);
-		if (!grid || !keyPanel) return null;
+		const t = document.querySelector(trigger);
+		if (!grid || !t) return null;
+		const box = t.getBoundingClientRect();
 		return {
 			gridTop: Math.round(grid.getBoundingClientRect().top + window.scrollY),
-			keyTop: Math.round(keyPanel.getBoundingClientRect().top + window.scrollY)
+			triggerHeight: Math.round(box.height),
+			keyPanelPresent: !!document.querySelector('#calendar-key-panel')
 		};
-	});
+	}, KEY_TRIGGER);
 
 	if (!stacked) {
-		unproven('on a phone the grid comes before the Key', 'could not identify both panels');
+		unproven('on a phone the Key costs the grid one row', 'could not find the grid or the trigger');
 	} else {
 		check(
-			'on a phone the grid comes before the Key',
-			stacked.gridTop < stacked.keyTop,
-			`grid ${stacked.gridTop}px, Key ${stacked.keyTop}px — DOM order, not a media-swapped copy`
+			'on a phone the Key costs the grid one row, not a screenful',
+			stacked.keyPanelPresent === false && stacked.gridTop < 260,
+			`grid top ${stacked.gridTop}px, trigger ${stacked.triggerHeight}px tall, panel closed`
+		);
+		check(
+			'the Key trigger is still a 44px touch target on a phone',
+			stacked.triggerHeight >= 44,
+			`${stacked.triggerHeight}px`
 		);
 	}
 	await narrow.close();

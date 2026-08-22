@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
 
 	import AddItemForm from '$lib/components/calendar/AddItemForm.svelte';
 	import AgendaView from '$lib/components/calendar/AgendaView.svelte';
@@ -86,6 +87,20 @@
 
 	const copy = messages.calendar;
 
+	/**
+	 * The Key's disclosure.
+	 *
+	 * Closed by default, which is the whole point — as a permanent column it was
+	 * paying full-time rent to be a legend. NOT persisted: `calendarPrefs` carries
+	 * the filter itself, which must survive a navigation, but whether the panel
+	 * that edits it happens to be open is a momentary thing, like the calendar's
+	 * selected day.
+	 */
+	let keyOpen = $state(false);
+
+	/** Named once so `aria-controls` and the panel cannot drift. */
+	const KEY_PANEL_ID = 'calendar-key-panel';
+
 	/*
 	 * Both seeded from `todayKey` and then owned outright.
 	 *
@@ -113,6 +128,21 @@
 	let detail = $state<ScheduleItem | null>(null);
 
 	const prefs = $derived(calendarPrefs());
+
+	/**
+	 * How many filters are ON, across BOTH dimensions.
+	 *
+	 * This is what the closed trigger shows, and it is the reason closing the panel
+	 * does not hide an active filter. Streams and labels are counted separately and
+	 * added — never merged into one list, which is the rule `KeyBar` exists to
+	 * enforce. `KeyBar` computes the same figure for its own heading; both read the
+	 * same two prefs fields, so they cannot disagree.
+	 *
+	 * Declared AFTER `prefs` because a `$derived` body is still ordinary
+	 * block-scoped TypeScript — reading a `const` above its declaration is an
+	 * error even though the read only happens later at runtime.
+	 */
+	const hiddenCount = $derived(prefs.hidden.length + (prefs.hiddenLabels?.length ?? 0));
 
 	/*
 	 * The merge, then the filter, in that order and once each.
@@ -357,43 +387,77 @@
 {/snippet}
 
 <!--
-	THE KEY SITS BESIDE THE GRID, NOT ABOVE IT.
+	ONE HEADER ROW, AND THE KEY BEHIND A DISCLOSURE.
 
-	The page used to stack heading, description, switcher, Key, and only then the
-	grid — which put the month grid's top edge at 472px on a 1052px laptop, so the
-	thing people came for started near the fold while a Key nobody had asked for
-	yet took the space above it.
+	Three things used to sit above the grid: an eyebrow, a 30px title with a
+	subtitle, and the view switcher on a line of its own — and then the Key held a
+	third of the remaining width permanently. The month grid's top edge was at 202px
+	on a 1052px laptop and it was 927px wide.
 
-	Now it is a two-column grid above `xl`: the switcher, the calendar and the day
-	panel on the left, the Key in a narrow column on the right. The Key loses
-	nothing — same component, same filters, same counts.
+	Now the page name, the view switcher and the Key's trigger share one row, and
+	the grid is full width beneath it.
 
-	`sticky` on the Key's column so it stays with the grid on the long views. The
-	agenda is nine thousand pixels tall; a filter that scrolls away is a filter you
-	have to scroll back for.
+	## The Key is a disclosure, and what that costs
 
-	## The DOM order puts the grid FIRST, and the column placement moves the Key
+	It is a legend AND a filter, and as a permanent 18rem column it was paying
+	full-time rent to be a legend. Behind a button it costs one row.
 
-	Below `xl` this is one column, and in that case the grid comes first and the Key
-	follows it — which is the right order there too, for the same reason it is wrong
-	above the grid on a desktop. Above `xl` the explicit `col-start` / `row-start`
-	put the Key back on the right without changing the DOM, so a screen reader and a
-	keyboard meet the grid before the filter at every width.
+	**This is the one change here that makes something less discoverable**, so it is
+	worth being straight about it: a panel you can see is more discoverable than a
+	button you have to press. Three things make the trade acceptable rather than
+	merely cheaper —
 
-	## No max-width any more
+	  1. The trigger says what it opens, in words, and carries a COUNT when any
+	     filter is on, so a hidden stream is never invisible while the panel is shut.
+	  2. Nothing about reading the month depends on the legend. Every dot carries a
+	     `title`, every cell's accessible name lists what is on the day in words, and
+	     every row in the day panel below carries its own labelled tag. The legend
+	     explains a colour that is never the only cue.
+	  3. It is a real `<button>` with `aria-expanded` and `aria-controls`, and the
+	     panel is inside an `{#if}` — so collapsed means absent from the DOM and from
+	     the tab order rather than merely invisible. Same shape as the nav rail's
+	     group.
 
-	It used to cap the month at `max-w-2xl` (672px) and everything else at
-	`max-w-5xl`, on the reasoning that a month grid stops being readable when its
-	columns stretch. That was true of a full-bleed page; it is not true of a page
-	whose measure is 96rem with a Key column taking 18rem of it, and the squeeze it
-	produced was the actual complaint: a 672px grid with blank space beside it.
+	No filter was removed, nothing was flattened, and the two dimensions inside
+	`KeyBar` are untouched.
 -->
 <div class="w-full">
 	<p aria-live="polite" class="sr-only">{announcement}</p>
 
-	<div class="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,18rem)] xl:gap-4">
-		<div class="min-w-0 space-y-3 xl:col-start-1 xl:row-start-1">
-			<ViewSwitcher {prefs} />
+	<div class="space-y-3">
+		<!-- The one header row. `items-start` because the switcher wraps its own
+		     controls at narrow widths and the title should stay on the top line. -->
+		<div class="flex flex-wrap items-start justify-between gap-2">
+			<h1 class="text-xl font-bold text-ink">{copy.title}</h1>
+
+			<div class="flex flex-wrap items-center gap-2">
+				<ViewSwitcher {prefs} />
+
+				<button
+					type="button"
+					aria-expanded={keyOpen}
+					aria-controls={KEY_PANEL_ID}
+					onclick={() => (keyOpen = !keyOpen)}
+					class="inline-flex min-h-11 items-center gap-1.5 rounded-sm border border-line bg-surface px-2.5 text-2xs font-medium text-body transition-colors duration-(--motion-fast) ease-standard hover:border-line-strong hover:bg-primary-soft hover:text-primary-hover lg:min-h-9"
+				>
+					<SlidersHorizontal aria-hidden="true" class="size-3.5 shrink-0" />
+					{copy.keyToggle}
+					{#if hiddenCount > 0}
+						<!-- The count is what stops a closed panel hiding an active filter.
+						     A value, so it takes the numeric face. -->
+						<span class="thrive-numeric text-3xs text-primary">
+							{copy.keyToggleCount(hiddenCount)}
+						</span>
+					{/if}
+				</button>
+			</div>
+		</div>
+
+		{#if keyOpen}
+			<div id={KEY_PANEL_ID}>
+				<KeyBar {prefs} {labels} ignoredEventCount={ignoredEventIds.length} />
+			</div>
+		{/if}
 
 	{#if prefs.view === 'agenda'}
 		{@render agenda()}
@@ -454,18 +518,6 @@
 		{@render dayPanel()}
 	{/if}
 
-		</div>
-
-		<!--
-			The Key. Second in the DOM so the grid is reached first, and placed into
-			the right-hand column above `xl` by an explicit grid position rather than
-			by source order.
-		-->
-		<div class="min-w-0 xl:col-start-2 xl:row-start-1">
-			<div class="xl:sticky xl:top-4">
-				<KeyBar {prefs} {labels} ignoredEventCount={ignoredEventIds.length} />
-			</div>
-		</div>
 	</div>
 
 	<!--

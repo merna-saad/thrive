@@ -788,20 +788,25 @@
      the CAPS are what stop it stretching on a large monitor. A gutter alone does
      not solve a 2560px display and a cap alone does not solve a 1512px one.
 
-     ## Why two caps
+     ## One cap, after a second one was tried and dropped
 
-     `page` (80rem / 1280px) is the default: Home, appointments, Ask THRIVE and
-     every placeholder. Home's 2x2 grid and a panel holding a greeting, three
-     pills and four chips in one row both stop reading as a layout and start
-     reading as a stretched line somewhere past this.
+     `page` (80rem / 1280px) is the cap for EVERY route. Home's 2x2 grid and a
+     panel holding a greeting, three pills and four chips in one row both stop
+     reading as a layout and start reading as a stretched line somewhere past
+     this.
 
-     `wide` (96rem / 1536px) is `/calendar` alone. The month grid, the week's
-     seven columns and the agenda all take as much width as they are given, and
-     the Key column beside them wants 18rem of it.
+     There was briefly a second, `wide` (96rem), for `/calendar` alone, on the
+     reasoning that the month grid, the week's seven columns and the agenda all
+     take as much width as they are given, and the Key column beside them wanted
+     18rem of it. It was removed, along with the token, once the Key stopped being
+     a column: on a 1920px screen the calendar was 1440px wide with a 127px gutter
+     while every other route had 248px, so the one page with the most furniture
+     was also the one with the least breathing room. The grid got its width back
+     from the chrome instead -- the Key is a disclosure now -- which is 271px more
+     than the two-column arrangement ever gave it.
 
-     At 1512 both are gutter-limited to the same 1192px, so the difference only
-     appears on a monitor big enough for it to matter. At 2560 the page stops at
-     1280 and the calendar at 1536 rather than either growing forever.
+     A route that genuinely needs more than 80rem should re-add its own token
+     rather than reach for a general-purpose "wide".
 
      ## And why the prose cap is separate from all of it
 
@@ -813,7 +818,6 @@
      `ch` tracks the font. A rem value would drift the moment the type scale
      moved. 68ch sits inside the 45-75 usually quoted. */
   --container-page: 80rem;
-  --container-wide: 96rem;
   --container-measure: 68ch;
 
   /* Motion. Use as: duration-(--motion-base) ease-standard */

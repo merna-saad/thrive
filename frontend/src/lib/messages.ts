@@ -358,18 +358,32 @@ export const messages = {
 	 */
 	calendar: {
 		documentTitle: 'Calendar',
-		eyebrow: 'calendar · fall 2026',
-		title: 'Everything, one page',
 		/**
-		 * ONE line, not two.
+		 * ONE piece of furniture above the grid, not three.
 		 *
-		 * The old version listed all six streams and then all three verbs, which is
-		 * a paragraph explaining a page whose Key already names every stream and
-		 * whose controls are visible. Two lines of it pushed the month grid's top
-		 * edge down by about a line and a half of prose, on the page where getting
-		 * to the grid sooner was the whole complaint.
+		 * This block used to be an eyebrow ("calendar · fall 2026"), a 30px
+		 * two-line title ("Everything, one page") and a subtitle listing the six
+		 * streams — three things saying one thing, and together they pushed the
+		 * month grid's top edge to 202px on a 1052px laptop.
+		 *
+		 * What survives is the page's NAME. The term is already on the month header
+		 * a few pixels below, the streams are named in the Key, and every row in the
+		 * day panel carries its own labelled tag — so the subtitle was describing
+		 * what the page shows to someone who could already see it.
 		 */
-		intro: 'Everything you are committed to, and everything you could opt into.',
+		title: 'Calendar',
+		/**
+		 * The Key's disclosure. Says what it opens, and carries the count of active
+		 * filters so a hidden stream is never invisible while the panel is closed.
+		 */
+		keyToggle: 'Key and filters',
+		keyToggleCount: (count: number) => `${count} hidden`,
+		/*
+		 * There is no `intro` any more. It was cut to one line and then cut
+		 * entirely: a page whose Key names every stream and whose day rows each
+		 * carry a labelled tag does not also need a sentence saying it holds
+		 * classes and deadlines.
+		 */
 
 		/* --- The month grid ------------------------------------------------- */
 		grid: {

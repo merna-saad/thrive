@@ -39,15 +39,19 @@
 
 <svelte:head><title>{pageTitle(copy.documentTitle)}</title></svelte:head>
 
-<!-- `max-w-wide`, not `max-w-page`: the month grid, the week columns and the
-     agenda all take as much width as they are given. See `--container-wide`. -->
-<div class="mx-auto w-full max-w-wide space-y-3">
-	<header class="mx-auto w-full max-w-5xl">
-		<p class="thrive-eyebrow">{copy.eyebrow}</p>
-		<h1 class="mt-1 text-3xl font-bold text-ink">{copy.title}</h1>
-		<p class="mt-1.5 max-w-measure text-sm text-body">{copy.intro}</p>
-	</header>
+<!--
+	`max-w-page`, the same measure every other route uses.
 
+	It was `max-w-wide` (96rem) on the reasoning that the month grid, the week
+	columns and the agenda all take whatever width they are given. True, and it was
+	the wrong way to give it to them: at 1920 the calendar sat in a 127px gutter
+	while every other route had 248px, which reads as cramped rather than generous.
+
+	The width the grid lost here is taken back from the CHROME instead — one header
+	row rather than three pieces of furniture, and the Key behind a disclosure
+	rather than permanently holding a third of the page. See `CalendarView`.
+-->
+<div class="mx-auto w-full max-w-page space-y-3">
 	<CalendarView
 		data={data.data}
 		tasks={data.tasks}
