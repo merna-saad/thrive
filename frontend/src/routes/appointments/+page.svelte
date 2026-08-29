@@ -24,16 +24,27 @@
 <svelte:head><title>{pageTitle(copy.documentTitle)}</title></svelte:head>
 
 <!--
-	`lg:space-y-4` is the density pass, 2026-08-21. Every compression in that pass
-	is scoped to `lg` and above, because the complaint was about a wide screen at
-	100% zoom and because below `lg` this app's vertical rhythm is load-bearing for
-	touch: the phone numbers are deliberately, verifiably unchanged.
+	`space-y-6 lg:space-y-4` was the density pass, 2026-08-21, and it is now
+	`space-y-page-rhythm` -- one named token that carries its own breakpoint, so
+	this page no longer states a rhythm four other routes were each stating
+	differently. See `--thrive-page-rhythm` in app.css for the four values it
+	replaced and why the desktop end roughly doubled.
 -->
-<div class="mx-auto w-full max-w-page space-y-6 lg:space-y-4">
+<div class="mx-auto w-full max-w-page space-y-page-rhythm">
 	<header class="mx-auto w-full max-w-5xl">
 		<p class="thrive-eyebrow">{copy.eyebrow}</p>
-		<h1 class="mt-1 text-3xl font-bold text-ink">{copy.title}</h1>
-		<p class="mt-1.5 max-w-measure text-sm text-body">{copy.intro}</p>
+		<!-- `.thrive-display` carries the face, the case, the weight, the size and
+		     the leading together. The `text-3xl` and `font-bold` that used to be
+		     here are gone rather than kept: utilities beat the components layer, so
+		     either one would have silently overridden part of the treatment. -->
+		<h1 class="thrive-display mt-2 text-ink">{copy.title}</h1>
+		<!-- `mt-1` -> `mt-2` above and `mt-1.5` -> `mt-2.5` below, and part of that
+		     is buying back space rather than adding it: tightening the heading's
+		     leading to 1.05 shrank the empty band inside its own line box, so the
+		     same gap now reads smaller than it did in the sans. The rest is the air
+		     the display type is for. The eyebrow stays the closer of the two -- it
+		     and the title are one unit, the lede is the next one. -->
+		<p class="mt-2.5 max-w-measure text-sm text-body">{copy.intro}</p>
 	</header>
 
 	<BookingArea services={data.services} data={data.data} todayKey={data.todayKey} />

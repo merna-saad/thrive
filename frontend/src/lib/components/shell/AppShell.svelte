@@ -70,11 +70,37 @@
 			edges at 1512 where the caps do not bite. The caps and the gutter are two
 			separate knobs: a gutter alone does not solve a 2560px monitor and a cap
 			alone does not solve a 1512px one.
+
+			AND THE TOP GUTTER IS THE SPACE ABOVE THE PAGE HEADING, which is why it
+			took `--thrive-page-rhythm` on 2026-08-29 in place of `pt-4 lg:pt-3`. It
+			is the one instance of that rhythm no page can own, because the first
+			thing on every route is its `h1` and the air above it belongs to the
+			frame. The token carries its own breakpoint, so the `lg:` variant is gone
+			rather than retuned.
+
+			THIS IS THE ONE PIECE OF THE SPACING PASS HOME ALSO GETS, and it was
+			measured rather than waved through. Home is the only route with a
+			fits-one-screen contract (see `--thrive-card-body-cap`), so the extra top
+			padding was checked against it at 1512x1330, before and after:
+
+			  /                1132 -> 1144   (+12, 186px of headroom left)
+			  /calendar        1161 -> 1186
+			  /appointments     514 ->  548
+			  /ask/resources    668 ->  696
+			  /classes          229 ->  253
+
+			Measured as the bottom of the lowest painted element, NOT
+			`documentElement.scrollHeight` -- that is clamped to the viewport when the
+			content fits, so it reports 1330 for every route and cannot answer this
+			question at all. The first attempt used it and learned nothing.
+
+			Home's two scrolling card bodies (321>281 and 388>281) are identical
+			before and after, so this did not eat into the cap's margin either.
 		-->
 		<main
 			id="main-content"
 			tabindex="-1"
-			class="w-full px-3 pt-4 lg:pt-3 pb-[calc(var(--thrive-bottomnav-height)+var(--thrive-page-gutter-bottom))] sm:px-5 lg:px-page-x lg:pb-page-bottom"
+			class="w-full px-3 pt-page-rhythm pb-[calc(var(--thrive-bottomnav-height)+var(--thrive-page-gutter-bottom))] sm:px-5 lg:px-page-x lg:pb-page-bottom"
 		>
 			{@render children()}
 		</main>

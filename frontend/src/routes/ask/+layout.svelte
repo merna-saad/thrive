@@ -70,13 +70,13 @@
 	content and the log's own `overflow-y-auto` never engages — the document grows
 	instead, which is precisely the shape `check:layout` exists to catch.
 -->
-<div class="mx-auto flex w-full max-w-page min-h-0 flex-col gap-4 lg:gap-3">
+<div class="mx-auto flex w-full max-w-page min-h-0 flex-col gap-page-rhythm">
 	<!-- The section's one `h1`. The chat window's title is an `h2` under it: there
 	     is one page here and the destination is a region within it. -->
 	<header>
 		<p class="thrive-eyebrow">{copy.eyebrow}</p>
-		<h1 class="mt-1 text-3xl font-bold text-ink">{copy.title}</h1>
-		<p class="mt-1.5 max-w-measure text-sm text-body">{copy.intro}</p>
+		<h1 class="thrive-display mt-2 text-ink">{copy.title}</h1>
+		<p class="mt-2.5 max-w-measure text-sm text-body">{copy.intro}</p>
 	</header>
 
 	<!-- Only below `lg`, where the navigation rail is not on screen. -->

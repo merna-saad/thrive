@@ -233,6 +233,9 @@ describe("the design system's unenforced rules", () => {
     const DEFINED = [
       "thrive-numeric",
       "thrive-eyebrow",
+      // The UC San Diego headline treatment: Teko, caps, 600, tightened
+      // leading, positive tracking. Page titles only -- see app.css.
+      "thrive-display",
       "thrive-panel",
       "thrive-row",
       "thrive-checkbox",

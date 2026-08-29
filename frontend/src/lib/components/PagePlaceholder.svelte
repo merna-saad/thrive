@@ -30,7 +30,7 @@
 	const Icon = $derived(item.icon);
 </script>
 
-<div class="mx-auto w-full max-w-page space-y-4 lg:space-y-3">
+<div class="mx-auto w-full max-w-page space-y-page-rhythm">
 	<div class="flex items-start gap-2.5">
 		<span
 			class="grid size-10 shrink-0 place-items-center rounded-md border border-line bg-primary-soft"
@@ -38,13 +38,22 @@
 			<Icon aria-hidden="true" class="size-5 text-primary" />
 		</span>
 		<div class="min-w-0">
-			<!-- font-bold set here, at the call site. MIGRATION.md section 9 defect 4:
+			<!-- The weight is no longer set here. MIGRATION.md section 9 defect 4:
 			     twelve of thirteen page titles in the Next app render at 400, because
 			     weight came out of the type scale on 08-15 and the h1s were never
 			     updated. This component serves seven routes, so it was seven of the
-			     twelve on its own. -->
-			<h1 class="text-xl font-bold text-ink">{item.label}</h1>
-			<p class="mt-0.5 text-sm text-muted-ink">{item.description}</p>
+			     twelve on its own -- and the `font-bold` that fixed it has now gone
+			     the other way, into `.thrive-display`, which carries weight along with
+			     the face, case, size and leading. Keeping it here would have beaten
+			     the class: utilities win over the components layer.
+			     `data-step="xl"` holds the size this header was drawn at -- the title
+			     sits beside a 40px icon and above a description, and `3xl` would
+			     rearrange that row. -->
+			<h1 class="thrive-display text-ink" data-step="xl">{item.label}</h1>
+			<!-- `mt-0.5` -> `mt-1.5`. Half the increase is the display type's air and
+			     half is compensation: the tightened heading leading took space out of
+			     the h1's own line box, so 2px of margin no longer reads as 2px. -->
+			<p class="mt-1.5 text-sm text-muted-ink">{item.description}</p>
 		</div>
 	</div>
 

@@ -487,6 +487,28 @@ REQUIRED_CSS = [
         r"\.thrive-eyebrow\s*\{[^}]*var\(--font-sans\)",
         "`.thrive-eyebrow` uses the sans face",
     ),
+    # The display treatment, 2026-08-29. Every one of these is silent when
+    # broken: the heading still renders, in roughly the right place, just not in
+    # the treatment the brand asks for -- which is the class of failure this file
+    # exists to make loud.
+    (r"\.thrive-display\s*\{", "`.thrive-display` is declared"),
+    (
+        r"\.thrive-display\s*\{[^}]*var\(--font-heading\)",
+        "`.thrive-display` uses the heading face",
+    ),
+    # The case is the treatment, not a call-site choice -- Teko ships no italic
+    # and its lowercase is 12% shorter in the x-height than the interface sans.
+    (
+        r"\.thrive-display\s*\{[^}]*text-transform:\s*uppercase",
+        "`.thrive-display` sets the case, so no call site has to",
+    ),
+    # `--font-heading` was a pure alias for `--font-sans` until this pass. If it
+    # ever reverts, the class above goes on "working" in the interface face and
+    # nothing else in the repo would say so.
+    (
+        r"--font-heading:\s*var\(--font-teko\)",
+        "`--font-heading` resolves to Teko rather than aliasing the sans",
+    ),
     # The fit-on-one-screen contract. Each of these is a property Home's grid
     # depends on, and each is silent when broken: the page still renders, it just
     # stops fitting or starts moving when a card expands.

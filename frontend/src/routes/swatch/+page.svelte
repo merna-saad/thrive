@@ -138,7 +138,7 @@
 <main class="mx-auto w-full max-w-4xl space-y-8 p-6">
 	<header>
 		<p class="thrive-eyebrow">design system · port verification</p>
-		<h1 class="mt-1 text-3xl font-bold text-ink">Swatch</h1>
+		<h1 class="thrive-display mt-2 text-ink">Swatch</h1>
 		<p class="mt-1.5 max-w-measure text-sm text-body">
 			Every colour token, every type step, both border weights, both faces. Throwaway route
 			for comparing this against the Next app side by side.
@@ -252,7 +252,7 @@
 	<!-- ── Fonts ────────────────────────────────────────────────────────── -->
 	<section class="thrive-panel space-y-5">
 		<h2 class="text-lg font-bold text-ink">
-			Two faces — sans for words, mono for numbers
+			Three faces — sans for words, mono for numbers, Teko for page titles
 		</h2>
 		<p class="max-w-measure text-xs text-body">
 			Tightened 2026-08-22. The old rule ended “…and any label that is a system value”, and
@@ -265,6 +265,13 @@
 			so this page renders in SF on a Mac, Segoe UI on Windows and Roboto on Android, and the
 			samples below are whichever of those you are reading on. Mono is still self-hosted
 			JetBrains Mono and looks the same everywhere.
+		</p>
+		<p class="max-w-measure text-xs text-body">
+			<strong class="font-medium text-ink">Teko arrived 2026-08-29</strong> — UC San Diego’s own
+			free substitute for Refrigerator Deluxe, which the campus brand sets in caps for headlines
+			and nothing else. It is display type only: the <code class="font-mono">h1</code> on a route,
+			and never a row title, label, button or line of body copy. Brix Sans, the brand’s body face,
+			is <em>not</em> adopted — the interface stays on the system stack.
 		</p>
 
 		<!-- The rule, worked. Left is a value, right is words. -->
@@ -313,6 +320,24 @@
 			<p class="max-w-measure text-3xs text-muted-ink">
 				All words. Eyebrows, view switchers, stream and filter chips, “next up”, class and
 				task tags.
+			</p>
+		</div>
+
+		<!-- The display treatment, at both steps it ships at. Full width because the
+		     point of it is the line, and a line of display type in a half column is
+		     not the thing being shown. -->
+		<div class="space-y-2 border-t border-hairline-soft pt-4">
+			<p class="thrive-eyebrow">.thrive-display — page titles only</p>
+			<h3 class="thrive-display text-ink">Book time with someone</h3>
+			<h3 class="thrive-display text-ink" data-step="xl">Calendar — data-step="xl"</h3>
+			<p class="max-w-measure text-3xs text-muted-ink">
+				Face, case, weight (600), size and leading (1.05) in one class, so no call site
+				reassembles it. Tracking is +0.02em — the only positive value in the system, because
+				caps in a condensed face are the opposite problem from the negative tracking on
+				<code class="font-mono">--text-3xl</code>. A call site that keeps
+				<code class="font-mono">text-3xl</code> or
+				<code class="font-mono">font-bold</code> silently beats it: utilities win over the
+				components layer.
 			</p>
 		</div>
 

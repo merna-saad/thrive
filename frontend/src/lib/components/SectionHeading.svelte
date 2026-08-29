@@ -19,6 +19,17 @@
 	 * so it takes `.thrive-numeric` and stays mono. Both were mono before, which
 	 * is how a face meant for numbers ended up carrying "phase 0" and "key".
 	 *
+	 * AND THE TITLE DELIBERATELY DID NOT TAKE THE THIRD FACE (2026-08-29). Teko is
+	 * for page titles; this is a SECTION heading, and the distinction is positional
+	 * rather than a matter of taste. Every call site renders an `h2` or `h3` inside
+	 * a page that already has its own `h1` -- "Key", "Happening", a day's stream
+	 * name -- at `text-lg`, which is 17.25px on desktop. A condensed display face
+	 * set in caps at that size is exactly the illegibility `.thrive-display` exists
+	 * to stay away from, and a second Teko heading under the first would flatten
+	 * the hierarchy this primitive draws its hairline to state. If this component
+	 * ever does serve a page-level title, that is what the `as` union would have to
+	 * widen for, and the class can be added then.
+	 *
 	 * Extracted in the Next app because there were six near-copies of this shape
 	 * across the calendar and they had already drifted on padding and heading
 	 * level.

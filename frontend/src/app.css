@@ -1,17 +1,36 @@
 @import 'tailwindcss';
 
-/* ONE webfont now, not two. (2026-08-22)
+/* TWO WEBFONTS, AND NEITHER OF THEM SETS PROSE. (2026-08-29)
      JetBrains Mono 400, 500 -- mono marks machine truth and never carries a
                     heading, so it has no use for 700.
+     Teko 500, 600 -- display type only, and only 600 is currently used;
+                    see `.thrive-display` in @layer components.
    @fontsource ships `font-display: swap` in each of these files already.
    Self-hosted on purpose: no Google Fonts link anywhere.
 
    DM SANS IS GONE, and its three @fontsource imports with it. Interface text
    takes the SYSTEM stack -- see `--font-sans` in layer 1 for the reasoning and
-   for what it costs. Six woff2 files stopped shipping; nothing loads a webfont
-   for prose any more. */
+   for what it costs. Nothing loads a webfont for prose any more, and adding
+   Teko did not change that: it is the UC San Diego headline face and it sets
+   page titles, which is one string per screen.
+
+   500 SHIPS WITHOUT A CALL SITE, on purpose and not by oversight. Teko's
+   weights are far apart -- there is no 550 to split the difference -- so the
+   step below the display weight has to be in the browser before anyone can
+   judge whether a heading wants it. Delete it if the answer turns out to be no.
+
+   IT COSTS A BUILD ARTIFACT AND NOTHING ELSE, which is measured rather than
+   assumed: a `@font-face` is only fetched when something on the page actually
+   uses that family at that weight, so `document.fonts` on a built route reports
+   `500:unloaded` beside `600:loaded`. No student downloads it. Home, which took
+   no display type at all, reports BOTH unloaded and pays nothing for either.
+   LATIN ONLY. @fontsource splits Teko into latin, latin-ext and devanagari,
+   and this app is not localised into any of them. The Devanagari subset is
+   most of the family's weight and none of its use here. */
 @import '@fontsource/jetbrains-mono/latin-400.css';
 @import '@fontsource/jetbrains-mono/latin-500.css';
+@import '@fontsource/teko/latin-500.css';
+@import '@fontsource/teko/latin-600.css';
 
 /* THRIVE HAS TWO THEMES (2026-08-21). It was light-only until this pass, and
    the variant below is the hook that was kept open for it -- it used to be
@@ -725,6 +744,41 @@
      its inner rhythm are the same number. */
   --thrive-page-gutter-x: 2.5rem;
 
+  /* THE PAGE'S VERTICAL RHYTHM: above the page heading, and between one major
+     section of a page and the next. Added 2026-08-29 with the UC San Diego
+     display type, whose layout language is one message per screen with real air
+     around it.
+
+     IT IS A TOKEN BECAUSE THE VALUE WAS FOUR DIFFERENT VALUES. Every route
+     expressed the same idea and none of them agreed:
+
+       /appointments   space-y-6 lg:space-y-4     24px / 13.5px
+       /ask            gap-4     lg:gap-3         16px / 10.1px
+       PagePlaceholder space-y-4 lg:space-y-3     16px / 10.1px   (seven routes)
+       CalendarView    space-y-3                  12px / 10.1px
+       the shell       pt-4      lg:pt-3          16px / 10.1px
+
+     Nothing chose that spread -- each page picked a step when it was written and
+     the concept was never named, so there was nothing for the next page to
+     agree with. Naming it is most of the fix; the increase is the rest.
+
+     RESPONSIVE, and by the same mechanism as `--thrive-topbar-height`: the raw
+     token is overridden at 64rem so every call site follows without a single
+     component carrying a breakpoint. Note the direction is the density pass's,
+     not a reversal of it -- desktop still gets less than the phone.
+
+     32px / 22.5px, against a previous range of 12-24px and 10.1-13.5px. Roughly
+     double at the desktop end, which is where the complaint was: at ~10px, a
+     page title and the panel under it read as one block, and the heading stops
+     being a heading.
+
+     WHY IT IS NOT EXPRESSED IN SPACING STEPS. `calc(var(--thrive-spacing) * n)`
+     would have made it shrink twice on desktop -- once from the density pass's
+     step and once from this override -- and the two cuts are answers to
+     different questions. A rem here is the same choice `--thrive-page-gutter-x`
+     and `--thrive-topbar-height` already make. */
+  --thrive-page-rhythm: 2rem;
+
   /* EVERY type step is a raw token, because every step is RESPONSIVE.
 
      These are the PHONE values and they are the ones that have always been here.
@@ -900,9 +954,27 @@
      same thing on the platforms that matter and add two more ways for the
      rendering to differ.
 
-     THE TWO-FACE RULE, unchanged in substance and reworded for the new face:
+     THE TWO-FACE RULE TOOK A THIRD FACE ON 2026-08-29, and the rule it was
+     really making did not change. Both wordings ration the faces by JOB:
 
          The system sans for everything. JetBrains Mono for NUMBERS ONLY.
+         Teko for PAGE TITLES ONLY, and always in caps.
+
+     Teko is UC San Diego's free substitute for Refrigerator Deluxe, which the
+     campus brand sets in caps and uses for headlines and nothing else. That
+     restriction is the brand's, and it happens to be the same restriction the
+     face's own metrics would force anyway -- see `.thrive-display`.
+
+     WHY THIS IS NOT THE DRIFT THE LAST REWORDING WAS FIXING. Mono spread
+     because "a label that is a system value" is arguable about almost any
+     string, so every call site could talk itself into it. "The page title" is
+     not arguable: there is one per route, it is the `h1`, and a second one on a
+     screen is a bug in the document outline before it is a type decision. The
+     rule that failed was a rule about MEANING; this one is about POSITION.
+
+     Brix Sans is the brand's body face and this app does not adopt it. The
+     interface stays on the system stack -- see below -- so this change is
+     display type and spacing, nothing else.
 
      The previous wording ended "...compact dates, status eyebrows, and any
      label that is a system value rather than something a person wrote", and
@@ -925,14 +997,21 @@
      The test, when it is genuinely unclear: would you ever want this to line
      up in a column with the thing above it? Column -> mono. Sentence -> sans.
 
-     Components ask for the treatment, not the face: `.thrive-numeric` and
-     `.thrive-eyebrow` in @layer components. A component that writes
-     `font-mono` directly is asserting a font, which is the design system's
-     call and not its own. `designSystem.spec.ts` fails the build on
-     `font-sans` or `font-mono` in markup, and that check did not need to change
-     for this swap -- which is the point of it having been written against the
-     RULE rather than against DM Sans. */
+     Components ask for the treatment, not the face: `.thrive-numeric`,
+     `.thrive-eyebrow` and now `.thrive-display` in @layer components. A
+     component that writes `font-mono` directly is asserting a font, which is
+     the design system's call and not its own. `designSystem.spec.ts` fails the
+     build on `font-sans` or `font-mono` in markup, and that check did not need
+     to change for the swap OR for Teko -- which is the point of it having been
+     written against the RULE rather than against a face. */
   --font-jetbrains-mono: 'JetBrains Mono';
+
+  /* UC San Diego's headline face, and the only reason it is a separate token
+     from the chain below is the one `--font-jetbrains-mono` exists for: the
+     family NAME is what @fontsource declares in its `@font-face`, and a chain
+     is a fallback list. Keeping them apart means a future weight or subset
+     import has exactly one string to agree with. */
+  --font-teko: 'Teko';
 
   /* No `--font-system` alias above this. A one-entry indirection for a stack
      with exactly one consumer buys nothing, and `--font-dm-sans` only existed
@@ -942,6 +1021,24 @@
     Arial, sans-serif;
   --font-mono:
     var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* THE HEADING CHAIN, and until 2026-08-29 `--font-heading` was an alias for
+     `--font-sans` -- a name with no face behind it, kept open for exactly this.
+
+     THE FALLBACK IS CONDENSED, WHICH IS THE WHOLE POINT OF IT. Every other
+     chain here falls back to something of its own KIND: mono ends at
+     `monospace`, sans at `sans-serif`. Teko is condensed, and it is ~35%
+     narrower than the system sans at the same size, so falling back to the
+     interface face would not merely change the texture of a page title -- it
+     would change its WIDTH by a third, mid-load, on the one line per screen big
+     enough for that to reflow the header around it. `font-display: swap` makes
+     that a real frame rather than a hypothetical one.
+
+     `Arial Narrow` because it is the one condensed face that is actually
+     present across macOS, Windows and Office installs. It is not a good match
+     for Teko and it is not trying to be; it is a width match, which is the
+     property that matters for the ~100ms it is on screen. */
+  --font-heading: var(--font-teko), 'Arial Narrow', sans-serif;
 
   /* --- Layer 2: shadcn semantic vars -> THRIVE tokens ------------------
      Kept even though shadcn-svelte is a later phase. Two reasons: the
@@ -1350,18 +1447,34 @@
   --spacing-bottomnav: var(--thrive-bottomnav-height);
   --spacing-page-bottom: var(--thrive-page-gutter-bottom);
   --spacing-page-x: var(--thrive-page-gutter-x);
+  /* `space-y-page-rhythm` between a page's major sections, `pt-page-rhythm`
+     above its heading. `inline` is what keeps the media override below reachable
+     -- same mechanism as `topbar`. */
+  --spacing-page-rhythm: var(--thrive-page-rhythm);
   /* So a row can write `size-checkbox` for the spacer that stands in for one,
      instead of repeating the literal. See the token in layer 1. */
   --spacing-checkbox: var(--thrive-checkbox-size);
   --spacing-cal-dot: var(--thrive-cal-dot);
 
-  /* Fonts */
+  /* Fonts. All three are `var()` references to layer 1 rather than literals,
+     which is the same mechanism the responsive type steps rely on -- see the
+     note on `--text-lg` for why `@theme inline` makes that difference matter.
+
+     `--font-heading` POINTS AT A REAL FACE as of 2026-08-29. It read
+     `var(--font-sans)` from the port until then: a name reserved for a display
+     face the system did not yet have, which is why nothing had to be renamed to
+     adopt one. Note that no `font-heading` UTILITY is expected at a call site --
+     `.thrive-display` is the only consumer, because the face travels with the
+     case, weight, leading and tracking or it is not the treatment. */
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-heading);
 }
 
-/* The one responsive token in the system.
+/* The two responsive SHELL tokens. (The type steps and the spacing step are
+   responsive too, in their own blocks below; these are the ones that describe
+   the frame rather than the text inside it.)
+
    Above `lg` the header's controls become pointer-sized, so the bar can be
    shorter. Overriding the RAW token rather than the utility means every call
    site follows -- the bar itself, the rail's brand band, and the sticky offset
@@ -1371,6 +1484,12 @@
 @media (width >= 64rem) {
   :root {
     --thrive-topbar-height: 3rem;
+
+    /* 32px -> 22.5px at the 15px desktop root. The same argument the bar makes:
+       a pointer needs less air than a thumb, and the desktop is where the page
+       has the least height to spare. Still nearly double what the routes were
+       doing here before this token existed. */
+    --thrive-page-rhythm: 1.5rem;
   }
 }
 
@@ -1632,8 +1751,8 @@
 }
 
 @layer components {
-  /* ── The two type treatments ────────────────────────────────────────────
-     The whole of the two-face rule, as two classes. A component asks for a
+  /* ── The three type treatments ──────────────────────────────────────────
+     The whole of the face rule, as three classes. A component asks for a
      TREATMENT and the system decides the face; see the rule in layer 1.
 
      Why classes rather than `font-mono` at the call site: the old rule was
@@ -1675,6 +1794,89 @@
     text-transform: uppercase;
     letter-spacing: 0.12em;
     color: var(--thrive-muted);
+  }
+
+  /* THE PAGE TITLE, and the whole UC San Diego headline treatment in one class.
+     Added 2026-08-29. Teko is the campus's own free substitute for Refrigerator
+     Deluxe; the brand sets that face in caps, for headlines, and nowhere else.
+
+     THIS CLASS UPPERCASES RATHER THAN LEAVING CASE TO THE CALL SITE, and the
+     brand's rule is only the second reason. The first two are the face's:
+
+       Teko has NO ITALIC. The @fontsource package ships `font-style: normal`
+       and nothing else, so an `<em>` inside a heading would be SYNTHESISED --
+       a mechanical slant, which is the same smeared-synthesis failure the
+       three-weight rule used to be policed by. Caps make the absence moot:
+       nobody reaches for an italic inside a line of capitals.
+
+       Its LOWERCASE IS WEAK. Measured per 100px em, Teko's x-height is 46.04
+       against the system sans's 52.34 -- 12% shorter, in a face that is also
+       ~35% narrower. Lowercase Teko at this app's desktop steps (24px and
+       19.5px) is a small, cramped word next to body copy set in a face with far
+       more x-height. Its CAPS are the part of the face that is drawn to carry a
+       headline, and they are what the brand uses.
+
+     So the class takes case away from the call site on purpose. `text-transform`
+     rather than typing the string in capitals: the accessible name a screen
+     reader announces stays "Book time with someone", which is what `messages.ts`
+     holds and what the `<title>` says.
+
+     ── WHAT IT SETS, AND THE CASCADE REASON IT SETS SIZE TOO ─────────────────
+     This class owns the SIZE as well, which `.thrive-eyebrow` also does and
+     `.thrive-panel` deliberately does not. That is not a style preference, it is
+     the layer order: utilities beat components (see the note on `.thrive-panel`
+     for the same rule working the other way). Tailwind's `text-3xl` sets
+     font-size AND line-height, so a call site keeping `text-3xl` would silently
+     restore the loose prose leading this class exists to tighten -- and the
+     failure would be invisible, because the heading would still be in Teko, in
+     caps, at the right size, just spaced wrong.
+
+     The same trap catches weight: `font-bold` is 700 and would beat the 600
+     below. Every call site that adopts this class DROPS its `text-*` and
+     `font-bold` utilities. There is nothing left to reassemble.
+
+     600 IS OUTSIDE THE THREE-WEIGHT RULE, and knowingly. That rule (400/500/700,
+     enforced by `designSystem.spec.ts`) is about the INTERFACE sans, where a
+     fourth weight is a distinction nobody asked for. Teko is a display face with
+     its own weights and only one job; 600 is its headline weight and 700 is
+     heavier than a page title in this system should be. The check scans markup
+     for `font-semibold` utilities and finds none, which is the line that matters
+     -- no component may reach for 600, and this class is not a component.
+
+     TRACKING: 0.02em, tuned by eye on a specimen of the real heading strings at
+     all three sizes this step renders at (24px desktop, 32px tablet, 40px phone)
+     and then HELD CONSTANT, per the brief. At 0 the letters in "SOMEONE" crowd;
+     at 0.03 the word groups come apart, which a condensed face cannot afford --
+     narrow letters need tight word spacing to read as a unit. It is POSITIVE,
+     which every other tracking value in this file is not: the negative values on
+     `--text-2xl` and `--text-3xl` correct a wide face at display size, and caps
+     in a narrow one are the opposite problem.
+
+     LEADING: 1.05, and the reason is caps rather than the face. Teko's own
+     default leading is not loose -- measured at `line-height: normal` it is
+     1.150em against the system sans's 1.180em, marginally TIGHTER. What is loose
+     is the SCALE's leading applied to capitals: `--text-3xl-lh` is ~1.19 of the
+     size, drawn for mixed-case prose whose descenders use the bottom of the box,
+     and caps occupy only the top 0.676em of it. On the two-line phone rendering
+     of "Book time with someone" that reads as two separate headings; at 0.95 the
+     cap lines collide. Unitless, so it holds at both steps below. */
+  .thrive-display {
+    font-family: var(--font-heading);
+    font-size: var(--text-3xl);
+    line-height: 1.05;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  /* The compact page header: `/calendar`, whose title shares its row with the
+     view switcher, and the seven stub routes, whose title sits beside an icon
+     and above a description. Both were drawn at `xl` and neither has the room to
+     become `3xl` without rearranging the row -- which is layout, not type.
+     Named for the step it takes so it cannot drift from the scale. Colour and
+     case still come from the class above; only the size changes. */
+  .thrive-display[data-step='xl'] {
+    font-size: var(--text-xl);
   }
 
   /* ── The panel ──────────────────────────────────────────────────────────

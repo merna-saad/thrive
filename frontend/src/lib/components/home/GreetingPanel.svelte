@@ -63,7 +63,15 @@
 	<div class="flex flex-wrap items-baseline justify-between gap-x-3">
 		<!-- Weight at the call site. MIGRATION.md section 9 defect 4: twelve of
 		     thirteen page titles in the Next app render at 400 because weight came
-		     out of the type scale and the h1s were never updated. This is one. -->
+		     out of the type scale and the h1s were never updated. This is one.
+
+		     THE ONE ROUTE h1 THAT DID NOT TAKE `.thrive-display` (2026-08-29), and
+		     it is a content decision rather than an oversight. Every other page
+		     title names a PLACE -- "Calendar", "Ask a question", "Book time with
+		     someone" -- and a place reads well shouted in condensed caps. This one
+		     is addressed to a person: "GOOD MORNING, MAYA" in Teko is a banner, not
+		     a greeting, and the warmth is the only thing this line is carrying.
+		     Left in the interface sans on purpose. -->
 		<h1 id={messages.home.greeting.headingId} class="text-xl font-bold text-ink">
 			{messages.home.greeting.line(greeting, firstName)}
 		</h1>

@@ -26,11 +26,15 @@
 	 * subtree already owns, not a channel. See CONVENTIONS.md on asking versus
 	 * doing.
 	 *
-	 * ## This h1 already had its weight
+	 * ## This h1 no longer sets its own weight, and it used to be the only one that did
 	 *
-	 * It is the ONE page title in the Next app carrying `font-bold` -- MIGRATION.md
-	 * section 9 defect 4: the other twelve render at 400. Every heading in this
-	 * port sets its weight at the call site.
+	 * It was the ONE page title in the Next app carrying `font-bold` -- MIGRATION.md
+	 * section 9 defect 4: the other twelve rendered at 400. As of 2026-08-29 weight
+	 * is not a call-site decision for a page title at all. `.thrive-display` carries
+	 * it along with the face, the case, the size and the leading, and a `font-bold`
+	 * left behind would have BEATEN the class rather than agreed with it -- utilities
+	 * win over the components layer. The title lives in `CalendarView`, which is
+	 * where the class went.
 	 */
 	let { data }: { data: PageData } = $props();
 

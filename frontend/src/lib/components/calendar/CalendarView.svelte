@@ -424,11 +424,16 @@
 <div class="w-full">
 	<p aria-live="polite" class="sr-only">{announcement}</p>
 
-	<div class="space-y-3">
+	<!-- `space-y-page-rhythm` rather than the `space-y-3` that was here: this is
+	     the gap under the page's own heading, which is the thing that token names.
+	     It was the tightest of the four values the token replaced -- 10px between
+	     an h1 and the month grid, which read as one block rather than a title and
+	     its subject. -->
+	<div class="space-y-page-rhythm">
 		<!-- The one header row. `items-start` because the switcher wraps its own
 		     controls at narrow widths and the title should stay on the top line. -->
 		<div class="flex flex-wrap items-start justify-between gap-2">
-			<h1 class="text-xl font-bold text-ink">{copy.title}</h1>
+			<h1 class="thrive-display text-ink" data-step="xl">{copy.title}</h1>
 
 			<div class="flex flex-wrap items-center gap-2">
 				<ViewSwitcher {prefs} />
