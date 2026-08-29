@@ -4,6 +4,56 @@ Session log, newest first. What happened, what was decided, what is still open.
 
 ---
 
+## 2026-08-29 (eighth pass) — UC San Diego display type
+
+**HEAD:** `7225ba9` → this pass · **695 tests · 260 interaction assertions (2 unproven) ·
+51 layout targets · 131 contrast assertions · six gates green.**
+
+One commit. Detail in CHANGELOG; the transferable lessons are in FINDINGS.
+
+### Decided this session, so it is not relitigated
+
+1. **`SectionHeading` does not take display type.** Its three call sites are calendar
+   sub-sections at 17.25px. Asked and answered — see the note in the component.
+2. **Home's greeting stays in the interface sans.** Every other page title names a place;
+   this one is addressed to a person.
+3. **Home is excluded from the internal spacing pass.** It is the only route with a
+   fits-one-screen contract. It takes the shell's top padding only, measured at +12px
+   against 186px of headroom.
+4. **Brix Sans / Roboto were NOT adopted.** Body copy stays on the system stack. This
+   pass was display type and spacing only.
+
+### Corrected a stale premise
+
+The brief said "DM Sans stays as the body face". DM Sans had already been removed two
+commits earlier (`f0eea89`) and `--font-sans` is the system stack. The operative
+instruction — leave `--font-sans` and `--font-mono` alone — was followed; the head comment
+in app.css that read "ONE webfont now, not two" was rewritten, since Teko makes it false.
+
+### Open loose ends
+
+- **The `Arial Narrow` fallback is a prediction, not a measurement.** Teko is self-hosted
+  so it renders identically everywhere; only the ~100ms swap window and the
+  failed-fetch case use the fallback, and neither has been looked at off macOS.
+- **Leading and tracking are pinned by no gate.** Tuned on a specimen; a future edit to
+  either is a silent visual change.
+- **`/swatch`'s own section spacing was not touched.** Throwaway specimen route; its
+  `h1` did take the display class and there is a `.thrive-display` specimen block in its
+  Fonts section.
+- **Teko 500 ships with no call site**, deliberately, so the step below the display
+  weight can be judged without a rebuild. Never fetched. Delete it if the answer is no.
+- Unchanged from last pass: the desktop page still does not fit a 1052px viewport, and
+  that remains a content decision rather than a density one.
+- **CONTEXT.md was NOT updated this pass, and that is deliberate rather than forgotten.**
+  The rule is that it is always regenerated in full and never patched, because a partial
+  edit leaves stale claims beside fresh ones with no way to tell them apart. It is 187KB
+  and a faithful regeneration is its own task, not a footnote to this one. §6 (type) and
+  §16 (decisions) are the sections that have gone stale: the three-faces rule, Teko's
+  measurements, `--thrive-page-rhythm`, and the four decisions listed above. **Do that
+  before trusting §6.**
+
+---
+
 ## 2026-08-22 (seventh pass) — the interface font is the system stack
 
 **HEAD:** `f0eea89` · **695 tests · 261 interaction assertions (1 unproven) · 51 layout

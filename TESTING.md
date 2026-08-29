@@ -1,10 +1,33 @@
 # TESTING
 
-**Last verified:** 2026-08-22 at `f0eea89`. **695 tests, 33 files, all
-passing. 261 interaction assertions (1 unproven on a weekend), 51 layout targets,
-127 contrast assertions
-across BOTH THEMES.** Verified green in **all seven timezones**, re-run this pass rather
-than assumed — and in 7a the sweep **caught a real failure**, which is recorded below.
+**Last verified:** 2026-08-29 at `7225ba9` + the display-type pass. **695 tests, 33
+files, all passing. 260 interaction assertions (2 unproven), 51 layout targets,
+131 contrast assertions across BOTH THEMES.** Verified green in **all seven timezones**
+as of 7a, where the sweep **caught a real failure** — recorded below.
+
+### What the display type added (2026-08-29)
+
+**Contrast went 127 → 131.** Four structural assertions, all in the "silent when broken"
+class this file exists for: `.thrive-display` is declared, it uses `var(--font-heading)`,
+it sets `text-transform: uppercase`, and `--font-heading` resolves to Teko rather than
+aliasing the sans. That last one guards a specific regression — the token was a pure
+alias for `--font-sans` before this pass, and reverting it would leave every page title
+rendering perfectly well in the wrong face with nothing in the repo objecting.
+
+**`designSystem.spec.ts` gained `thrive-display` in its vocabulary list.** The two halves
+still split the same way: the spec checks call sites against known names, and
+`check-contrast.py` checks that app.css actually defines them, because Vite's CSS
+pipeline empties app.css before `?raw` can see it.
+
+**`check:layout` needed no new expectations — again.** The brief expected it to fail,
+since Teko's metrics differ and every page heading changed measured height. It compares
+scroll height to painted height rather than hardcoding either, so a metrics change only
+trips it if the two diverge. Second pass in a row where that design paid off.
+
+**What is still not covered by a gate:** the two typographic values themselves. Leading
+1.05 and tracking +0.02em were tuned on a rendered specimen and no assertion pins them —
+a future edit to either is a silent visual change. That is the same standing as every
+other by-eye value in the system, recorded rather than fixed.
 
 ### What the font swap added (2026-08-22)
 

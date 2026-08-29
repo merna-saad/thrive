@@ -4,6 +4,78 @@ Reusable patterns and lessons. Things worth knowing again.
 
 ---
 
+## 2026-08-29 (eighth pass) — a treatment class has to own everything it can be overridden on
+
+### A component-layer class cannot set anything a utility also sets
+
+This is the whole pass in one line, and it generalises past fonts. Tailwind orders
+`theme, base, components, utilities`, so **utilities always win regardless of
+specificity** — layer order beats specificity, and no amount of `.a.a` doubling changes
+it.
+
+`.thrive-display` sets leading. A call site keeping `text-3xl` would have silently
+restored the old leading, because `text-3xl` sets font-size **and line-height** together.
+The heading would still be the right face, the right case and the right size — only the
+spacing wrong, which is the failure mode nobody files a bug about.
+
+So the rule is: **if a treatment class sets a property some utility also sets, it must
+own the whole cluster and the call site must drop the utility.** `.thrive-display` owns
+size *because* it owns leading. `.thrive-eyebrow` already worked this way and it was not
+obvious that was why.
+
+The corollary that catches people: **`font-bold` beats a class's `font-weight`** for the
+same reason. Grep the adopting call sites for leftover utilities rather than trusting the
+diff — `grep -rn "thrive-display" --include='*.svelte' | grep -E "text-|font-"` found
+zero here only because they were removed deliberately.
+
+### Verify a face LOADED, not that it was DECLARED
+
+`getComputedStyle(el).fontFamily` returns the declared list. It says "Teko" whether or
+not Teko exists, so it cannot tell a working webfont from a silent fallback.
+
+`document.fonts.check('600 24px Teko')` asks whether the face is actually usable at that
+size and weight, and `[...document.fonts]` reports per-weight status. That pair is what
+proved the import worked through the Vite pipeline — and it also proved the unused 500
+weight is never fetched, and that Home downloads no Teko at all.
+
+### `documentElement.scrollHeight` cannot measure a page that fits
+
+It is clamped to the viewport, so every route reported exactly 1330 on a 1330px viewport
+and the before/after comparison was uniformly, uselessly identical. The first attempt at
+Home's fits-one-screen check learned nothing from it.
+
+**Measure the bottom of the lowest painted element instead**
+(`max(rect.bottom + scrollY)` over the subtree). That is a real number whether the page
+fits or not, and it is what turned "should be fine" into "1132 → 1144, 186px of headroom".
+
+### The intuition about a display face's leading was backwards
+
+Teko was assumed to have loose default leading. Measured, it is *tighter* than the system
+sans — 1.150em against 1.180em at `line-height: normal`.
+
+The looseness was real but it was the **scale's**, not the face's: leading drawn for
+mixed-case prose allocates room for descenders, and **caps use only the top ~0.68em of
+that box**. Any face set in caps at prose leading looks loose. The reason to tighten was
+`text-transform: uppercase`, not the font — which means the value transfers to the next
+display face and the "Teko is loose" explanation would not have.
+
+Same shape as the seventh pass's lesson: measure the two numbers before writing the
+reason, because a plausible reason survives in a comment far longer than a wrong value
+survives in a design.
+
+### Four call sites saying the same thing differently is a missing token, not drift
+
+The page rhythm was `space-y-6 lg:space-y-4`, `gap-4 lg:gap-3`, `space-y-4 lg:space-y-3`,
+`space-y-3` and `pt-4 lg:pt-3` across five places. **Nobody chose that spread.** Each page
+picked a step when it was written, the concept had no name, so there was nothing for the
+next page to agree with.
+
+The tell that it is a missing token rather than deliberate variation: the values do not
+correlate with anything about the pages. Naming it was most of the fix; the increase was
+the smaller half.
+
+---
+
 ## 2026-08-22 (seventh pass) — a font change is a horizontal change
 
 ### Measure cap height and x-height before touching the scale

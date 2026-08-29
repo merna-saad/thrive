@@ -4,6 +4,113 @@ Dated session summaries, most recent first.
 
 ---
 
+## 2026-08-29 (eighth pass) — UC San Diego display type
+
+**HEAD:** `7225ba9` → this pass · **695 tests · 260 interaction assertions (2 unproven) ·
+51 layout targets · 131 contrast assertions across both themes · six gates green.**
+
+Teko — UC San Diego's own free substitute for **Refrigerator Deluxe** — now sets page
+titles, in caps, via one class. Body copy did not move: the interface stays on the system
+stack, and **Brix Sans / Roboto were not adopted.** Display type plus spacing, nothing
+else. No colour token was renamed, removed or reordered.
+
+### What changed
+
+- **`@fontsource/teko`**, latin 500/600, self-hosted beside JetBrains Mono. No Google
+  Fonts link. 600 is in use; 500 ships unused on purpose and is never fetched.
+- **`--font-heading` points at a real face.** It had been `var(--font-sans)` since the
+  port — a name reserved for a display face the system did not have, which is why
+  nothing needed renaming to adopt one. New `--font-teko` raw token; the chain falls
+  back to `Arial Narrow` rather than the interface sans, because Teko is ~35% narrower
+  and a width-mismatched fallback reflows the header mid-swap.
+- **`.thrive-display`** in the components layer: face, caps, 600, leading 1.05,
+  tracking +0.02em. Bundled so no call site reassembles it.
+- **`--thrive-page-rhythm`**, responsive at 64rem, replacing four different values for
+  one idea.
+
+### The two values that were measured, not guessed
+
+| per 100px em | Teko 600 | system 700 |
+|---|---|---|
+| cap height | 67.58 | 70.46 |
+| x-height | 46.04 | 52.34 |
+| `line-height: normal` box | 1.150 em | 1.180 em |
+
+**Teko's own leading is TIGHTER than the system sans**, which is the opposite of the
+assumption this pass started from. The looseness being corrected is the *scale's*:
+`--text-3xl-lh` is ~1.19, drawn for mixed-case prose whose descenders use the bottom of
+the box, and caps occupy only the top 0.676em. On the two-line phone rendering of "Book
+time with someone" that reads as two separate headings. 1.05 fixes it; 0.95 collides.
+
+Tracking is **+0.02em — the only positive value in the system.** The negative tracking on
+`--text-2xl`/`--text-3xl` corrects a wide face at display size; caps in a condensed face
+are the opposite problem. At 0 the letters in "SOMEONE" crowd, at 0.03 the word groups
+come apart, which a narrow face cannot afford.
+
+### The cascade trap this pass is really about
+
+Tailwind's `text-3xl` sets font-size **and line-height**, and utilities beat the
+components layer. A call site keeping `text-3xl` would have silently restored the loose
+prose leading — the heading still in Teko, still in caps, still the right size, just
+spaced wrong. Same trap for `font-bold` (700) over the class's 600. **Every adopting call
+site dropped both utilities**, and `.thrive-display` owns size as well as face.
+
+### Applied to page titles only
+
+`/appointments`, `/ask`, `/swatch` at the `3xl` step; `/calendar` and the seven
+`PagePlaceholder` routes at `xl` via `data-step="xl"`.
+
+**Two headings deliberately did not take it**, both recorded at the call site:
+
+- **`SectionHeading`** — its three call sites are all calendar sub-sections ("Key",
+  "Happening", a day's stream name) at `text-lg`, 17.25px on desktop. Condensed caps at
+  that size is the illegibility the class exists to avoid, and a second Teko heading
+  under the first flattens the hierarchy.
+- **Home's greeting** — every other page title names a *place*, which reads well shouted.
+  This one is addressed to a person; "GOOD MORNING, MAYA" in Teko is a banner, not a
+  greeting.
+
+### The spacing pass, and the one contract it had to respect
+
+`--thrive-page-rhythm` (32px / 22.5px) replaced five call sites that each stated the same
+idea differently — `space-y-6 lg:space-y-4`, `gap-4 lg:gap-3`, `space-y-4 lg:space-y-3`,
+`space-y-3`, `pt-4 lg:pt-3`. Nothing chose that spread; the concept was simply never
+named, so there was nothing for the next page to agree with.
+
+**Home was excluded from the internal rhythm** — it is the one route with a
+fits-one-screen contract (`--thrive-card-body-cap`, swept to the tightest
+non-overflowing value). It still gets the shell's top padding, so that was measured
+rather than waved through:
+
+| route | before | after |
+|---|---|---|
+| `/` | 1132 | **1144** (186px of headroom at 1330) |
+| `/calendar` | 1161 | 1186 |
+| `/appointments` | 514 | 548 |
+| `/ask/resources` | 668 | 696 |
+| `/classes` | 229 | 253 |
+
+Measured as the bottom of the lowest painted element. `documentElement.scrollHeight` is
+clamped to the viewport when content fits, so it reports 1330 for every route and answers
+nothing — the first attempt used it and learned nothing. Home's two scrolling card bodies
+are identical before and after.
+
+### Gates
+
+`check:layout` **did not fail**, which the brief flagged as the likely casualty of a
+metrics change. It compares scroll height to painted height rather than hardcoding
+either, so a heading changing height only trips it if the two diverge. Contrast went
+127 → 131: four new structural assertions covering `.thrive-display`'s declaration, its
+face, its case, and that `--font-heading` has not reverted to aliasing the sans.
+
+### Known issues
+
+- The stack has only been LOOKED at on macOS. Teko is self-hosted so it renders
+  identically everywhere, but the *fallback* (`Arial Narrow`) is a prediction.
+- `/swatch`'s own section spacing was not touched — it is a throwaway specimen route.
+
+---
+
 ## 2026-08-22 (seventh pass) — the interface font is the system stack
 
 **HEAD:** `f0eea89` · **695 tests · 261 interaction assertions (1 unproven) · 51 layout

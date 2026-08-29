@@ -2,7 +2,7 @@
 
 What is installed in `frontend/`, and why each thing is here.
 
-**Last verified:** 2026-08-21 at `f8593b7`.
+**Last verified:** 2026-08-29 at `7225ba9`.
 
 ---
 
@@ -10,10 +10,34 @@ What is installed in `frontend/`, and why each thing is here.
 
 | Package | Version | Why |
 |---|---|---|
-| `@fontsource/jetbrains-mono` | `^5.3.0` | Self-hosted JetBrains Mono, 400/500. Mono marks machine truth and never carries a heading, so no 700. **The only webfont left** — see the removal below. |
+| `@fontsource/jetbrains-mono` | `^5.3.0` | Self-hosted JetBrains Mono, 400/500. Mono marks machine truth and never carries a heading, so no 700. |
+| `@fontsource/teko` | `^5.3.0` | Self-hosted Teko, latin 500/600. UC San Diego's own free substitute for Refrigerator Deluxe (2026-08-29). **Display type only** — the `h1` on a route, in caps, via `.thrive-display`. See the note below. |
 | `@lucide/svelte` | `^1.33.0` | Icons. See the note below — **not `lucide-svelte`**. |
 | `clsx` | `^2.1.1` | Conditional class strings. Mostly superseded by Svelte 5's native `class={[...]}`; kept as `twMerge`'s input. |
 | `tailwind-merge` | `^3.6.0` | Tailwind conflict resolution. The half of `cn()` Svelte does **not** replace — needed wherever a component takes a `class` override. |
+
+### ADDED: `@fontsource/teko` (2026-08-29)
+
+UC San Diego names Teko as the free substitute for **Refrigerator Deluxe**, the licensed
+condensed face the campus brand sets in caps for headlines. It is display type only: the
+`h1` on a route, and never a row title, label, button, nav item or line of body copy.
+
+**Two weight files, latin subset only.** `latin-500.css` and `latin-600.css`. The
+package also ships `latin-ext` and `devanagari` — Devanagari is most of the family's
+weight and none of its use here, and this app is not localised.
+
+**600 is the one in use. 500 ships without a call site, deliberately.** Teko's weights
+are far apart and there is no 550, so the step below the display weight has to be in the
+browser before anyone can judge whether a heading wants it. It costs a build artifact and
+nothing else: `document.fonts` on a built route reports `500:unloaded` beside
+`600:loaded`, because a `@font-face` is only fetched when something uses that family at
+that weight. Home, which took no display type, reports both unloaded.
+
+**Brix Sans is NOT adopted.** It is the brand's body face; the interface stays on the
+system stack. UCSD names Roboto as its free substitute and that was declined — this
+change is display type and spacing only. **Do not "complete" the brand adoption by
+swapping the body face without reading CONTEXT §6**, which records why the system stack
+is there.
 
 ### REMOVED: `@fontsource/dm-sans` (2026-08-22)
 
@@ -22,9 +46,9 @@ The interface font is the system stack now — `-apple-system, BlinkMacSystemFon
 at any size across four passes of the type scale, and the OS face is hinted for the
 display in a way no webfont is.
 
-**Six font files stopped shipping** (three weights × woff2 + woff). The build carries
-two where it carried eight. Nothing loads a webfont for prose, so the only remaining
-font payload is mono, which is used for numbers.
+**Six font files stopped shipping** (three weights × woff2 + woff). The build carried
+two where it had carried eight. Nothing loads a webfont for prose — still true after
+Teko arrived on 2026-08-29, since Teko sets page titles rather than prose.
 
 The reasoning, the measurements and the cross-platform trade are in CONTEXT §6. **Do not
 re-add a webfont for interface text without reading that section** — the trade is that
