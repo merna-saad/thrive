@@ -4,6 +4,66 @@ Reusable patterns and lessons. Things worth knowing again.
 
 ---
 
+## 2026-08-31 (eleventh pass) — hiding a control is not removing it
+
+### When a brief says "remove", check what else leaves with it
+
+Home's brief asked for the per-row edit and copy icons to be removed. The pencil was the
+only route to renaming a task **anywhere in the app**, and copy-to-list the only route to
+the quick list. Removing them would have deleted two features and five gate assertions
+while looking exactly like the tidy-up that was asked for.
+
+Hiding at rest got the quiet the brief was actually after and kept both. **The question to
+ask of any "remove this control" is: what is the other way in? If there isn't one, the
+brief means "make it recede".**
+
+### A reveal-on-hover has three failure modes and two of them are silent
+
+1. `opacity: 0` without `pointer-events: none` leaves an invisible target that swallows
+   taps meant for what is underneath. Invisible-but-clickable is worse than visible.
+2. Hover alone is a keyboard trap in reverse: the controls stay in the tab order, so a
+   sighted keyboard user tabs into something they cannot see. `:focus-within` fixes it.
+3. Touch has no hover at all. The gate is `@media (hover: none)`, **not a width** — a
+   touch laptop is wide, so a `lg:` breakpoint would not have caught it.
+
+This repo had already made mistake 3 once, hiding a note button behind hover and leaving
+the only route to adding a note invisible on a handset. The note recording that is why
+this pass got it right.
+
+### Four channels for one fact is not emphasis
+
+A task row said "overdue" with a coloured left edge, a tinted background wash, a chip, and
+a screen-reader label. Removing two of them made the fact **more** visible, because the
+two that went were the two that could not be scanned: two pale washes only differ from
+each other when both happen to be on screen at once.
+
+The related failure in the same rows: an overdue task carried two red chips saying the
+same thing in the same tone. Redundancy inside one channel reads as two facts.
+
+### A chip must not outrank the thing it describes
+
+The last tone converted from a solid fill to a tint was `primary`, and the argument for
+keeping it solid was genuinely good — it is not a status, it marks a course code, it
+appears at most once per row. Rendered, once every chip around it had gone quiet, a solid
+navy "MGTA451" was the loudest thing in the row, louder than the task title it belongs to.
+
+**A local argument for one element's weight is only settled by looking at it beside
+everything else that changed.**
+
+### Read a brief's premises against the repo before designing around them
+
+Three briefs running asserted that `check-contrast.py` "asserts a fixed pair count". It
+never has — the tally is computed from the checks actually run, and it moved 127 → 131 →
+134 across these passes without ever failing on a count. Another brief described a density
+pass that had been reversed two sessions earlier, and another named `SquareGrid` as the
+month grid when it is a day's completion strip.
+
+None of these were traps; they were briefs written from memory of the code. **Verify a
+constraint before building to it**, and say so plainly rather than quietly satisfying a
+rule that does not exist.
+
+---
+
 ## 2026-08-30 (ninth pass) — hierarchy is subtraction
 
 ### Six focal points is the same as none, and the fix is demotion not promotion

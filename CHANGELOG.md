@@ -4,6 +4,62 @@ Dated session summaries, most recent first.
 
 ---
 
+## 2026-08-31 (eleventh pass) — Home and Appointments join the treatment
+
+**Six gates green.** 695 tests · **134/134 contrast** (up from 131) · 51/51 layout ·
+260/260 interaction.
+
+Three commits: the month grid's single dot, Home, and Appointments.
+
+### Home stopped colouring everything
+
+**The greeting strip held eight pieces of status and five came out** — the career-goal
+chip, the month-track chip, the units chip, its progress bar, and the standing badge's
+old position. What is left is the greeting, one standing sentence, three counts, and the
+date with the badge under it.
+
+**Task rows carried four channels for one fact**: a coloured left edge, a tinted wash, a
+chip, and a screen-reader label. The edge and the wash went — they were the two that could
+not be scanned, since two pale washes only differ when both happen to be on screen. An
+overdue row also carried two red chips ("Urgent" and "Overdue"); the due chip wins because
+it is also the control that opens the date editor.
+
+**`tagTones` moved from solid fills to tints, app-wide.** Fills were right when a chip was
+a rare marker and wrong when Home put three on each of ten rows. `primary` went last and
+the argument for keeping it was good — not a status, once per row — but rendered, a solid
+navy "MGTA451" outranked the title it describes.
+
+### The edit and copy icons were not removed
+
+The brief asked for removal. The pencil is the only route to renaming a task anywhere in
+the app and copy-to-list the only route to the quick list, so deleting them deletes two
+features and five interaction assertions. `.thrive-reveal` hides them at rest instead:
+back on hover, on `:focus-within` so tabbing in reveals before use, and permanently under
+`@media (hover: none)` — because an earlier pass hid the note button behind hover and left
+the only route to adding a note invisible on a handset.
+
+`pointer-events: none` is half that class and not decoration: opacity alone leaves an
+invisible 44px target over every row, swallowing taps meant for the title. Both halves are
+now asserted.
+
+### Appointments was mostly already there
+
+The brief's "CONTEXT YOU NEED FIRST" describes a state that ended two passes ago:
+`lg:space-y-4` was replaced by `space-y-page-rhythm` when that token was introduced, and
+the header already had the eyebrow, display title and capped intro.
+
+What was real: card padding, three heading demotions, and **rows leading with who rather
+than when** — reversing a note this file argued well, on the grounds that "scan dates down
+a column" describes a long list and this one holds a handful.
+
+### The contrast count moved and the gate still passed
+
+131 → 134, from three new `.thrive-reveal` assertions. Both briefs said the gate asserts a
+fixed pair count; it does not — line 711 is `f"{total - failures}/{total} pass"`, computed
+from the checks actually run. This is the third brief to carry that premise.
+
+---
+
 ## 2026-08-31 (tenth pass) — one dot
 
 **Six gates green.** 695 tests · 131/131 contrast · 51/51 layout · 260/260 interaction.

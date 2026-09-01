@@ -4,6 +4,43 @@ Session log, newest first. What happened, what was decided, what is still open.
 
 ---
 
+## 2026-08-31 (tenth and eleventh passes) — one dot, then Home and Appointments
+
+**Six gates green.** 695 tests · 134/134 contrast · 51/51 layout · 260/260 interaction.
+
+Four commits. Detail in CHANGELOG; the transferable lessons are in FINDINGS.
+
+### Decided this session
+
+1. **The month grid marks presence, not contents.** One muted `faint` dot, gold on today.
+   The Key is now a filter rather than a legend, since the grid no longer uses its colours.
+2. **The edit and copy icons were hidden, not removed.** They are the only routes to
+   renaming a task and to the quick list. `.thrive-reveal` in app.css.
+3. **`tagTones` is tints, not fills, app-wide** — including `primary`.
+4. **Home's greeting stays in the interface sans**, heavier and larger. Your earlier call
+   on this held; "display weight" was read as weight, not face.
+5. **No card descriptions were invented.** Calendar has none either.
+6. **Appointment rows lead with who, not when.**
+
+### Open loose ends
+
+- **The units chip removal deletes the only view of degree progress in the app.**
+  `/degree` is still a `PagePlaceholder` stub, so "it belongs on the roadmap page" has
+  nowhere to land yet. The data is still in the load.
+- **Light-theme chip contrast is unmeasured.** `tagTones` now pairs `bg-*-soft` with
+  `text-*`. On dark those pairs are measured at 4.60-4.64:1 by construction; on light the
+  tints are `color-mix()`, which the gate deliberately does not evaluate. Pre-existing
+  asymmetry, but the chips now lean on it where before they did not. Closing it means
+  replacing seven light mixes with literals.
+- **The booking panel's slot picker keeps a solid fill on a selected slot.** A control in
+  its chosen state, not decoration.
+- **Today's classes card renders mostly empty** when there is one class, because the card
+  cap is fixed. Pre-existing, and now more visible with the extra padding.
+- **The urgent glyph on the calendar rail is coral, not gold** (WCAG; see the ninth pass).
+- **CONTEXT.md is now four passes stale.** §6 and §16 have drifted furthest.
+
+---
+
 ## 2026-08-30 (ninth pass) — /calendar hierarchy
 
 **HEAD:** `e3fbfae` → this pass · **six gates green (260/260 interaction after two
