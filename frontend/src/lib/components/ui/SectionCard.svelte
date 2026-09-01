@@ -132,14 +132,14 @@
 		-->
 		<div class="flex min-h-11 items-start justify-between gap-3 lg:min-h-0">
 		<div class="min-w-0">
-			<!-- THE DISPLAY TREATMENT, at the same step /calendar's month label takes.
-			     Card titles are the one thing on Home that stays prominent while the
-			     rows under them go quiet, so they take the face that says so. `xl`
-			     rather than the full step: they are four peers in a grid, not the
-			     page's subject.
-			     No `text-*` or `font-*` beside it -- both would beat the class from
-			     the utilities layer and silently undo half the treatment. -->
-			<h2 id={headingId} class="thrive-display text-ink" data-step="xl">{title}</h2>
+			<!-- SENTENCE CASE, IN THE INTERFACE SANS. This took `.thrive-display` for
+			     one commit, on a reading of "card headings are display weight" that
+			     meant the display FACE. The reference says otherwise and it is right:
+			     Teko caps on four cards in a 2x2 grid gives the page four shouting
+			     labels, and the whole point of the pass was that nothing should shout
+			     except the greeting. Display type stays on page titles.
+			     Weight at the call site: the type scale carries size only. -->
+			<h2 id={headingId} class="text-lg font-bold text-ink">{title}</h2>
 			{#if description}
 				<p class="mt-0.5 text-xs text-muted-ink">{description}</p>
 			{/if}

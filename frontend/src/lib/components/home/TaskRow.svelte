@@ -118,16 +118,6 @@
 	const priority = $derived(rowPriorityOf(due, task.priority, done));
 	const labels = $derived(taskLabels(task, due, done));
 
-	/* See the note at the render site. `taskLabels` puts the state chip first when
-	   there is one, and the due control repeats it in the same tone, so the state
-	   chip is dropped when a due chip will render. `done` is exempt: "Done" is not
-	   an urgency and the due chip does not say it. */
-	const visibleLabels = $derived(
-		dueEditor && !done && (due.urgency === 'overdue' || due.urgency === 'today')
-			? labels.filter((label) => label.tone !== 'urgent' && label.tone !== 'watch')
-			: labels
-	);
-
 	const note = $derived(taskNote(task.id));
 	const hasNote = $derived(note.value.length > 0);
 
@@ -266,7 +256,13 @@
 	ondragover={reorder?.onDragOver}
 	ondrop={reorder?.onDrop}
 	class={cn(
-		'thrive-row group relative',
+		/* A BORDERED CARD, not a flat row. The wash and the coloured left edge came
+		   off in the last pass and left the rows with no edges at all, so ten of
+		   them ran together into one block of text -- quiet, and unreadable in a
+		   different way. A hairline and a white fill give each task its own object
+		   without giving it a colour. `.thrive-row` still supplies the hover fill
+		   and the done-state opacity. */
+		'thrive-row group relative rounded-lg border border-hairline bg-surface',
 		/* The drop indicator: a rule where the row would land, drawn ON the row
 		   rather than as an inserted gap so nothing reflows mid-drag. A list that
 		   reflows under the cursor is what makes a drag feel like it is fighting
@@ -277,7 +273,10 @@
 >
 	<!-- Wraps below `sm`, so the controls take their own line and the title keeps
 	     the full width. See the note on defect 3 above. -->
-	<div class="flex flex-wrap items-start gap-x-2 gap-y-1 px-2 py-1.5 sm:flex-nowrap lg:py-1">
+	<!-- Real padding, and the same on all four sides. It was `px-2 py-1.5`, which is
+	     6.75px of vertical air on a desktop: a line of text with a checkbox beside
+	     it rather than a card with a task in it. -->
+	<div class="flex flex-wrap items-start gap-x-3 gap-y-1.5 p-3 sm:flex-nowrap">
 		<!-- `mt-0.5` aligns the box with the first line of the title rather than the
 		     centre of a two-line block. -->
 		<input
@@ -350,20 +349,13 @@
 			     for a third of a card to be spent on metadata. -->
 			<p class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-3xs text-muted-ink">
 				<span class="flex flex-wrap items-center gap-1.5">
-					<!--
-						ONE URGENCY CHIP, not two. `taskLabels` opens with a state chip
-						("Urgent" / "Due soon") and the due control right after it renders
-						"Overdue" / "Today" in the same tone -- so an overdue row carried two
-						red chips saying the same thing, which is the opposite of "urgency is
-						carried by the chip".
-
-						The DUE chip wins, because it is the one that is also a CONTROL: it
-						opens the date editor, and dropping it would take that with it. The
-						state chip is dropped only when a due chip is actually rendered --
-						`/assignments` and any future caller without an editor keep it, which
-						is why this filters here rather than in `taskLabels`.
-					-->
-					{#each visibleLabels as label (label.text)}
+					<!-- BOTH URGENCY CHIPS STAY. One pass dropped the state chip ("Urgent")
+					     as a duplicate of the due chip ("Overdue"), on the reasoning that two
+					     red chips say one thing. The reference keeps both, and reading them
+					     side by side it is right: they are not the same sentence. "Urgent" is
+					     how the student ranked it, "Overdue" is what the calendar says about
+					     it, and a task can be one without the other. -->
+					{#each labels as label (label.text)}
 						<Tag tone={label.tone}>{label.text}</Tag>
 					{/each}
 

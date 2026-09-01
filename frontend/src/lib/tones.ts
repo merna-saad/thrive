@@ -70,8 +70,14 @@ export const tagTones: Record<TagTone, string> = {
 	neutral: 'border border-line bg-surface text-body',
 	quiet: 'text-muted-ink',
 	primary: 'bg-primary-soft text-primary',
-	urgent: 'bg-urgent-soft text-urgent',
-	watch: 'bg-watch-soft text-watch',
+	/* URGENCY KEEPS ITS FILL. These two went to tints with the rest for one
+	   commit and the reference corrected it: a page where nothing is filled has
+	   nothing that stops you. Overdue and due-soon are the two facts on Home that
+	   are allowed to interrupt, so they are the two that stay solid. Every other
+	   tone is a tint, which is what makes these read as louder than their
+	   neighbours rather than as one more coloured thing. */
+	urgent: 'bg-urgent text-on-primary',
+	watch: 'bg-watch text-on-primary',
 	'on-track': 'bg-on-track-soft text-on-track',
 	'needs-help': 'bg-needs-help-soft text-needs-help',
 	civic: 'bg-civic-soft text-civic',
