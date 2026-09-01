@@ -3,6 +3,2450 @@
   "output_root": "backend/data/syllabi_md",
   "ocr": false,
   "count": 141,
+  "course_count": 120,
+  "courses": [
+    {
+      "key": "mgt 402|data driven communications",
+      "title": "Data Driven Communications",
+      "codes": [
+        "MGT 402"
+      ],
+      "terms": [
+        "WI26"
+      ],
+      "instructors": [
+        "Salovey"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 402 Data Driven Communications (Salovey) WI26.pdf"
+    },
+    {
+      "key": "mgt 402|management comms",
+      "title": "Management Comms",
+      "codes": [
+        "MGT 402"
+      ],
+      "terms": [
+        "SU25"
+      ],
+      "instructors": [
+        "Salovey"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 402 Management Comms (Salovey) SU25.pdf"
+    },
+    {
+      "key": "mgt 403|business analytics for managers",
+      "title": "Business Analytics for Managers",
+      "codes": [
+        "MGT 403",
+        "MGT 403R"
+      ],
+      "terms": [
+        "FA25",
+        "FA26"
+      ],
+      "instructors": [
+        "Erat",
+        "Montgomery",
+        "Zhang"
+      ],
+      "offering_count": 3,
+      "latest_offering": "MGT 403R Business Analytics for Managers (Zhang) FA26.pdf"
+    },
+    {
+      "key": "mgt 404|accounting",
+      "title": "Accounting",
+      "codes": [
+        "MGT 404",
+        "MGT 404R"
+      ],
+      "terms": [
+        "FA25",
+        "WI26"
+      ],
+      "instructors": [
+        "FLoyd",
+        "Floyd",
+        "Perez Silva"
+      ],
+      "offering_count": 3,
+      "latest_offering": "MGT 404R Accounting (Floyd) WI26.pdf"
+    },
+    {
+      "key": "mgt 405|managerial economics",
+      "title": "Managerial Economics",
+      "codes": [
+        "MGT 405",
+        "MGT 405R"
+      ],
+      "terms": [
+        "FA25",
+        "FA26"
+      ],
+      "instructors": [
+        "Fragiadakis",
+        "Serra-Garcia"
+      ],
+      "offering_count": 2,
+      "latest_offering": "MGT 405 Managerial Economics (Fragiadakis) FA26.pdf"
+    },
+    {
+      "key": "mgt 406|leadership skills tech firms",
+      "title": "Leadership Skills -Tech Firms",
+      "codes": [
+        "MGT 406"
+      ],
+      "terms": [
+        "FA25"
+      ],
+      "instructors": [
+        "Oveis"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 406 Leadership Skills -Tech Firms (Oveis) FA25 - FT.pdf"
+    },
+    {
+      "key": "mgt 406|leading people",
+      "title": "Leading People",
+      "codes": [
+        "MGT 406"
+      ],
+      "terms": [
+        "SU25",
+        "FA25"
+      ],
+      "instructors": [
+        "Oveis"
+      ],
+      "offering_count": 2,
+      "latest_offering": "MGT 406 Leading People (Oveis) FA25 - Exec.pdf"
+    },
+    {
+      "key": "mgt 407|marketing",
+      "title": "Marketing",
+      "codes": [
+        "MGT 407"
+      ],
+      "terms": [
+        "FA25"
+      ],
+      "instructors": [
+        "Yorkston"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 407 Marketing (Yorkston) FA25.pdf"
+    },
+    {
+      "key": "mgt 408|finance",
+      "title": "Finance",
+      "codes": [
+        "MGT 408"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Mullins"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 408 Finance (Mullins) SP26.pdf"
+    },
+    {
+      "key": "mgt 409|leading in networks and organizations",
+      "title": "Leading in Networks & Organizations",
+      "codes": [
+        "MGT 409"
+      ],
+      "terms": [
+        "WI26"
+      ],
+      "instructors": [
+        "Campbell",
+        "Kum"
+      ],
+      "offering_count": 2,
+      "latest_offering": "MGT 409 Leading in Networks & Organizations (Kum) WI26.pdf"
+    },
+    {
+      "key": "mgt 410|strategy",
+      "title": "Strategy",
+      "codes": [
+        "MGT 410",
+        "MGT 410R"
+      ],
+      "terms": [
+        "FA26"
+      ],
+      "instructors": [
+        "Fragiadakis",
+        "Wellsjo"
+      ],
+      "offering_count": 2,
+      "latest_offering": "MGT 410R Strategy (Wellsjo) FA26.pdf"
+    },
+    {
+      "key": "mgt 412|new venture design",
+      "title": "New Venture Design",
+      "codes": [
+        "MGT 412",
+        "MGT 412R"
+      ],
+      "terms": [
+        "FA26"
+      ],
+      "instructors": [
+        "Meyer"
+      ],
+      "offering_count": 2,
+      "latest_offering": "MGT 412R  New Venture Design (Meyer) FA26.pdf"
+    },
+    {
+      "key": "mgt 413|operations management",
+      "title": "Operations Management",
+      "codes": [
+        "MGT 413",
+        "MGT 413R"
+      ],
+      "terms": [
+        "WI26"
+      ],
+      "instructors": [
+        "Luo",
+        "Montgomery",
+        "Shahsavand"
+      ],
+      "offering_count": 3,
+      "latest_offering": "MGT 413R Operations Management (Luo) WI26.pdf"
+    },
+    {
+      "key": "mgt 414|rady action project",
+      "title": "Rady Action Project",
+      "codes": [
+        "MGT 414",
+        "MGT 414R"
+      ],
+      "terms": [
+        "SP26",
+        "FA26"
+      ],
+      "instructors": [
+        "Kenny"
+      ],
+      "offering_count": 2,
+      "latest_offering": "MGT 414R Rady Action Project (Kenny) FA26.pdf"
+    },
+    {
+      "key": "mgt 415|new venture development",
+      "title": "New Venture Development",
+      "codes": [
+        "MGT 415"
+      ],
+      "terms": [
+        "WI26"
+      ],
+      "instructors": [
+        "Klaas"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 415 New Venture Development (Klaas) WI26.pdf"
+    },
+    {
+      "key": "mgt 417|current business law issues",
+      "title": "Current Business Law Issues",
+      "codes": [
+        "MGT 417"
+      ],
+      "terms": [
+        "SU26"
+      ],
+      "instructors": [
+        "Parme"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 417 Current Business Law Issues (Parme) SU26.pdf"
+    },
+    {
+      "key": "mgt 420|negotiation",
+      "title": "Negotiation",
+      "codes": [
+        "MGT 420"
+      ],
+      "terms": [
+        "SP26",
+        "FA26"
+      ],
+      "instructors": [
+        "Gneezy",
+        "Rai"
+      ],
+      "offering_count": 2,
+      "latest_offering": "MGT 420 Negotiation (Gneezy) FA26.pdf"
+    },
+    {
+      "key": "mgt 421|ceo and corporate governance",
+      "title": "CEO & Corporate Governance",
+      "codes": [
+        "MGT 421"
+      ],
+      "terms": [
+        "SU26"
+      ],
+      "instructors": [
+        "Berthelot"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 421 CEO & Corporate Governance (Berthelot) SU26.pdf"
+    },
+    {
+      "key": "mgt 428|managerial judg decis making",
+      "title": "Managerial Judg-Decis Making",
+      "codes": [
+        "MGT 428"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Rottenstreich"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 428 Managerial Judg-Decis Making (Rottenstreich) SP26.pdf"
+    },
+    {
+      "key": "mgt 429|topics in corporate governance leadership in a crisis",
+      "title": "Topics in Corporate Governance - Leadership In A Crisis",
+      "codes": [
+        "MGT 429"
+      ],
+      "terms": [
+        "SU25"
+      ],
+      "instructors": [
+        "Sadler"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 429 Topics in Corporate Governance - Leadership In A Crisis (Sadler) SU25.pdf"
+    },
+    {
+      "key": "mgt 430|biotechnology industry structure and strategy",
+      "title": "Biotechnology Industry, Structure & Strategy",
+      "codes": [
+        "MGT 430"
+      ],
+      "terms": [
+        "SU26"
+      ],
+      "instructors": [
+        "Bain"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 430 Biotechnology Industry, Structure & Strategy (Bain) SU26.pdf"
+    },
+    {
+      "key": "mgt 431|power and politics",
+      "title": "Power and Politics",
+      "codes": [
+        "MGT 431R"
+      ],
+      "terms": [
+        "WI26"
+      ],
+      "instructors": [
+        "Smith"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 431R Power and Politics (Smith) WI26.pdf"
+    },
+    {
+      "key": "mgt 433|managing healthcare and life sciences",
+      "title": "Managing Healthcare and Life Sciences",
+      "codes": [
+        "MGT 433"
+      ],
+      "terms": [
+        "WI26"
+      ],
+      "instructors": [
+        "Felke"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 433  Managing Healthcare and Life Sciences (Felke) WI26.pdf"
+    },
+    {
+      "key": "mgt 439|topics in org behavior strategic communications",
+      "title": "Topics in org Behavior - Strategic Communications",
+      "codes": [
+        "MGT 439"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Salovey"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 439 Topics in org Behavior - Strategic Communications (Salovey) SP26.pdf"
+    },
+    {
+      "key": "mgt 439|topics in org knowledge mgt for strategic adv",
+      "title": "Topics in Org - Knowledge Mgt for Strategic Adv",
+      "codes": [
+        "MGT 439"
+      ],
+      "terms": [
+        "FA25"
+      ],
+      "instructors": [
+        "Nissen"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 439 Topics in Org - Knowledge Mgt for Strategic Adv (Nissen) FA25.pdf"
+    },
+    {
+      "key": "mgt 439|topics org behavior leadership in practice coaching and inclusion",
+      "title": "Topics-Org Behavior - Leadership in Practice - Coaching & Inclusion",
+      "codes": [
+        "MGT 439"
+      ],
+      "terms": [
+        "SU26"
+      ],
+      "instructors": [
+        "Meyer, A"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 439 Topics-Org Behavior - Leadership in Practice - Coaching & Inclusion (Meyer, A) SU26.pdf"
+    },
+    {
+      "key": "mgt 446|spreadsheet modeling",
+      "title": "Spreadsheet Modeling",
+      "codes": [
+        "MGT 446"
+      ],
+      "terms": [
+        "FA26"
+      ],
+      "instructors": [
+        "Montgomery"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 446 Spreadsheet Modeling (Montgomery) FA26.pdf"
+    },
+    {
+      "key": "mgt 449|topics in operations and techology genai for business",
+      "title": "Topics in Operations & Techology - GenAI for Business",
+      "codes": [
+        "MGT 449"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Nijs & Teixeira"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 449 Topics in Operations & Techology - GenAI for Business (Nijs & Teixeira) SP26.pdf"
+    },
+    {
+      "key": "mgt 449|topics in ops and tech global chains new approaches",
+      "title": "Topics in Ops & Tech - Global Chains - New Approaches",
+      "codes": [
+        "MGT 449"
+      ],
+      "terms": [
+        "SU25"
+      ],
+      "instructors": [
+        "Gopal"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 449 Topics in Ops & Tech - Global Chains - New Approaches (Gopal) SU25.pdf"
+    },
+    {
+      "key": "mgt 449|topics in ops and tech supply chain finance",
+      "title": "Topics in Ops & Tech - Supply Chain Finance",
+      "codes": [
+        "MGT 449"
+      ],
+      "terms": [
+        "SU25"
+      ],
+      "instructors": [
+        "Gopal"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 449 Topics in Ops & Tech - Supply Chain Finance (Gopal) SU25.pdf"
+    },
+    {
+      "key": "mgt 450|project management",
+      "title": "Project Management",
+      "codes": [
+        "MGT 450"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Erat"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 450 Project Management (Erat) SP26.pdf"
+    },
+    {
+      "key": "mgt 451|ai and tech strategy",
+      "title": "AI and Tech Strategy",
+      "codes": [
+        "MGT 451R"
+      ],
+      "terms": [
+        "FA26"
+      ],
+      "instructors": [
+        "Zhu"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 451R AI and Tech Strategy (Zhu) FA26 (fully remote).pdf"
+    },
+    {
+      "key": "mgt 452|new product development",
+      "title": "New Product Development",
+      "codes": [
+        "MGT 452",
+        "MGT 452R"
+      ],
+      "terms": [
+        "WI26",
+        "SP26"
+      ],
+      "instructors": [
+        "Meyer",
+        "Meyer, M"
+      ],
+      "offering_count": 2,
+      "latest_offering": "MGT 452R New Product Development (Meyer) SP26.pdf"
+    },
+    {
+      "key": "mgt 453|brand management",
+      "title": "Brand Management",
+      "codes": [
+        "MGT 453"
+      ],
+      "terms": [
+        "SU26"
+      ],
+      "instructors": [
+        "Yorkston"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 453 Brand Management (Yorkston) SU26.pdf"
+    },
+    {
+      "key": "mgt 453|supply chain management",
+      "title": "Supply Chain Management",
+      "codes": [
+        "MGT 453",
+        "MGT 453R"
+      ],
+      "terms": [
+        "WI26",
+        "SU26"
+      ],
+      "instructors": [
+        "Kim",
+        "Shin"
+      ],
+      "offering_count": 2,
+      "latest_offering": "MGT 453 Supply Chain Management (Kim) SU26.pdf"
+    },
+    {
+      "key": "mgt 455|customer analytics and generative ai",
+      "title": "Customer Analytics and (Generative) AI",
+      "codes": [
+        "MGT 455R"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Nijs"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 455R Customer Analytics and (Generative) AI (Nijs) SP26.pdf"
+    },
+    {
+      "key": "mgt 456|innov product and program mngmt",
+      "title": "Innov Product & Program Mngmt",
+      "codes": [
+        "MGT 456"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Krishnan"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 456 Innov Product & Program Mngmt (Krishnan) SP26.pdf"
+    },
+    {
+      "key": "mgt 458|experiments in firms",
+      "title": "Experiments in Firms",
+      "codes": [
+        "MGT 458",
+        "MGT 458R"
+      ],
+      "terms": [
+        "FA25",
+        "WI26"
+      ],
+      "instructors": [
+        "Sadoff",
+        "Samek"
+      ],
+      "offering_count": 2,
+      "latest_offering": "MGT 458R Experiments in Firms (Sadoff) WI26.pdf"
+    },
+    {
+      "key": "mgt 459|topics in innovation venture innovation and growth strategy",
+      "title": "Topics in Innovation - Venture Innovation & Growth Strategy",
+      "codes": [
+        "MGT 459"
+      ],
+      "terms": [
+        "WI26"
+      ],
+      "instructors": [
+        "Krishnan"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 459 Topics in Innovation - Venture Innovation & Growth Strategy (Krishnan) WI26.pdf"
+    },
+    {
+      "key": "mgt 459|topics in international business bringing product to us market sd immersion",
+      "title": "Topics in International Business - Bringing Product to US Market (SD Immersion))",
+      "codes": [
+        "MGT 459"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Gneezy"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 459 Topics in International Business - Bringing Product to US Market (SD Immersion)) (Gneezy) SP26.pdf"
+    },
+    {
+      "key": "mgt 461|behavioral economics and market design",
+      "title": "Behavioral Economics and Market Design",
+      "codes": [
+        "MGT 461R"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Samek"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 461R Behavioral Economics and Market Design (Samek) SP26.pdf"
+    },
+    {
+      "key": "mgt 470|digital disruption",
+      "title": "Digital Disruption",
+      "codes": [
+        "MGT 470"
+      ],
+      "terms": [
+        "WI26"
+      ],
+      "instructors": [
+        "Teixeira"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 470 Digital Disruption (Teixeira) WI26.pdf"
+    },
+    {
+      "key": "mgt 471|digital transformation",
+      "title": "Digital Transformation",
+      "codes": [
+        "MGT 471"
+      ],
+      "terms": [
+        "FA25"
+      ],
+      "instructors": [
+        "Teixeira"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 471 Digital Transformation (Teixeira) FA25.pdf"
+    },
+    {
+      "key": "mgt 473|data science with llms",
+      "title": "Data Science with LLMs",
+      "codes": [
+        "MGT 473"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Sanders"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 473 Data Science with LLMs (Sanders) SP26.pdf"
+    },
+    {
+      "key": "mgt 477|consumer behavior",
+      "title": "Consumer Behavior",
+      "codes": [
+        "MGT 477R"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Liu"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 477R Consumer Behavior (Liu) SP26.pdf"
+    },
+    {
+      "key": "mgt 482|brand management",
+      "title": "Brand Management",
+      "codes": [
+        "MGT 482"
+      ],
+      "terms": [
+        "SU26"
+      ],
+      "instructors": [
+        "Yorkston"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 482 Brand Management (Yorkston) - SU26.pdf"
+    },
+    {
+      "key": "mgt 486|real estate finance",
+      "title": "Real Estate Finance",
+      "codes": [
+        "MGT 486R"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Avenancio-León"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 486R Real Estate Finance (Avenancio-León) SP26.pdf"
+    },
+    {
+      "key": "mgt 487|valuation in corporate finance",
+      "title": "Valuation in Corporate Finance",
+      "codes": [
+        "MGT 487"
+      ],
+      "terms": [
+        "FA26"
+      ],
+      "instructors": [
+        "Buti"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 487 Valuation in Corporate Finance (Buti) FA26.pdf"
+    },
+    {
+      "key": "mgt 488|applied market research",
+      "title": "Applied Market Research",
+      "codes": [
+        "MGT 488R"
+      ],
+      "terms": [
+        "FA26"
+      ],
+      "instructors": [
+        "Amir"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 488R Applied Market Research (Amir) FA26.pdf"
+    },
+    {
+      "key": "mgt 489|topics in marketing brand management",
+      "title": "Topics in Marketing_ Brand Management",
+      "codes": [
+        "MGT 489"
+      ],
+      "terms": [
+        "SU25"
+      ],
+      "instructors": [
+        "Yorkston"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 489 Topics in Marketing_ Brand Management (Yorkston) SU25.pdf"
+    },
+    {
+      "key": "mgt 489|topics in marketing skills of the future",
+      "title": "Topics in Marketing - Skills of the Future",
+      "codes": [
+        "MGT 489"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Shachar"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 489 Topics in Marketing - Skills of the Future (Shachar) SP26.pdf"
+    },
+    {
+      "key": "mgt 490|m and a and corporate restructurings",
+      "title": "M&A and Corporate Restructurings",
+      "codes": [
+        "MGT 490"
+      ],
+      "terms": [
+        "FA26"
+      ],
+      "instructors": [
+        "Buti"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 490 M&A and Corporate Restructurings (Buti) FA26.pdf"
+    },
+    {
+      "key": "mgt 491|investments",
+      "title": "Investments",
+      "codes": [
+        "MGT 491"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Girand"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 491 Investments (Girand) SP26.pdf"
+    },
+    {
+      "key": "mgt 492|financial risk management",
+      "title": "Financial Risk Management",
+      "codes": [
+        "MGT 492R"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Valkanov"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 492R Financial Risk Management (Valkanov) SP26.pdf"
+    },
+    {
+      "key": "mgt 493|new venture finance",
+      "title": "New Venture Finance",
+      "codes": [
+        "MGT 493R"
+      ],
+      "terms": [
+        "FA26"
+      ],
+      "instructors": [
+        "Townsend"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 493R New Venture Finance (Townsend) FA26.pdf"
+    },
+    {
+      "key": "mgt 495|international finance",
+      "title": "International Finance",
+      "codes": [
+        "MGT 495"
+      ],
+      "terms": [
+        "SU26"
+      ],
+      "instructors": [
+        "Warachka"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 495 International Finance (Warachka) SU26.pdf"
+    },
+    {
+      "key": "mgt 495|topics in finance machine learning and ai in finance",
+      "title": "Topics in Finance - Machine Learning and AI in Finance",
+      "codes": [
+        "MGT 495"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Ghezzi"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGT 495 Topics in Finance - Machine Learning and AI in Finance (Ghezzi) SP26.pdf"
+    },
+    {
+      "key": "mgta 402|data driven communications",
+      "title": "Data Driven Communications",
+      "codes": [
+        "MGTA 402"
+      ],
+      "terms": [
+        "FA26"
+      ],
+      "instructors": [
+        "Walsh"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTA 402 Data Driven Communications (Walsh) FA26.pdf"
+    },
+    {
+      "key": "mgta 403|ai math and programming for business analytics",
+      "title": "AI-Math and Programming for Business Analytics",
+      "codes": [
+        "MGTA 403"
+      ],
+      "terms": [
+        "SU26"
+      ],
+      "instructors": [
+        "Nijs"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTA 403 AI-Math and Programming for Business Analytics (Nijs) SU26.pdf"
+    },
+    {
+      "key": "mgta 415|analyzing unsructured data",
+      "title": "Analyzing Unsructured Data",
+      "codes": [
+        "MGTA 415"
+      ],
+      "terms": [
+        "SU25"
+      ],
+      "instructors": [
+        "Wu"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTA 415 Analyzing Unsructured Data (Wu) SU25.pdf"
+    },
+    {
+      "key": "mgta 444|business analytics consulting",
+      "title": "Business Analytics Consulting",
+      "codes": [
+        "MGTA 444"
+      ],
+      "terms": [
+        "WI26"
+      ],
+      "instructors": [
+        "Peterson"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTA 444 Business Analytics Consulting (Peterson) WI26.pdf"
+    },
+    {
+      "key": "mgta 451|business analytics in marketing finance and ops",
+      "title": "Business Analytics in Marketing, Finance, and Ops",
+      "codes": [
+        "MGTA 451"
+      ],
+      "terms": [
+        "SU26"
+      ],
+      "instructors": [
+        "Buti-Shahsavand-Wilbur"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTA 451 Business Analytics in Marketing, Finance, and Ops (Buti-Shahsavand-Wilbur) SU26.pdf"
+    },
+    {
+      "key": "mgta 452|collecting and analyzing large data",
+      "title": "Collecting and Analyzing Large Data",
+      "codes": [
+        "MGTA 452"
+      ],
+      "terms": [
+        "FA26"
+      ],
+      "instructors": [
+        "Hansen"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTA 452 Collecting and Analyzing Large Data (Hansen) FA26.pdf"
+    },
+    {
+      "key": "mgta 453|business analytics",
+      "title": "Business Analytics",
+      "codes": [
+        "MGTA 453"
+      ],
+      "terms": [
+        "FA26"
+      ],
+      "instructors": [
+        "August"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTA 453 Business Analytics (August) FA26.pdf"
+    },
+    {
+      "key": "mgta 454|business analytics capstone",
+      "title": "Business Analytics Capstone",
+      "codes": [
+        "MGTA 454"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [],
+      "offering_count": 1,
+      "latest_offering": "MGTA 454 Business Analytics Capstone - SP26.pdf"
+    },
+    {
+      "key": "mgta 456|supply chain analytics",
+      "title": "Supply Chain Analytics",
+      "codes": [
+        "MGTA 456"
+      ],
+      "terms": [
+        "WI26"
+      ],
+      "instructors": [
+        "Montgomery"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTA 456 Supply Chain Analytics (Montgomery) WI26.pdf"
+    },
+    {
+      "key": "mgta 457|business intelligence systems",
+      "title": "Business Intelligence Systems",
+      "codes": [
+        "MGTA 457"
+      ],
+      "terms": [
+        "FA25",
+        "FA26"
+      ],
+      "instructors": [
+        "Jambulapati",
+        "Schibler"
+      ],
+      "offering_count": 2,
+      "latest_offering": "MGTA 457 Business Intelligence Systems (Jambulapati) FA26.pdf"
+    },
+    {
+      "key": "mgta 458|experiments for business analytics",
+      "title": "Experiments for Business Analytics",
+      "codes": [
+        "MGTA 458"
+      ],
+      "terms": [
+        "WI26"
+      ],
+      "instructors": [
+        "Johnson"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTA 458 Experiments for Business Analytics (Johnson) WI26.pdf"
+    },
+    {
+      "key": "mgta 459|managerial judg decis making",
+      "title": "Managerial Judg-Decis Making",
+      "codes": [
+        "MGTA 459"
+      ],
+      "terms": [
+        "FA26"
+      ],
+      "instructors": [
+        "Rottenstreich"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTA 459 Managerial Judg-Decis Making (Rottenstreich) FA26.pdf"
+    },
+    {
+      "key": "mgta 459|mangerial judg decis making",
+      "title": "Mangerial Judg Decis Making",
+      "codes": [
+        "MGTA 459"
+      ],
+      "terms": [
+        "FA25"
+      ],
+      "instructors": [
+        "Schurr"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTA 459 Mangerial Judg Decis Making (Schurr) FA25.pdf"
+    },
+    {
+      "key": "mgta 460|business analytics project mgt",
+      "title": "Business Analytics Project Mgt",
+      "codes": [
+        "MGTA 460"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Erat"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTA 460 Business Analytics Project Mgt (Erat) SP26.pdf"
+    },
+    {
+      "key": "mgta 463|fruad analytics",
+      "title": "Fruad Analytics",
+      "codes": [
+        "MGTA 463R"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Coggeshall"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTA 463R Fruad Analytics (Coggeshall) SP26.pdf"
+    },
+    {
+      "key": "mgta 464|sql and etl",
+      "title": "SQL and ETL",
+      "codes": [
+        "MGTA 464"
+      ],
+      "terms": [
+        "SU25",
+        "SU26"
+      ],
+      "instructors": [
+        "August",
+        "Perols"
+      ],
+      "offering_count": 2,
+      "latest_offering": "MGTA 464 SQL and ETL (August) SU26.pdf"
+    },
+    {
+      "key": "mgta 466|scalable analytics",
+      "title": "Scalable Analytics",
+      "codes": [
+        "MGTA 466"
+      ],
+      "terms": [
+        "WI26"
+      ],
+      "instructors": [
+        "Nguyen"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTA 466 Scalable Analytics (Nguyen) WI26.pdf"
+    },
+    {
+      "key": "mgta 479|pricing analytics",
+      "title": "Pricing Analytics",
+      "codes": [
+        "MGTA 479"
+      ],
+      "terms": [
+        "WI26"
+      ],
+      "instructors": [
+        "Faltings"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTA 479 Pricing Analytics (Faltings) WI26.pdf"
+    },
+    {
+      "key": "mgta 495|spc topics in business analytics ai and prescriptive analytics",
+      "title": "Spc Topics in Business Analytics - AI & Prescriptive Analytics",
+      "codes": [
+        "MGTA 495"
+      ],
+      "terms": [
+        "WI26"
+      ],
+      "instructors": [
+        "Kazemian"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTA 495- Spc Topics in Business Analytics - AI & Prescriptive Analytics (Kazemian) WI26.pdf"
+    },
+    {
+      "key": "mgta 495|special topics genai for business",
+      "title": "Special Topics - GenAI for Business",
+      "codes": [
+        "MGTA 495"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Nijs"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTA 495 Special Topics - GenAI for Business (Nijs) SP26.pdf"
+    },
+    {
+      "key": "mgta 495|special topics in business analytics healthcare analytics",
+      "title": "Special Topics in Business Analytics - Healthcare Analytics",
+      "codes": [
+        "MGTA 495"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Kazemian"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTA 495 Special Topics in Business Analytics - Healthcare Analytics (Kazemian) SP26.pdf"
+    },
+    {
+      "key": "mgta 495|special topics in business analytics marketing analytics",
+      "title": "Special Topics in Business Analytics - Marketing Analytics",
+      "codes": [
+        "MGTA 495"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Yavorsky"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGtA 495 Special Topics in Business Analytics - Marketing Analytics (Yavorsky) SP26.pdf"
+    },
+    {
+      "key": "mgtf 401|financial accounting",
+      "title": "Financial Accounting",
+      "codes": [
+        "MGTF 401"
+      ],
+      "terms": [
+        "FA25"
+      ],
+      "instructors": [
+        "FLoyd"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTF 401 Financial Accounting (FLoyd) FA25.pdf"
+    },
+    {
+      "key": "mgtf 402|investment analysis",
+      "title": "Investment Analysis",
+      "codes": [
+        "MGTF 402"
+      ],
+      "terms": [
+        "FA26"
+      ],
+      "instructors": [
+        "Timmermann"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTF 402 Investment Analysis (Timmermann) FA26.pdf"
+    },
+    {
+      "key": "mgtf 403|advanced risk management",
+      "title": "Advanced Risk Management",
+      "codes": [
+        "MGTF 403"
+      ],
+      "terms": [
+        "WI26"
+      ],
+      "instructors": [
+        "Valkanov"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTF 403 Advanced Risk Management (Valkanov) WI26 - 8am.pdf"
+    },
+    {
+      "key": "mgtf 404|fin econometric empirical mthd",
+      "title": "Fin Econometric-Empirical Mthd",
+      "codes": [
+        "MGTF 404"
+      ],
+      "terms": [
+        "FA25"
+      ],
+      "instructors": [
+        "Valkanov"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTF 404 Fin Econometric-Empirical Mthd (Valkanov) FA25 - AM.pdf"
+    },
+    {
+      "key": "mgtf 405|business forecasting",
+      "title": "Business Forecasting",
+      "codes": [
+        "MGTF 405"
+      ],
+      "terms": [
+        "FA26"
+      ],
+      "instructors": [
+        "Timmermann"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTF 405 Business Forecasting (Timmermann) FA26.pdf"
+    },
+    {
+      "key": "mgtf 406|behavioral finance",
+      "title": "Behavioral Finance",
+      "codes": [
+        "MGTF 406"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Engelberg"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTF 406 Behavioral Finance (Engelberg) SP26.pdf"
+    },
+    {
+      "key": "mgtf 407|valuation in corporate finance",
+      "title": "Valuation in Corporate Finance",
+      "codes": [
+        "MGTF 407"
+      ],
+      "terms": [
+        "WI26"
+      ],
+      "instructors": [
+        "Mullins"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTF 407 Valuation in Corporate Finance (Mullins) WI26.pdf"
+    },
+    {
+      "key": "mgtf 408|real estate finance",
+      "title": "Real Estate Finance",
+      "codes": [
+        "MGTF 408"
+      ],
+      "terms": [
+        "SP25"
+      ],
+      "instructors": [
+        "Avenancio-Leon"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTF 408 Real Estate Finance (Avenancio-Leon) SP25.pdf"
+    },
+    {
+      "key": "mgtf 410|new venture finance",
+      "title": "New Venture Finance",
+      "codes": [
+        "MGTF 410"
+      ],
+      "terms": [
+        "WI26"
+      ],
+      "instructors": [
+        "Townsend"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTF 410 New Venture Finance (Townsend) WI26.pdf"
+    },
+    {
+      "key": "mgtf 413|computational finance methods",
+      "title": "Computational Finance Methods",
+      "codes": [
+        "MGTF 413"
+      ],
+      "terms": [
+        "WI26"
+      ],
+      "instructors": [
+        "Cheng & Williams"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTF 413 Computational Finance Methods (Cheng & Williams) WI26.pdf"
+    },
+    {
+      "key": "mgtf 415|collect analyze financial data",
+      "title": "Collect-Analyze Financial Data",
+      "codes": [
+        "MGTF 415"
+      ],
+      "terms": [
+        "FA26"
+      ],
+      "instructors": [
+        "Reher"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTF 415 Collect-Analyze Financial Data (Reher) FA26.pdf"
+    },
+    {
+      "key": "mgtf 416|professional seminars finance",
+      "title": "Professional Seminars Finance",
+      "codes": [
+        "MGTF 416"
+      ],
+      "terms": [
+        "WI26"
+      ],
+      "instructors": [
+        "Melvin"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTF 416 Professional Seminars Finance (Melvin) WI26.pdf"
+    },
+    {
+      "key": "mgtf 417|professional communications",
+      "title": "Professional Communications",
+      "codes": [
+        "MGTF 417"
+      ],
+      "terms": [
+        "WI26"
+      ],
+      "instructors": [
+        "Schmidt"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTF 417 Professional Communications (Schmidt) WI26.pdf"
+    },
+    {
+      "key": "mgtf 418|preparing for the cfa exam",
+      "title": "Preparing for the CFA Exam",
+      "codes": [
+        "MGTF 418"
+      ],
+      "terms": [
+        "FA26"
+      ],
+      "instructors": [
+        "Girand"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTF 418 Preparing for the CFA Exam (Girand) FA26.pdf"
+    },
+    {
+      "key": "mgtf 419|cfa level ii exam preparation",
+      "title": "CFA Level II Exam Preparation",
+      "codes": [
+        "MGTF 419"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Girand"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTF 419 CFA Level II Exam Preparation (Girand) SP26.pdf"
+    },
+    {
+      "key": "mgtf 420|financial markets and institutions",
+      "title": "Financial Markets and Institutions",
+      "codes": [
+        "MGTF 420"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Parashar"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTF 420 Financial Markets and Institutions (Parashar) SP26.pdf"
+    },
+    {
+      "key": "mgtf 421|corporate finance",
+      "title": "Corporate Finance",
+      "codes": [
+        "MGTF 421"
+      ],
+      "terms": [
+        "WI26"
+      ],
+      "instructors": [
+        "Bliss"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTF 421 Corporate Finance (Bliss) WI26.pdf"
+    },
+    {
+      "key": "mgtf 422|derivatives and structured finance",
+      "title": "Derivatives and Structured Finance",
+      "codes": [
+        "MGTF 422"
+      ],
+      "terms": [
+        "WI26"
+      ],
+      "instructors": [
+        "Warachka"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTF 422 Derivatives and Structured Finance (Warachka) WI26.pdf"
+    },
+    {
+      "key": "mgtf 423|data science for finance i",
+      "title": "Data Science for Finance I",
+      "codes": [
+        "MGTF 423"
+      ],
+      "terms": [
+        "WI26"
+      ],
+      "instructors": [
+        "Gupta"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTF 423 Data Science for Finance I (Gupta) WI26.pdf"
+    },
+    {
+      "key": "mgtf 424|data science for finance m",
+      "title": "Data Science for Finance - M",
+      "codes": [
+        "MGTF 424"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Vural"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTF 424 Data Science for Finance - M (Vural) SP26.pdf"
+    },
+    {
+      "key": "mgtf 430|asset management",
+      "title": "Asset Management",
+      "codes": [
+        "MGTF 430"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Vaughn"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTF 430 Asset Management (Vaughn) SP26.pdf"
+    },
+    {
+      "key": "mgtf 490|capstone applied finance project",
+      "title": "Capstone Applied Finance Project",
+      "codes": [
+        "MGTF 490"
+      ],
+      "terms": [
+        "FA26"
+      ],
+      "instructors": [
+        "Melvin, Girand, Padernacht"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTF 490 Capstone Applied Finance Project (Melvin, Girand, Padernacht) FA26.pdf"
+    },
+    {
+      "key": "mgtf 495|special topics ai in finance",
+      "title": "Special Topics - AI in Finance",
+      "codes": [
+        "MGTF 495"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Ghezzi"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTF 495 Special Topics - AI in Finance (Ghezzi) SP26.pdf"
+    },
+    {
+      "key": "mgtf 495|special topics digital finance",
+      "title": "Special Topics - Digital Finance",
+      "codes": [
+        "MGTF 495"
+      ],
+      "terms": [
+        "WI26"
+      ],
+      "instructors": [
+        "Vallod"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTF 495 Special Topics - Digital Finance (Vallod) W26.pdf"
+    },
+    {
+      "key": "mgtf 495|special topics fixed income",
+      "title": "Special Topics - Fixed Income",
+      "codes": [
+        "MGTF 495"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Girand & Bhatt"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTF 495 Special Topics - Fixed Income (Girand & Bhatt) SP26.pdf"
+    },
+    {
+      "key": "mgtp 401|professional seminar",
+      "title": "Professional Seminar",
+      "codes": [
+        "MGTP 401"
+      ],
+      "terms": [
+        "SP26",
+        "FA26"
+      ],
+      "instructors": [
+        "Girand",
+        "Jewett"
+      ],
+      "offering_count": 2,
+      "latest_offering": "MGTP 401 Professional Seminar (Girand) FA26.pdf"
+    },
+    {
+      "key": "mgtp 414|business law",
+      "title": "Business Law",
+      "codes": [
+        "MGTP 414"
+      ],
+      "terms": [
+        "FA25"
+      ],
+      "instructors": [
+        "Parme"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTP 414 Business Law (Parme) FA25.pdf"
+    },
+    {
+      "key": "mgtp 416|ethics accounting and business",
+      "title": "Ethics-accounting & Business",
+      "codes": [
+        "MGTP 416"
+      ],
+      "terms": [
+        "WI26"
+      ],
+      "instructors": [
+        "Lindenberger"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTP 416 Ethics-accounting & Business (Lindenberger) WI26.pdf"
+    },
+    {
+      "key": "mgtp 421|internal control fin reporting",
+      "title": "Internal Control - Fin Reporting",
+      "codes": [
+        "MGTP 421"
+      ],
+      "terms": [
+        "FA26"
+      ],
+      "instructors": [
+        "Molloie"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTP 421 Internal Control - Fin Reporting (Molloie) FA26.pdf"
+    },
+    {
+      "key": "mgtp 422|systems process and tech for acct",
+      "title": "Systems, Process & Tech for Acct",
+      "codes": [
+        "MGTP 422"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Perols"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTP 422 Systems, Process & Tech for Acct (Perols) SP26.pdf"
+    },
+    {
+      "key": "mgtp 424|professional communications for accountants",
+      "title": "Professional Communications for Accountants",
+      "codes": [
+        "MGTP 424"
+      ],
+      "terms": [
+        "FA26"
+      ],
+      "instructors": [
+        "Padernacht"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTP 424 Professional Communications for Accountants (Padernacht) FA26.pdf"
+    },
+    {
+      "key": "mgtp 425|professional resaerch for accountants",
+      "title": "Professional Resaerch for Accountants",
+      "codes": [
+        "MGTP 425"
+      ],
+      "terms": [
+        "FA26"
+      ],
+      "instructors": [
+        "Jeter"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTP 425 Professional Resaerch for Accountants (Jeter) FA26.pdf"
+    },
+    {
+      "key": "mgtp 429|adv topics in accountng and auditing",
+      "title": "Adv Topics in Accountng and Auditing",
+      "codes": [
+        "MGTP 429"
+      ],
+      "terms": [
+        "WI26"
+      ],
+      "instructors": [
+        "Huie"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTP 429 Adv Topics in Accountng and Auditing (Huie) WI26.pdf"
+    },
+    {
+      "key": "mgtp 432|adv audiitng and forensic acct",
+      "title": "Adv. Audiitng & Forensic Acct",
+      "codes": [
+        "MGTP 432"
+      ],
+      "terms": [
+        "FA26"
+      ],
+      "instructors": [
+        "Brooks"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTP 432 Adv. Audiitng & Forensic Acct (Brooks) FA26.pdf"
+    },
+    {
+      "key": "mgtp 433|current issues in the practice and regulation of auditing",
+      "title": "Current Issues in the Practice and Regulation of Auditing",
+      "codes": [
+        "MGTP 433"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Molloie"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTP 433 Current Issues in the Practice and Regulation of Auditing (Molloie) SP26.pdf"
+    },
+    {
+      "key": "mgtp 434|finnacial statement analysis",
+      "title": "Finnacial Statement Analysis",
+      "codes": [
+        "MGTP 434"
+      ],
+      "terms": [
+        "WI26"
+      ],
+      "instructors": [
+        "Perez Cavazos"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTP 434 Finnacial Statement Analysis (Perez Cavazos) WI26.pdf"
+    },
+    {
+      "key": "mgtp 435|accounting for mergers and acquisitions",
+      "title": "Accounting for Mergers and Acquisitions",
+      "codes": [
+        "MGTP 435"
+      ],
+      "terms": [
+        "WI26"
+      ],
+      "instructors": [
+        "Jewett"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTP 435 Accounting for Mergers and Acquisitions (Jewett) WI26.pdf"
+    },
+    {
+      "key": "mgtp 443|global tax business strategy",
+      "title": "Global Tax Business Strategy",
+      "codes": [
+        "MGTP 443"
+      ],
+      "terms": [
+        "WI26"
+      ],
+      "instructors": [
+        "Jewett"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTP 443 Global Tax  Business Strategy (Jewett) WI26.pdf"
+    },
+    {
+      "key": "mgtp 444|capstone",
+      "title": "Capstone",
+      "codes": [
+        "MGTP 444"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Kum & Deiotte"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTP 444 Capstone (Kum & Deiotte) SP26.pdf"
+    },
+    {
+      "key": "mgtp 452|strategic cost management and new technologies",
+      "title": "Strategic Cost Management & New Technologies",
+      "codes": [
+        "MGTP 452"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Milone"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTP 452 Strategic Cost Management & New Technologies (Milone) SP26.pdf"
+    },
+    {
+      "key": "mgtp 495|special topic in accounting accounting data analytics",
+      "title": "Special Topic in Accounting - Accounting Data Analytics",
+      "codes": [
+        "MGTP 495"
+      ],
+      "terms": [
+        "SP26"
+      ],
+      "instructors": [
+        "Milone"
+      ],
+      "offering_count": 1,
+      "latest_offering": "MGTP 495 Special Topic in Accounting - Accounting Data Analytics (Milone) SP26.pdf"
+    }
+  ],
+  "title_review": [
+    {
+      "reason": "near_identical_title",
+      "similarity": 0.982,
+      "left_key": "mgt 428|managerial judg decis making",
+      "left_title": "Managerial Judg-Decis Making",
+      "left_codes": [
+        "MGT 428"
+      ],
+      "left_terms": [
+        "SP26"
+      ],
+      "right_key": "mgta 459|mangerial judg decis making",
+      "right_title": "Mangerial Judg Decis Making",
+      "right_codes": [
+        "MGTA 459"
+      ],
+      "right_terms": [
+        "FA25"
+      ]
+    },
+    {
+      "reason": "near_identical_title",
+      "similarity": 0.962,
+      "left_key": "mgtf 423|data science for finance i",
+      "left_title": "Data Science for Finance I",
+      "left_codes": [
+        "MGTF 423"
+      ],
+      "left_terms": [
+        "WI26"
+      ],
+      "right_key": "mgtf 424|data science for finance m",
+      "right_title": "Data Science for Finance - M",
+      "right_codes": [
+        "MGTF 424"
+      ],
+      "right_terms": [
+        "SP26"
+      ]
+    },
+    {
+      "reason": "same_code_different_title",
+      "similarity": 0.982,
+      "left_key": "mgta 459|managerial judg decis making",
+      "left_title": "Managerial Judg-Decis Making",
+      "left_codes": [
+        "MGTA 459"
+      ],
+      "left_terms": [
+        "FA26"
+      ],
+      "right_key": "mgta 459|mangerial judg decis making",
+      "right_title": "Mangerial Judg Decis Making",
+      "right_codes": [
+        "MGTA 459"
+      ],
+      "right_terms": [
+        "FA25"
+      ]
+    },
+    {
+      "reason": "same_code_different_title",
+      "similarity": 0.885,
+      "left_key": "mgta 495|special topics in business analytics healthcare analytics",
+      "left_title": "Special Topics in Business Analytics - Healthcare Analytics",
+      "left_codes": [
+        "MGTA 495"
+      ],
+      "left_terms": [
+        "SP26"
+      ],
+      "right_key": "mgta 495|special topics in business analytics marketing analytics",
+      "right_title": "Special Topics in Business Analytics - Marketing Analytics",
+      "right_codes": [
+        "MGTA 495"
+      ],
+      "right_terms": [
+        "SP26"
+      ]
+    },
+    {
+      "reason": "same_code_different_title",
+      "similarity": 0.828,
+      "left_key": "mgtf 495|special topics ai in finance",
+      "left_title": "Special Topics - AI in Finance",
+      "left_codes": [
+        "MGTF 495"
+      ],
+      "left_terms": [
+        "SP26"
+      ],
+      "right_key": "mgtf 495|special topics digital finance",
+      "right_title": "Special Topics - Digital Finance",
+      "right_codes": [
+        "MGTF 495"
+      ],
+      "right_terms": [
+        "WI26"
+      ]
+    },
+    {
+      "reason": "same_code_different_title",
+      "similarity": 0.814,
+      "left_key": "mgta 495|spc topics in business analytics ai and prescriptive analytics",
+      "left_title": "Spc Topics in Business Analytics - AI & Prescriptive Analytics",
+      "left_codes": [
+        "MGTA 495"
+      ],
+      "left_terms": [
+        "WI26"
+      ],
+      "right_key": "mgta 495|special topics in business analytics marketing analytics",
+      "right_title": "Special Topics in Business Analytics - Marketing Analytics",
+      "right_codes": [
+        "MGTA 495"
+      ],
+      "right_terms": [
+        "SP26"
+      ]
+    },
+    {
+      "reason": "same_code_different_title",
+      "similarity": 0.79,
+      "left_key": "mgta 495|spc topics in business analytics ai and prescriptive analytics",
+      "left_title": "Spc Topics in Business Analytics - AI & Prescriptive Analytics",
+      "left_codes": [
+        "MGTA 495"
+      ],
+      "left_terms": [
+        "WI26"
+      ],
+      "right_key": "mgta 495|special topics in business analytics healthcare analytics",
+      "right_title": "Special Topics in Business Analytics - Healthcare Analytics",
+      "right_codes": [
+        "MGTA 495"
+      ],
+      "right_terms": [
+        "SP26"
+      ]
+    },
+    {
+      "reason": "same_code_different_title",
+      "similarity": 0.764,
+      "left_key": "mgtf 495|special topics ai in finance",
+      "left_title": "Special Topics - AI in Finance",
+      "left_codes": [
+        "MGTF 495"
+      ],
+      "left_terms": [
+        "SP26"
+      ],
+      "right_key": "mgtf 495|special topics fixed income",
+      "right_title": "Special Topics - Fixed Income",
+      "right_codes": [
+        "MGTF 495"
+      ],
+      "right_terms": [
+        "SP26"
+      ]
+    },
+    {
+      "reason": "same_code_different_title",
+      "similarity": 0.702,
+      "left_key": "mgt 449|topics in ops and tech global chains new approaches",
+      "left_title": "Topics in Ops & Tech - Global Chains - New Approaches",
+      "left_codes": [
+        "MGT 449"
+      ],
+      "left_terms": [
+        "SU25"
+      ],
+      "right_key": "mgt 449|topics in ops and tech supply chain finance",
+      "right_title": "Topics in Ops & Tech - Supply Chain Finance",
+      "right_codes": [
+        "MGT 449"
+      ],
+      "right_terms": [
+        "SU25"
+      ]
+    },
+    {
+      "reason": "same_code_different_title",
+      "similarity": 0.702,
+      "left_key": "mgtf 495|special topics digital finance",
+      "left_title": "Special Topics - Digital Finance",
+      "left_codes": [
+        "MGTF 495"
+      ],
+      "left_terms": [
+        "WI26"
+      ],
+      "right_key": "mgtf 495|special topics fixed income",
+      "right_title": "Special Topics - Fixed Income",
+      "right_codes": [
+        "MGTF 495"
+      ],
+      "right_terms": [
+        "SP26"
+      ]
+    },
+    {
+      "reason": "same_code_different_title",
+      "similarity": 0.667,
+      "left_key": "mgt 453|brand management",
+      "left_title": "Brand Management",
+      "left_codes": [
+        "MGT 453"
+      ],
+      "left_terms": [
+        "SU26"
+      ],
+      "right_key": "mgt 453|supply chain management",
+      "right_title": "Supply Chain Management",
+      "right_codes": [
+        "MGT 453",
+        "MGT 453R"
+      ],
+      "right_terms": [
+        "WI26",
+        "SU26"
+      ]
+    },
+    {
+      "reason": "same_code_different_title",
+      "similarity": 0.63,
+      "left_key": "mgt 439|topics in org behavior strategic communications",
+      "left_title": "Topics in org Behavior - Strategic Communications",
+      "left_codes": [
+        "MGT 439"
+      ],
+      "left_terms": [
+        "SP26"
+      ],
+      "right_key": "mgt 439|topics in org knowledge mgt for strategic adv",
+      "right_title": "Topics in Org - Knowledge Mgt for Strategic Adv",
+      "right_codes": [
+        "MGT 439"
+      ],
+      "right_terms": [
+        "FA25"
+      ]
+    },
+    {
+      "reason": "same_code_different_title",
+      "similarity": 0.604,
+      "left_key": "mgt 449|topics in operations and techology genai for business",
+      "left_title": "Topics in Operations & Techology - GenAI for Business",
+      "left_codes": [
+        "MGT 449"
+      ],
+      "left_terms": [
+        "SP26"
+      ],
+      "right_key": "mgt 449|topics in ops and tech supply chain finance",
+      "right_title": "Topics in Ops & Tech - Supply Chain Finance",
+      "right_codes": [
+        "MGT 449"
+      ],
+      "right_terms": [
+        "SU25"
+      ]
+    },
+    {
+      "reason": "same_code_different_title",
+      "similarity": 0.596,
+      "left_key": "mgt 449|topics in operations and techology genai for business",
+      "left_title": "Topics in Operations & Techology - GenAI for Business",
+      "left_codes": [
+        "MGT 449"
+      ],
+      "left_terms": [
+        "SP26"
+      ],
+      "right_key": "mgt 449|topics in ops and tech global chains new approaches",
+      "right_title": "Topics in Ops & Tech - Global Chains - New Approaches",
+      "right_codes": [
+        "MGT 449"
+      ],
+      "right_terms": [
+        "SU25"
+      ]
+    },
+    {
+      "reason": "same_code_different_title",
+      "similarity": 0.589,
+      "left_key": "mgt 439|topics in org behavior strategic communications",
+      "left_title": "Topics in org Behavior - Strategic Communications",
+      "left_codes": [
+        "MGT 439"
+      ],
+      "left_terms": [
+        "SP26"
+      ],
+      "right_key": "mgt 439|topics org behavior leadership in practice coaching and inclusion",
+      "right_title": "Topics-Org Behavior - Leadership in Practice - Coaching & Inclusion",
+      "right_codes": [
+        "MGT 439"
+      ],
+      "right_terms": [
+        "SU26"
+      ]
+    },
+    {
+      "reason": "same_code_different_title",
+      "similarity": 0.579,
+      "left_key": "mgt 489|topics in marketing brand management",
+      "left_title": "Topics in Marketing_ Brand Management",
+      "left_codes": [
+        "MGT 489"
+      ],
+      "left_terms": [
+        "SU25"
+      ],
+      "right_key": "mgt 489|topics in marketing skills of the future",
+      "right_title": "Topics in Marketing - Skills of the Future",
+      "right_codes": [
+        "MGT 489"
+      ],
+      "right_terms": [
+        "SP26"
+      ]
+    },
+    {
+      "reason": "same_code_different_title",
+      "similarity": 0.562,
+      "left_key": "mgta 495|special topics genai for business",
+      "left_title": "Special Topics - GenAI for Business",
+      "left_codes": [
+        "MGTA 495"
+      ],
+      "left_terms": [
+        "SP26"
+      ],
+      "right_key": "mgta 495|special topics in business analytics marketing analytics",
+      "right_title": "Special Topics in Business Analytics - Marketing Analytics",
+      "right_codes": [
+        "MGTA 495"
+      ],
+      "right_terms": [
+        "SP26"
+      ]
+    },
+    {
+      "reason": "same_code_different_title",
+      "similarity": 0.556,
+      "left_key": "mgta 495|special topics genai for business",
+      "left_title": "Special Topics - GenAI for Business",
+      "left_codes": [
+        "MGTA 495"
+      ],
+      "left_terms": [
+        "SP26"
+      ],
+      "right_key": "mgta 495|special topics in business analytics healthcare analytics",
+      "right_title": "Special Topics in Business Analytics - Healthcare Analytics",
+      "right_codes": [
+        "MGTA 495"
+      ],
+      "right_terms": [
+        "SP26"
+      ]
+    },
+    {
+      "reason": "same_code_different_title",
+      "similarity": 0.476,
+      "left_key": "mgt 402|data driven communications",
+      "left_title": "Data Driven Communications",
+      "left_codes": [
+        "MGT 402"
+      ],
+      "left_terms": [
+        "WI26"
+      ],
+      "right_key": "mgt 402|management comms",
+      "right_title": "Management Comms",
+      "right_codes": [
+        "MGT 402"
+      ],
+      "right_terms": [
+        "SU25"
+      ]
+    },
+    {
+      "reason": "same_code_different_title",
+      "similarity": 0.448,
+      "left_key": "mgt 459|topics in innovation venture innovation and growth strategy",
+      "left_title": "Topics in Innovation - Venture Innovation & Growth Strategy",
+      "left_codes": [
+        "MGT 459"
+      ],
+      "left_terms": [
+        "WI26"
+      ],
+      "right_key": "mgt 459|topics in international business bringing product to us market sd immersion",
+      "right_title": "Topics in International Business - Bringing Product to US Market (SD Immersion))",
+      "right_codes": [
+        "MGT 459"
+      ],
+      "right_terms": [
+        "SP26"
+      ]
+    },
+    {
+      "reason": "same_code_different_title",
+      "similarity": 0.442,
+      "left_key": "mgta 495|spc topics in business analytics ai and prescriptive analytics",
+      "left_title": "Spc Topics in Business Analytics - AI & Prescriptive Analytics",
+      "left_codes": [
+        "MGTA 495"
+      ],
+      "left_terms": [
+        "WI26"
+      ],
+      "right_key": "mgta 495|special topics genai for business",
+      "right_title": "Special Topics - GenAI for Business",
+      "right_codes": [
+        "MGTA 495"
+      ],
+      "right_terms": [
+        "SP26"
+      ]
+    },
+    {
+      "reason": "same_code_different_title",
+      "similarity": 0.436,
+      "left_key": "mgt 439|topics in org knowledge mgt for strategic adv",
+      "left_title": "Topics in Org - Knowledge Mgt for Strategic Adv",
+      "left_codes": [
+        "MGT 439"
+      ],
+      "left_terms": [
+        "FA25"
+      ],
+      "right_key": "mgt 439|topics org behavior leadership in practice coaching and inclusion",
+      "right_title": "Topics-Org Behavior - Leadership in Practice - Coaching & Inclusion",
+      "right_codes": [
+        "MGT 439"
+      ],
+      "right_terms": [
+        "SU26"
+      ]
+    },
+    {
+      "reason": "same_code_different_title",
+      "similarity": 0.381,
+      "left_key": "mgt 406|leadership skills tech firms",
+      "left_title": "Leadership Skills -Tech Firms",
+      "left_codes": [
+        "MGT 406"
+      ],
+      "left_terms": [
+        "FA25"
+      ],
+      "right_key": "mgt 406|leading people",
+      "right_title": "Leading People",
+      "right_codes": [
+        "MGT 406"
+      ],
+      "right_terms": [
+        "SU25",
+        "FA25"
+      ]
+    },
+    {
+      "reason": "same_code_different_title",
+      "similarity": 0.274,
+      "left_key": "mgt 495|international finance",
+      "left_title": "International Finance",
+      "left_codes": [
+        "MGT 495"
+      ],
+      "left_terms": [
+        "SU26"
+      ],
+      "right_key": "mgt 495|topics in finance machine learning and ai in finance",
+      "right_title": "Topics in Finance - Machine Learning and AI in Finance",
+      "right_codes": [
+        "MGT 495"
+      ],
+      "right_terms": [
+        "SP26"
+      ]
+    },
+    {
+      "reason": "same_title_different_code",
+      "similarity": 1.0,
+      "left_key": "mgt 402|data driven communications",
+      "left_title": "Data Driven Communications",
+      "left_codes": [
+        "MGT 402"
+      ],
+      "left_terms": [
+        "WI26"
+      ],
+      "right_key": "mgta 402|data driven communications",
+      "right_title": "Data Driven Communications",
+      "right_codes": [
+        "MGTA 402"
+      ],
+      "right_terms": [
+        "FA26"
+      ]
+    },
+    {
+      "reason": "same_title_different_code",
+      "similarity": 1.0,
+      "left_key": "mgt 428|managerial judg decis making",
+      "left_title": "Managerial Judg-Decis Making",
+      "left_codes": [
+        "MGT 428"
+      ],
+      "left_terms": [
+        "SP26"
+      ],
+      "right_key": "mgta 459|managerial judg decis making",
+      "right_title": "Managerial Judg-Decis Making",
+      "right_codes": [
+        "MGTA 459"
+      ],
+      "right_terms": [
+        "FA26"
+      ]
+    },
+    {
+      "reason": "same_title_different_code",
+      "similarity": 1.0,
+      "left_key": "mgt 453|brand management",
+      "left_title": "Brand Management",
+      "left_codes": [
+        "MGT 453"
+      ],
+      "left_terms": [
+        "SU26"
+      ],
+      "right_key": "mgt 482|brand management",
+      "right_title": "Brand Management",
+      "right_codes": [
+        "MGT 482"
+      ],
+      "right_terms": [
+        "SU26"
+      ]
+    },
+    {
+      "reason": "same_title_different_code",
+      "similarity": 1.0,
+      "left_key": "mgt 486|real estate finance",
+      "left_title": "Real Estate Finance",
+      "left_codes": [
+        "MGT 486R"
+      ],
+      "left_terms": [
+        "SP26"
+      ],
+      "right_key": "mgtf 408|real estate finance",
+      "right_title": "Real Estate Finance",
+      "right_codes": [
+        "MGTF 408"
+      ],
+      "right_terms": [
+        "SP25"
+      ]
+    },
+    {
+      "reason": "same_title_different_code",
+      "similarity": 1.0,
+      "left_key": "mgt 487|valuation in corporate finance",
+      "left_title": "Valuation in Corporate Finance",
+      "left_codes": [
+        "MGT 487"
+      ],
+      "left_terms": [
+        "FA26"
+      ],
+      "right_key": "mgtf 407|valuation in corporate finance",
+      "right_title": "Valuation in Corporate Finance",
+      "right_codes": [
+        "MGTF 407"
+      ],
+      "right_terms": [
+        "WI26"
+      ]
+    },
+    {
+      "reason": "same_title_different_code",
+      "similarity": 1.0,
+      "left_key": "mgt 493|new venture finance",
+      "left_title": "New Venture Finance",
+      "left_codes": [
+        "MGT 493R"
+      ],
+      "left_terms": [
+        "FA26"
+      ],
+      "right_key": "mgtf 410|new venture finance",
+      "right_title": "New Venture Finance",
+      "right_codes": [
+        "MGTF 410"
+      ],
+      "right_terms": [
+        "WI26"
+      ]
+    }
+  ],
   "records": [
     {
       "kind": "catalog",
@@ -36,9 +2480,15 @@
       "department": "MGT",
       "course_number": "402",
       "course_code": "MGT 402",
+      "base_course_number": "402",
+      "base_course_code": "MGT 402",
+      "section_variant": null,
+      "course_key": "mgt 402|data driven communications",
       "title": "Data Driven Communications",
       "instructor": "Salovey",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -53,9 +2503,15 @@
       "department": "MGT",
       "course_number": "402",
       "course_code": "MGT 402",
+      "base_course_number": "402",
+      "base_course_code": "MGT 402",
+      "section_variant": null,
+      "course_key": "mgt 402|management comms",
       "title": "Management Comms",
       "instructor": "Salovey",
       "term": "SU25",
+      "term_raw": "SU25",
+      "term_sort": "2025-3",
       "qualifier": null
     },
     {
@@ -70,9 +2526,15 @@
       "department": "MGT",
       "course_number": "403",
       "course_code": "MGT 403",
+      "base_course_number": "403",
+      "base_course_code": "MGT 403",
+      "section_variant": null,
+      "course_key": "mgt 403|business analytics for managers",
       "title": "Business Analytics for Managers",
       "instructor": "Erat",
       "term": "FA25",
+      "term_raw": "FA25",
+      "term_sort": "2025-4",
       "qualifier": null
     },
     {
@@ -87,9 +2549,15 @@
       "department": "MGT",
       "course_number": "403",
       "course_code": "MGT 403",
+      "base_course_number": "403",
+      "base_course_code": "MGT 403",
+      "section_variant": null,
+      "course_key": "mgt 403|business analytics for managers",
       "title": "Business Analytics for Managers",
       "instructor": "Montgomery",
       "term": "FA25",
+      "term_raw": "FA25",
+      "term_sort": "2025-4",
       "qualifier": null
     },
     {
@@ -104,9 +2572,15 @@
       "department": "MGT",
       "course_number": "403R",
       "course_code": "MGT 403R",
+      "base_course_number": "403",
+      "base_course_code": "MGT 403",
+      "section_variant": "R",
+      "course_key": "mgt 403|business analytics for managers",
       "title": "Business Analytics for Managers",
       "instructor": "Zhang",
       "term": "FA26",
+      "term_raw": "FA26",
+      "term_sort": "2026-4",
       "qualifier": null
     },
     {
@@ -121,9 +2595,15 @@
       "department": "MGT",
       "course_number": "404",
       "course_code": "MGT 404",
+      "base_course_number": "404",
+      "base_course_code": "MGT 404",
+      "section_variant": null,
+      "course_key": "mgt 404|accounting",
       "title": "Accounting",
       "instructor": "FLoyd",
       "term": "FA25",
+      "term_raw": "FA25",
+      "term_sort": "2025-4",
       "qualifier": null
     },
     {
@@ -138,9 +2618,15 @@
       "department": "MGT",
       "course_number": "404",
       "course_code": "MGT 404",
+      "base_course_number": "404",
+      "base_course_code": "MGT 404",
+      "section_variant": null,
+      "course_key": "mgt 404|accounting",
       "title": "Accounting",
       "instructor": "Perez Silva",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -155,9 +2641,15 @@
       "department": "MGT",
       "course_number": "404R",
       "course_code": "MGT 404R",
+      "base_course_number": "404",
+      "base_course_code": "MGT 404",
+      "section_variant": "R",
+      "course_key": "mgt 404|accounting",
       "title": "Accounting",
       "instructor": "Floyd",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -172,9 +2664,15 @@
       "department": "MGT",
       "course_number": "405",
       "course_code": "MGT 405",
+      "base_course_number": "405",
+      "base_course_code": "MGT 405",
+      "section_variant": null,
+      "course_key": "mgt 405|managerial economics",
       "title": "Managerial Economics",
       "instructor": "Fragiadakis",
       "term": "FA26",
+      "term_raw": "FA26",
+      "term_sort": "2026-4",
       "qualifier": null
     },
     {
@@ -189,9 +2687,15 @@
       "department": "MGT",
       "course_number": "405R",
       "course_code": "MGT 405R",
+      "base_course_number": "405",
+      "base_course_code": "MGT 405",
+      "section_variant": "R",
+      "course_key": "mgt 405|managerial economics",
       "title": "Managerial Economics",
       "instructor": "Serra-Garcia",
       "term": "FA25",
+      "term_raw": "FA25",
+      "term_sort": "2025-4",
       "qualifier": null
     },
     {
@@ -206,9 +2710,15 @@
       "department": "MGT",
       "course_number": "406",
       "course_code": "MGT 406",
+      "base_course_number": "406",
+      "base_course_code": "MGT 406",
+      "section_variant": null,
+      "course_key": "mgt 406|leadership skills tech firms",
       "title": "Leadership Skills -Tech Firms",
       "instructor": "Oveis",
       "term": "FA25",
+      "term_raw": "FA25",
+      "term_sort": "2025-4",
       "qualifier": "FT"
     },
     {
@@ -223,9 +2733,15 @@
       "department": "MGT",
       "course_number": "406",
       "course_code": "MGT 406",
+      "base_course_number": "406",
+      "base_course_code": "MGT 406",
+      "section_variant": null,
+      "course_key": "mgt 406|leading people",
       "title": "Leading People",
       "instructor": "Oveis",
       "term": "FA25",
+      "term_raw": "FA25",
+      "term_sort": "2025-4",
       "qualifier": "Exec"
     },
     {
@@ -240,9 +2756,15 @@
       "department": "MGT",
       "course_number": "406",
       "course_code": "MGT 406",
+      "base_course_number": "406",
+      "base_course_code": "MGT 406",
+      "section_variant": null,
+      "course_key": "mgt 406|leading people",
       "title": "Leading People",
       "instructor": "Oveis",
       "term": "SU25",
+      "term_raw": "SU25",
+      "term_sort": "2025-3",
       "qualifier": "PT"
     },
     {
@@ -257,9 +2779,15 @@
       "department": "MGT",
       "course_number": "407",
       "course_code": "MGT 407",
+      "base_course_number": "407",
+      "base_course_code": "MGT 407",
+      "section_variant": null,
+      "course_key": "mgt 407|marketing",
       "title": "Marketing",
       "instructor": "Yorkston",
       "term": "FA25",
+      "term_raw": "FA25",
+      "term_sort": "2025-4",
       "qualifier": null
     },
     {
@@ -274,9 +2802,15 @@
       "department": "MGT",
       "course_number": "408",
       "course_code": "MGT 408",
+      "base_course_number": "408",
+      "base_course_code": "MGT 408",
+      "section_variant": null,
+      "course_key": "mgt 408|finance",
       "title": "Finance",
       "instructor": "Mullins",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -291,9 +2825,15 @@
       "department": "MGT",
       "course_number": "409",
       "course_code": "MGT 409",
+      "base_course_number": "409",
+      "base_course_code": "MGT 409",
+      "section_variant": null,
+      "course_key": "mgt 409|leading in networks and organizations",
       "title": "Leading in Networks & Organizations",
       "instructor": "Campbell",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -308,9 +2848,15 @@
       "department": "MGT",
       "course_number": "409",
       "course_code": "MGT 409",
+      "base_course_number": "409",
+      "base_course_code": "MGT 409",
+      "section_variant": null,
+      "course_key": "mgt 409|leading in networks and organizations",
       "title": "Leading in Networks & Organizations",
       "instructor": "Kum",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -325,9 +2871,15 @@
       "department": "MGT",
       "course_number": "410",
       "course_code": "MGT 410",
+      "base_course_number": "410",
+      "base_course_code": "MGT 410",
+      "section_variant": null,
+      "course_key": "mgt 410|strategy",
       "title": "Strategy",
       "instructor": "Fragiadakis",
       "term": "FA26",
+      "term_raw": "FA26",
+      "term_sort": "2026-4",
       "qualifier": null
     },
     {
@@ -342,9 +2894,15 @@
       "department": "MGT",
       "course_number": "410R",
       "course_code": "MGT 410R",
+      "base_course_number": "410",
+      "base_course_code": "MGT 410",
+      "section_variant": "R",
+      "course_key": "mgt 410|strategy",
       "title": "Strategy",
       "instructor": "Wellsjo",
       "term": "FA26",
+      "term_raw": "FA26",
+      "term_sort": "2026-4",
       "qualifier": null
     },
     {
@@ -359,9 +2917,15 @@
       "department": "MGT",
       "course_number": "412",
       "course_code": "MGT 412",
+      "base_course_number": "412",
+      "base_course_code": "MGT 412",
+      "section_variant": null,
+      "course_key": "mgt 412|new venture design",
       "title": "New Venture Design",
       "instructor": "Meyer",
       "term": "FA26",
+      "term_raw": "FA26",
+      "term_sort": "2026-4",
       "qualifier": null
     },
     {
@@ -376,9 +2940,15 @@
       "department": "MGT",
       "course_number": "412R",
       "course_code": "MGT 412R",
+      "base_course_number": "412",
+      "base_course_code": "MGT 412",
+      "section_variant": "R",
+      "course_key": "mgt 412|new venture design",
       "title": "New Venture Design",
       "instructor": "Meyer",
       "term": "FA26",
+      "term_raw": "FA26",
+      "term_sort": "2026-4",
       "qualifier": null
     },
     {
@@ -393,9 +2963,15 @@
       "department": "MGT",
       "course_number": "413",
       "course_code": "MGT 413",
+      "base_course_number": "413",
+      "base_course_code": "MGT 413",
+      "section_variant": null,
+      "course_key": "mgt 413|operations management",
       "title": "Operations Management",
       "instructor": "Montgomery",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -410,9 +2986,15 @@
       "department": "MGT",
       "course_number": "413",
       "course_code": "MGT 413",
+      "base_course_number": "413",
+      "base_course_code": "MGT 413",
+      "section_variant": null,
+      "course_key": "mgt 413|operations management",
       "title": "Operations Management",
       "instructor": "Shahsavand",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -427,9 +3009,15 @@
       "department": "MGT",
       "course_number": "413R",
       "course_code": "MGT 413R",
+      "base_course_number": "413",
+      "base_course_code": "MGT 413",
+      "section_variant": "R",
+      "course_key": "mgt 413|operations management",
       "title": "Operations Management",
       "instructor": "Luo",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -444,9 +3032,15 @@
       "department": "MGT",
       "course_number": "414",
       "course_code": "MGT 414",
+      "base_course_number": "414",
+      "base_course_code": "MGT 414",
+      "section_variant": null,
+      "course_key": "mgt 414|rady action project",
       "title": "Rady Action Project",
       "instructor": "Kenny",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -461,9 +3055,15 @@
       "department": "MGT",
       "course_number": "414R",
       "course_code": "MGT 414R",
+      "base_course_number": "414",
+      "base_course_code": "MGT 414",
+      "section_variant": "R",
+      "course_key": "mgt 414|rady action project",
       "title": "Rady Action Project",
       "instructor": "Kenny",
       "term": "FA26",
+      "term_raw": "FA26",
+      "term_sort": "2026-4",
       "qualifier": null
     },
     {
@@ -478,9 +3078,15 @@
       "department": "MGT",
       "course_number": "415",
       "course_code": "MGT 415",
+      "base_course_number": "415",
+      "base_course_code": "MGT 415",
+      "section_variant": null,
+      "course_key": "mgt 415|new venture development",
       "title": "New Venture Development",
       "instructor": "Klaas",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -495,9 +3101,15 @@
       "department": "MGT",
       "course_number": "417",
       "course_code": "MGT 417",
+      "base_course_number": "417",
+      "base_course_code": "MGT 417",
+      "section_variant": null,
+      "course_key": "mgt 417|current business law issues",
       "title": "Current Business Law Issues",
       "instructor": "Parme",
       "term": "SU26",
+      "term_raw": "SU26",
+      "term_sort": "2026-3",
       "qualifier": null
     },
     {
@@ -512,9 +3124,15 @@
       "department": "MGT",
       "course_number": "420",
       "course_code": "MGT 420",
+      "base_course_number": "420",
+      "base_course_code": "MGT 420",
+      "section_variant": null,
+      "course_key": "mgt 420|negotiation",
       "title": "Negotiation",
       "instructor": "Gneezy",
       "term": "FA26",
+      "term_raw": "FA26",
+      "term_sort": "2026-4",
       "qualifier": null
     },
     {
@@ -529,9 +3147,15 @@
       "department": "MGT",
       "course_number": "420",
       "course_code": "MGT 420",
+      "base_course_number": "420",
+      "base_course_code": "MGT 420",
+      "section_variant": null,
+      "course_key": "mgt 420|negotiation",
       "title": "Negotiation",
       "instructor": "Rai",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -546,9 +3170,15 @@
       "department": "MGT",
       "course_number": "421",
       "course_code": "MGT 421",
+      "base_course_number": "421",
+      "base_course_code": "MGT 421",
+      "section_variant": null,
+      "course_key": "mgt 421|ceo and corporate governance",
       "title": "CEO & Corporate Governance",
       "instructor": "Berthelot",
       "term": "SU26",
+      "term_raw": "SU26",
+      "term_sort": "2026-3",
       "qualifier": null
     },
     {
@@ -563,9 +3193,15 @@
       "department": "MGT",
       "course_number": "428",
       "course_code": "MGT 428",
+      "base_course_number": "428",
+      "base_course_code": "MGT 428",
+      "section_variant": null,
+      "course_key": "mgt 428|managerial judg decis making",
       "title": "Managerial Judg-Decis Making",
       "instructor": "Rottenstreich",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -580,9 +3216,15 @@
       "department": "MGT",
       "course_number": "429",
       "course_code": "MGT 429",
+      "base_course_number": "429",
+      "base_course_code": "MGT 429",
+      "section_variant": null,
+      "course_key": "mgt 429|topics in corporate governance leadership in a crisis",
       "title": "Topics in Corporate Governance - Leadership In A Crisis",
       "instructor": "Sadler",
       "term": "SU25",
+      "term_raw": "SU25",
+      "term_sort": "2025-3",
       "qualifier": null
     },
     {
@@ -597,9 +3239,15 @@
       "department": "MGT",
       "course_number": "430",
       "course_code": "MGT 430",
+      "base_course_number": "430",
+      "base_course_code": "MGT 430",
+      "section_variant": null,
+      "course_key": "mgt 430|biotechnology industry structure and strategy",
       "title": "Biotechnology Industry, Structure & Strategy",
       "instructor": "Bain",
       "term": "SU26",
+      "term_raw": "SU26",
+      "term_sort": "2026-3",
       "qualifier": null
     },
     {
@@ -614,9 +3262,15 @@
       "department": "MGT",
       "course_number": "431R",
       "course_code": "MGT 431R",
+      "base_course_number": "431",
+      "base_course_code": "MGT 431",
+      "section_variant": "R",
+      "course_key": "mgt 431|power and politics",
       "title": "Power and Politics",
       "instructor": "Smith",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -631,9 +3285,15 @@
       "department": "MGT",
       "course_number": "433",
       "course_code": "MGT 433",
+      "base_course_number": "433",
+      "base_course_code": "MGT 433",
+      "section_variant": null,
+      "course_key": "mgt 433|managing healthcare and life sciences",
       "title": "Managing Healthcare and Life Sciences",
       "instructor": "Felke",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -648,9 +3308,15 @@
       "department": "MGT",
       "course_number": "439",
       "course_code": "MGT 439",
+      "base_course_number": "439",
+      "base_course_code": "MGT 439",
+      "section_variant": null,
+      "course_key": "mgt 439|topics in org knowledge mgt for strategic adv",
       "title": "Topics in Org - Knowledge Mgt for Strategic Adv",
       "instructor": "Nissen",
       "term": "FA25",
+      "term_raw": "FA25",
+      "term_sort": "2025-4",
       "qualifier": null
     },
     {
@@ -665,9 +3331,15 @@
       "department": "MGT",
       "course_number": "439",
       "course_code": "MGT 439",
+      "base_course_number": "439",
+      "base_course_code": "MGT 439",
+      "section_variant": null,
+      "course_key": "mgt 439|topics in org behavior strategic communications",
       "title": "Topics in org Behavior - Strategic Communications",
       "instructor": "Salovey",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -682,9 +3354,15 @@
       "department": "MGT",
       "course_number": "439",
       "course_code": "MGT 439",
+      "base_course_number": "439",
+      "base_course_code": "MGT 439",
+      "section_variant": null,
+      "course_key": "mgt 439|topics org behavior leadership in practice coaching and inclusion",
       "title": "Topics-Org Behavior - Leadership in Practice - Coaching & Inclusion",
       "instructor": "Meyer, A",
       "term": "SU26",
+      "term_raw": "SU26",
+      "term_sort": "2026-3",
       "qualifier": null
     },
     {
@@ -699,9 +3377,15 @@
       "department": "MGT",
       "course_number": "446",
       "course_code": "MGT 446",
+      "base_course_number": "446",
+      "base_course_code": "MGT 446",
+      "section_variant": null,
+      "course_key": "mgt 446|spreadsheet modeling",
       "title": "Spreadsheet Modeling",
       "instructor": "Montgomery",
       "term": "FA26",
+      "term_raw": "FA26",
+      "term_sort": "2026-4",
       "qualifier": null
     },
     {
@@ -716,9 +3400,15 @@
       "department": "MGT",
       "course_number": "449",
       "course_code": "MGT 449",
+      "base_course_number": "449",
+      "base_course_code": "MGT 449",
+      "section_variant": null,
+      "course_key": "mgt 449|topics in operations and techology genai for business",
       "title": "Topics in Operations & Techology - GenAI for Business",
       "instructor": "Nijs & Teixeira",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -733,9 +3423,15 @@
       "department": "MGT",
       "course_number": "449",
       "course_code": "MGT 449",
+      "base_course_number": "449",
+      "base_course_code": "MGT 449",
+      "section_variant": null,
+      "course_key": "mgt 449|topics in ops and tech global chains new approaches",
       "title": "Topics in Ops & Tech - Global Chains - New Approaches",
       "instructor": "Gopal",
       "term": "SU25",
+      "term_raw": "SU25",
+      "term_sort": "2025-3",
       "qualifier": null
     },
     {
@@ -750,9 +3446,15 @@
       "department": "MGT",
       "course_number": "449",
       "course_code": "MGT 449",
+      "base_course_number": "449",
+      "base_course_code": "MGT 449",
+      "section_variant": null,
+      "course_key": "mgt 449|topics in ops and tech supply chain finance",
       "title": "Topics in Ops & Tech - Supply Chain Finance",
       "instructor": "Gopal",
       "term": "SU25",
+      "term_raw": "SU25",
+      "term_sort": "2025-3",
       "qualifier": null
     },
     {
@@ -767,9 +3469,15 @@
       "department": "MGT",
       "course_number": "450",
       "course_code": "MGT 450",
+      "base_course_number": "450",
+      "base_course_code": "MGT 450",
+      "section_variant": null,
+      "course_key": "mgt 450|project management",
       "title": "Project Management",
       "instructor": "Erat",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -784,9 +3492,15 @@
       "department": "MGT",
       "course_number": "451R",
       "course_code": "MGT 451R",
+      "base_course_number": "451",
+      "base_course_code": "MGT 451",
+      "section_variant": "R",
+      "course_key": "mgt 451|ai and tech strategy",
       "title": "AI and Tech Strategy",
       "instructor": "Zhu",
       "term": "FA26",
+      "term_raw": "FA26",
+      "term_sort": "2026-4",
       "qualifier": "fully remote"
     },
     {
@@ -801,9 +3515,15 @@
       "department": "MGT",
       "course_number": "452",
       "course_code": "MGT 452",
+      "base_course_number": "452",
+      "base_course_code": "MGT 452",
+      "section_variant": null,
+      "course_key": "mgt 452|new product development",
       "title": "New Product Development",
       "instructor": "Meyer, M",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -818,9 +3538,15 @@
       "department": "MGT",
       "course_number": "452R",
       "course_code": "MGT 452R",
+      "base_course_number": "452",
+      "base_course_code": "MGT 452",
+      "section_variant": "R",
+      "course_key": "mgt 452|new product development",
       "title": "New Product Development",
       "instructor": "Meyer",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -835,9 +3561,15 @@
       "department": "MGT",
       "course_number": "453",
       "course_code": "MGT 453",
+      "base_course_number": "453",
+      "base_course_code": "MGT 453",
+      "section_variant": null,
+      "course_key": "mgt 453|brand management",
       "title": "Brand Management",
       "instructor": "Yorkston",
       "term": "SU26",
+      "term_raw": "SU26",
+      "term_sort": "2026-3",
       "qualifier": null
     },
     {
@@ -852,9 +3584,15 @@
       "department": "MGT",
       "course_number": "453",
       "course_code": "MGT 453",
+      "base_course_number": "453",
+      "base_course_code": "MGT 453",
+      "section_variant": null,
+      "course_key": "mgt 453|supply chain management",
       "title": "Supply Chain Management",
       "instructor": "Kim",
       "term": "SU26",
+      "term_raw": "SU26",
+      "term_sort": "2026-3",
       "qualifier": null
     },
     {
@@ -869,9 +3607,15 @@
       "department": "MGT",
       "course_number": "453R",
       "course_code": "MGT 453R",
+      "base_course_number": "453",
+      "base_course_code": "MGT 453",
+      "section_variant": "R",
+      "course_key": "mgt 453|supply chain management",
       "title": "Supply Chain Management",
       "instructor": "Shin",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -886,9 +3630,15 @@
       "department": "MGT",
       "course_number": "455R",
       "course_code": "MGT 455R",
+      "base_course_number": "455",
+      "base_course_code": "MGT 455",
+      "section_variant": "R",
+      "course_key": "mgt 455|customer analytics and generative ai",
       "title": "Customer Analytics and (Generative) AI",
       "instructor": "Nijs",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -903,9 +3653,15 @@
       "department": "MGT",
       "course_number": "456",
       "course_code": "MGT 456",
+      "base_course_number": "456",
+      "base_course_code": "MGT 456",
+      "section_variant": null,
+      "course_key": "mgt 456|innov product and program mngmt",
       "title": "Innov Product & Program Mngmt",
       "instructor": "Krishnan",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -920,9 +3676,15 @@
       "department": "MGT",
       "course_number": "458",
       "course_code": "MGT 458",
+      "base_course_number": "458",
+      "base_course_code": "MGT 458",
+      "section_variant": null,
+      "course_key": "mgt 458|experiments in firms",
       "title": "Experiments in Firms",
       "instructor": "Samek",
       "term": "FA25",
+      "term_raw": "FA25",
+      "term_sort": "2025-4",
       "qualifier": null
     },
     {
@@ -937,9 +3699,15 @@
       "department": "MGT",
       "course_number": "458R",
       "course_code": "MGT 458R",
+      "base_course_number": "458",
+      "base_course_code": "MGT 458",
+      "section_variant": "R",
+      "course_key": "mgt 458|experiments in firms",
       "title": "Experiments in Firms",
       "instructor": "Sadoff",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -954,9 +3722,15 @@
       "department": "MGT",
       "course_number": "459",
       "course_code": "MGT 459",
+      "base_course_number": "459",
+      "base_course_code": "MGT 459",
+      "section_variant": null,
+      "course_key": "mgt 459|topics in innovation venture innovation and growth strategy",
       "title": "Topics in Innovation - Venture Innovation & Growth Strategy",
       "instructor": "Krishnan",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -971,9 +3745,15 @@
       "department": "MGT",
       "course_number": "459",
       "course_code": "MGT 459",
+      "base_course_number": "459",
+      "base_course_code": "MGT 459",
+      "section_variant": null,
+      "course_key": "mgt 459|topics in international business bringing product to us market sd immersion",
       "title": "Topics in International Business - Bringing Product to US Market (SD Immersion))",
       "instructor": "Gneezy",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -988,9 +3768,15 @@
       "department": "MGT",
       "course_number": "461R",
       "course_code": "MGT 461R",
+      "base_course_number": "461",
+      "base_course_code": "MGT 461",
+      "section_variant": "R",
+      "course_key": "mgt 461|behavioral economics and market design",
       "title": "Behavioral Economics and Market Design",
       "instructor": "Samek",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -1005,9 +3791,15 @@
       "department": "MGT",
       "course_number": "470",
       "course_code": "MGT 470",
+      "base_course_number": "470",
+      "base_course_code": "MGT 470",
+      "section_variant": null,
+      "course_key": "mgt 470|digital disruption",
       "title": "Digital Disruption",
       "instructor": "Teixeira",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -1022,9 +3814,15 @@
       "department": "MGT",
       "course_number": "471",
       "course_code": "MGT 471",
+      "base_course_number": "471",
+      "base_course_code": "MGT 471",
+      "section_variant": null,
+      "course_key": "mgt 471|digital transformation",
       "title": "Digital Transformation",
       "instructor": "Teixeira",
       "term": "FA25",
+      "term_raw": "FA25",
+      "term_sort": "2025-4",
       "qualifier": null
     },
     {
@@ -1039,9 +3837,15 @@
       "department": "MGT",
       "course_number": "473",
       "course_code": "MGT 473",
+      "base_course_number": "473",
+      "base_course_code": "MGT 473",
+      "section_variant": null,
+      "course_key": "mgt 473|data science with llms",
       "title": "Data Science with LLMs",
       "instructor": "Sanders",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -1056,9 +3860,15 @@
       "department": "MGT",
       "course_number": "477R",
       "course_code": "MGT 477R",
+      "base_course_number": "477",
+      "base_course_code": "MGT 477",
+      "section_variant": "R",
+      "course_key": "mgt 477|consumer behavior",
       "title": "Consumer Behavior",
       "instructor": "Liu",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -1073,9 +3883,15 @@
       "department": "MGT",
       "course_number": "482",
       "course_code": "MGT 482",
+      "base_course_number": "482",
+      "base_course_code": "MGT 482",
+      "section_variant": null,
+      "course_key": "mgt 482|brand management",
       "title": "Brand Management",
       "instructor": "Yorkston",
       "term": "SU26",
+      "term_raw": "SU26",
+      "term_sort": "2026-3",
       "qualifier": null
     },
     {
@@ -1090,9 +3906,15 @@
       "department": "MGT",
       "course_number": "486R",
       "course_code": "MGT 486R",
+      "base_course_number": "486",
+      "base_course_code": "MGT 486",
+      "section_variant": "R",
+      "course_key": "mgt 486|real estate finance",
       "title": "Real Estate Finance",
       "instructor": "Avenancio-León",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -1107,9 +3929,15 @@
       "department": "MGT",
       "course_number": "487",
       "course_code": "MGT 487",
+      "base_course_number": "487",
+      "base_course_code": "MGT 487",
+      "section_variant": null,
+      "course_key": "mgt 487|valuation in corporate finance",
       "title": "Valuation in Corporate Finance",
       "instructor": "Buti",
       "term": "FA26",
+      "term_raw": "FA26",
+      "term_sort": "2026-4",
       "qualifier": null
     },
     {
@@ -1124,9 +3952,15 @@
       "department": "MGT",
       "course_number": "488R",
       "course_code": "MGT 488R",
+      "base_course_number": "488",
+      "base_course_code": "MGT 488",
+      "section_variant": "R",
+      "course_key": "mgt 488|applied market research",
       "title": "Applied Market Research",
       "instructor": "Amir",
       "term": "FA26",
+      "term_raw": "FA26",
+      "term_sort": "2026-4",
       "qualifier": null
     },
     {
@@ -1141,9 +3975,15 @@
       "department": "MGT",
       "course_number": "489",
       "course_code": "MGT 489",
+      "base_course_number": "489",
+      "base_course_code": "MGT 489",
+      "section_variant": null,
+      "course_key": "mgt 489|topics in marketing skills of the future",
       "title": "Topics in Marketing - Skills of the Future",
       "instructor": "Shachar",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -1158,9 +3998,15 @@
       "department": "MGT",
       "course_number": "489",
       "course_code": "MGT 489",
+      "base_course_number": "489",
+      "base_course_code": "MGT 489",
+      "section_variant": null,
+      "course_key": "mgt 489|topics in marketing brand management",
       "title": "Topics in Marketing_ Brand Management",
       "instructor": "Yorkston",
       "term": "SU25",
+      "term_raw": "SU25",
+      "term_sort": "2025-3",
       "qualifier": null
     },
     {
@@ -1175,9 +4021,15 @@
       "department": "MGT",
       "course_number": "490",
       "course_code": "MGT 490",
+      "base_course_number": "490",
+      "base_course_code": "MGT 490",
+      "section_variant": null,
+      "course_key": "mgt 490|m and a and corporate restructurings",
       "title": "M&A and Corporate Restructurings",
       "instructor": "Buti",
       "term": "FA26",
+      "term_raw": "FA26",
+      "term_sort": "2026-4",
       "qualifier": null
     },
     {
@@ -1192,9 +4044,15 @@
       "department": "MGT",
       "course_number": "492R",
       "course_code": "MGT 492R",
+      "base_course_number": "492",
+      "base_course_code": "MGT 492",
+      "section_variant": "R",
+      "course_key": "mgt 492|financial risk management",
       "title": "Financial Risk Management",
       "instructor": "Valkanov",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -1209,9 +4067,15 @@
       "department": "MGT",
       "course_number": "493R",
       "course_code": "MGT 493R",
+      "base_course_number": "493",
+      "base_course_code": "MGT 493",
+      "section_variant": "R",
+      "course_key": "mgt 493|new venture finance",
       "title": "New Venture Finance",
       "instructor": "Townsend",
       "term": "FA26",
+      "term_raw": "FA26",
+      "term_sort": "2026-4",
       "qualifier": null
     },
     {
@@ -1226,9 +4090,15 @@
       "department": "MGT",
       "course_number": "495",
       "course_code": "MGT 495",
+      "base_course_number": "495",
+      "base_course_code": "MGT 495",
+      "section_variant": null,
+      "course_key": "mgt 495|international finance",
       "title": "International Finance",
       "instructor": "Warachka",
       "term": "SU26",
+      "term_raw": "SU26",
+      "term_sort": "2026-3",
       "qualifier": null
     },
     {
@@ -1243,9 +4113,15 @@
       "department": "MGT",
       "course_number": "495",
       "course_code": "MGT 495",
+      "base_course_number": "495",
+      "base_course_code": "MGT 495",
+      "section_variant": null,
+      "course_key": "mgt 495|topics in finance machine learning and ai in finance",
       "title": "Topics in Finance - Machine Learning and AI in Finance",
       "instructor": "Ghezzi",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -1260,9 +4136,15 @@
       "department": "MGTA",
       "course_number": "402",
       "course_code": "MGTA 402",
+      "base_course_number": "402",
+      "base_course_code": "MGTA 402",
+      "section_variant": null,
+      "course_key": "mgta 402|data driven communications",
       "title": "Data Driven Communications",
       "instructor": "Walsh",
       "term": "FA26",
+      "term_raw": "FA26",
+      "term_sort": "2026-4",
       "qualifier": null
     },
     {
@@ -1277,9 +4159,15 @@
       "department": "MGTA",
       "course_number": "403",
       "course_code": "MGTA 403",
+      "base_course_number": "403",
+      "base_course_code": "MGTA 403",
+      "section_variant": null,
+      "course_key": "mgta 403|ai math and programming for business analytics",
       "title": "AI-Math and Programming for Business Analytics",
       "instructor": "Nijs",
       "term": "SU26",
+      "term_raw": "SU26",
+      "term_sort": "2026-3",
       "qualifier": null
     },
     {
@@ -1294,9 +4182,15 @@
       "department": "MGTA",
       "course_number": "415",
       "course_code": "MGTA 415",
+      "base_course_number": "415",
+      "base_course_code": "MGTA 415",
+      "section_variant": null,
+      "course_key": "mgta 415|analyzing unsructured data",
       "title": "Analyzing Unsructured Data",
       "instructor": "Wu",
       "term": "SU25",
+      "term_raw": "SU25",
+      "term_sort": "2025-3",
       "qualifier": null
     },
     {
@@ -1311,9 +4205,15 @@
       "department": "MGTA",
       "course_number": "444",
       "course_code": "MGTA 444",
+      "base_course_number": "444",
+      "base_course_code": "MGTA 444",
+      "section_variant": null,
+      "course_key": "mgta 444|business analytics consulting",
       "title": "Business Analytics Consulting",
       "instructor": "Peterson",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -1328,9 +4228,15 @@
       "department": "MGTA",
       "course_number": "451",
       "course_code": "MGTA 451",
+      "base_course_number": "451",
+      "base_course_code": "MGTA 451",
+      "section_variant": null,
+      "course_key": "mgta 451|business analytics in marketing finance and ops",
       "title": "Business Analytics in Marketing, Finance, and Ops",
       "instructor": "Buti-Shahsavand-Wilbur",
       "term": "SU26",
+      "term_raw": "SU26",
+      "term_sort": "2026-3",
       "qualifier": null
     },
     {
@@ -1345,9 +4251,15 @@
       "department": "MGTA",
       "course_number": "452",
       "course_code": "MGTA 452",
+      "base_course_number": "452",
+      "base_course_code": "MGTA 452",
+      "section_variant": null,
+      "course_key": "mgta 452|collecting and analyzing large data",
       "title": "Collecting and Analyzing Large Data",
       "instructor": "Hansen",
       "term": "FA26",
+      "term_raw": "FA26",
+      "term_sort": "2026-4",
       "qualifier": null
     },
     {
@@ -1362,9 +4274,15 @@
       "department": "MGTA",
       "course_number": "453",
       "course_code": "MGTA 453",
+      "base_course_number": "453",
+      "base_course_code": "MGTA 453",
+      "section_variant": null,
+      "course_key": "mgta 453|business analytics",
       "title": "Business Analytics",
       "instructor": "August",
       "term": "FA26",
+      "term_raw": "FA26",
+      "term_sort": "2026-4",
       "qualifier": null
     },
     {
@@ -1379,9 +4297,15 @@
       "department": "MGTA",
       "course_number": "454",
       "course_code": "MGTA 454",
+      "base_course_number": "454",
+      "base_course_code": "MGTA 454",
+      "section_variant": null,
+      "course_key": "mgta 454|business analytics capstone",
       "title": "Business Analytics Capstone",
       "instructor": null,
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -1396,9 +4320,15 @@
       "department": "MGTA",
       "course_number": "456",
       "course_code": "MGTA 456",
+      "base_course_number": "456",
+      "base_course_code": "MGTA 456",
+      "section_variant": null,
+      "course_key": "mgta 456|supply chain analytics",
       "title": "Supply Chain Analytics",
       "instructor": "Montgomery",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -1413,9 +4343,15 @@
       "department": "MGTA",
       "course_number": "457",
       "course_code": "MGTA 457",
+      "base_course_number": "457",
+      "base_course_code": "MGTA 457",
+      "section_variant": null,
+      "course_key": "mgta 457|business intelligence systems",
       "title": "Business Intelligence Systems",
       "instructor": "Jambulapati",
       "term": "FA26",
+      "term_raw": "FA26",
+      "term_sort": "2026-4",
       "qualifier": null
     },
     {
@@ -1430,9 +4366,15 @@
       "department": "MGTA",
       "course_number": "457",
       "course_code": "MGTA 457",
+      "base_course_number": "457",
+      "base_course_code": "MGTA 457",
+      "section_variant": null,
+      "course_key": "mgta 457|business intelligence systems",
       "title": "Business Intelligence Systems",
       "instructor": "Schibler",
       "term": "FA25",
+      "term_raw": "FA25",
+      "term_sort": "2025-4",
       "qualifier": null
     },
     {
@@ -1447,9 +4389,15 @@
       "department": "MGTA",
       "course_number": "458",
       "course_code": "MGTA 458",
+      "base_course_number": "458",
+      "base_course_code": "MGTA 458",
+      "section_variant": null,
+      "course_key": "mgta 458|experiments for business analytics",
       "title": "Experiments for Business Analytics",
       "instructor": "Johnson",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -1464,9 +4412,15 @@
       "department": "MGTA",
       "course_number": "459",
       "course_code": "MGTA 459",
+      "base_course_number": "459",
+      "base_course_code": "MGTA 459",
+      "section_variant": null,
+      "course_key": "mgta 459|managerial judg decis making",
       "title": "Managerial Judg-Decis Making",
       "instructor": "Rottenstreich",
       "term": "FA26",
+      "term_raw": "FA26",
+      "term_sort": "2026-4",
       "qualifier": null
     },
     {
@@ -1481,9 +4435,15 @@
       "department": "MGTA",
       "course_number": "459",
       "course_code": "MGTA 459",
+      "base_course_number": "459",
+      "base_course_code": "MGTA 459",
+      "section_variant": null,
+      "course_key": "mgta 459|mangerial judg decis making",
       "title": "Mangerial Judg Decis Making",
       "instructor": "Schurr",
       "term": "FA25",
+      "term_raw": "FA25",
+      "term_sort": "2025-4",
       "qualifier": null
     },
     {
@@ -1498,9 +4458,15 @@
       "department": "MGTA",
       "course_number": "460",
       "course_code": "MGTA 460",
+      "base_course_number": "460",
+      "base_course_code": "MGTA 460",
+      "section_variant": null,
+      "course_key": "mgta 460|business analytics project mgt",
       "title": "Business Analytics Project Mgt",
       "instructor": "Erat",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -1515,9 +4481,15 @@
       "department": "MGTA",
       "course_number": "463R",
       "course_code": "MGTA 463R",
+      "base_course_number": "463",
+      "base_course_code": "MGTA 463",
+      "section_variant": "R",
+      "course_key": "mgta 463|fruad analytics",
       "title": "Fruad Analytics",
       "instructor": "Coggeshall",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -1532,9 +4504,15 @@
       "department": "MGTA",
       "course_number": "464",
       "course_code": "MGTA 464",
+      "base_course_number": "464",
+      "base_course_code": "MGTA 464",
+      "section_variant": null,
+      "course_key": "mgta 464|sql and etl",
       "title": "SQL and ETL",
       "instructor": "August",
       "term": "SU26",
+      "term_raw": "SU26",
+      "term_sort": "2026-3",
       "qualifier": null
     },
     {
@@ -1549,9 +4527,15 @@
       "department": "MGTA",
       "course_number": "464",
       "course_code": "MGTA 464",
+      "base_course_number": "464",
+      "base_course_code": "MGTA 464",
+      "section_variant": null,
+      "course_key": "mgta 464|sql and etl",
       "title": "SQL and ETL",
       "instructor": "Perols",
       "term": "SU25",
+      "term_raw": "SU25",
+      "term_sort": "2025-3",
       "qualifier": "FW"
     },
     {
@@ -1566,9 +4550,15 @@
       "department": "MGTA",
       "course_number": "466",
       "course_code": "MGTA 466",
+      "base_course_number": "466",
+      "base_course_code": "MGTA 466",
+      "section_variant": null,
+      "course_key": "mgta 466|scalable analytics",
       "title": "Scalable Analytics",
       "instructor": "Nguyen",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -1583,9 +4573,15 @@
       "department": "MGTA",
       "course_number": "479",
       "course_code": "MGTA 479",
+      "base_course_number": "479",
+      "base_course_code": "MGTA 479",
+      "section_variant": null,
+      "course_key": "mgta 479|pricing analytics",
       "title": "Pricing Analytics",
       "instructor": "Faltings",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -1600,9 +4596,15 @@
       "department": "MGTA",
       "course_number": "495",
       "course_code": "MGTA 495",
+      "base_course_number": "495",
+      "base_course_code": "MGTA 495",
+      "section_variant": null,
+      "course_key": "mgta 495|special topics genai for business",
       "title": "Special Topics - GenAI for Business",
       "instructor": "Nijs",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -1617,9 +4619,15 @@
       "department": "MGTA",
       "course_number": "495",
       "course_code": "MGTA 495",
+      "base_course_number": "495",
+      "base_course_code": "MGTA 495",
+      "section_variant": null,
+      "course_key": "mgta 495|special topics in business analytics healthcare analytics",
       "title": "Special Topics in Business Analytics - Healthcare Analytics",
       "instructor": "Kazemian",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -1634,9 +4642,15 @@
       "department": "MGTA",
       "course_number": "495",
       "course_code": "MGTA 495",
+      "base_course_number": "495",
+      "base_course_code": "MGTA 495",
+      "section_variant": null,
+      "course_key": "mgta 495|spc topics in business analytics ai and prescriptive analytics",
       "title": "Spc Topics in Business Analytics - AI & Prescriptive Analytics",
       "instructor": "Kazemian",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -1651,9 +4665,15 @@
       "department": "MGTA",
       "course_number": "495",
       "course_code": "MGTA 495",
+      "base_course_number": "495",
+      "base_course_code": "MGTA 495",
+      "section_variant": null,
+      "course_key": "mgta 495|special topics in business analytics marketing analytics",
       "title": "Special Topics in Business Analytics - Marketing Analytics",
       "instructor": "Yavorsky",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -1668,9 +4688,15 @@
       "department": "MGT",
       "course_number": "491",
       "course_code": "MGT 491",
+      "base_course_number": "491",
+      "base_course_code": "MGT 491",
+      "section_variant": null,
+      "course_key": "mgt 491|investments",
       "title": "Investments",
       "instructor": "Girand",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -1685,9 +4711,15 @@
       "department": "MGTF",
       "course_number": "401",
       "course_code": "MGTF 401",
+      "base_course_number": "401",
+      "base_course_code": "MGTF 401",
+      "section_variant": null,
+      "course_key": "mgtf 401|financial accounting",
       "title": "Financial Accounting",
       "instructor": "FLoyd",
       "term": "FA25",
+      "term_raw": "FA25",
+      "term_sort": "2025-4",
       "qualifier": null
     },
     {
@@ -1702,9 +4734,15 @@
       "department": "MGTF",
       "course_number": "402",
       "course_code": "MGTF 402",
+      "base_course_number": "402",
+      "base_course_code": "MGTF 402",
+      "section_variant": null,
+      "course_key": "mgtf 402|investment analysis",
       "title": "Investment Analysis",
       "instructor": "Timmermann",
       "term": "FA26",
+      "term_raw": "FA26",
+      "term_sort": "2026-4",
       "qualifier": null
     },
     {
@@ -1719,9 +4757,15 @@
       "department": "MGTF",
       "course_number": "403",
       "course_code": "MGTF 403",
+      "base_course_number": "403",
+      "base_course_code": "MGTF 403",
+      "section_variant": null,
+      "course_key": "mgtf 403|advanced risk management",
       "title": "Advanced Risk Management",
       "instructor": "Valkanov",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": "8am"
     },
     {
@@ -1736,9 +4780,15 @@
       "department": "MGTF",
       "course_number": "404",
       "course_code": "MGTF 404",
+      "base_course_number": "404",
+      "base_course_code": "MGTF 404",
+      "section_variant": null,
+      "course_key": "mgtf 404|fin econometric empirical mthd",
       "title": "Fin Econometric-Empirical Mthd",
       "instructor": "Valkanov",
       "term": "FA25",
+      "term_raw": "FA25",
+      "term_sort": "2025-4",
       "qualifier": "AM"
     },
     {
@@ -1753,9 +4803,15 @@
       "department": "MGTF",
       "course_number": "405",
       "course_code": "MGTF 405",
+      "base_course_number": "405",
+      "base_course_code": "MGTF 405",
+      "section_variant": null,
+      "course_key": "mgtf 405|business forecasting",
       "title": "Business Forecasting",
       "instructor": "Timmermann",
       "term": "FA26",
+      "term_raw": "FA26",
+      "term_sort": "2026-4",
       "qualifier": null
     },
     {
@@ -1770,9 +4826,15 @@
       "department": "MGTF",
       "course_number": "406",
       "course_code": "MGTF 406",
+      "base_course_number": "406",
+      "base_course_code": "MGTF 406",
+      "section_variant": null,
+      "course_key": "mgtf 406|behavioral finance",
       "title": "Behavioral Finance",
       "instructor": "Engelberg",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -1787,9 +4849,15 @@
       "department": "MGTF",
       "course_number": "407",
       "course_code": "MGTF 407",
+      "base_course_number": "407",
+      "base_course_code": "MGTF 407",
+      "section_variant": null,
+      "course_key": "mgtf 407|valuation in corporate finance",
       "title": "Valuation in Corporate Finance",
       "instructor": "Mullins",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -1804,9 +4872,15 @@
       "department": "MGTF",
       "course_number": "408",
       "course_code": "MGTF 408",
+      "base_course_number": "408",
+      "base_course_code": "MGTF 408",
+      "section_variant": null,
+      "course_key": "mgtf 408|real estate finance",
       "title": "Real Estate Finance",
       "instructor": "Avenancio-Leon",
       "term": "SP25",
+      "term_raw": "SP25",
+      "term_sort": "2025-2",
       "qualifier": null
     },
     {
@@ -1821,9 +4895,15 @@
       "department": "MGTF",
       "course_number": "410",
       "course_code": "MGTF 410",
+      "base_course_number": "410",
+      "base_course_code": "MGTF 410",
+      "section_variant": null,
+      "course_key": "mgtf 410|new venture finance",
       "title": "New Venture Finance",
       "instructor": "Townsend",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -1838,9 +4918,15 @@
       "department": "MGTF",
       "course_number": "413",
       "course_code": "MGTF 413",
+      "base_course_number": "413",
+      "base_course_code": "MGTF 413",
+      "section_variant": null,
+      "course_key": "mgtf 413|computational finance methods",
       "title": "Computational Finance Methods",
       "instructor": "Cheng & Williams",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -1855,9 +4941,15 @@
       "department": "MGTF",
       "course_number": "415",
       "course_code": "MGTF 415",
+      "base_course_number": "415",
+      "base_course_code": "MGTF 415",
+      "section_variant": null,
+      "course_key": "mgtf 415|collect analyze financial data",
       "title": "Collect-Analyze Financial Data",
       "instructor": "Reher",
       "term": "FA26",
+      "term_raw": "FA26",
+      "term_sort": "2026-4",
       "qualifier": null
     },
     {
@@ -1872,9 +4964,15 @@
       "department": "MGTF",
       "course_number": "416",
       "course_code": "MGTF 416",
+      "base_course_number": "416",
+      "base_course_code": "MGTF 416",
+      "section_variant": null,
+      "course_key": "mgtf 416|professional seminars finance",
       "title": "Professional Seminars Finance",
       "instructor": "Melvin",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -1889,9 +4987,15 @@
       "department": "MGTF",
       "course_number": "417",
       "course_code": "MGTF 417",
+      "base_course_number": "417",
+      "base_course_code": "MGTF 417",
+      "section_variant": null,
+      "course_key": "mgtf 417|professional communications",
       "title": "Professional Communications",
       "instructor": "Schmidt",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -1906,9 +5010,15 @@
       "department": "MGTF",
       "course_number": "418",
       "course_code": "MGTF 418",
+      "base_course_number": "418",
+      "base_course_code": "MGTF 418",
+      "section_variant": null,
+      "course_key": "mgtf 418|preparing for the cfa exam",
       "title": "Preparing for the CFA Exam",
       "instructor": "Girand",
       "term": "FA26",
+      "term_raw": "FA26",
+      "term_sort": "2026-4",
       "qualifier": null
     },
     {
@@ -1923,9 +5033,15 @@
       "department": "MGTF",
       "course_number": "419",
       "course_code": "MGTF 419",
+      "base_course_number": "419",
+      "base_course_code": "MGTF 419",
+      "section_variant": null,
+      "course_key": "mgtf 419|cfa level ii exam preparation",
       "title": "CFA Level II Exam Preparation",
       "instructor": "Girand",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -1940,9 +5056,15 @@
       "department": "MGTF",
       "course_number": "420",
       "course_code": "MGTF 420",
+      "base_course_number": "420",
+      "base_course_code": "MGTF 420",
+      "section_variant": null,
+      "course_key": "mgtf 420|financial markets and institutions",
       "title": "Financial Markets and Institutions",
       "instructor": "Parashar",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -1957,9 +5079,15 @@
       "department": "MGTF",
       "course_number": "421",
       "course_code": "MGTF 421",
+      "base_course_number": "421",
+      "base_course_code": "MGTF 421",
+      "section_variant": null,
+      "course_key": "mgtf 421|corporate finance",
       "title": "Corporate Finance",
       "instructor": "Bliss",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -1974,9 +5102,15 @@
       "department": "MGTF",
       "course_number": "422",
       "course_code": "MGTF 422",
+      "base_course_number": "422",
+      "base_course_code": "MGTF 422",
+      "section_variant": null,
+      "course_key": "mgtf 422|derivatives and structured finance",
       "title": "Derivatives and Structured Finance",
       "instructor": "Warachka",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -1991,9 +5125,15 @@
       "department": "MGTF",
       "course_number": "423",
       "course_code": "MGTF 423",
+      "base_course_number": "423",
+      "base_course_code": "MGTF 423",
+      "section_variant": null,
+      "course_key": "mgtf 423|data science for finance i",
       "title": "Data Science for Finance I",
       "instructor": "Gupta",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -2008,9 +5148,15 @@
       "department": "MGTF",
       "course_number": "424",
       "course_code": "MGTF 424",
+      "base_course_number": "424",
+      "base_course_code": "MGTF 424",
+      "section_variant": null,
+      "course_key": "mgtf 424|data science for finance m",
       "title": "Data Science for Finance - M",
       "instructor": "Vural",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -2025,9 +5171,15 @@
       "department": "MGTF",
       "course_number": "430",
       "course_code": "MGTF 430",
+      "base_course_number": "430",
+      "base_course_code": "MGTF 430",
+      "section_variant": null,
+      "course_key": "mgtf 430|asset management",
       "title": "Asset Management",
       "instructor": "Vaughn",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -2042,9 +5194,15 @@
       "department": "MGTF",
       "course_number": "490",
       "course_code": "MGTF 490",
+      "base_course_number": "490",
+      "base_course_code": "MGTF 490",
+      "section_variant": null,
+      "course_key": "mgtf 490|capstone applied finance project",
       "title": "Capstone Applied Finance Project",
       "instructor": "Melvin, Girand, Padernacht",
       "term": "FA26",
+      "term_raw": "FA26",
+      "term_sort": "2026-4",
       "qualifier": null
     },
     {
@@ -2059,9 +5217,15 @@
       "department": "MGTF",
       "course_number": "495",
       "course_code": "MGTF 495",
+      "base_course_number": "495",
+      "base_course_code": "MGTF 495",
+      "section_variant": null,
+      "course_key": "mgtf 495|special topics ai in finance",
       "title": "Special Topics - AI in Finance",
       "instructor": "Ghezzi",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -2076,9 +5240,15 @@
       "department": "MGTF",
       "course_number": "495",
       "course_code": "MGTF 495",
+      "base_course_number": "495",
+      "base_course_code": "MGTF 495",
+      "section_variant": null,
+      "course_key": "mgtf 495|special topics digital finance",
       "title": "Special Topics - Digital Finance",
       "instructor": "Vallod",
-      "term": "W26",
+      "term": "WI26",
+      "term_raw": "W26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -2093,9 +5263,15 @@
       "department": "MGTF",
       "course_number": "495",
       "course_code": "MGTF 495",
+      "base_course_number": "495",
+      "base_course_code": "MGTF 495",
+      "section_variant": null,
+      "course_key": "mgtf 495|special topics fixed income",
       "title": "Special Topics - Fixed Income",
       "instructor": "Girand & Bhatt",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -2110,9 +5286,15 @@
       "department": "MGTP",
       "course_number": "401",
       "course_code": "MGTP 401",
+      "base_course_number": "401",
+      "base_course_code": "MGTP 401",
+      "section_variant": null,
+      "course_key": "mgtp 401|professional seminar",
       "title": "Professional Seminar",
       "instructor": "Girand",
       "term": "FA26",
+      "term_raw": "FA26",
+      "term_sort": "2026-4",
       "qualifier": null
     },
     {
@@ -2127,9 +5309,15 @@
       "department": "MGTP",
       "course_number": "401",
       "course_code": "MGTP 401",
+      "base_course_number": "401",
+      "base_course_code": "MGTP 401",
+      "section_variant": null,
+      "course_key": "mgtp 401|professional seminar",
       "title": "Professional Seminar",
       "instructor": "Jewett",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -2144,9 +5332,15 @@
       "department": "MGTP",
       "course_number": "414",
       "course_code": "MGTP 414",
+      "base_course_number": "414",
+      "base_course_code": "MGTP 414",
+      "section_variant": null,
+      "course_key": "mgtp 414|business law",
       "title": "Business Law",
       "instructor": "Parme",
       "term": "FA25",
+      "term_raw": "FA25",
+      "term_sort": "2025-4",
       "qualifier": null
     },
     {
@@ -2161,9 +5355,15 @@
       "department": "MGTP",
       "course_number": "416",
       "course_code": "MGTP 416",
+      "base_course_number": "416",
+      "base_course_code": "MGTP 416",
+      "section_variant": null,
+      "course_key": "mgtp 416|ethics accounting and business",
       "title": "Ethics-accounting & Business",
       "instructor": "Lindenberger",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -2178,9 +5378,15 @@
       "department": "MGTP",
       "course_number": "421",
       "course_code": "MGTP 421",
+      "base_course_number": "421",
+      "base_course_code": "MGTP 421",
+      "section_variant": null,
+      "course_key": "mgtp 421|internal control fin reporting",
       "title": "Internal Control - Fin Reporting",
       "instructor": "Molloie",
       "term": "FA26",
+      "term_raw": "FA26",
+      "term_sort": "2026-4",
       "qualifier": null
     },
     {
@@ -2195,9 +5401,15 @@
       "department": "MGTP",
       "course_number": "422",
       "course_code": "MGTP 422",
+      "base_course_number": "422",
+      "base_course_code": "MGTP 422",
+      "section_variant": null,
+      "course_key": "mgtp 422|systems process and tech for acct",
       "title": "Systems, Process & Tech for Acct",
       "instructor": "Perols",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -2212,9 +5424,15 @@
       "department": "MGTP",
       "course_number": "424",
       "course_code": "MGTP 424",
+      "base_course_number": "424",
+      "base_course_code": "MGTP 424",
+      "section_variant": null,
+      "course_key": "mgtp 424|professional communications for accountants",
       "title": "Professional Communications for Accountants",
       "instructor": "Padernacht",
       "term": "FA26",
+      "term_raw": "FA26",
+      "term_sort": "2026-4",
       "qualifier": null
     },
     {
@@ -2229,9 +5447,15 @@
       "department": "MGTP",
       "course_number": "425",
       "course_code": "MGTP 425",
+      "base_course_number": "425",
+      "base_course_code": "MGTP 425",
+      "section_variant": null,
+      "course_key": "mgtp 425|professional resaerch for accountants",
       "title": "Professional Resaerch for Accountants",
       "instructor": "Jeter",
       "term": "FA26",
+      "term_raw": "FA26",
+      "term_sort": "2026-4",
       "qualifier": null
     },
     {
@@ -2246,9 +5470,15 @@
       "department": "MGTP",
       "course_number": "429",
       "course_code": "MGTP 429",
+      "base_course_number": "429",
+      "base_course_code": "MGTP 429",
+      "section_variant": null,
+      "course_key": "mgtp 429|adv topics in accountng and auditing",
       "title": "Adv Topics in Accountng and Auditing",
       "instructor": "Huie",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -2263,9 +5493,15 @@
       "department": "MGTP",
       "course_number": "432",
       "course_code": "MGTP 432",
+      "base_course_number": "432",
+      "base_course_code": "MGTP 432",
+      "section_variant": null,
+      "course_key": "mgtp 432|adv audiitng and forensic acct",
       "title": "Adv. Audiitng & Forensic Acct",
       "instructor": "Brooks",
       "term": "FA26",
+      "term_raw": "FA26",
+      "term_sort": "2026-4",
       "qualifier": null
     },
     {
@@ -2280,9 +5516,15 @@
       "department": "MGTP",
       "course_number": "433",
       "course_code": "MGTP 433",
+      "base_course_number": "433",
+      "base_course_code": "MGTP 433",
+      "section_variant": null,
+      "course_key": "mgtp 433|current issues in the practice and regulation of auditing",
       "title": "Current Issues in the Practice and Regulation of Auditing",
       "instructor": "Molloie",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -2297,9 +5539,15 @@
       "department": "MGTP",
       "course_number": "434",
       "course_code": "MGTP 434",
+      "base_course_number": "434",
+      "base_course_code": "MGTP 434",
+      "section_variant": null,
+      "course_key": "mgtp 434|finnacial statement analysis",
       "title": "Finnacial Statement Analysis",
       "instructor": "Perez Cavazos",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -2314,9 +5562,15 @@
       "department": "MGTP",
       "course_number": "435",
       "course_code": "MGTP 435",
+      "base_course_number": "435",
+      "base_course_code": "MGTP 435",
+      "section_variant": null,
+      "course_key": "mgtp 435|accounting for mergers and acquisitions",
       "title": "Accounting for Mergers and Acquisitions",
       "instructor": "Jewett",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -2331,9 +5585,15 @@
       "department": "MGTP",
       "course_number": "443",
       "course_code": "MGTP 443",
+      "base_course_number": "443",
+      "base_course_code": "MGTP 443",
+      "section_variant": null,
+      "course_key": "mgtp 443|global tax business strategy",
       "title": "Global Tax Business Strategy",
       "instructor": "Jewett",
       "term": "WI26",
+      "term_raw": "WI26",
+      "term_sort": "2026-1",
       "qualifier": null
     },
     {
@@ -2348,9 +5608,15 @@
       "department": "MGTP",
       "course_number": "444",
       "course_code": "MGTP 444",
+      "base_course_number": "444",
+      "base_course_code": "MGTP 444",
+      "section_variant": null,
+      "course_key": "mgtp 444|capstone",
       "title": "Capstone",
       "instructor": "Kum & Deiotte",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -2365,9 +5631,15 @@
       "department": "MGTP",
       "course_number": "452",
       "course_code": "MGTP 452",
+      "base_course_number": "452",
+      "base_course_code": "MGTP 452",
+      "section_variant": null,
+      "course_key": "mgtp 452|strategic cost management and new technologies",
       "title": "Strategic Cost Management & New Technologies",
       "instructor": "Milone",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     },
     {
@@ -2382,9 +5654,15 @@
       "department": "MGTP",
       "course_number": "495",
       "course_code": "MGTP 495",
+      "base_course_number": "495",
+      "base_course_code": "MGTP 495",
+      "section_variant": null,
+      "course_key": "mgtp 495|special topic in accounting accounting data analytics",
       "title": "Special Topic in Accounting - Accounting Data Analytics",
       "instructor": "Milone",
       "term": "SP26",
+      "term_raw": "SP26",
+      "term_sort": "2026-2",
       "qualifier": null
     }
   ]

@@ -1,0 +1,12 @@
+# Syllabus conversion tool. Nothing else in the repo depends on these yet.
+#
+#   uv venv backend/.venv
+#   VIRTUAL_ENV=backend/.venv uv pip install -r backend/tools/syllabi/requirements.txt
+#
+# pymupdf4llm is the markdown layer over PyMuPDF; it pulls in pymupdf and
+# pymupdf-layout. NOTE: PyMuPDF is AGPL-3.0. Fine for an internal conversion
+# step that runs offline and ships only its output; read the licence before it
+# goes anywhere near a served product. See report.md for the alternatives.
+pymupdf4llm==1.28.2
+python-docx==1.2.0
+pytest==9.1.1
