@@ -51,7 +51,9 @@
 
 	<section aria-labelledby={copy.list.headingId} class="space-y-3">
 		<div class="flex flex-wrap items-baseline justify-between gap-3">
-			<h2 id={copy.list.headingId} class="text-base font-medium text-ink">
+			<!-- A label on the list below it, not a heading competing with the page title.
+				     Same demotion "Tasks" and "Happening" took on /calendar. -->
+				<h2 id={copy.list.headingId} class="thrive-eyebrow">
 				{copy.list.title}
 			</h2>
 

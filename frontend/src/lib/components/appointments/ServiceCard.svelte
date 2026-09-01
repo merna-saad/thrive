@@ -49,7 +49,7 @@
 
 <article
 	class={cn(
-		'thrive-panel flex flex-col gap-2.5 p-3',
+		'thrive-panel flex flex-col gap-3 p-4 lg:p-5',
 		'transition-colors duration-(--motion-fast) ease-standard',
 		// The chosen service keeps the darkest STROKE rather than a tint, so "which
 		// one am I booking" survives at a glance across the row.

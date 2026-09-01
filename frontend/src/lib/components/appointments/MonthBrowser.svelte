@@ -78,7 +78,9 @@
 
 <section aria-labelledby={copy.headingId} class="space-y-1.5">
 	<div class="flex flex-wrap items-baseline justify-between gap-2">
-		<h3 id={copy.headingId} class="text-base font-medium text-ink">{copy.title}</h3>
+		<!-- THE MONTH BROWSER IS A CONTROL, NOT CONTENT. "Your month" is the label on
+		     a picker, and it was drawn at the weight of a card title. -->
+		<h3 id={copy.headingId} class="thrive-eyebrow">{copy.title}</h3>
 
 		<!-- Kept: this grid shows the month, the real calendar does everything else. -->
 		<a

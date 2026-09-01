@@ -43,7 +43,7 @@
 {#if items.length === 0}
 	<EmptyState icon={CalendarClock} message={copy.empty} />
 {:else}
-	<div class="space-y-1.5">
+	<div class="space-y-3">
 		{#if error}
 			<p
 				role="alert"
@@ -58,27 +58,45 @@
 
 			<article
 				class={cn(
-					'thrive-panel flex flex-wrap items-start justify-between gap-2.5 p-3',
+					'thrive-panel flex flex-wrap items-start justify-between gap-3 p-4 lg:p-5',
 					'transition-opacity duration-(--motion-base) ease-standard',
 					busy && 'opacity-60'
 				)}
 			>
 				<div class="min-w-0">
-					<!-- The when is the row's identity, so it leads and takes the numeric
-					     face: a list of these is read by scanning dates down a column. -->
-					<p class="thrive-numeric text-base text-ink">{appointment.whenLabel}</p>
+					<!--
+						WHO LEADS, NOT WHEN, as of 2026-08-31. Reversed deliberately.
 
-					<p class="mt-0.5 text-3xs text-muted-ink">
+						The old note argued the when is the row's identity because "a list of
+						these is read by scanning dates down a column", and that is true of a
+						long list. This one holds a handful of booked appointments, where the
+						question is "who am I seeing" and the date is the qualifier -- and the
+						page already sorts them, so the column is in date order whether or not
+						the date leads it.
+
+						It also brings the row into line with every other row in the app after
+						this pass: a name in medium weight, then muted metadata beneath. A
+						surface that orders its rows differently from the rest is a surface
+						you have to learn separately.
+					-->
+					<p class="text-sm font-medium text-ink">
 						{copy.advisorLine(appointment.advisorName, appointment.advisorRole)}
 					</p>
 
-					<p class="mt-0.5 flex items-center gap-1.5 text-3xs text-muted-ink">
-						{#if appointment.mode === 'zoom'}
-							<Video aria-hidden="true" class="size-3.5 shrink-0" />
-						{:else}
-							<MapPin aria-hidden="true" class="size-3.5 shrink-0" />
-						{/if}
-						{appointment.location}
+					<!-- Time and modality on ONE muted line. They were two lines and they
+					     answer one question: where and when to turn up. The time keeps the
+					     numeric face inside the line, because it is still a value. -->
+					<p class="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-3xs text-muted-ink">
+						<span class="thrive-numeric">{appointment.whenLabel}</span>
+						<span aria-hidden="true">·</span>
+						<span class="inline-flex min-w-0 items-center gap-1">
+							{#if appointment.mode === 'zoom'}
+								<Video aria-hidden="true" class="size-3.5 shrink-0" />
+							{:else}
+								<MapPin aria-hidden="true" class="size-3.5 shrink-0" />
+							{/if}
+							{appointment.location}
+						</span>
 					</p>
 
 					{#if appointment.reason}

@@ -72,7 +72,7 @@
 	);
 </script>
 
-<section aria-labelledby={copy.headingId} class="thrive-panel p-3 lg:p-2.5">
+<section aria-labelledby={copy.headingId} class="thrive-panel p-4 lg:p-5">
 	<!--
 		THE DATE IS THE PANE'S SUBJECT, not an annotation in the corner.
 
@@ -88,7 +88,9 @@
 		last one, the date is the only thing that moved and it is the thing worth
 		announcing.
 	-->
-	<h2 id={copy.headingId} class="text-base font-medium text-ink">{copy.title}</h2>
+	<!-- "Your day" labels the pane it heads. Eyebrow, for the same reason the
+	     calendar rail's section labels are. -->
+	<h2 id={copy.headingId} class="thrive-eyebrow">{copy.title}</h2>
 
 	{#if dayKey}
 		<p
