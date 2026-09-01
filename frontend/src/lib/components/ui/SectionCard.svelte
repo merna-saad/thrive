@@ -97,10 +97,24 @@
 	});
 </script>
 
-<section aria-labelledby={headingId} class={cn('thrive-panel flex flex-col p-3', className)}>
-	<!-- The header sits on its own ruled band. A card with a heading, a rule and a
-	     body reads as a labelled box rather than a stack of text. -->
-	<div class="-mx-3 -mt-3 mb-3 shrink-0 border-b border-line bg-sunken px-3 py-2">
+<!--
+	REAL PADDING AND NO HEADER BAND, 2026-08-31, matching the treatment /calendar's
+	grid card took the day before.
+
+	`p-3` (10.1px on desktop) became `p-4 lg:p-5`. Ten task rows inside 10px of
+	padding is why the card read as a list crammed into a box rather than as a
+	panel with things in it.
+
+	THE SUNKEN BAND WENT WITH IT, and that is the same argument the calendar's
+	month header made: a filled, ruled band is a title bar on a window, and four of
+	them stacked in a 2x2 grid is four windows. The heading now sits in the card's
+	own white with air under it, so the card reads as one surface.
+-->
+<section
+	aria-labelledby={headingId}
+	class={cn('thrive-panel flex flex-col p-4 lg:p-5', className)}
+>
+	<div class="mb-4 shrink-0">
 		<!--
 			`min-h-11` is a FLOOR so the band cannot shrink when the link is absent.
 
@@ -118,8 +132,14 @@
 		-->
 		<div class="flex min-h-11 items-start justify-between gap-3 lg:min-h-0">
 		<div class="min-w-0">
-			<!-- Weight at the call site: the type scale carries size only. -->
-			<h2 id={headingId} class="text-lg font-bold text-ink">{title}</h2>
+			<!-- THE DISPLAY TREATMENT, at the same step /calendar's month label takes.
+			     Card titles are the one thing on Home that stays prominent while the
+			     rows under them go quiet, so they take the face that says so. `xl`
+			     rather than the full step: they are four peers in a grid, not the
+			     page's subject.
+			     No `text-*` or `font-*` beside it -- both would beat the class from
+			     the utilities layer and silently undo half the treatment. -->
+			<h2 id={headingId} class="thrive-display text-ink" data-step="xl">{title}</h2>
 			{#if description}
 				<p class="mt-0.5 text-xs text-muted-ink">{description}</p>
 			{/if}

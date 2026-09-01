@@ -94,7 +94,6 @@
 <div class="mx-auto w-full max-w-page space-y-2">
 	<HomeHeader
 		student={data.student}
-		degree={data.degree}
 		timeline={data.timeline}
 		termPlans={data.termPlans}
 		dateLabel={data.dateLabel}

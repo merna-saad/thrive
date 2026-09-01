@@ -491,6 +491,18 @@ REQUIRED_CSS = [
     # broken: the heading still renders, in roughly the right place, just not in
     # the treatment the brand asks for -- which is the class of failure this file
     # exists to make loud.
+    # The reveal treatment, 2026-08-31. The pointer-events half is the one worth
+    # pinning: without it an invisible 44px target sits over every task row and
+    # swallows taps meant for the title, which looks like nothing at all.
+    (r"\.thrive-reveal\s*\{", "`.thrive-reveal` is declared"),
+    (
+        r"\.thrive-reveal\s*\{[^}]*pointer-events:\s*none",
+        "`.thrive-reveal` is untappable while hidden, not merely invisible",
+    ),
+    (
+        r"@media\s*\(hover:\s*none\)\s*\{\s*\.thrive-reveal\s*\{[^}]*opacity:\s*1",
+        "`.thrive-reveal` returns permanently on a touch device",
+    ),
     (r"\.thrive-display\s*\{", "`.thrive-display` is declared"),
     (
         r"\.thrive-display\s*\{[^}]*var\(--font-heading\)",

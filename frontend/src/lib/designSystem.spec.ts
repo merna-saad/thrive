@@ -236,6 +236,9 @@ describe("the design system's unenforced rules", () => {
       // The UC San Diego headline treatment: Teko, caps, 600, tightened
       // leading, positive tracking. Page titles only -- see app.css.
       "thrive-display",
+      // Controls that hide at rest and return on hover, keyboard focus, or any
+      // touch device. See app.css for the three ways this is silent when wrong.
+      "thrive-reveal",
       "thrive-panel",
       "thrive-row",
       "thrive-checkbox",

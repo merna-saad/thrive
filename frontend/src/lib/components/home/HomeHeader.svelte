@@ -1,7 +1,7 @@
 <script lang="ts">
 	import ProgramTimelineCompact from './ProgramTimelineCompact.svelte';
 	import GreetingPanel from './GreetingPanel.svelte';
-	import type { DegreeProgress, ProgramTimeline, Student } from '$lib/data';
+	import type { ProgramTimeline, Student } from '$lib/data';
 	import type { EventRowData, TaskRowData, TermPlan } from '$lib/homeView';
 
 	/**
@@ -26,9 +26,11 @@
 	 * `data-emphasis="strong"` moves here from the greeting: the header is one
 	 * region now, so it takes one border treatment.
 	 */
+	/* `degree` stopped being forwarded on 2026-08-31, when the units chip and its
+	   progress bar came out of the greeting. Nothing between here and there reads
+	   it any more. */
 	let {
 		student,
-		degree,
 		timeline,
 		termPlans,
 		dateLabel,
@@ -37,7 +39,6 @@
 		eventRows
 	}: {
 		student: Student;
-		degree: DegreeProgress;
 		timeline: ProgramTimeline;
 		/** What each phase on the strip holds. Built in the load. */
 		termPlans: Record<string, TermPlan>;
@@ -56,5 +57,5 @@
 	     still does not read as part of the greeting. -->
 	<div class="border-t border-hairline-soft"></div>
 
-	<GreetingPanel {student} {degree} {dateLabel} {greeting} {taskItems} {eventRows} />
+	<GreetingPanel {student} {dateLabel} {greeting} {taskItems} {eventRows} />
 </div>

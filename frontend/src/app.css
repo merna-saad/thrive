@@ -2150,6 +2150,53 @@
     opacity: 0.62;
   }
 
+  /* ── Controls that recede until you reach for them ──────────────────────
+     Added 2026-08-31 for Home's task rows, where a strip of up to five 44px
+     glyph buttons on every one of ten rows was most of what made the list read
+     as noise.
+
+     A CLASS RATHER THAN FIVE UTILITIES, because getting this wrong is silent in
+     three different ways and each one needs a rule the call site would have to
+     remember.
+
+     1. `pointer-events: none` is not optional. `opacity: 0` alone leaves an
+        invisible 44px target sitting over the row, so a student aiming at the
+        title opens an editor instead. Invisible-but-clickable is worse than
+        visible.
+
+     2. `:focus-within` is what stops this being a keyboard trap in reverse.
+        These controls STAY in the tab order -- they must, since the pencil is
+        the only route to renaming a task -- so without this a sighted keyboard
+        user tabs into something they cannot see. Hover alone does not cover it.
+
+     3. `@media (hover: none)` returns the strip permanently, and the media
+        feature is the right question rather than a width. A touch device has no
+        way to reveal this at all. An earlier pass hid the note button until
+        hover and left the only route to adding a note invisible on a handset;
+        that is the mistake this arm exists to not repeat, and a `lg:` breakpoint
+        would not have prevented it -- a touch laptop is wide.
+
+     The transition is on opacity only, so nothing reflows as the strip appears
+     and the row's height is identical whether or not a pointer is over it. */
+  .thrive-reveal {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--thrive-motion-fast) var(--thrive-ease-standard);
+  }
+
+  .group:hover .thrive-reveal,
+  .thrive-reveal:focus-within {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  @media (hover: none) {
+    .thrive-reveal {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+
   /* ── The checkbox ───────────────────────────────────────────────────────
      The one control whose boundary is load-bearing: nothing else says where
      it is. 1.5px of faint, which clears the 3:1 WCAG 1.4.11 asks of a control

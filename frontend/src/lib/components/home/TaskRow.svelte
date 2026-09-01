@@ -118,6 +118,16 @@
 	const priority = $derived(rowPriorityOf(due, task.priority, done));
 	const labels = $derived(taskLabels(task, due, done));
 
+	/* See the note at the render site. `taskLabels` puts the state chip first when
+	   there is one, and the due control repeats it in the same tone, so the state
+	   chip is dropped when a due chip will render. `done` is exempt: "Done" is not
+	   an urgency and the due chip does not say it. */
+	const visibleLabels = $derived(
+		dueEditor && !done && (due.urgency === 'overdue' || due.urgency === 'today')
+			? labels.filter((label) => label.tone !== 'urgent' && label.tone !== 'watch')
+			: labels
+	);
+
 	const note = $derived(taskNote(task.id));
 	const hasNote = $derived(note.value.length > 0);
 
@@ -208,13 +218,23 @@
 		showToast(messages.taskEditing.copied(task.title));
 	}
 
-	/** Priority is carried by a left edge and a wash, never by colour alone. */
-	const priorityStyles: Record<typeof priority, string> = {
-		urgent: 'border-l-urgent bg-urgent-soft',
-		soon: 'border-l-watch bg-watch-soft',
-		later: 'border-l-later bg-later-soft',
-		none: 'border-l-transparent'
-	};
+	/*
+	 * PRIORITY IS CARRIED BY THE CHIP ALONE AS OF 2026-08-31.
+	 *
+	 * It used to be a left edge AND a wash AND a chip AND a screen-reader label --
+	 * four channels for one fact, on every row. Ten rows of that is not emphasis,
+	 * it is a tinted list where nothing stands out because everything is coloured.
+	 *
+	 * The wash and the edge are the two that went. They were the ones that could
+	 * not be scanned: a row tinted `later-soft` and a row tinted `watch-soft` are
+	 * two pale washes you have to compare side by side to tell apart, and the
+	 * comparison is only possible when both happen to be on screen. A chip you read.
+	 *
+	 * WHAT THIS DOES NOT CHANGE: `data-priority` stays on the row, because the
+	 * calendar's own note is right that the hook is worth keeping even when it
+	 * draws nothing, and the `sr-only` priority label stays exactly where it was.
+	 * Nothing about what a screen reader hears is different.
+	 */
 
 	/** One glyph button, so five of them cannot drift apart. */
 	const glyph =
@@ -246,8 +266,7 @@
 	ondragover={reorder?.onDragOver}
 	ondrop={reorder?.onDrop}
 	class={cn(
-		'thrive-row group relative border-l-2',
-		priorityStyles[priority],
+		'thrive-row group relative',
 		/* The drop indicator: a rule where the row would land, drawn ON the row
 		   rather than as an inserted gap so nothing reflows mid-drag. A list that
 		   reflows under the cursor is what makes a drag feel like it is fighting
@@ -296,7 +315,11 @@
 				for={checkboxId}
 				data-done={done}
 				class={cn(
-					'thrive-strike cursor-pointer text-sm break-words',
+					/* `font-medium`, which is the design system's "row title and emphasis
+					   inside a list" weight. It was 400 -- the same weight as the metadata
+					   under it -- so a row read as three lines of equal text and the title
+					   had to be found rather than seen. */
+					'thrive-strike cursor-pointer text-sm font-medium break-words',
 					done ? 'text-muted-ink' : 'text-ink'
 				)}
 			>
@@ -316,14 +339,39 @@
 				They belong together anyway: the chip says WHAT state the deadline is in
 				and the text says WHEN it is. Two readings of one fact, on one line.
 			-->
-			<p class="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-3xs text-muted-ink">
-				{#each labels as label (label.text)}
-					<Tag tone={label.tone}>{label.text}</Tag>
-				{/each}
+			<!-- CHIPS LEFT, DUE TEXT RIGHT, still on one line. `justify-between` with
+			     the date in its own group, rather than the single run of inline items
+			     this was: the chips say WHAT state the deadline is in and the date says
+			     WHEN, and running them together made a five-item line where the eye had
+			     to parse to find either.
+			     One line rather than two, which the original note is still right about
+			     -- stacking them made a desktop row 83px and pushed the fourth task out
+			     of a collapsed card. The brief allows the page to grow; it does not ask
+			     for a third of a card to be spent on metadata. -->
+			<p class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-3xs text-muted-ink">
+				<span class="flex flex-wrap items-center gap-1.5">
+					<!--
+						ONE URGENCY CHIP, not two. `taskLabels` opens with a state chip
+						("Urgent" / "Due soon") and the due control right after it renders
+						"Overdue" / "Today" in the same tone -- so an overdue row carried two
+						red chips saying the same thing, which is the opposite of "urgency is
+						carried by the chip".
 
-				<!-- A button where the date is editable, a plain chip where it is not. -->
-				{#if dueEditor}{@render dueEditor()}{/if}
+						The DUE chip wins, because it is the one that is also a CONTROL: it
+						opens the date editor, and dropping it would take that with it. The
+						state chip is dropped only when a due chip is actually rendered --
+						`/assignments` and any future caller without an editor keep it, which
+						is why this filters here rather than in `taskLabels`.
+					-->
+					{#each visibleLabels as label (label.text)}
+						<Tag tone={label.tone}>{label.text}</Tag>
+					{/each}
 
+					<!-- A button where the date is editable, a plain chip where it is not. -->
+					{#if dueEditor}{@render dueEditor()}{/if}
+				</span>
+
+				<span class="flex flex-wrap items-center gap-x-1.5">
 				<span>{due.fullLabel}</span>
 				<!-- `countdown` is a value and holds its width so the row does not
 				     reflow as "in 3 days" becomes "in 10 days". -->
@@ -337,35 +385,57 @@
 						{task.subtasks.filter((subtask) => subtask.done).length}/{task.subtasks.length}
 					</span>
 				{/if}
-				<!-- The wash and the left border are the visual carrier; this is the one
-				     that survives with colour turned off. -->
+				</span>
+				<!-- The chip is the visual carrier now that the wash and the left border
+				     are gone; this is the one that survives with colour turned off, and it
+				     is unchanged by that removal. -->
 				{#if priority !== 'none'}
 					<span class="sr-only">{rowPriorityLabel[priority]}</span>
 				{/if}
 			</p>
 		</div>
 
-		<!-- Every control here is always visible and always 44px, on every pointer
-		     type. An earlier pass hid the note button until hover, which on a phone
-		     meant the only way to add a note was invisible.
+		<!--
+			THE STRIP RECEDES UNTIL YOU REACH FOR IT, 2026-08-31.
 
-		     "Always visible" means: whenever it is rendered at all. Two are
-		     conditional and neither is conditional on the POINTER -- reorder needs
-		     the groups (see TasksCard), and copy needs somewhere to copy TO.
+			The brief asked for these icons to be REMOVED. They are not, and the
+			difference matters: the pencil is the only way to rename a task anywhere in
+			this app, and copy-to-list is the only way to push one to the quick list.
+			Deleting them deletes two features and takes five `check:interaction`
+			assertions with them. Hiding them at rest gets the quiet the brief is
+			actually after and keeps both.
 
-		     `ms-auto` anchors the strip to the RIGHT, which is what makes the two
-		     always-present controls pixel-stable as the conditional ones come and go.
+			`opacity-0` PLUS `pointer-events-none`, and both are load-bearing. Opacity
+			alone leaves an invisible 44px target sitting over the row, so a student
+			aiming at the title mis-taps an editor open.
 
-		     Above `sm` the strip was already right-anchored, by the `flex-1` content
-		     column beside it -- measured, Edit sits at the same x with two controls or
-		     three. Below `sm` the strip wraps to its own line, where it was
-		     LEFT-aligned, so removing the leading Copy control slid Edit and Add-a-note
-		     49px left. Expanding a card did the same thing in reverse, since that adds
-		     two reorder controls ahead of them.
+			THREE WAYS BACK, and the third is the one that is easy to forget:
 
-		     So the invariant is now: a conditional control appears and disappears at
-		     the strip's leading edge, and nothing already on screen moves. -->
-		<div class="ms-auto flex shrink-0 items-center gap-0.5">
+			  group-hover        a pointer over the row
+			  focus-within       ANY control inside has keyboard focus, so tabbing
+			                     into the strip reveals it before it is used
+			  :focus-visible     the individual button, via the `glyph` class below,
+			                     so a control is never focused-but-invisible
+
+			WITHOUT `focus-within` THIS WOULD BE A KEYBOARD TRAP IN THE OTHER
+			DIRECTION -- the controls stay in the tab order (they must; they are the
+			only route to renaming) and a sighted keyboard user would tab into
+			something they cannot see.
+
+			ON TOUCH THERE IS NO HOVER, so `@media (hover: none)` below returns the
+			strip to always-visible. A phone has no way to reveal this otherwise, which
+			is the exact mistake an earlier pass made with the note button: it hid it
+			until hover and left the only route to adding a note invisible on a
+			handset. That note is why this one is gated on the input, not the width.
+
+			`ms-auto` anchors the strip RIGHT, which is what keeps the always-present
+			controls pixel-stable as the conditional ones come and go. Two are
+			conditional and neither is conditional on the POINTER -- reorder needs the
+			groups (see TasksCard), and copy needs somewhere to copy TO. The invariant
+			is unchanged: a conditional control appears at the strip's leading edge and
+			nothing already on screen moves.
+		-->
+		<div class="thrive-reveal ms-auto flex shrink-0 items-center gap-0.5">
 			{#if FEATURES.floatingTodo}
 				<!--
 					Copy, not move, and never a link: the row stays here, and the two lists
