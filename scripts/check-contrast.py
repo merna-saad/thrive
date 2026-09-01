@@ -291,6 +291,12 @@ PRIMARY_SOFT = "--thrive-primary-soft"
 PRIMARY_FILL = "--thrive-primary-fill"
 ON_PRIMARY_FILL = "--thrive-on-primary-fill"
 ON_PRIMARY = "--thrive-on-primary"
+# The urgency ramp's two lighter fills, 2026-08-31. Both are lettered in INK
+# rather than in `on-primary`, because `on-primary` flips with the theme and
+# these two stay light in both -- so the flip would put white on a yellow chip.
+ON_BRIGHT = "--thrive-on-bright"
+ORANGE = "--thrive-orange"
+SOON = "--thrive-soon"
 YELLOW = "--thrive-yellow"
 
 INDIGO = "--thrive-indigo"
@@ -360,6 +366,17 @@ CHECKS = [
     (LATER, WHITE, "later slate text", AA_TEXT),
     # --- Solid chip fills --------------------------------------------------
     (ON_PRIMARY, URGENT, "white on urgent fill", AA_TEXT),
+    # THE RAMP'S LIGHTER TWO, and the reason they are measured against INK is the
+    # whole argument for the ramp existing. A fill owes 4.5:1 only against the
+    # lettering on it, so a fill lettered in ink can be far brighter than one that
+    # has to carry white -- which is what lets orange and yellow stay vivid
+    # instead of being darkened until white works on them.
+    (ON_BRIGHT, ORANGE, "on-bright on orange fill", AA_TEXT),
+    # Yellow is the extreme case: 1.43:1 on cream and CEILINGED there so nobody
+    # promotes it to an indicator, and 11.81:1 as a ground with ink on it. The
+    # ceiling below still binds; it was never a claim about yellow's usefulness,
+    # only about which side of the text it belongs on.
+    (ON_BRIGHT, SOON, "on-bright on due-soon fill", AA_TEXT),
     (ON_PRIMARY, WATCH, "white on watch fill", AA_TEXT),
     (ON_PRIMARY, ON_TRACK, "white on on-track fill", AA_TEXT),
     (ON_PRIMARY, NEEDS_HELP, "white on needs-help fill", AA_TEXT),

@@ -10,6 +10,7 @@ import GraduationCap from '@lucide/svelte/icons/graduation-cap';
 import HouseIcon from '@lucide/svelte/icons/house';
 import LibraryBig from '@lucide/svelte/icons/library-big';
 import Settings from '@lucide/svelte/icons/settings';
+import LifeBuoy from '@lucide/svelte/icons/life-buoy';
 import Sparkles from '@lucide/svelte/icons/sparkles';
 
 /**
@@ -210,11 +211,43 @@ export const parkedNav: NavItem[] = [
 	 *
 	 * Reachable at /settings, and one line from coming back.
 	 */
+];
+
+/**
+ * The rail's foot: the two destinations that are about the APP rather than about
+ * the student's work. Added 2026-08-31.
+ *
+ * ## This un-parks Settings, and the reason it was parked has expired
+ *
+ * The note that removed `secondaryNav` said: "One item in its own list, rendered
+ * in its own pinned strip, was a structure worth having for a gear at the bottom
+ * of a rail; it is not worth having for nothing." That was right about ONE item.
+ * There are two now, and two is a group.
+ *
+ * ## Why they are not in `primaryNav`
+ *
+ * `primaryNav` is what the student came here to do. These are what you reach for
+ * when something is wrong or needs changing, which is a different errand and a
+ * different place on the rail. Keeping them out also keeps `BottomNav` at four
+ * items on a phone, which is the constraint that parked Settings in the first
+ * place -- this strip is desktop-only, and Settings stays reachable by URL
+ * everywhere it always was.
+ *
+ * They ARE in `allNav`, so `PagePlaceholder` can find them. That lookup is the
+ * whole reason `allNav` exists.
+ */
+export const utilityNav: NavItem[] = [
 	{
 		href: '/settings',
 		label: 'Settings',
 		icon: Settings,
 		description: 'Preferences, connections, and consent'
+	},
+	{
+		href: '/support',
+		label: 'Support',
+		icon: LifeBuoy,
+		description: 'Get help with THRIVE, or tell us something is wrong'
 	}
 ];
 
@@ -243,7 +276,7 @@ export function flattenNav(items: NavItem[]): NavItem[] {
  *
  * If you are reaching for this to render something, you want `primaryNav`.
  */
-export const allNav: NavItem[] = flattenNav([...primaryNav, ...parkedNav]);
+export const allNav: NavItem[] = flattenNav([...primaryNav, ...parkedNav, ...utilityNav]);
 
 /**
  * Is this route a page worth sending someone to?

@@ -7,7 +7,8 @@ import {
 	isBuiltRoute,
 	isKnownRoute,
 	parkedNav,
-	primaryNav
+	primaryNav,
+	utilityNav
 } from "./nav";
 
 /**
@@ -35,11 +36,16 @@ describe("the nav lists", () => {
 	it("is the FLATTENED union, in primary-then-parked order", () => {
 		/*
 		 * Flattened since Ask THRIVE grew children. This is the assertion that keeps
-		 * the tree a single source: `allNav` is DERIVED from the two lists rather
-		 * than maintained beside them, so a child cannot exist in the rail and be
-		 * missing from the lookup `PagePlaceholder` throws on.
+		 * the tree a single source: `allNav` is DERIVED from the lists rather than
+		 * maintained beside them, so a child cannot exist in the rail and be missing
+		 * from the lookup `PagePlaceholder` throws on.
+		 *
+		 * THREE LISTS SINCE 2026-08-31. `utilityNav` is Settings and Support, drawn
+		 * in the rail's foot. It has to be in `allNav` for the same reason
+		 * `parkedNav` does: `/support` renders a `PagePlaceholder`, which throws if
+		 * its href is not findable here.
 		 */
-		expect(allNav).toEqual(flattenNav([...primaryNav, ...parkedNav]));
+		expect(allNav).toEqual(flattenNav([...primaryNav, ...parkedNav, ...utilityNav]));
 	});
 
 	it("carries more entries than there are top-level items", () => {

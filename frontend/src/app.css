@@ -583,12 +583,71 @@
      Dark: 5.59 card / 4.61 sunken, H 33 held, C 0.1526 -> 0.1964. The hue with
      the most gamut to spare at high lightness, so a dark coral is the one that
      most obviously still reads as itself. */
-  --thrive-urgent: light-dark(#b8462f, #ff6343);
+  /* ── THE URGENCY RAMP, 2026-08-31 ──────────────────────────────────────────
+     Three hues in a SEQUENCE -- red, orange, yellow -- and the sequence is the
+     point. It replaced coral-then-amber, which were two neighbours on the wheel
+     doing two different jobs, so "Urgent" and "Due soon" never separated at chip
+     size however carefully each was tuned. Red to orange to yellow is a ramp a
+     reader already knows how to order without being taught.
+
+       overdue    red      the calendar's verdict. Not negotiable.
+       urgent     orange   the STUDENT's ranking. A thing can be one and not the
+                           other, which is why they are two chips and two hues.
+       due soon   yellow   approaching, not yet late.
+
+     THE STREAM COLOURS ARE UNTOUCHED. `watch` still paints assignment and task
+     dots, `on-track` still means steady, and the calendar's Key still explains
+     all eleven. This ramp is urgency only -- which is why `urgent` was safe to
+     move at all: coral is deliberately absent from `categoryDot`, so no stream
+     was ever wearing it.
+
+     ── WHY THE TEXT COLOUR IS NOT THE SAME ON ALL THREE ──────────────────────
+     Because the measurement says so, and this is the whole reason the palette
+     read muddy before. Every status hue used to be solved to clear 4.5:1 as
+     TEXT on white, which forces it DARK -- coral was a brick, amber a brown.
+     They were not desaturated, they were dark, and dark reads as toned down.
+
+     A FILL owes 4.5:1 only against the text sitting ON it, so a fill can be as
+     bright as its lettering allows. Measured on white and on `on-primary`:
+
+       red     #d02b20   5.19:1 with white  -- dark enough to letter in white
+       orange  #e05d0a   4.85:1 with ink    -- too light for white, so it takes
+                                               ink and gets to stay vivid
+       yellow  #ffcd00  11.81:1 with ink    -- the brand value, unusable as text
+                                               and excellent as a ground
+
+     Yellow is the proof of the rule. It is 1.43:1 on cream and
+     `check-contrast.py` holds a CEILING there so nobody promotes it to an
+     indicator -- and none of that stops it being a first-class chip GROUND with
+     ink on it. The ceiling still binds; it was never a claim about yellow's
+     usefulness, only about which side of the text it belongs on.
+
+     Dark arms measured against `on-primary`'s dark value (#09121f): red 5.47,
+     orange 8.30, yellow 12.51. */
+  --thrive-urgent: light-dark(#d02b20, #ff6343);
+  /* TEXT THAT GOES ON A FILL WHICH IS LIGHT IN BOTH THEMES, and it is a real gap
+     this ramp exposed rather than a convenience.
+     `--thrive-on-primary` flips -- white on light, deep navy on dark -- because
+     every solid fill in this app used to be dark on light and light on dark.
+     Orange and yellow break that: they are LIGHT in both themes, so `on-primary`
+     letters them white in the light theme and loses them. `--thrive-ink` fails
+     the other way, being near-white on dark.
+     So this one does not flip. It is the same deep ink in both themes, which is
+     the only thing that works on a ground that does not move. Measured on it:
+     orange 4.85 light / 7.84 dark, yellow 11.81 in both. */
+  --thrive-on-bright: light-dark(#17181c, #17181c);
+
+  /* The student's own "act now" flag. Ink on it in both themes -- see above. */
+  --thrive-orange: light-dark(#e05d0a, #fb923c);
+  /* Due soon. `--thrive-soon` was an unused alias for `watch`; it is a real
+     token now and it is the campus yellow, which is what makes the one accent
+     this system reserves finally carry something. */
+  --thrive-soon: light-dark(#ffcd00, #ffcd00);
 
   /* Priority ramp, straight from the reference's urgent / soon / later.
-     `soon` aliases watch and `later` is a neutral slate, so a low-priority
-     row is tinted without being colored. */
-  --thrive-soon: var(--thrive-watch);
+     `soon` is declared with the urgency ramp above -- it stopped being an alias
+     for `watch` on 2026-08-31 and became the campus yellow. `later` is a neutral
+     slate, so a low-priority row is tinted without being coloured. */
   /* was #64748b · C 0.0407 -> 0.1000, the biggest single gain in the pass.
 
      THE COLLISION THIS FIXES. `later` and `muted` were the two least
@@ -654,7 +713,7 @@
     #322a42
   );
   --thrive-urgent-soft: light-dark(
-    color-mix(in oklab, #b8462f 9%, white),
+    color-mix(in oklab, #d02b20 9%, white),
     #432620
   );
   --thrive-civic-soft: light-dark(
@@ -1223,6 +1282,14 @@
   --color-needs-help-soft: var(--thrive-needs-help-soft);
   --color-urgent: var(--thrive-urgent);
   --color-urgent-soft: var(--thrive-urgent-soft);
+  /* The other two thirds of the urgency ramp. Both are FILLS -- `bg-orange` and
+     `bg-soon` with ink on them -- and neither should ever be `text-*`: orange is
+     4.85:1 against ink and yellow 11.81:1, which are ratios for a ground, not
+     for lettering. See the ramp note in layer 1. */
+  --color-orange: var(--thrive-orange);
+  --color-soon: var(--thrive-soon);
+  /* `text-on-bright`, for the two ramp fills that stay light in both themes. */
+  --color-on-bright: var(--thrive-on-bright);
   --color-civic: var(--thrive-civic);
   --color-civic-soft: var(--thrive-civic-soft);
   --color-later: var(--thrive-later);

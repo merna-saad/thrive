@@ -97,19 +97,26 @@ describe("the design system's unenforced rules", () => {
      */
     const FAMILIES = [
       "slate", "gray", "grey", "zinc", "neutral", "stone",
-      "red", "orange", "amber", "lime", "green", "emerald", "teal",
+      "red", "amber", "lime", "green", "emerald", "teal",
       "cyan", "sky", "blue", "violet", "purple", "fuchsia", "pink", "rose",
     ];
-    // `yellow` and `indigo` are deliberately absent: both are real THRIVE
-    // tokens, so `text-indigo` and `border-yellow` are correct and a numbered
-    // `indigo-500` is what would be wrong. Those are caught by the suffix.
+    // `yellow`, `indigo` and `orange` are deliberately absent: all three are real
+    // THRIVE tokens, so `text-indigo`, `border-yellow` and `bg-orange` are
+    // correct and a numbered `indigo-500` is what would be wrong. Those are
+    // caught by the suffix.
+    //
+    // `orange` joined them on 2026-08-31 with the urgency ramp. Worth noting HOW
+    // it was caught: the ramp shipped, this test went red on `tones.ts`, and the
+    // reason was that a new THRIVE token happened to share a name with a stock
+    // Tailwind family. That is the check working -- it cannot tell the two apart
+    // by name alone, so every collision has to be declared here on purpose.
     const PREFIX = "(?:bg|text|border|ring|outline|fill|stroke|divide|from|via|to)";
     const patterns = [
       new RegExp(`\\b${PREFIX}-(?:white|black)\\b`),
       new RegExp(`\\b${PREFIX}-(?:${FAMILIES.join("|")})(?:-\\d{2,3})?\\b`),
       // A THRIVE token name with a Tailwind weight suffix is a stock colour
       // wearing our name: `--color-indigo` has no `-500`.
-      new RegExp(`\\b${PREFIX}-(?:indigo|yellow)-\\d{2,3}\\b`),
+      new RegExp(`\\b${PREFIX}-(?:indigo|yellow|orange)-\\d{2,3}\\b`),
     ];
 
     const sources = { ...MARKUP, ...SCRIPTS };
@@ -128,17 +135,17 @@ describe("the design system's unenforced rules", () => {
     const samples = [
       "bg-white", "text-black", "border-slate-200", "text-gray-500",
       "bg-red-500", "ring-sky-300", "text-emerald-600", "bg-indigo-500",
-      "border-yellow-400", "divide-zinc-100", "outline-rose-500",
+      "border-yellow-400", "divide-zinc-100", "outline-rose-500", "bg-orange-500",
     ];
     const FAMILIES = [
       "slate", "gray", "grey", "zinc", "neutral", "stone",
-      "red", "orange", "amber", "lime", "green", "emerald", "teal",
+      "red", "amber", "lime", "green", "emerald", "teal",
       "cyan", "sky", "blue", "violet", "purple", "fuchsia", "pink", "rose",
     ];
     const patterns = [
       new RegExp(`\\b${PREFIX}-(?:white|black)\\b`),
       new RegExp(`\\b${PREFIX}-(?:${FAMILIES.join("|")})(?:-\\d{2,3})?\\b`),
-      new RegExp(`\\b${PREFIX}-(?:indigo|yellow)-\\d{2,3}\\b`),
+      new RegExp(`\\b${PREFIX}-(?:indigo|yellow|orange)-\\d{2,3}\\b`),
     ];
     for (const sample of samples) {
       expect(
@@ -147,7 +154,11 @@ describe("the design system's unenforced rules", () => {
       ).toBe(true);
     }
     // And it must NOT reject the THRIVE tokens that share those words.
-    for (const good of ["text-indigo", "bg-indigo-soft", "border-yellow", "text-on-primary"]) {
+    for (const good of [
+      "text-indigo", "bg-indigo-soft", "border-yellow", "text-on-primary",
+      // The urgency ramp's own tokens.
+      "bg-orange", "bg-soon", "text-on-bright",
+    ]) {
       expect(
         patterns.some((pattern) => pattern.test(`class="${good}"`)),
         `${good} is a THRIVE token and must pass`,

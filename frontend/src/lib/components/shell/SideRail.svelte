@@ -4,7 +4,7 @@
 	import Plus from '@lucide/svelte/icons/plus';
 
 	import { messages } from '$lib/messages';
-	import { isActiveRoute, primaryNav, type NavItem } from '$lib/nav';
+	import { isActiveRoute, primaryNav, utilityNav, type NavItem } from '$lib/nav';
 
 	/**
 	 * Desktop navigation rail. Hidden below `lg`, where BottomNav takes over.
@@ -217,14 +217,33 @@
 		</p>
 	</div>
 
-	<ul class="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 py-2">
+	<ul class="flex min-h-0 flex-col gap-0.5 overflow-y-auto px-2 py-2">
 		{#each primaryNav as item (item.href)}
 			<li>{@render railLink(item)}</li>
 		{/each}
 	</ul>
 
 	<!--
-		THE ONE ACTION IN THE RAIL, pinned to its foot.
+		THE RAIL'S FOOT: the app's own destinations, then the one action.
+
+		`utilityNav` is Settings and Support -- what you reach for when something is
+		wrong or needs changing, which is a different errand from anything in
+		`primaryNav` and belongs somewhere different on the rail. `mt-auto` puts the
+		whole block at the bottom on a tall screen and directly under the last nav
+		item on a short one, so it can never overlap the list.
+
+		Rendered through the same `railLink` snippet as the primary list, which is
+		the snippet's whole job: two lists that must not drift on padding, icon size
+		or the current-page treatment.
+	-->
+	<ul class="mt-auto shrink-0 border-t border-line px-2 py-2">
+		{#each utilityNav as item (item.href)}
+			<li>{@render railLink(item)}</li>
+		{/each}
+	</ul>
+
+	<!--
+		THE ONE ACTION IN THE RAIL, pinned below them.
 
 		A rail of destinations with a single VERB at the bottom is the shape the
 		reference uses, and the verb earns its place: booking is the only thing on
@@ -237,7 +256,7 @@
 		`goto` would take that away from middle-click, from cmd-click, and from
 		anything that reads the tab order looking for where it leads.
 	-->
-	<div class="mt-auto shrink-0 border-t border-line p-3">
+	<div class="shrink-0 border-t border-line p-3">
 		<a
 			href="/appointments"
 			class="flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-3 text-2xs font-medium text-on-primary transition-colors duration-(--motion-fast) ease-standard hover:bg-primary-hover lg:min-h-9"

@@ -100,7 +100,11 @@ describe("the tone maps", () => {
 		for (const tone of Object.keys(tagTones)) {
 			expect(tagTones[tone as keyof typeof tagTones]).toBeTruthy();
 		}
-		expect(Object.keys(tagTones)).toHaveLength(9);
+		// 11 since the urgency ramp split red / orange / yellow on 2026-08-31.
+		// The number is asserted rather than derived on purpose: `Record<TagTone, T>`
+		// already makes a MISSING key a compile error, so what this catches is a
+		// tone quietly ADDED without anyone deciding it should exist.
+		expect(Object.keys(tagTones)).toHaveLength(11);
 	});
 
 	it("maps every standing, and none of them to a green", () => {

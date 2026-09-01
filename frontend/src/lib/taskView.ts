@@ -91,9 +91,17 @@ export function taskLabels(
 	if (done) {
 		labels.push({ text: messages.taskLabels.done, tone: 'neutral' });
 	} else if (due.urgency === 'overdue') {
+		/* RED. The calendar's verdict, and the top of the ramp. */
 		labels.push({ text: messages.taskLabels.urgent, tone: 'urgent' });
-	} else if (due.urgency === 'today' || task.priority === 'high') {
-		labels.push({ text: messages.taskLabels.dueSoon, tone: 'watch' });
+	} else if (task.priority === 'high') {
+		/* ORANGE. The STUDENT's ranking, which is a different fact from the date's
+		   -- a task can be flagged high and not be due for a fortnight. It was
+		   folded in with "due soon" and wore the same chip, so the two were
+		   indistinguishable and the ramp had a rung missing. */
+		labels.push({ text: messages.taskLabels.urgent, tone: 'orange' });
+	} else if (due.urgency === 'today') {
+		/* YELLOW. Approaching, not yet late. */
+		labels.push({ text: messages.taskLabels.dueSoon, tone: 'soon' });
 	}
 
 	// Course code beats the generic source word: "MGT 253" places the work,
