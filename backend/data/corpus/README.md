@@ -1,18 +1,37 @@
 # The retrieval corpus
 
-Every document the FAQ bot can answer from. This directory is the corpus of
-record for this repo: `ingest_corpus` reads it, and `run_playground` loads it
-automatically, so a clean checkout can stand the bot up with no external
-dependency.
+Every document the FAQ bot will be able to answer from.
+
+> **NOTHING IN THIS REPO READS THIS DIRECTORY YET.** (Corrected 2026-09-01.)
+>
+> This file used to describe `ingest_corpus`, `run_playground`, a `Document`
+> model and a `manage.py` command block in the present tense. None of them exist
+> here: `backend/` contains these markdown files and nothing else, there is no
+> Python anywhere in the repo, and `backend/README.md` says "Django backend, not
+> started". `git log --diff-filter=A -- 'backend/**/*.py'` is empty — no backend
+> code has ever been committed.
+>
+> The commands and paths below came from the UPSTREAM project this corpus was
+> exported from, which uses an `rsm_thrive/` package layout this repo does not
+> have. They are kept, clearly marked, because they are the best statement of
+> the contract a reader here will have to honour — but they cannot be run in
+> this checkout, and `pipeline/`, `rubric/` and `backend/rsm_thrive/` are all
+> absent.
+>
+> **The corpus itself is sound.** It is the code around it that is missing.
 
 ```
 crawled/   218 files  official ucsd.edu pages, crawled and fidelity-scored
 canvas/      9 files  Rady Canvas material a human captured (SSO-gated), year-stamped
+program/     4 files  MSBA plans of study and where to find schedules and syllabi
 thrive/      1 file   how THIS app works, written here rather than crawled
 ```
 
-Both are **generated output, committed on purpose** — the bot is only as good
-as this corpus, so it is versioned alongside the code that reads it.
+Plus `program-notes.md` at this level. 234 markdown files in total including
+this README.
+
+These are **generated output, committed on purpose** — the bot is only as good
+as this corpus, so it is versioned alongside the code that will read it.
 
 ## What is in here, and what deliberately is not
 
@@ -28,9 +47,11 @@ date-archive blog posts (`recreation.ucsd.edu/2021/08/…` — 43 sports-club aw
 posts once made it into an export), and anything that is not `ucsd.edu` plus the
 two labeled exceptions (`rady.instructure.com`, `rady.hosted.panopto.com`).
 
-Each file starts with a `Source:` line. `ingest_corpus` reads it into
-`Document.source_url`, which is what lets an answer cite a clickable link
-instead of just a title.
+Each file starts with a `Source:` line -- verified, all 218 crawled files carry
+one. Upstream, `ingest_corpus` reads it into `Document.source_url`, which is what
+lets an answer cite a clickable link instead of just a title. **A reader built
+here owes the same thing**: drop the `Source:` line and every citation becomes a
+title with no way back to the page it came from.
 
 `thrive/` is the one category that is WRITTEN rather than captured, and it holds
 what no ucsd.edu page can: how this application itself works. It exists because
@@ -47,10 +68,16 @@ giving directions to a button that is not there.
 `canvas/` files carry their cohort and academic year in the **filename** (so
 every retrieved passage shows it) and a temporal stamp under **every heading**
 (so a chunk about "Dress Code" cannot present July 2026 dates as upcoming). The
-backend chunks per heading, which is why the stamp is repeated rather than
-placed once at the top.
+backend chunks **per heading**, which is why the stamp is repeated rather than
+placed once at the top. **That is a contract, not an implementation detail**: a
+reader that chunks by paragraph or by token count breaks the stamp's guarantee
+and lets a chunk present last year's dates as current.
 
-## Loading it
+## Loading it -- UPSTREAM ONLY, none of this runs here
+
+`manage.py`, `ingest_corpus`, `run_playground`, the `Document` model and the
+`rsm_thrive/` package do not exist in this repo. Kept as the specification for
+whoever builds ingestion:
 
 ```bash
 uv run python manage.py ingest_corpus rsm_thrive/data/corpus/crawled
@@ -69,10 +96,14 @@ from rsm_thrive.models import Document
 Document.objects.filter(source__contains='<old-name-fragment>').delete()"
 ```
 
-## Refreshing it (next quarter, next cohort)
+## Refreshing it (next quarter, next cohort) -- UPSTREAM ONLY
+
+**`pipeline/` is not in this repo.** Neither is `rubric/`, nor
+`Thrive/campus-resources/`. Refreshing the corpus has to happen in the upstream
+project and land here as an export, which is how these files arrived.
 
 The crawler that produces `crawled/` is the `pipeline/` project at the root of
-this repo. It is a separate Node project (`thrive-pipeline`) and is **not part of
+THAT repo. It is a separate Node project (`thrive-pipeline`) and is **not part of
 the running app**: no Django or SvelteKit code imports it or invokes it, and the
 backend has no Node dependency. The handoff is entirely offline — the pipeline
 exports markdown into this directory, and `manage.py ingest_corpus` embeds it.
