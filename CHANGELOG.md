@@ -4,6 +4,44 @@ Dated session summaries, most recent first.
 
 ---
 
+## 2026-08-31 (tenth pass) — one dot
+
+**Six gates green.** 695 tests · 131/131 contrast · 51/51 layout · 260/260 interaction.
+
+The month grid's markers collapse to a single presence dot: one muted dot on any day
+holding something, nothing on a day holding nothing, gold on today. No stream colours, no
+counts, no `+N`.
+
+**Why the information is not lost.** Every part of the old marker was answering "WHAT is
+on this day" inside a 122px cell, which is a question the rail beside it now answers in
+sentences. Two surfaces answering the same question means the weaker one is noise, and at
+8px the grid was always the weaker one: eleven categories over eight hues, decoded against
+a legend at the far end of the rail. The cell's accessible name still states the count in
+words, and the rail states the contents.
+
+**The chroma pass of 2026-08-21 is now fully unwound here.** It raised these hues to their
+gamut maximum *because of this grid*; the ninth pass took them to 70% opacity and this one
+removes the categorical dimension outright. The tokens are untouched — `categoryDot` still
+paints the compact picker and the Key legend. What changed is that this grid stopped
+being a consumer.
+
+**One consequence worth naming: the Key is now a filter, not a legend.** Its stream
+colours no longer explain anything in the grid, because the grid no longer uses them. It
+still filters, and its dots still identify the streams it filters, but the "legend"
+reading of it is gone.
+
+`--thrive-faint` is the token, and by value rather than by eye: a dot carrying "something
+is here" is a graphic that conveys meaning, so it owes 3:1 under WCAG 1.4.11 and must not
+pretend to be text. `faint` is defined to clear 3:1 and stop short of 4.5 — 3.45:1 on
+cream, 3.63:1 on the card — which is exactly that window.
+
+**The compact picker in `/appointments` is unchanged**, deliberately. It is 240px wide,
+has no rail beside it naming anything, and its dots are the only thing on that surface
+saying what a day holds. The argument for one dot is entirely an argument about
+`/calendar`'s division of labour.
+
+---
+
 ## 2026-08-30 (ninth pass) — /calendar has two focal points instead of six
 
 **HEAD:** `e3fbfae` → this pass · **695 tests · 260 interaction assertions (2 unproven) ·

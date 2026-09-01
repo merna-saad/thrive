@@ -530,79 +530,113 @@
 								)}
 								aria-hidden="true"
 							>
-								{#if isToday}
+								{#if roomy}
 									<!--
-										THE TODAY MARK, and gold's first of two roles on this page.
+										ONE DOT, 2026-08-31. Present or absent, and nothing else.
 
-										A dot rather than a ring or a fill, because the selection owns
-										the fill and a ring round an unfilled cell in a grid with no
-										lattice reads as a box that wandered in.
+										## What this replaced, and why the information is not lost
 
-										IT IS NOT THE ONLY CARRIER, and cannot be: gold is 1.50:1 on
-										this card and `check-contrast.py` holds that ceiling on purpose
-										under WCAG 1.4.11. The cell also carries `font-medium`, the
-										navy `text-primary`, `aria-current="date"` and the word
-										"today" inside its accessible name. Gold buys speed here, not
-										meaning -- exactly as it does on the urgent rail card.
+										Up to three stream-coloured dots plus a "+n". Every part of that
+										was answering "WHAT is on this day" in a 122px cell, which is a
+										question the rail beside it now answers in full sentences. Two
+										surfaces answering the same question means the weaker one is
+										noise, and at 8px the grid was always going to be the weaker
+										one: eleven categories over eight hues, decoded against a
+										legend at the far end of the rail.
 
-										FIRST in the row, so it reads as a property of the day rather
-										than as one more stream on it.
+										So the grid's question narrows to "is anything happening", which
+										a single dot answers completely. Nothing is lost, because
+										nothing here was ever the only carrier -- the cell's accessible
+										name states the count in words (`labelFor`), and the rail
+										states the contents.
 
-										IT SHOWS EVEN WHEN TODAY IS SELECTED, which is not obvious and
-										was wrong on the first pass. Today IS the selected day on load,
-										so suppressing it there left the page's DEFAULT state with no
-										gold on it at all -- an accent this brief reserves two roles
-										for, invisible until the student clicked elsewhere. On the navy
-										fill gold measures 9.45:1, which app.css calls its one legible
-										home, so this is also the single place in the whole system
-										where the mark is unambiguously legible rather than decorative.
+										## The chroma pass of 2026-08-21 is now fully unwound here
+
+										That pass raised these hues to their gamut maximum BECAUSE of
+										this grid, and it was right at the time: eleven categories over
+										eight colours read muddy at 6px, so the dots got bigger and more
+										saturated. The previous pass walked it back to 70% opacity; this
+										one removes the categorical dimension from the grid outright.
+										The tokens are untouched and `categoryDot` still paints the
+										compact picker and the Key legend -- what changed is that THIS
+										grid stopped being a consumer.
+
+										## `faint`, and it is the right token rather than a quiet-looking one
+
+										`--thrive-faint` is the system's "decorative and control
+										boundaries" step, defined by VALUE to clear 3:1 and stop short
+										of 4.5 -- 3.45:1 on cream, 3.63:1 on the card. A dot carrying
+										"something is here" is a graphic that conveys meaning, so it
+										owes 3:1 under WCAG 1.4.11 and must not pretend to be text.
+										That is exactly the window `faint` occupies, which is why it is
+										the token and not `muted-ink` (4.97:1, a text colour) or an
+										opacity on something else.
 									-->
-									<span class="size-cal-dot shrink-0 rounded-pill bg-yellow"></span>
-								{/if}
-								{#each categories.slice(0, shown) as category (category)}
-									<span
-										title={categoryLabel[category]}
-										class={cn(
-											'size-cal-dot rounded-pill',
-											/*
-											 * QUIETER IN THE ROOMY GRID, and this is the one place the
-											 * chroma pass of 2026-08-21 is deliberately walked back.
-											 *
-											 * That pass raised these hues to their gamut maximum
-											 * BECAUSE of this grid: eleven categories over eight
-											 * colours read muddy at 6px, so the dots got bigger and
-											 * more saturated. It worked. What changed is the page
-											 * around them -- the rail now names everything on the
-											 * selected day, so the grid's job narrowed from "which
-											 * streams" to "is anything happening", and eight fully
-											 * saturated dots per row is louder than that question.
-											 *
-											 * OPACITY, NOT A SECOND SET OF TOKENS. A desaturated
-											 * palette would be eleven new values to repalette, to
-											 * measure, and to keep in step with the originals. This
-											 * is the same token at 70%, so a repalette moves it and
-											 * the contrast gate has nothing new to check -- and it is
-											 * scoped to `roomy`, so the compact picker in
-											 * `/appointments` keeps the full-strength dots it was
-											 * tuned for.
-											 */
-											roomy && 'opacity-70',
-											// TODAY is the only FILLED cell now, so it is the only one
-											// whose dots need to invert. A selected day that is not
-											// today is outlined, so its dots keep their stream colour.
-											isToday ? 'bg-on-primary' : categoryDot[category]
-										)}
-									></span>
-								{/each}
-								{#if overflow > 0}
-									<span
-										class={cn(
-											'thrive-numeric text-3xs leading-none',
-											isToday ? 'text-on-primary' : 'text-muted-ink'
-										)}
-									>
-										{copy.overflow(overflow)}
-									</span>
+									{#if isToday}
+										<!--
+											THE TODAY MARK, and gold's first of two roles on this page.
+
+											A dot rather than a ring or a fill, because the selection owns
+											the fill and a ring round an unfilled cell in a grid with no
+											lattice reads as a box that wandered in.
+
+											IT REPLACES the presence dot rather than sitting beside it.
+											"Exactly one dot" is the rule, and on today the gold one is
+											the more useful of the two: the rail opens on today, so
+											"something is happening today" is already answered by the
+											column to the right.
+
+											IT IS NOT THE ONLY CARRIER, and cannot be: gold is 1.50:1 on
+											this card and `check-contrast.py` holds that ceiling on purpose
+											under WCAG 1.4.11. The cell also carries `font-medium`, the
+											navy `text-primary`, `aria-current="date"` and the word
+											"today" inside its accessible name. Gold buys speed here, not
+											meaning -- exactly as it does on the urgent rail card.
+
+											IT SHOWS EVEN WHEN TODAY IS SELECTED. Today IS the selected day
+											on load, so suppressing it there left the page's DEFAULT state
+											with no gold on it at all. On the navy fill gold measures
+											9.45:1, which app.css calls its one legible home, so this is
+											the single place in the system where the mark is unambiguously
+											legible rather than decorative.
+										-->
+										<span class="size-cal-dot shrink-0 rounded-pill bg-yellow"></span>
+									{:else if categories.length > 0}
+										<span
+											class={cn(
+												'size-cal-dot shrink-0 rounded-pill',
+												// The selection is the only fill left, and `faint` on navy
+												// is 1.7:1 -- invisible. `on-primary` is the token for
+												// "what goes on a solid fill" and flips with the theme.
+												isSelected ? 'bg-on-primary' : 'bg-faint'
+											)}
+										></span>
+									{/if}
+								{:else}
+									<!-- THE COMPACT PICKER IS UNCHANGED, and deliberately so. It is
+									     240px wide in `/appointments` "Your month", it has no rail
+									     beside it naming anything, and its dots are the only thing on
+									     that surface saying what a day holds. The argument for one dot
+									     is entirely an argument about THIS page's division of labour. -->
+									{#each categories.slice(0, shown) as category (category)}
+										<span
+											title={categoryLabel[category]}
+											class={cn(
+												'size-cal-dot rounded-pill',
+												isSelected ? 'bg-on-primary' : categoryDot[category]
+											)}
+										></span>
+									{/each}
+									{#if overflow > 0}
+										<span
+											class={cn(
+												'thrive-numeric text-3xs leading-none',
+												isSelected ? 'text-on-primary' : 'text-muted-ink'
+											)}
+										>
+											{copy.overflow(overflow)}
+										</span>
+									{/if}
 								{/if}
 							</span>
 						</button>
