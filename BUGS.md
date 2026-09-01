@@ -7,6 +7,63 @@ Note on links: this repo has no PRs — all commits go direct to `main`
 
 ---
 
+## 2026-09-01 (twelfth pass) — four defects, three of them mine
+
+### The rail row had no way into the detail dialog — UNREACHABLE FEATURE
+
+**Introduced and caught in the same pass** (`dded36f`). The calendar's day rows moved into
+the right rail with a new `density="rail"` shape, and that branch omitted the details
+button. The rail is the ONLY place day rows render in month view, so `ItemDetail` became
+unreachable — taking renaming, the urgent flag, "add to calendar" and **deleting a custom
+event** with it.
+
+`check:interaction` went red on four lines of the delete flow. Nothing about the rail
+looked wrong; a source scan or a screenshot would both have passed it. This is the clearest
+case yet for a gate that drives the real app rather than reading it: the defect was not in
+what any component rendered, it was in what became unreachable once two were rearranged.
+
+**Fix:** the details button added to the `rail` branch. `column` still omits it, because an
+80px week cell has no room and selecting the day drops the student into the rail.
+
+### `--thrive-cal-cell` sized for content that no longer existed — STALE MEASUREMENT
+
+Fixed in `4a0604f`. The token was swept honestly against a cell holding three text chips
+and a "+n" counter, and recorded at 6.2rem with its floor. The very next pass reduced
+markers to a single dot and the sweep was never re-run, so every cell carried 93px around a
+17px number and one 8px dot for two passes, and the month grid was 575px when 296px does it.
+
+No gate could catch this: nothing clipped, nothing overflowed, every assertion passed. The
+grid was simply twice the size it needed to be.
+
+**Fix:** re-swept (2.6rem clips 41 of 42, 2.9rem is the floor), set to 3.2rem. The comment
+now names the content the sweep was run against.
+
+### The grid's chip fallback was keyed on a prop, not on width — BROKE THE PHONE
+
+Introduced and fixed within `dded36f`. Named chips were gated on `size === 'comfortable'`
+rather than on available width, so a 375px phone rendered 48px cells each showing a single
+truncated character — a column of `M…` where a dot had been.
+
+**Fix:** the fallback became a CSS media question (`hidden lg:flex`), matching how the
+week-to-agenda fallback already works. The chips were removed entirely a pass later, but
+the lesson stands: a width question answered by a prop is answered in the wrong place.
+
+### A gate assertion measured the wrong element — LATENT, SURFACED LATE
+
+Found in `cceedcf`. `the day rail stays narrow enough that the grid keeps the page` read
+`#calendar-key-panel`. That was correct while the rail WAS the Key. When the Key moved to
+the rail's foot and later out of the rail entirely, the assertion kept running under a name
+that no longer described what it measured.
+
+It passed for two passes while asking the wrong question, and only failed when the Key grew
+to 878px under the grid. **An assertion whose selector and name have drifted apart is worse
+than none**, because the name is what gets read in a green run.
+
+**Fix:** re-pointed at the rail element itself. The 320px ceiling and its intent are
+unchanged.
+
+---
+
 ## 2026-08-21 (fifth pass) — four fixtures describing three students
 
 **`cea48aa`** · `mock/degree.ts`, `mock/student.ts`

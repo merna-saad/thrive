@@ -1,14 +1,26 @@
-<!-- built-at: 37c1cd1 -->
-<!-- updated: 2026-08-21 -->
+<!-- built-at: cceedcf -->
+<!-- updated: 2026-09-01 -->
 
 # CODEMAP
 
 Navigation map for the THRIVE rebuild. Read this before opening files.
 
-**Built:** 2026-08-21, refreshed at `81137b7` — after Phases 8 and 9, the two
-appointments redesigns, the Ask THRIVE rework, the page-width pass, and the
-Netlify deploy.
-**Size:** 179 files under `frontend/src` — ~30,755 lines, 22,458 source / 8,297 test.
+**Built:** 2026-08-21. **Refreshed 2026-09-01 at `cceedcf`** — after the UC San Diego
+display type, the /calendar hierarchy rework, the Home and /appointments passes, the
+red/orange/yellow urgency ramp, and the calendar compaction.
+**Size:** 190 files under `frontend/src` — ~35,870 lines, 26,582 source / 9,288 test.
+
+**What moved structurally since the last refresh** (contents changed far more widely —
+see CHANGELOG passes 8-12):
+
+| Change | Where |
+|---|---|
+| **New route** `/support` | `routes/support/+page.svelte` — a `PagePlaceholder` stub so the rail's link resolves |
+| **New nav list** `utilityNav` | `lib/nav.ts` — Settings + Support, drawn in the rail's foot. `allNav` is now the union of three lists, not two |
+| **New treatment classes** | `app.css` — `.thrive-display` (page titles, Teko caps) and `.thrive-reveal` (controls that hide at rest) |
+| **New tokens** | `--thrive-page-rhythm`, `--thrive-cal-cell`, `--thrive-day-rail-width`, `--thrive-orange`, `--thrive-soon`, `--thrive-on-bright`, `--font-teko`. **`--thrive-key-width` is gone** |
+| **Removed** | `categoryChipBorder` from `lib/schedule.ts` — the month grid's named chips shipped and were withdrawn in the same day |
+| **`ItemRow` prop change** | `compact: boolean` became `density: 'full' \| 'rail' \| 'column'` |
 
 > The `built-at` comment above is machine-read by the codemap staleness hook.
 > Keep it as the first line, in that exact `<!-- built-at: <hash> -->` form.

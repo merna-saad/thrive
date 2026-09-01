@@ -4,6 +4,99 @@ Dated session summaries, most recent first.
 
 ---
 
+## 2026-09-01 (twelfth pass) — a mockup, a vibrant ramp, and a backend that is not there
+
+**HEAD:** `cceedcf` · **Six gates green.** 695 tests · 138/138 contrast (was 134) ·
+51/51 layout · 260/260 interaction. Six commits.
+
+### Three of my own calls were wrong, and a mockup settled them
+
+A Stitch reference for Home landed and corrected work from the previous pass:
+
+- **Card titles took `.thrive-display`** on a reading of "card headings are display
+  weight" that meant the display FACE. Four Teko caps headings in a 2x2 grid is four
+  shouting labels, which is the opposite of the pass's whole point. Back to sentence-case
+  sans.
+- **Task rows had no edges at all.** Removing the coloured left border and the tinted wash
+  was right; leaving nothing behind ran ten rows into one block. They are bordered white
+  cards now — quiet without being formless.
+- **Urgency chips went to tints with everything else.** A page where nothing is filled has
+  nothing that stops you. Overdue and due-soon are the two facts allowed to interrupt.
+- **Both urgency chips stay.** One pass dropped "Urgent" as a duplicate of "Overdue". Read
+  side by side they are not the same sentence: one is how the student ranked it, the other
+  is what the calendar says.
+
+The greeting card also lost the program timeline band, which moved to the foot of the page
+rather than being deleted — its six phase bars are pressable and six assertions drive them.
+The rail gained the Rady line and a "New appointment" action; `utilityNav` brought Settings
+back and added Support, with `/support` as a real `PagePlaceholder` route.
+
+### The urgency ramp is red, orange, yellow, and the reason it was muddy is mechanical
+
+**Every status hue had been solved to clear 4.5:1 as TEXT on white, which forces it dark.**
+`urgent` was a brick, `watch` a brown, `on-track` nearly black-green. They were never
+desaturated; they were dark, and dark reads as toned down.
+
+A FILL owes 4.5:1 only against the lettering on it. Splitting those two jobs is the whole
+trick:
+
+```
+red     #d02b20    5.19 with white       overdue
+orange  #e05d0a    4.85 with on-bright   the student's own flag
+yellow  #ffcd00   11.81 with on-bright   approaching, not yet late
+```
+
+Orange stayed vivid *because* it takes ink. Darken it until white works and you are back to
+the brick you started from.
+
+**`--thrive-on-bright` is a new token closing a real gap.** `on-primary` flips white/navy
+with the theme; `ink` flips the other way. Orange and yellow are light in BOTH themes, so
+both existing tokens fail them. Nothing meant "text on a ground that does not move".
+
+`taskLabels` gained the rung it was missing: high-priority and due-today had been folded
+together wearing one chip, so a task flagged urgent and not due for a fortnight looked
+identical to one due tonight.
+
+Stream colours untouched. `urgent` was only safe to move because coral is deliberately
+absent from `categoryDot`.
+
+### The chat pipeline was not built, and the prerequisite is why
+
+A seven-step chat pipeline was specified with an explicit prerequisite: the retrieval layer
+must exist, and if `retrieve_corpus` has nothing to call, stop. **It has nothing to call.**
+`backend/` is 234 markdown files and no Python; `git log --diff-filter=A -- 'backend/**/*.py'`
+is empty.
+
+`backend/data/corpus/README.md` described `ingest_corpus`, `run_playground`, a `Document`
+model and a runnable `manage.py` block **in the present tense**. None exist here; they came
+from an upstream project using an `rsm_thrive/` layout this repo does not have. Corrected
+and marked UPSTREAM ONLY rather than deleted, because the commands are the best statement
+of the contract a reader here will owe. Its inventory was stale too — `program/` (4 files)
+and `program-notes.md` were unlisted.
+
+### The calendar got compact, and a measured token had gone stale
+
+`--thrive-cal-cell` was **6.2rem, swept against three text chips**. The next pass cut
+markers to a single dot and nobody re-ran the sweep, so every cell was sized for content
+that had stopped existing: 93px around a 17px number and one 8px dot.
+
+Re-swept: 2.6rem clips 41 of 42, **2.9rem is the floor**, 3.2rem chosen. Grid 575px → 296px,
+cells 93px → 48px. The rest of the rhythm came down with it, all of it having been tuned
+around a 93px row.
+
+### The Key moved under the grid, its third home
+
+A legend for the MONTH had been sitting at the foot of a rail about the DAY. Eleven
+full-width rows became eleven chips on one line — reversing a decision whose reasoning is
+kept verbatim, because it was right when measured against a 165px column where the wrap
+produced four ragged lines. At 855px the same eleven fit on one.
+
+**Four assertions retuned, and one was measuring the wrong element**: `the day rail stays
+narrow` read `#calendar-key-panel`, which was the rail only while the rail WAS the Key.
+Once they separated it was asking "is the Key narrow" while claiming to ask about the rail.
+
+---
+
 ## 2026-08-31 (eleventh pass) — Home and Appointments join the treatment
 
 **Six gates green.** 695 tests · **134/134 contrast** (up from 131) · 51/51 layout ·

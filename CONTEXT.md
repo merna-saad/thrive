@@ -1,4 +1,4 @@
-<!-- updated-at: f0eea89 -->
+<!-- updated-at: cceedcf -->
 
 # CONTEXT
 
@@ -93,7 +93,8 @@ thrive/
 ├── README.md        the public-facing explanation, and the doc guide
 ├── netlify.toml     the deploy config, at the root because Netlify reads it there
 ├── frontend/        the SvelteKit app
-├── backend/         Django — not started, README only
+├── backend/         Django — NOT STARTED. 234 markdown corpus files, zero Python.
+│                    `git log --diff-filter=A -- 'backend/**/*.py'` is empty.
 └── scripts/
     ├── check-contrast.py       127 assertions over BOTH palettes and app.css
     ├── check-layout.mjs        17 targets x 3 viewports, in a real browser
@@ -336,6 +337,14 @@ all survive because they answer questions the chip strip has too. See FINDINGS.
 ---
 
 ## 6. The design system
+
+> **PARTIALLY STALE as of 2026-09-01.** Four visual passes since this was last written in
+> full. The type rule is now THREE faces (Teko for page titles, added 2026-08-29), the
+> status palette gained a red/orange/yellow urgency ramp with split fill/text values and
+> `--thrive-on-bright`, `tagTones` moved from solid fills to tints for every non-urgency
+> tone, and four tokens arrived (`--thrive-page-rhythm`, `--thrive-cal-cell`,
+> `--thrive-day-rail-width`, `.thrive-reveal`). The corrections below are spot fixes; the
+> section has not been rewritten end to end. See CHANGELOG passes 8-12 and §16.
 
 `frontend/src/app.css` is the single source of truth. **Never hardcode a colour,
 size, radius, or duration in a component.** `designSystem.spec.ts` fails the
@@ -843,7 +852,9 @@ a height.
 | `--container-page` (80rem) | `max-w-page` | how wide may a page get |
 | `--thrive-page-gutter-x` (2.5rem) | `lg:px-page-x` | how far off the edges does it sit |
 | `--container-measure` (68ch) | `max-w-measure` | how long may a LINE OF TEXT get |
-| `--thrive-key-width` (11rem) | in a grid template | how wide is the calendar's Key |
+| `--thrive-day-rail-width` (20rem) | in a grid template | how wide is the calendar's right rail |
+| `--thrive-cal-cell` (3.2rem) | `h-cal-cell` | how tall a month cell is |
+| `--thrive-page-rhythm` (2rem / 1.5rem) | `space-y-page-rhythm` | the gap between major page sections |
 
 **The gutter and the cap are two knobs and you need both.** 72rem left ~120px of
 dead margin at 1512px, so it went to 96rem — and then the cap stopped biting at that
@@ -883,7 +894,13 @@ student two nested scrollbars to fight.
 in the row it governs WIDTH, in the column below `xl` it governs HEIGHT and silently
 beats the token beside it.
 
-**`--thrive-key-width: 11rem`** is sized from its CONTENT — the longest stream row
+**`--thrive-key-width` IS GONE (2026-08-30).** It was 11rem, sized from the Key's longest
+stream row, and it made sense while the rail held only a legend. The rail holds the selected
+day now and the Key moved under the grid entirely, so the token was replaced by
+`--thrive-day-rail-width: 20rem`, sized from a day row instead. The grid pays ~138px for
+that deliberately. The original reasoning, kept because it is the shape the argument took:
+
+**`--thrive-key-width: 11rem`** was sized from its CONTENT — the longest stream row
 is "appointment" at ~96px with its dot and padding, the widest view toggle is
 "ignored events" with its count at ~110px. 165px clears both and the gate asserts it.
 
@@ -1956,6 +1973,13 @@ seeding the store by hand.
 
 ## 13. Home
 
+> **STALE as of 2026-09-01.** Home was reworked twice (2026-08-31, then against a Stitch
+> mockup). The greeting strip lost five of its eight pieces of status, task rows lost their
+> coloured edge and tinted wash and became bordered cards, the program strip moved to the
+> foot of the page, cards gained real padding and lost their sunken header band, and row
+> actions now hide at rest behind `.thrive-reveal`. This section describes the arrangement
+> before all of that. See CHANGELOG passes 11-12.
+
 The dashboard, and the only editable surface besides the calendar. `+page.server.ts`
 awaits **six providers in one `Promise.all`**, calls `new Date()` once, and then
 builds the term plans. Four cards in a **2×2 grid** at `lg`, one column below it.
@@ -2311,6 +2335,13 @@ is built, or Mandarin stops being possible.
 ---
 
 ## 14. The calendar
+
+> **STALE as of 2026-09-01.** The calendar was reworked across four passes. The selected
+> day moved into a 20rem right rail, the Key moved under the grid, the month grid lost its
+> lattice and weekend tints, markers collapsed to one dot per day, today became a weight
+> plus a gold dot while the SELECTION took the fill, and `--thrive-cal-cell` was re-swept
+> from 6.2rem to 3.2rem. This section describes the arrangement before all of that. See
+> CHANGELOG passes 9-12.
 
 **The second built surface and the largest.** `/calendar` — 14 components plus nine
 pure modules. 7a built the spine, 7b the other two views and the filter, 7c the three
@@ -2979,6 +3010,46 @@ that prose in this repo has to describe the offending utility rather than quote 
 
 ## 16. Standing decisions
 
+### 2026-08-29 to 2026-09-01 — the four visual passes
+
+Recorded together because they were one arc: display type, then hierarchy, then colour.
+
+- **Teko sets page titles, in caps, and nothing else.** UC San Diego's free substitute for
+  Refrigerator Deluxe. **Brix Sans is NOT adopted** — the interface stays on the system
+  stack. `.thrive-display` bundles face, case, weight, size and leading, and every call site
+  drops its `text-*` and `font-bold`, because utilities beat the components layer.
+- **Card titles are sentence-case sans, not Teko.** "Display weight" means weight, not face.
+  Four Teko caps headings in a 2x2 grid is four shouting labels.
+- **Home's greeting stays in the interface sans.** Every other page title names a place;
+  this one addresses a person.
+- **The calendar has two focal points**: the page title and the selected day. Everything
+  else was demoted, not removed.
+- **The grid answers "is anything happening"; the rail answers "what".** One dot per day.
+  Named chips were built and removed — a class meets every weekday, so chips repeated what
+  the student knew and hid what they did not.
+- **The selection is a fill; today is a weight plus a gold dot.** A fill follows the
+  pointer; a weight describes the world, and today must stay legible while you look
+  elsewhere.
+- **Gold has exactly two roles** — the today marker and urgency — and exactly one legible
+  home: 9.45:1 on navy, against 1.43:1 on cream where a ceiling holds it decorative.
+- **The urgency ramp is red / orange / yellow**, a sequence rather than two neighbours. Each
+  hue has a bright fill value and a dark text value, because a fill owes 4.5:1 only against
+  its own lettering. **Stream colours are untouched.**
+- **`--thrive-on-bright` does not flip with the theme.** Both existing ink tokens do, and
+  the ramp's two lighter fills are light in both themes.
+- **Urgency chips are fills; every other tone is a tint.** A page where nothing is filled
+  has nothing that stops you.
+- **Controls recede rather than disappear.** `.thrive-reveal` hides Home's row actions at
+  rest and returns them on hover, on `:focus-within`, and permanently under
+  `@media (hover: none)`. Removing them would have deleted the only route to renaming a
+  task.
+- **The Key sits under the grid**, beside what it explains. Third home; the rail is the day.
+- **The rail's foot holds `utilityNav`** (Settings, Support) and one action. `/support` is a
+  real stub so the link resolves.
+- **A swept token names the content it was swept against.** `--thrive-cal-cell` sat at
+  6.2rem for two passes after its subject changed from three chips to one dot.
+
+
 ### Settled this session
 
 - **The interface font is the SYSTEM STACK, not a webfont.** DM Sans read badly at
@@ -3209,43 +3280,77 @@ Calm, plain, honest about what is simulated.
 
 ## 18. Open loose ends
 
-1. **Django is not started, and three features now need it.** Ask THRIVE's saved
-   history, Group Projects, and the real recommender. `BACKEND.md` is the contract.
-2. **The mock stores are process-global**, so two people using the deployed site at once
+### Blocking
+
+1. **The chat pipeline is blocked on a retrieval layer that does not exist.** Asked for on
+   2026-09-01 and stopped on, per its own prerequisite. `backend/` is 234 markdown files
+   and no Python; `git log --diff-filter=A -- 'backend/**/*.py'` is empty. The corpus
+   README described `ingest_corpus`, `run_playground` and a `Document` model in the present
+   tense — corrected and marked UPSTREAM ONLY on 2026-09-01. The upstream project (an
+   `rsm_thrive/` layout) is **not on this machine**. Needs either that path or three
+   decisions to build here: database, embedding provider, lexical index.
+2. **Django is not started, and four features now need it.** Ask THRIVE's saved history,
+   Group Projects, the real recommender, and now the chat pipeline. `BACKEND.md` is the
+   contract.
+3. **The mock stores are process-global**, so two people using the deployed site at once
    see each other's data (§20). BLOCKING for a control group.
-3. **Provider copies are shallow.** As in the prototype. A caller mutating a nested
-   object still reaches the fixture.
-4. **Group Projects is scoped and not built.** The first shared surface, the first fifth
-   nav item, and the first thing that breaks "there is exactly one student".
-5. **`/assignments` is the next real page**, and it owes `TaskRow` a `role="list"`
-   container.
-6. **Nobody has looked at the dark theme on a real screen.** Every claim about it in §6
-   is a measurement, and a measurement does not catch "this teal is ugly" or "the coral
-   is too hot at 2am". `later`/`indigo` at dE 0.0759 is the pair most likely to draw a
-   complaint on the month grid, and `#ff6343` is the value most likely to read hot. **The
-   owner is looking at it now.**
-7. **The seven light `*-soft` tints are unmeasured** — they are `color-mix`, which the
-   contrast gate will not evaluate. Left that way (owner). The dark seven are measured.
-8. **`prefers-contrast` and forced-colors have never been considered.** Neither was in
-   scope for the theme.
-8b. **The system stack has only been LOOKED at on macOS.** Every type measurement in §6
-   is SF in headless chromium. Segoe UI and Roboto are in the stack and nobody has
-   opened the app on Windows or Android — the sizes should hold (the stack's faces have
-   similar x-heights) but that is a prediction, not a measurement.
-9. ~~`student.currentTerm` and `degree.track` are still second answers to derived
-   questions.~~ **Closed 2026-08-22** — both deleted, `TopBar` reads the timeline.
-10. **The catalogue's `units: 4` is a placeholder that now has a consumer.**
-    `unitsRequired: 48` is derived from it, so correcting the units means re-deriving
-    the total.
-11. **The catalogue covers four terms; the 17-month timeline has six phases.** Summer
-    2027 and Fall 2027 have no courses at all, so their term panels render the empty
-    state. Not wrong, but nobody has decided whether those terms should hold anything.
-12. **`/swatch` documents the light theme only** and is slated for deletion before
+
+### Visual, unresolved
+
+4. **`ease-pop` has been flagged by the design hook three times and is unresolved.**
+   `cubic-bezier(0.2, 1.4, 0.4, 1)`, pre-existing from the original port, one consumer (the
+   checkbox tick), documented as the single sanctioned overshoot. Either suppress the rule
+   for that value or retune it; it will keep interrupting.
+5. **The Key on a narrow viewport has not been looked at** since it moved under the grid on
+   2026-09-01. Still behind the "Key and filters" disclosure below `xl`.
+6. **The calendar grid is wide and short** (855 x 296), cells letterboxed at 121 x 48, and
+   the left column ends well above the rail. If it reads badly the fix is capping the
+   grid's width, not regrowing its height.
+7. **`TODAY` in the calendar rail is one step larger than the page `h1`.** Deliberate — the
+   rail is the page's subject — but an unusual hierarchy nobody has second-guessed.
+8. **Two Stitch-mockup details were left alone** because both are `Tag`-wide rather than
+   page-local: `VIEW ALL` uppercase-tracked, and chips reading `URGENT` / `DUE SOON` in
+   caps.
+9. **Degree progress has no view anywhere in the app.** The units chip came out of the
+   greeting on 2026-08-31 and `/degree` is still a `PagePlaceholder`. The data is still in
+   the load.
+10. **Nobody has looked at the dark theme on a real screen.** Every claim in §6 is a
+    measurement, and a measurement does not catch "this teal is ugly".
+11. **`/appointments`' month picker** keeps the lattice, full-strength dots and the sunken
+    header band. Reasoned about rather than looked at.
+12. **The system stack has only been LOOKED at on macOS**, and Teko's `Arial Narrow`
+    fallback is a prediction rather than a measurement.
+
+### Unmeasured or unpinned
+
+13. **The light `*-soft` tints are unmeasured** — `color-mix()`, which the contrast gate
+    will not evaluate. `tagTones` now leans on them where it did not before.
+14. **`--thrive-cal-cell` is pinned by no assertion.** It sat at more than twice its needed
+    height for two passes and nothing failed, because being too large breaks no check.
+15. **The display treatment's leading (1.05) and tracking (+0.02em)** are by-eye values no
+    gate pins.
+16. **`prefers-contrast` and forced-colors have never been considered.**
+
+### Product and data
+
+17. **Group Projects is scoped and not built.** The first shared surface and the first
+    thing that breaks "there is exactly one student".
+18. **`/assignments` is the next real page**, and it owes `TaskRow` a `role="list"`.
+19. **Provider copies are shallow.** A caller mutating a nested object reaches the fixture.
+20. **The catalogue's `units: 4` is a placeholder that now has a consumer.**
+21. **The catalogue covers four terms; the timeline has six phases.** Summer and Fall 2027
+    have no courses.
+22. **`/swatch` documents the light theme only** and is slated for deletion before
     Release 1.
-13. **Release 1 dates need re-setting** — see §19.
-14. **`nowMinutes()` and `matchesWide()` still have no callers.**
-15. **The floating widgets are flagged off** and the quick list has visible consumers
-    without a visible panel (§10).
+23. **Release 1 dates need re-setting** — see §19.
+24. **`nowMinutes()` and `matchesWide()` still have no callers.**
+25. **The floating widgets are flagged off.**
+26. **`/support` is a stub** added 2026-09-01 so the rail's link resolves.
+
+### Closed
+
+- ~~`student.currentTerm` and `degree.track` are second answers to derived questions.~~
+  **Closed 2026-08-22** — both deleted, `TopBar` reads the timeline.
 
 ---
 
@@ -3278,7 +3383,14 @@ stays a parked stub.
 **Four surfaces are finished** — Home, the calendar, appointments and Ask THRIVE — and
 the app is deployed. **What is missing is not screens; it is a backend.**
 
-**Two things this pass are worth separating from the polish.** The dark theme is a
+**2026-08-29 to 2026-09-01: four visual passes and one hard stop.** The app took UC San
+Diego's display type, then had its three main surfaces reworked for hierarchy, then got a
+vibrant urgency ramp. Home, the calendar and appointments now share one treatment. Against
+that, the chat pipeline was specified and **not built**: its retrieval prerequisite does not
+exist, which moves the backend from "on the critical path" to "the only thing on it". Four
+of the five features now waiting on Django are blocked on the same absence.
+
+**Two things from the dark-theme pass are worth separating from the polish.** The dark theme is a
 product feature rather than a legibility fix — a student reading at night is a real use
 case and the app now serves it. And **the fixture fix is the more important of the two**:
 Home was showing a student 38 of 52 units in their first week, and a dashboard that

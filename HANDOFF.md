@@ -4,6 +4,66 @@ Session log, newest first. What happened, what was decided, what is still open.
 
 ---
 
+## 2026-09-01 (twelfth pass) — mockups, the ramp, and a backend that is not there
+
+**HEAD:** `cceedcf` · **Six gates green.** 695 tests · 138/138 contrast · 51/51 layout ·
+260/260 interaction (1 unproven). Six commits, all pushed.
+
+Detail in CHANGELOG; lessons in FINDINGS; defects in BUGS.
+
+### Decided this session
+
+1. **Card titles are sentence-case sans, not `.thrive-display`.** "Display weight" meant
+   weight, not face. Teko caps stay on page titles only.
+2. **Urgency chips are fills; everything else is a tint.** A page where nothing is filled
+   has nothing that stops you.
+3. **The urgency ramp is red / orange / yellow**, with a bright fill value and a dark text
+   value per hue. Stream colours untouched.
+4. **`--thrive-on-bright`** exists because both existing ink tokens flip with the theme and
+   the ramp's two lighter fills do not.
+5. **The program strip moved to the foot of Home** rather than being deleted — six
+   assertions drive its pressable terms.
+6. **The Key lives under the grid**, its third home, as one line of chips.
+7. **Settings and Support are in the rail foot**; `/support` is a real stub route.
+8. **The chat pipeline was not built.** Prerequisite failed; nothing stubbed.
+
+### Blockers
+
+- **The chat pipeline is blocked on the retrieval layer.** `backend/` is 234 markdown files
+  and no Python. The user chose "point me at the source project" but has not supplied a
+  path, and it is **not on this machine** — no `manage.py`, no `ingest_corpus`, no
+  `rsm_thrive/` anywhere under `~`. Next session needs either that path, or three decisions
+  to build it here: database (Postgres + pgvector vs SQLite + separate index), embedding
+  provider, and whether the lexical half is Postgres full-text or standalone.
+
+### Open loose ends
+
+- **`ease-pop` has been flagged by the design hook three times** and is still unresolved.
+  `cubic-bezier(0.2, 1.4, 0.4, 1)`, pre-existing from the original port, one consumer (the
+  checkbox tick). Either run
+  `/impeccable hooks ignore-value bounce-easing "cubic-bezier(0.2, 1.4, 0.4, 1)" --shared`
+  or retune it. It will keep interrupting until one or the other.
+- **The Key on a narrow viewport has not been looked at** since it moved under the grid. It
+  is still behind the "Key and filters" disclosure below `xl`, now appearing under the grid
+  rather than under the day.
+- **The calendar grid is wide and short** (855 x 296), so cells are letterboxed at 121 x 48
+  and the left column ends well above the rail. If that reads badly, the fix is capping the
+  grid's width rather than growing its height back.
+- **Two Stitch-mockup details were left alone** because both are `Tag`-wide, not page-local:
+  `VIEW ALL` is uppercase-tracked in the mockup and sentence case here, and the mockup's
+  chips read `URGENT` / `DUE SOON` in caps.
+- **Degree progress has no view anywhere in the app.** The units chip came out of the
+  greeting and `/degree` is still a `PagePlaceholder`. The data is still in the load.
+- **Light-theme chip tints are unmeasured** by the contrast gate (`color-mix()`), and
+  `tagTones` now leans on them where it did not before.
+- **`--thrive-cal-cell` is pinned by no assertion.** It sat at more than twice its needed
+  height for two passes and nothing failed, because being too large breaks no check.
+- **`/appointments`' month picker** keeps its lattice and full-strength dots. Reasoned about
+  rather than looked at.
+- Unchanged from earlier: the desktop page still does not fit a 1052px viewport.
+
+---
+
 ## 2026-08-31 (tenth and eleventh passes) — one dot, then Home and Appointments
 
 **Six gates green.** 695 tests · 134/134 contrast · 51/51 layout · 260/260 interaction.

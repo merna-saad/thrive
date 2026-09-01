@@ -1,9 +1,47 @@
 # TESTING
 
-**Last verified:** 2026-08-29 at `7225ba9` + the display-type pass. **695 tests, 33
-files, all passing. 260 interaction assertions (2 unproven), 51 layout targets,
-131 contrast assertions across BOTH THEMES.** Verified green in **all seven timezones**
+**Last verified:** 2026-09-01 at `cceedcf`. **695 tests, 33 files, all passing.
+260 interaction assertions (1 unproven), 51 layout targets, 138 contrast assertions
+across BOTH THEMES.** Verified green in **all seven timezones**
 as of 7a, where the sweep **caught a real failure** — recorded below.
+
+### What the twelfth pass found (2026-09-01)
+
+**Contrast went 134 → 138**, all four from the urgency ramp: `white on urgent fill`,
+`on-bright on orange fill`, `on-bright on due-soon fill`, measured in both themes. The gate
+caught two real errors while they were being added — `text-ink` on the orange and yellow
+fills measures 1.93:1 and 1.28:1 on DARK, because `ink` flips near-white there. That is
+what produced `--thrive-on-bright`.
+
+It also caught the soft-tint coupling check doing its job: changing `--thrive-urgent`'s
+light arm left `--thrive-urgent-soft` mixing the OLD hex, and the check said so by name.
+
+**Three unit tests went red on the ramp and all three were right.** `bg-orange` matched the
+banned stock-Tailwind family list, because a new THRIVE token happened to share a name with
+one — the same declaration `yellow` and `indigo` already carry. `allNav` and `tagTones` each
+assert their own size, so adding to either has to be a decision rather than a side effect.
+That is three separate guards catching one change from three directions.
+
+**Four interaction assertions were retuned when the Key moved**, and one of them was a
+latent gate defect rather than a stale expectation: `the day rail stays narrow` was reading
+`#calendar-key-panel`, correct only while the rail WAS the Key. It had been asking the
+wrong question for two passes under a name that said otherwise. See BUGS.
+
+The two scanability assertions (`each stream is on its own line`, `every dot sits in one
+column`) encoded a 165px column. They became a single ceiling — the streams must stay
+within 2 lines — which keeps the property the originals protected without demanding the
+column back.
+
+**What is still not covered:**
+
+- `--thrive-cal-cell` is verified by a manual clipping sweep, not an assertion. Nothing
+  fails if a future edit makes chips clip — and nothing failed when the token sat at more
+  than twice the height it needed for two passes, because being too large breaks no check.
+- The display treatment's leading (1.05) and tracking (+0.02em) are still by-eye values no
+  gate pins.
+- The urgency ramp's light-theme chip tints (`bg-*-soft` with `text-*`) remain unmeasured,
+  because the light arms are `color-mix()` which the gate deliberately does not evaluate.
+  Dark is covered by construction at 4.60-4.64:1.
 
 ### What the calendar hierarchy pass found (2026-08-30)
 

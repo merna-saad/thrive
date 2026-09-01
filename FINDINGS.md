@@ -4,6 +4,77 @@ Reusable patterns and lessons. Things worth knowing again.
 
 ---
 
+## 2026-09-01 (twelfth pass) — a measurement expires when its subject changes
+
+### A swept token is only valid for the content it was swept against
+
+`--thrive-cal-cell` was measured properly: a real sweep, real clipping counts, the value
+recorded with its floor. Then the next pass changed what went in the cell — three text
+chips became one dot — and nobody re-ran it. The token stayed at 6.2rem for content that
+needed 2.9, and the grid was twice the height it should have been for two passes.
+
+**Being measured is not the same as being current.** The comment now names the subject the
+sweep was run against, so the next person can see at a glance whether it still applies.
+Any token derived from content should say what content.
+
+### A gate can measure the wrong element and still look like it works
+
+`the day rail stays narrow enough that the grid keeps the page` read
+`#calendar-key-panel`. That was correct while the rail WAS the Key. When the Key moved out,
+the assertion went on running, went on passing for a while, and was quietly asking "is the
+Key narrow" while its name claimed it asked about the rail.
+
+It only surfaced because the Key later grew wide enough to fail. **An assertion whose
+selector and whose name have drifted apart is worse than no assertion**, because the name
+is what everyone reads. When a component moves, grep the gates for its selector, not just
+for its name.
+
+### A brightness problem can be a contrast-constraint problem in disguise
+
+The palette read muddy and the instinct was to raise saturation. The actual cause: every
+status hue had been solved to clear 4.5:1 **as text on white**, which forces it dark. They
+were not desaturated, they were dark.
+
+A fill owes 4.5:1 only against the lettering on it, so **one value cannot serve as both
+text and ground without the text requirement dragging the ground dark.** Split them and the
+ground can be as bright as its lettering allows. UCSD yellow is the proof: unusable as text
+at 1.43:1 on cream, excellent as a ground at 11.81:1 with ink on it.
+
+### Three theme-flipping ink tokens, and none of them fitted
+
+`on-primary` flips white/navy with the theme because every fill used to be dark-on-light and
+light-on-dark. `ink` flips the other way. A fill that is LIGHT IN BOTH THEMES breaks both —
+one letters it white, the other near-white.
+
+The gap had never appeared because no such fill existed. **When a new element does not fit
+any existing token, check whether the token set has a hole rather than forcing the nearest
+fit.** `--thrive-on-bright` is four words of CSS and it is the difference between a legible
+yellow chip and an illegible one.
+
+### Reversing your own decision is fine when the constraint moved
+
+Three reversals this session, all correct in both directions: chips became rows became
+chips; today was a fill then a weight; urgency chips were fills, then tints, then fills.
+
+Each original decision was measured against a constraint that later changed — a 165px
+column became 855px, a rail of legend became a rail of day. **Keep the old reasoning
+verbatim when you reverse it.** It reads as a record of what the constraint was, and it is
+what tells the next person whether the reversal still holds when the constraint moves again.
+
+### Verify the prerequisite before designing around it
+
+A seven-step pipeline was specified with "if the retrieval layer has nothing to call,
+stop". Checking took four commands. The corpus README described the missing layer in the
+present tense, so believing the docs would have produced a plausible, entirely fake
+implementation.
+
+Four briefs running have carried a premise that did not hold — a fixed contrast pair count
+that has never existed, a density pass reversed two sessions earlier, `SquareGrid` named as
+the month grid, and now a retrieval layer. None were traps; all were written from memory of
+the code. **Check the constraint, then say plainly which premise was wrong.**
+
+---
+
 ## 2026-08-31 (eleventh pass) — hiding a control is not removing it
 
 ### When a brief says "remove", check what else leaves with it
