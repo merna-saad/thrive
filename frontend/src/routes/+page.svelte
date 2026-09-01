@@ -4,6 +4,7 @@
 	import { resolveRows } from '$lib/taskBoard';
 	import { addedTasks, taskDues, taskPriorities, taskTitles } from '$lib/userEdits.svelte';
 	import HomeHeader from '$lib/components/home/HomeHeader.svelte';
+	import ProgramTimelineCompact from '$lib/components/home/ProgramTimelineCompact.svelte';
 	import MyClasses from '$lib/components/home/MyClasses.svelte';
 	import TasksCard from '$lib/components/home/TasksCard.svelte';
 	import TodaysClasses from '$lib/components/home/TodaysClasses.svelte';
@@ -91,21 +92,36 @@
 
 <svelte:head><title>{pageTitle()}</title></svelte:head>
 
-<div class="mx-auto w-full max-w-page space-y-2">
+<div class="mx-auto w-full max-w-page space-y-3">
 	<HomeHeader
 		student={data.student}
-		timeline={data.timeline}
-		termPlans={data.termPlans}
 		dateLabel={data.dateLabel}
 		greeting={data.greeting}
 		taskItems={taskRows}
 		eventRows={data.eventRows}
 	/>
 
-	<div class="grid grid-cols-1 gap-2 lg:grid-cols-2">
+	<div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
 		<TasksCard rows={taskRows} nowISO={data.nowISO} />
 		<TodaysClasses rows={data.todaysClasses} dateLabel={data.dateLabel} />
 		<MyClasses rows={data.courseRows} />
 		<UpcomingEvents rows={data.eventRows} />
 	</div>
+
+	<!--
+		THE PROGRAM STRIP, AT THE FOOT OF THE PAGE (2026-08-31).
+
+		It sat above the greeting inside `HomeHeader` for several passes, on the
+		reasoning that the strip and the greeting are both "the header" and two
+		panels were paying twice for one boundary. That was right about the boxes and
+		wrong about the content: a two-year roadmap and what-to-do-this-evening are
+		the furthest apart of anything on this page, and stacking them put the least
+		urgent thing at the top.
+
+		The brief's own ordering rule settles where it goes -- anything needing
+		attention above the fold, browsing content below -- and a roadmap is the
+		definition of browsing content. It is still fully interactive: six pressable
+		terms, each opening that term's classes.
+	-->
+	<ProgramTimelineCompact timeline={data.timeline} termPlans={data.termPlans} />
 </div>

@@ -37,6 +37,17 @@
  */
 
 export const messages = {
+	/** The app shell: the rail's branding and its one action. */
+	shell: {
+		/* Provenance under the wordmark. Not a link and not navigation -- it says
+		   whose product this is and is `aria-hidden` at the call site, because the
+		   wordmark above it already announces "THRIVE home". */
+		school: 'Rady School of Management',
+		/* The rail's single verb. Booking is the one thing a student does here that
+		   is not already a row on a page in front of them. */
+		newAppointment: 'New appointment'
+	},
+
 	/** Reused across surfaces. Kept here rather than duplicated per card. */
 	common: {
 		viewAll: 'View all',

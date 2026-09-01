@@ -54,7 +54,10 @@
 	}
 </script>
 
-<section aria-labelledby="program-strip-heading">
+<!-- ITS OWN PANEL SINCE 2026-08-31. It used to be a band inside `HomeHeader`'s
+     box and inherited that panel's edge; standing at the foot of the page it needs
+     one of its own or it reads as loose text under the grid. -->
+<section aria-labelledby="program-strip-heading" class="thrive-panel p-4 lg:p-5">
 	<div class="flex flex-wrap items-baseline justify-between gap-x-3">
 		<!-- A <p>, not an <h2>. This strip renders above the page's <h1>, so a
 		     heading here would put the document out of order for anyone navigating

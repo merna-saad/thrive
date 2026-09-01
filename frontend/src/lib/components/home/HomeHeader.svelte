@@ -1,8 +1,7 @@
 <script lang="ts">
-	import ProgramTimelineCompact from './ProgramTimelineCompact.svelte';
 	import GreetingPanel from './GreetingPanel.svelte';
-	import type { ProgramTimeline, Student } from '$lib/data';
-	import type { EventRowData, TaskRowData, TermPlan } from '$lib/homeView';
+	import type { Student } from '$lib/data';
+	import type { EventRowData, TaskRowData } from '$lib/homeView';
 
 	/**
 	 * Everything above the grid, in ONE panel.
@@ -31,17 +30,12 @@
 	   it any more. */
 	let {
 		student,
-		timeline,
-		termPlans,
 		dateLabel,
 		greeting,
 		taskItems,
 		eventRows
 	}: {
 		student: Student;
-		timeline: ProgramTimeline;
-		/** What each phase on the strip holds. Built in the load. */
-		termPlans: Record<string, TermPlan>;
 		dateLabel: string;
 		greeting: string;
 		taskItems: TaskRowData[];
@@ -50,12 +44,22 @@
 	} = $props();
 </script>
 
-<div data-emphasis="strong" class="thrive-panel space-y-2 p-2.5">
-	<ProgramTimelineCompact {timeline} {termPlans} />
+<!--
+	THE STRIP LEFT THIS PANEL ON 2026-08-31, and the argument for merging them has
+	not survived contact with the page.
 
-	<!-- Decorative, and it passes the hairline test: take it away and the strip
-	     still does not read as part of the greeting. -->
-	<div class="border-t border-hairline-soft"></div>
+	It read: the strip and the greeting are the same thing, the header, so two
+	boxes cost a set of panel padding and a stack gap to draw a boundary neither
+	was earning. True about the BOXES and wrong about the CONTENT. The strip is a
+	two-year roadmap and the greeting is what to do this evening; they are the
+	furthest apart of anything on the page, and stacking them put the least urgent
+	thing above the most urgent one.
 
+	So the greeting is a panel by itself, which is what the reference shows, and
+	the strip moved to the foot of the page in `+page.svelte`. The panel keeps
+	`data-emphasis="strong"` -- it is still the header, it is just only the
+	greeting now.
+-->
+<div data-emphasis="strong" class="thrive-panel p-4 lg:p-5">
 	<GreetingPanel {student} {dateLabel} {greeting} {taskItems} {eventRows} />
 </div>

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
+	import Plus from '@lucide/svelte/icons/plus';
 
 	import { messages } from '$lib/messages';
 	import { isActiveRoute, primaryNav, type NavItem } from '$lib/nav';
@@ -182,17 +183,38 @@
 	aria-label="Primary"
 	class="fixed inset-y-0 left-0 z-30 hidden w-rail flex-col border-r border-line bg-sunken lg:flex"
 >
-	<!-- Ruled off at the same height as the header, so the rail's edge and the
-	     top bar's edge continue one line across the shell. -->
-	<div class="flex h-topbar shrink-0 items-center border-b border-line px-4">
-		<!-- A small tracked cap rather than a headline. One piece of branding at
-		     13px / 0.14em, letting the content be the loudest thing on screen.
-		     Weight is set here, at the call site: the type scale carries size,
+	<!--
+		THE BRAND BLOCK GAINED A SECOND LINE (2026-08-31) and lost its fixed height
+		with it.
+
+		It was ruled off at `h-topbar` so the rail's edge and the top bar's edge
+		continued one line across the shell -- a real property, and one the school
+		name cannot fit inside: two lines do not go in 48px with the bar's own
+		padding. The rule stays, the alignment goes, and that is the honest trade
+		rather than shrinking the name until it does fit.
+
+		THRIVE is still the loudest thing here at 13px / 0.14em, which is quiet on
+		purpose: the branding should not outrank the page. The school sits under it
+		one step down, in `faint` rather than `muted` -- it is provenance, not
+		navigation, and it is the one line on this rail nobody needs to read twice.
+	-->
+	<div class="shrink-0 border-b border-line px-4 py-3">
+		<!-- Weight is set here, at the call site: the type scale carries size,
 		     leading and tracking only. -->
-		<a href="/" class="rounded-sm text-2xs font-medium tracking-[0.14em] text-ink uppercase">
+		<a
+			href="/"
+			class="block rounded-sm text-2xs font-medium tracking-[0.14em] text-ink uppercase"
+		>
 			THRIVE
 			<span class="sr-only"> home</span>
 		</a>
+		<!-- `aria-hidden`, because the link above already announces "THRIVE home"
+		     and a screen reader reading the school name straight after it makes the
+		     one landmark in the rail sound like two. It is on screen for a sighted
+		     reader and silent for everyone else. -->
+		<p aria-hidden="true" class="mt-1 text-3xs leading-tight text-faint">
+			{messages.shell.school}
+		</p>
 	</div>
 
 	<ul class="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 py-2">
@@ -200,4 +222,28 @@
 			<li>{@render railLink(item)}</li>
 		{/each}
 	</ul>
+
+	<!--
+		THE ONE ACTION IN THE RAIL, pinned to its foot.
+
+		A rail of destinations with a single VERB at the bottom is the shape the
+		reference uses, and the verb earns its place: booking is the only thing on
+		this app a student does that is not already a row on a page they are looking
+		at. It is `mt-auto` in a flex column rather than `fixed`, so it sits at the
+		bottom on a tall screen and directly under the last nav item on a short one,
+		and it can never overlap the list.
+
+		A LINK, not a button. It navigates to a route; making it a `<button>` with a
+		`goto` would take that away from middle-click, from cmd-click, and from
+		anything that reads the tab order looking for where it leads.
+	-->
+	<div class="mt-auto shrink-0 border-t border-line p-3">
+		<a
+			href="/appointments"
+			class="flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-3 text-2xs font-medium text-on-primary transition-colors duration-(--motion-fast) ease-standard hover:bg-primary-hover lg:min-h-9"
+		>
+			<Plus aria-hidden="true" class="size-4 shrink-0" />
+			{messages.shell.newAppointment}
+		</a>
+	</div>
 </nav>
