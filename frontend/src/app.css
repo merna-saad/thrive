@@ -788,26 +788,30 @@
      them plus an overflow line do not fit in 34px at any type size this system
      has.
 
-     MEASURED, and the floor and the chosen value are NOT the same number here --
-     which is a departure from how `--thrive-card-body-cap` was picked, so it is
-     worth saying why. Swept against three chips and a "+n", counting cells that
-     report `scrollHeight > clientHeight`:
+     ── RE-DERIVED 2026-08-31, AND THE FIRST NUMBER WAS STALE BY A WHOLE BRIEF ──
+     It was 6.2rem, swept against a cell holding THREE TEXT CHIPS plus a "+n".
+     The very next pass cut the markers back to a SINGLE DOT and nobody re-ran
+     the sweep, so every cell went on being sized for content that no longer
+     existed: 93px of cell around a 17px number and one 8px dot, and a month grid
+     575px tall for a page that could show it in half that.
 
-       5.60rem -> 5 of 42 clipped
-       5.90rem -> 0 clipped        <- the floor
-       6.00rem -> 0 clipped
-       6.20rem -> 0 clipped        <- chosen, 0.3rem above the floor
+     That is the failure mode a measured token is supposed to prevent and did
+     not. The lesson is narrow and worth keeping: A SWEEP IS ONLY VALID FOR THE
+     CONTENT IT WAS RUN AGAINST. Change what goes in the cell and the number is
+     an opinion again.
 
-     The card cap took the tightest passing value because every pixel it spent
-     came out of a page that had to fit one screen. This is the opposite
-     situation: promoting the day into the rail left the left column ending about
-     150px ABOVE the rail's foot, so the grid had space handed to it and a grid
-     that returns that as blank page is the thing this pass was correcting. The
-     0.3rem is air inside the cell rather than air under the grid.
+     Re-swept against the dot, counting cells reporting
+     `scrollHeight > clientHeight`:
 
-     If a future pass needs the height back, 5.9rem is the number that still
-     works. Below that, chips clip. */
-  --thrive-cal-cell: 6.2rem;
+       2.60rem -> 41 of 42 clipped
+       2.90rem -> 0 clipped        <- the floor
+       3.20rem -> 0 clipped        <- chosen, 0.3rem above it
+       6.20rem -> 0 clipped, and 45px of dead air per cell
+
+     Still deliberately above the floor rather than at it, for the reason the
+     previous note gave -- the grid was handed space by the rail and air inside
+     the cell beats air under the grid. 0.3rem of it, not 3.3rem. */
+  --thrive-cal-cell: 3.2rem;
 
   /* The header's height, and the one shell token that CHANGES BY BREAKPOINT.
      See the media override below layer 3.

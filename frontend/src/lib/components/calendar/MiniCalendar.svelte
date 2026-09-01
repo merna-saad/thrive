@@ -273,7 +273,7 @@
 	<div
 		class={cn(
 			'flex flex-wrap items-center justify-between gap-2 rounded-t-xl',
-			roomy ? 'px-4 pt-4 pb-2' : 'border-b border-line bg-sunken px-2.5 py-2'
+			roomy ? 'px-3 pt-3 pb-1' : 'border-b border-line bg-sunken px-2.5 py-2'
 		)}
 	>
 		<!--
@@ -328,7 +328,7 @@
 		role="grid"
 		aria-labelledby="mini-cal-label"
 		onkeydown={onKeyDown}
-		class={roomy ? 'p-2 lg:p-4' : 'p-1'}
+		class={roomy ? 'p-2 lg:p-3' : 'p-1'}
 		tabindex="-1"
 	>
 		<!-- The column headers take `.thrive-eyebrow`: small, uppercase, tracked,
@@ -388,11 +388,11 @@
 			role="rowgroup"
 			class={cn(
 				'flex flex-col',
-				roomy ? 'gap-1' : 'gap-0.5 border border-line bg-line'
+				roomy ? 'gap-0.5' : 'gap-0.5 border border-line bg-line'
 			)}
 		>
 			{#each weeks as week (week[0])}
-				<div role="row" class={cn('grid grid-cols-7', roomy ? 'gap-1' : 'gap-0.5')}>
+				<div role="row" class={cn('grid grid-cols-7', roomy ? 'gap-0.5' : 'gap-0.5')}>
 					{#each week as dayKey (dayKey)}
 						{@const date = fromDayKey(dayKey)}
 						{@const inMonth = date.getMonth() === month}
@@ -420,7 +420,7 @@
 								// what a calendar wants is the number anchored and the space
 								// below it doing the breathing.
 								roomy
-									? 'items-center justify-start pt-2 lg:pt-2.5'
+									? 'items-center justify-start pt-1.5 lg:pt-2'
 									: 'items-center justify-center',
 								// A 44px cell on a phone, and a NAMED TOKEN in the roomy grid --
 								// see `--thrive-cal-cell`. The token outlived the chips it was
