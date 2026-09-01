@@ -42,26 +42,45 @@
 	 */
 	let {
 		item,
-		compact = false,
+		density = 'full',
 		dateLabel,
 		onTick,
 		onOpen
 	}: {
 		item: ScheduleItem;
 		/**
-		 * The week column's shape. Time stacked ABOVE the title, no detail line, no
-		 * type tag, and the title clamped to three lines.
+		 * How much horizontal room this row has. Three shapes, one per context.
 		 *
-		 * Side-by-side was tried first in the prototype and read badly: an ~80px
-		 * column minus a time gutter left "MGT 142 · Machine Learning for Business"
-		 * wrapping to five lines, and adjacent columns ran together into one string.
+		 * Was `compact?: boolean` until 2026-08-30, and a boolean stopped being able
+		 * to say enough the moment a THIRD width existed. The rail is 262px of
+		 * content: far too narrow for `full`, far too wide to throw away the
+		 * checkbox and the detail line the way `column` does.
 		 *
-		 * Compact rows carry NO checkbox, deliberately. A 17px control inside an
-		 * 80px column with a three-line title is a mis-tap waiting to happen, and
-		 * the week view's job is shape rather than action -- selecting the day drops
-		 * a student into the day panel, where the same row is fully tickable.
+		 *   full    ~985px under the grid, and in the agenda. Everything: checkbox,
+		 *           a 64px time gutter, title, detail, urgent pill, type tag,
+		 *           source pill, details button, all on one baseline.
+		 *
+		 *   rail    ~262px in the calendar's right rail. STACKED: checkbox and title
+		 *           on the first line, time and detail on the second. Keeps the
+		 *           checkbox, because the rail is where a student actually ticks
+		 *           things off. Drops the type tag and the source pill -- the rail
+		 *           is one day's list under a heading that already says which day,
+		 *           so the category is context the surrounding section gives.
+		 *
+		 *   column  ~80px in the week grid. Time ABOVE the title, no detail, no tag,
+		 *           title clamped to three lines. Side-by-side was tried first in
+		 *           the prototype and read badly: an ~80px column minus a time
+		 *           gutter left "MGT 142 · Machine Learning for Business" wrapping
+		 *           to five lines, and adjacent columns ran together into one
+		 *           string.
+		 *
+		 * `column` rows carry NO checkbox, deliberately, and `rail` rows do. A 17px
+		 * control inside an 80px column with a three-line title is a mis-tap waiting
+		 * to happen; the same control in a 262px rail has a whole line to itself.
+		 * The week view's job is shape rather than action -- selecting the day drops
+		 * a student into the rail, where the same row is fully tickable.
 		 */
-		compact?: boolean;
+		density?: 'full' | 'rail' | 'column';
 		/**
 		 * Pre-formatted date, shown beside the detail line.
 		 *
@@ -84,14 +103,15 @@
 	} = $props();
 
 	const done = $derived(item.done === true);
-	const tickable = $derived(!compact && isTickable(item) && Boolean(onTick));
+	/* `column` is the only density that refuses the control. See the prop note. */
+	const tickable = $derived(density !== 'column' && isTickable(item) && Boolean(onTick));
 	const time = $derived(item.allDay ? messages.calendar.row.allDay : item.timeLabel);
 
 	// Scoped to the row, so two views showing the same item cannot collide.
 	const checkboxId = $derived(`tick-${item.id}`);
 </script>
 
-{#if compact}
+{#if density === 'column'}
 	<!-- A left rule rather than a border box. Without it the stacked rows in
 	     adjacent day columns run together and read as one wrapped sentence. -->
 	<div
@@ -122,6 +142,141 @@
 		>
 			{item.title}
 		</span>
+	</div>
+{:else if density === 'rail'}
+	<!--
+		THE RAIL ROW. Stacked, because 262px cannot hold a 64px time gutter, a
+		title, a detail line and four markers on one baseline.
+
+		A WHITE CARD, not a row. Rows belong in a panel that groups them; the rail
+		is a column of individual things a student works through one at a time, and
+		a card is what that looks like. Generous padding for the same reason -- this
+		is the page's second focal point, not a list to skim.
+
+		GOLD LIVES HERE, and it is one of exactly two places on this page. A left
+		rule in the campus gold plus a small warning glyph on anything the student
+		flagged urgent, which is what makes the rail scannable for "what is about to
+		bite me".
+
+		IT IS NOT THE CARRIER OF THAT MEANING, and it must not become one. Gold is
+		1.43:1 on cream and 1.50:1 on the card -- it fails the 3:1 WCAG 1.4.11 asks
+		of a graphic that carries meaning, and `check-contrast.py` enforces that as
+		a CEILING precisely so nobody promotes it. So the coral `Tag` and its word
+		"Urgent" stay exactly where they were, and the GLYPH carries its own
+		accessible label. The gold is what your eye lands on first; it is not what
+		tells you. Remove the rule and nothing is lost but speed; remove the Tag and
+		the row stops saying it.
+	-->
+	<div
+		data-done={done ? 'true' : undefined}
+		class={cn(
+			// SUNKEN, not white. The rail sits on cream and its cards read as a
+			// distinct column against it; white-on-cream is the panel treatment used
+			// everywhere else in THRIVE and here it made the cards blend into the
+			// grid card beside them. It also gives the urgent card's gold rule
+			// something to push against.
+			'rounded-lg bg-sunken p-3 transition-colors duration-(--motion-base) ease-standard',
+			done && 'opacity-60',
+			item.urgent && !done && 'border-l-2 border-l-yellow'
+		)}
+	>
+		<div class="flex items-start gap-2">
+			{#if tickable}
+				<input
+					id={checkboxId}
+					type="checkbox"
+					class="thrive-checkbox mt-0.5 shrink-0"
+					checked={done}
+					onchange={(event) => onTick?.(item, event.currentTarget.checked)}
+					aria-label={messages.calendar.row.toggle(item.title, done)}
+				/>
+			{:else}
+				<span aria-hidden="true" class="mt-0.5 size-checkbox shrink-0"></span>
+			{/if}
+
+			<label
+				for={tickable ? checkboxId : undefined}
+				data-done={done ? 'true' : undefined}
+				class={cn(
+					'thrive-strike block min-w-0 flex-1 text-sm font-medium break-words',
+					tickable && 'cursor-pointer',
+					done ? 'text-muted-ink' : 'text-ink'
+				)}
+			>
+				{item.title}
+			</label>
+
+			{#if item.urgent}
+				<!--
+					THE GLYPH IS CORAL, THE RULE IS GOLD, and that split is the one place
+					this treatment departs from the brief's wording. Worth the note.
+
+					The brief asks for "a left border plus small warning glyph" as gold's
+					second role. The BORDER is gold and that is the accent the eye catches.
+					The glyph is not, because it is the only mark left carrying the meaning
+					once the coral "Urgent" pill came off this card -- and a graphic that
+					carries meaning owes 3:1 under WCAG 1.4.11, where gold measures 1.50:1
+					on a white card. `check-contrast.py` holds that ceiling deliberately.
+
+					Coral is the system's reserved urgency colour, it measures 5.9:1 here,
+					and it is what `ItemRow`'s week-column density already uses for exactly
+					this glyph. So the role the brief asked for is intact -- gold marks
+					urgency on this page and nowhere else -- and the part a student has to
+					be able to SEE is drawn in something they can.
+				-->
+				<AlertTriangle
+					aria-label={messages.calendar.row.urgentLabel}
+					class="mt-0.5 size-3.5 shrink-0 text-urgent"
+				/>
+			{/if}
+
+			<!--
+				THE DETAILS CONTROL, and leaving it out of this branch was a real
+				regression rather than a tidy simplification.
+
+				The rail is now the ONLY place a day's rows render in month view, so a
+				row with no way into `ItemDetail` means the dialog is unreachable -- and
+				with it renaming, the urgent flag, "add to calendar", and DELETING a
+				custom event. `check:interaction` caught it as four red lines in the
+				delete flow, which is exactly the failure a gate that drives the real
+				app is for: nothing about the rail LOOKED wrong.
+
+				`column` still omits it deliberately. An 80px week cell has no room, and
+				selecting the day there drops the student into this rail, where the same
+				row has the control.
+			-->
+			{#if onOpen}
+				<button
+					type="button"
+					onclick={(event) => {
+						/* Focus the trigger before opening, so the dialog has somewhere
+						   definite to put focus back. See the note on the full row. */
+						event.currentTarget.focus();
+						onOpen(item);
+					}}
+					aria-label={messages.calendar.detail.open(item.title)}
+					class="shrink-0 rounded-xs p-1 text-muted-ink transition-colors duration-(--motion-fast) ease-standard hover:bg-surface hover:text-ink"
+				>
+					<Info aria-hidden="true" class="size-3.5" />
+				</button>
+			{/if}
+		</div>
+
+		<!-- Second line, indented past the checkbox so it hangs under the title
+		     rather than under the control. `size-checkbox` plus the row gap, from
+		     the same token the spacer above uses. -->
+		{#if time || item.detail}
+			<div class="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 pl-[calc(var(--spacing-checkbox)+var(--spacing)*2)]">
+				<span class={cn('thrive-numeric text-3xs', done ? 'text-faint' : 'text-muted-ink')}>
+					{time}
+				</span>
+				{#if item.detail}
+					<span aria-hidden="true" class="text-3xs text-faint">·</span>
+					<!-- A course code or a room. Words, so no numeric treatment. -->
+					<span class="min-w-0 truncate text-3xs text-muted-ink">{item.detail}</span>
+				{/if}
+			</div>
+		{/if}
 	</div>
 {:else}
 	<div data-done={done ? 'true' : undefined} class="thrive-row flex items-baseline gap-2 px-2 py-1.5 lg:py-1">

@@ -36,7 +36,8 @@
 	 *
 	 * ## Compact rows, and no checkboxes
 	 *
-	 * `ItemRow compact` stacks the time above the title and clamps to three lines.
+	 * `ItemRow density="column"` stacks the time above the title and clamps to
+	 * three lines.
 	 * It carries no checkbox on purpose: a 17px control in an ~85px column under a
 	 * three-line title is a mis-tap waiting to happen. The week view answers "what
 	 * does my week look like"; selecting a day drops the student into the day panel
@@ -106,7 +107,7 @@
 				{:else}
 					<ul class="space-y-1">
 						{#each items as item (item.id)}
-							<li><ItemRow {item} compact /></li>
+							<li><ItemRow {item} density="column" /></li>
 						{/each}
 					</ul>
 				{/if}

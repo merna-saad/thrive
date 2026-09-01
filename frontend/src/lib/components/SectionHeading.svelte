@@ -47,6 +47,7 @@
 		action,
 		id,
 		as = 'h2',
+		tone = 'default',
 		class: className
 	}: {
 		/** The slot: "phase 0", "3 items", "key". Words, so the sans. */
@@ -58,6 +59,27 @@
 		action?: Snippet;
 		id?: string;
 		as?: 'h2' | 'h3';
+		/**
+		 * How loudly the title speaks. Added 2026-08-30 with the calendar's
+		 * hierarchy pass.
+		 *
+		 * `default` is the bold `text-lg` this component has always drawn, and every
+		 * existing call site keeps it by not passing anything.
+		 *
+		 * `quiet` renders the title as an eyebrow: small, uppercase, tracked, muted.
+		 * It exists because /calendar had six things competing to be the page's
+		 * subject -- the title, the month, the day, "your day", "Tasks" and "Key" --
+		 * and a page with six focal points has none. The sections did not need to be
+		 * removed or renamed; they needed to stop shouting. See the note on the two
+		 * focal points in `CalendarView`.
+		 *
+		 * A PROP RATHER THAN A SECOND COMPONENT, because the structure is identical:
+		 * same baseline, same count, same action slot, same hairline. A
+		 * `QuietSectionHeading` would be this file with one class changed, and the
+		 * two would drift on padding the way the six near-copies this component was
+		 * extracted from already did once.
+		 */
+		tone?: 'default' | 'quiet';
 		class?: string;
 	} = $props();
 </script>
@@ -72,7 +94,15 @@
 			<span class="text-3xs text-muted-ink">{prefix}</span>
 		{/if}
 
-		<svelte:element this={as} {id} class="flex-1 text-lg font-bold text-ink">
+		<!-- `.thrive-eyebrow` carries size, case, tracking, weight AND colour, so the
+		     quiet arm sets no `text-*` of its own -- adding one would fight the class
+		     from the utilities layer and win, which is the trap the display treatment
+		     documents at length. -->
+		<svelte:element
+			this={as}
+			{id}
+			class={tone === 'quiet' ? 'thrive-eyebrow flex-1' : 'flex-1 text-lg font-bold text-ink'}
+		>
 			{title}
 		</svelte:element>
 

@@ -102,6 +102,23 @@
 	 */
 	const MAX_DOTS = 3;
 
+	/*
+	 * NAMED CHIPS LIVED HERE FOR ONE PASS AND WERE REMOVED, 2026-08-30.
+	 *
+	 * They worked -- three per cell, course code or title, stream colour as a left
+	 * rule -- and the grid still lost. With a class meeting every weekday, every
+	 * weekday cell carried the same two truncated course codes down the whole
+	 * month, so the eye had to read 42 cells of near-identical text to find the
+	 * quiz. A dot says "something" in one glyph; a truncated chip says "something,
+	 * and here are eleven characters of it" and costs a line of reading to reject.
+	 *
+	 * The division of labour is now explicit and it is the right one: THE GRID
+	 * ANSWERS "IS ANYTHING HAPPENING", THE RAIL ANSWERS "WHAT". A grid that tries
+	 * to answer both competes with the rail and wins neither.
+	 *
+	 * `categoryChipBorder` in `schedule.ts` went with them.
+	 */
+
 	const { grid: copy } = messages.calendar;
 
 	let gridEl = $state<HTMLDivElement | null>(null);
@@ -240,14 +257,46 @@
 </script>
 
 <div class="thrive-panel p-0">
-	<!-- The header sits on its own band, the same shape every other panel in
-	     THRIVE uses, so the month reads as a label on a box rather than a line of
-	     text above a grid. A 1px hairline, not the Next source's `border-b-2`:
-	     under this direction a decorative edge is 1px. -->
+	<!--
+		THE HEADER BAND RECEDES IN THE ROOMY GRID, 2026-08-30.
+
+		It was a `sunken` band with a hairline under it, which is the shape every
+		other panel in THRIVE uses and was right when this was a picker inside
+		something else. On the calendar it made the month label read as a title bar
+		on a window -- a second heading competing with the page's `h1` and the rail's
+		TODAY, on a card whose whole job is now to be the quiet half of the page.
+
+		So on the calendar the band loses its fill and its rule and becomes part of
+		the white card. The compact picker in `/appointments` keeps the band, where
+		it still does the job it was drawn for.
+	-->
 	<div
-		class="flex flex-wrap items-center justify-between gap-2 rounded-t-xl border-b border-line bg-sunken px-2.5 py-2"
+		class={cn(
+			'flex flex-wrap items-center justify-between gap-2 rounded-t-xl',
+			roomy ? 'px-4 pt-4 pb-2' : 'border-b border-line bg-sunken px-2.5 py-2'
+		)}
 	>
-		<h2 id="mini-cal-label" class="min-w-0 text-base font-medium text-ink">{monthLabel}</h2>
+		<!--
+			THE MONTH TAKES DISPLAY TYPE in the roomy grid, at the step BELOW the
+			rail's TODAY.
+
+			"Recede" and "be set in the headline face" are not in tension here, and
+			the first pass got that wrong by making the label lighter and greyer until
+			it read as a caption. What has to recede is its WEIGHT IN THE PAGE, not
+			its treatment: it is the grid card's own title, and in the reference it is
+			plainly display type. It recedes by being one step smaller than TODAY and
+			by having no band, no rule and no fill behind it -- not by being timid.
+		-->
+		<h2
+			id="mini-cal-label"
+			class={cn(
+				'min-w-0',
+				roomy ? 'thrive-display text-primary' : 'text-base font-medium text-ink'
+			)}
+			data-step={roomy ? 'xl' : undefined}
+		>
+			{monthLabel}
+		</h2>
 
 		<!-- Each control is a real 44px box rather than a small button wearing an
 		     invisible 44px pseudo-element. The old shape overlapped its neighbour by
@@ -267,18 +316,28 @@
 		</div>
 	</div>
 
-	<!-- Padding is one step off the panel edge only: every pixel spent here is
-	     taken off seven day cells, and the cells are the thing that has to stay
-	     tappable. What is left is enough for the focus ring to sit in. -->
+	<!-- GENEROUS ON ALL FOUR SIDES IN THE ROOMY GRID, one step in the compact one.
+	     The old note said every pixel here is taken off seven day cells and the
+	     cells have to stay tappable, which is still true of the picker: it is 240px
+	     wide and its cells are already at the 44px floor.
+	     The calendar's grid is 869px, where the constraint inverts. Numbers running
+	     into the card's edge is what made the month read as a spreadsheet rather
+	     than a page, and there is width to spare. -->
 	<div
 		bind:this={gridEl}
 		role="grid"
 		aria-labelledby="mini-cal-label"
 		onkeydown={onKeyDown}
-		class="p-1"
+		class={roomy ? 'p-2 lg:p-4' : 'p-1'}
 		tabindex="-1"
 	>
-		<div role="row" class="grid grid-cols-7 pb-1">
+		<!-- The column headers take `.thrive-eyebrow`: small, uppercase, tracked,
+		     muted. They were already uppercase and muted at `text-3xs` but untracked,
+		     which at one letter per column reads as a stray character rather than a
+		     label. The class is the system's one answer for this shape, and using it
+		     here means the grid's header and every other eyebrow on the page cannot
+		     drift apart. -->
+		<div role="row" class="grid grid-cols-7 pb-2">
 			{#each copy.weekdayInitials as initial, index (copy.weekdayNames[index])}
 				<!-- The role goes on a div and the abbreviation sits inside it. The Next
 				     version put `role="columnheader"` on the `<abbr>` itself, which is a
@@ -288,7 +347,21 @@
 				<div role="columnheader" class="text-center">
 					<abbr
 						title={copy.weekdayNames[index]}
-						class="text-3xs text-muted-ink uppercase no-underline"
+						class={cn(
+							'no-underline',
+							/*
+							 * PROMINENT, not muted, in the roomy grid. The first pass made
+							 * these `.thrive-eyebrow` -- 11.25px, muted, heavily tracked --
+							 * on the reasoning that a column header is a label. At ONE
+							 * LETTER per column that came out as seven faint marks nobody
+							 * reads, and the reference sets them dark and medium instead.
+							 * They are the grid's own axis, and an axis you cannot read is
+							 * furniture.
+							 */
+							roomy
+								? 'text-xs font-medium tracking-wide text-body uppercase'
+								: 'text-3xs text-muted-ink uppercase'
+						)}
 					>
 						{initial}
 					</abbr>
@@ -296,12 +369,30 @@
 			{/each}
 		</div>
 
-		<!-- The rules between days are the container showing through the gaps.
-		     Drawing them as borders on the cells instead would double every
-		     interior line and leave the grid's outer edge uneven. -->
-		<div role="rowgroup" class="flex flex-col gap-0.5 border border-line bg-line">
+		<!--
+			NO LATTICE IN THE ROOMY GRID, 2026-08-30.
+
+			The rules used to be the container showing through the gaps -- a `bg-line`
+			parent with `gap-0.5`, which draws every interior line exactly once and
+			keeps the outer edge even. That is still the right technique, and the
+			compact picker still uses it: at 240px wide, cells that small need an edge
+			to be countable.
+
+			The calendar's grid is 869px and does not. Whitespace separates the cells
+			perfectly well at that size, and the lattice was doing something worse than
+			nothing -- 42 boxed cells read as a spreadsheet, which is the single
+			strongest reason the page had no rest. Removing it is most of what makes
+			the grid the quiet half of the page.
+		-->
+		<div
+			role="rowgroup"
+			class={cn(
+				'flex flex-col',
+				roomy ? 'gap-1' : 'gap-0.5 border border-line bg-line'
+			)}
+		>
 			{#each weeks as week (week[0])}
-				<div role="row" class="grid grid-cols-7 gap-0.5">
+				<div role="row" class={cn('grid grid-cols-7', roomy ? 'gap-1' : 'gap-0.5')}>
 					{#each week as dayKey (dayKey)}
 						{@const date = fromDayKey(dayKey)}
 						{@const inMonth = date.getMonth() === month}
@@ -321,33 +412,71 @@
 							tabindex={dayKey === tabStopKey ? 0 : -1}
 							onclick={() => onSelect(dayKey)}
 							class={cn(
-								'relative flex flex-col items-center justify-center gap-1',
-								// A 44px cell on a phone, a 30px one on a desktop. The desktop step
-								// is what lets six weeks fit without the grid feeling sparse:
-								// 41.25px cells put the grid at 292px and most of that was air
-								// above and below a 15px number.
+								'relative flex flex-col gap-1 overflow-hidden',
+								// The number sits in the UPPER AREA with room beneath it, and the
+								// dots sit centred in that room. `justify-start` plus a top pad
+								// rather than `justify-center`, because a centred stack puts the
+								// number in the middle of the cell and the air all round it --
+								// what a calendar wants is the number anchored and the space
+								// below it doing the breathing.
+								roomy
+									? 'items-center justify-start pt-2 lg:pt-2.5'
+									: 'items-center justify-center',
+								// A 44px cell on a phone, and a NAMED TOKEN in the roomy grid --
+								// see `--thrive-cal-cell`. The token outlived the chips it was
+								// introduced for: the cell is tall because a calendar wants air
+								// under its numbers, which is a reason that does not depend on
+								// what is in the cell.
 								//
-								// ONE STEP SMALLER THAN THIS CLIPS, measured rather than guessed.
-								// `lg:h-9` (30.38px) left 8 of the 42 cells reporting
-								// `scrollHeight > clientHeight`: a cell with a dot row needs 32px
-								// -- an 18px number box, a 3.375px gap, an 8px dot and the cell's
-								// own padding. `lg:h-10` is 33.75px and fits with slack.
-								roomy ? 'h-11 lg:h-10' : 'h-9 lg:h-9',
+								// The old note, kept because the lesson recurs: `lg:h-9` (30.38px)
+								// left 8 of the 42 cells reporting `scrollHeight > clientHeight`,
+								// because even a dot row needs 32px.
+								roomy ? 'h-11 lg:h-cal-cell' : 'h-9 lg:h-9',
 								'transition-colors duration-(--motion-fast) ease-standard',
-								// "Not this month" is said with the cell's FILL, not with a
-								// faded number. These are real buttons, and dimming the digit
-								// to half muted put it at 2.1:1 -- the number stays at full
-								// muted ink and the recessed tone carries the meaning.
-								inMonth ? 'bg-surface text-body' : 'bg-sunken text-muted-ink',
+								// ── NO FILLS EXCEPT THE SELECTION, in the roomy grid ──────────
+								//
+								// The cells used to carry three surfaces: white for an in-month
+								// weekday, cream for a weekend, sunken for another month. All
+								// three are gone here and the cells sit on the card's own white.
+								//
+								// Whitespace separates them now (see the rowgroup), and once the
+								// lattice went, tinted cells read as blocks of colour in a field
+								// rather than as recessed days. "Not this month" goes back to
+								// being said by the NUMBER -- which is what the reference does,
+								// and it is enough once there is no box around it to compete.
+								//
+								// The compact picker keeps all of it. It is 240px wide with a
+								// lattice, where a tint is the only thing that can say "other
+								// month" at that size.
+								roomy
+									? inMonth
+										? 'text-body'
+										: 'text-faint'
+									: inMonth
+										? 'bg-surface text-body'
+										: 'bg-sunken text-muted-ink',
+								roomy && 'rounded-md',
 								!isSelected && 'hover:bg-primary-soft',
+
+								// ── TODAY IS NOT A FILL. THE SELECTION IS. ────────────────────
+								//
+								// Reversed on 2026-08-30 to match the reference, and the reference
+								// is right about which way round it goes.
+								//
+								//   selected   a FILL. The student put it there, it follows their
+								//              click, and a solid block is what a cursor looks
+								//              like when it lands on a grid.
+								//   today      a WEIGHT and a MARK. It is a property of the
+								//              world, it moves on its own, and it has to stay
+								//              legible while the student is looking at some other
+								//              day -- which a fill cannot do, because the
+								//              selection needs that fill.
+								//
+								// The earlier arrangement gave today the fill and left the
+								// selection an outline, and it failed the moment both were on
+								// screen: the heavier mark sat on the day you were not looking at.
 								isSelected && 'bg-primary text-on-primary',
-								// Today is marked by weight AND a ring, not hue alone, so it
-								// survives grayscale and stays visible while selected.
-								isToday && !isSelected && 'font-bold text-primary',
-								isToday &&
-									(isSelected
-										? 'ring-2 ring-on-primary ring-inset'
-										: 'ring-2 ring-primary ring-inset')
+								isToday && !isSelected && 'font-medium text-primary'
 							)}
 						>
 							<!-- A day number is a value. `.thrive-numeric` carries the face and
@@ -364,7 +493,21 @@
 									// stylesheet order is a worse thing to depend on than a height
 									// that was measured.
 									'thrive-numeric leading-none',
-									roomy ? 'text-sm lg:text-xs' : 'text-2xs lg:text-3xs'
+									// Left-aligned in the roomy grid, so the number and the chips
+									// under it share one edge. Centred numbers over left-aligned
+									// chips read as two different grids stacked.
+									// LARGER AND LIGHTER in the roomy grid. It was `lg:text-xs` (12.75px)
+									// and it is now `lg:text-lg` (17.25px) at weight 400 -- a day
+									// number is the thing you scan for, and it was set smaller than
+									// the body copy beside it. Lighter, not bolder, because there are
+									// 42 of them: at 500 the grid reads as a wall of emphasis and
+									// nothing inside it can stand out.
+									//
+									// Today keeps the weight it had. It is the one number that should
+									// be heavier than its neighbours, and now it is the only one.
+									roomy ? 'text-base lg:text-lg' : 'text-2xs lg:text-3xs',
+									roomy && (isToday ? 'font-medium' : 'font-normal'),
+									roomy && 'shrink-0'
 								)}>
 								{date.getDate()}
 							</span>
@@ -376,13 +519,78 @@
 						     and the grid cannot reflow as the filter changes. Both sizes come
 						     from ONE token: a `size-cal-dot` paired with a hand-picked
 						     wrapper height would clip the moment either was retuned. -->
-						<span class="flex h-cal-dot items-center gap-0.5" aria-hidden="true">
+							<!-- CENTRED UNDER THE NUMBER in the roomy grid, which is why the wrapper
+							     takes the full cell width there. The number sits in the upper area
+							     and the dots sit beneath it, so a column of cells reads as one
+							     rhythm rather than as text with a marker stuck beside it. -->
+							<span
+								class={cn(
+									'flex h-cal-dot items-center gap-0.5',
+									roomy && 'w-full justify-center'
+								)}
+								aria-hidden="true"
+							>
+								{#if isToday}
+									<!--
+										THE TODAY MARK, and gold's first of two roles on this page.
+
+										A dot rather than a ring or a fill, because the selection owns
+										the fill and a ring round an unfilled cell in a grid with no
+										lattice reads as a box that wandered in.
+
+										IT IS NOT THE ONLY CARRIER, and cannot be: gold is 1.50:1 on
+										this card and `check-contrast.py` holds that ceiling on purpose
+										under WCAG 1.4.11. The cell also carries `font-medium`, the
+										navy `text-primary`, `aria-current="date"` and the word
+										"today" inside its accessible name. Gold buys speed here, not
+										meaning -- exactly as it does on the urgent rail card.
+
+										FIRST in the row, so it reads as a property of the day rather
+										than as one more stream on it.
+
+										IT SHOWS EVEN WHEN TODAY IS SELECTED, which is not obvious and
+										was wrong on the first pass. Today IS the selected day on load,
+										so suppressing it there left the page's DEFAULT state with no
+										gold on it at all -- an accent this brief reserves two roles
+										for, invisible until the student clicked elsewhere. On the navy
+										fill gold measures 9.45:1, which app.css calls its one legible
+										home, so this is also the single place in the whole system
+										where the mark is unambiguously legible rather than decorative.
+									-->
+									<span class="size-cal-dot shrink-0 rounded-pill bg-yellow"></span>
+								{/if}
 								{#each categories.slice(0, shown) as category (category)}
 									<span
 										title={categoryLabel[category]}
 										class={cn(
 											'size-cal-dot rounded-pill',
-											isSelected ? 'bg-on-primary' : categoryDot[category]
+											/*
+											 * QUIETER IN THE ROOMY GRID, and this is the one place the
+											 * chroma pass of 2026-08-21 is deliberately walked back.
+											 *
+											 * That pass raised these hues to their gamut maximum
+											 * BECAUSE of this grid: eleven categories over eight
+											 * colours read muddy at 6px, so the dots got bigger and
+											 * more saturated. It worked. What changed is the page
+											 * around them -- the rail now names everything on the
+											 * selected day, so the grid's job narrowed from "which
+											 * streams" to "is anything happening", and eight fully
+											 * saturated dots per row is louder than that question.
+											 *
+											 * OPACITY, NOT A SECOND SET OF TOKENS. A desaturated
+											 * palette would be eleven new values to repalette, to
+											 * measure, and to keep in step with the originals. This
+											 * is the same token at 70%, so a repalette moves it and
+											 * the contrast gate has nothing new to check -- and it is
+											 * scoped to `roomy`, so the compact picker in
+											 * `/appointments` keeps the full-strength dots it was
+											 * tuned for.
+											 */
+											roomy && 'opacity-70',
+											// TODAY is the only FILLED cell now, so it is the only one
+											// whose dots need to invert. A selected day that is not
+											// today is outlined, so its dots keep their stream colour.
+											isToday ? 'bg-on-primary' : categoryDot[category]
 										)}
 									></span>
 								{/each}
@@ -390,7 +598,7 @@
 									<span
 										class={cn(
 											'thrive-numeric text-3xs leading-none',
-											isSelected ? 'text-on-primary' : 'text-muted-ink'
+											isToday ? 'text-on-primary' : 'text-muted-ink'
 										)}
 									>
 										{copy.overflow(overflow)}

@@ -691,19 +691,64 @@
   /* Layout constants for the app shell */
   --thrive-rail-width: 15rem;
 
-  /* The calendar's Key column, above `xl` only.
+  /* The calendar's RIGHT RAIL, above `xl` only. (2026-08-30)
 
-     11rem = 165px at the desktop root. Sized from its CONTENT rather than picked:
-     the longest stream row is "appointment" at 12.75px (~68px of text) plus an
-     8px dot, a gap and the row's own padding -- about 96px -- and the widest of
-     the three view toggles is "ignored events" with its count, about 110px
-     including the 17px checkbox. 165px clears both with room, and no stream name
-     wraps at any width the column is rendered at.
+     ── WHAT THIS REPLACED, because the trade genuinely reversed ───────────────
+     It was `--thrive-key-width: 11rem`, and that token was sized from the Key's
+     content: the longest stream row is "appointment" at 12.75px plus an 8px dot
+     and padding, about 96px, so 165px cleared it with room. The reasoning was
+     "the grid is the page's subject, so the Key takes the smallest column its
+     content needs".
 
-     Narrow ON PURPOSE. It was 18rem when the Key was last a column and the grid
-     was 927px; the grid is the page's subject, so the Key takes the smallest
-     column its content actually needs. */
-  --thrive-key-width: 11rem;
+     THE RAIL IS NOT THE KEY ANY MORE. The selected day's detail was promoted
+     into it and the Key demoted to a quiet block beneath a divider, which
+     inverts the argument: the rail now holds the page's SECOND FOCAL POINT, and
+     a legend is the thing paying rent at the bottom of it. So it is sized from
+     the day rows instead, and the grid pays for that deliberately.
+
+     20rem = 300px at the desktop root, measured against the compact row rather
+     than picked. `.thrive-panel` takes 1.25rem either side, leaving 262px of
+     content: a 17px checkbox, a gap, and ~230px for a title that wraps to two
+     lines at `text-sm`. The full row needs ~380px and does not fit -- see the
+     `compact` prop on `ItemRow` for what stacks instead.
+
+     WHAT IT COSTS, stated rather than discovered: the month grid goes 1016px to
+     roughly 700px, and its cells 143px to ~100px. That is the trade the brief
+     asked for, and it is the reason the grid's chips truncate at the width they
+     do. A side rail and a full-width grid cannot both exist -- the same sentence
+     the 11rem note ended on, reaching the opposite conclusion because the rail's
+     job changed. */
+  --thrive-day-rail-width: 20rem;
+
+  /* A month cell, and it is a TOKEN because two things have to agree about it:
+     the cell's own height and the chip row it reserves. See `MiniCalendar`.
+
+     The cell was `lg:h-10` (33.75px) when it held a day number and a row of 8px
+     dots, and that file records `lg:h-9` (30.4px) clipping 8 of the 42 cells --
+     so there was never slack in it. A named chip is text, not a dot, and two of
+     them plus an overflow line do not fit in 34px at any type size this system
+     has.
+
+     MEASURED, and the floor and the chosen value are NOT the same number here --
+     which is a departure from how `--thrive-card-body-cap` was picked, so it is
+     worth saying why. Swept against three chips and a "+n", counting cells that
+     report `scrollHeight > clientHeight`:
+
+       5.60rem -> 5 of 42 clipped
+       5.90rem -> 0 clipped        <- the floor
+       6.00rem -> 0 clipped
+       6.20rem -> 0 clipped        <- chosen, 0.3rem above the floor
+
+     The card cap took the tightest passing value because every pixel it spent
+     came out of a page that had to fit one screen. This is the opposite
+     situation: promoting the day into the rail left the left column ending about
+     150px ABOVE the rail's foot, so the grid had space handed to it and a grid
+     that returns that as blank page is the thing this pass was correcting. The
+     0.3rem is air inside the cell rather than air under the grid.
+
+     If a future pass needs the height back, 5.9rem is the number that still
+     works. Below that, chips clip. */
+  --thrive-cal-cell: 6.2rem;
 
   /* The header's height, and the one shell token that CHANGES BY BREAKPOINT.
      See the media override below layer 3.
@@ -1455,6 +1500,10 @@
      instead of repeating the literal. See the token in layer 1. */
   --spacing-checkbox: var(--thrive-checkbox-size);
   --spacing-cal-dot: var(--thrive-cal-dot);
+  /* `h-cal-cell` on a month cell. A token rather than a `lg:h-*` step because
+     the cell height and the chip row it reserves have to agree, and a step
+     picked in one file cannot be read by the other. */
+  --spacing-cal-cell: var(--thrive-cal-cell);
 
   /* Fonts. All three are `var()` references to layer 1 rather than literals,
      which is the same mechanism the responsive type steps rely on -- see the

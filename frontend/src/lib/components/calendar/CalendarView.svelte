@@ -250,6 +250,38 @@
 	);
 
 	/*
+	 * The rail's two-line heading, split from the same sanctioned format above.
+	 *
+	 * THE FIRST LINE IS NOT ALWAYS "TODAY", and that is the point. The rail shows
+	 * the SELECTED day -- every cell in the grid writes `selectedKey`, and a rail
+	 * pinned to today would make clicking the 12th change nothing visible. So the
+	 * display line says TODAY when the selection is today and names the weekday
+	 * otherwise, and the date beneath it is unambiguous either way.
+	 *
+	 * Two more client-side `toLocaleDateString` calls, for exactly the reason the
+	 * one above is allowed: the day is chosen in the browser, so no server render
+	 * could have pre-formatted it, and what varies is locale wording rather than
+	 * which day it is. CONVENTIONS.md lists this case by name.
+	 */
+	const railTitle = $derived(
+		isToday
+			? copy.day.todayTitle
+			: fromDayKey(selectedKey).toLocaleDateString('en-US', { weekday: 'long' })
+	);
+	/* Weekday included, month abbreviated: "Thursday, Aug 30". The display line
+	   above says TODAY or names the weekday, and neither of those pins a DATE --
+	   so this line carries the whole of it rather than the half the title left
+	   out. Abbreviated because it is set in tracked caps, where "SEPTEMBER" is
+	   most of a 300px rail. */
+	const railDate = $derived(
+		fromDayKey(selectedKey).toLocaleDateString('en-US', {
+			weekday: 'long',
+			month: 'short',
+			day: 'numeric'
+		})
+	);
+
+	/*
 	 * "Next up" only means anything relative to a clock, and only on today. On any
 	 * other day the first timed item is the honest answer, which is what passing 0
 	 * produces -- `nextUpItem` takes `now` as a parameter precisely so this
@@ -327,10 +359,53 @@
 	changes. The global reduced-motion rule collapses the duration, so it simply
 	appears for anyone who asked for that.
 -->
-{#snippet dayPanel()}
+{#snippet dayRail()}
 	{#key selectedKey}
 		<div class="animate-rise space-y-3">
-			<CalendarHeader {heading} {isToday} items={dayItems} {nextUp} {squares} />
+			<!--
+				THE PAGE'S SECOND FOCAL POINT, and the reason this rail exists.
+
+				Before 2026-08-30 the page had six things drawn at the same weight --
+				the title, the month label, the day heading, "your day", "Tasks" and
+				"Key" -- so the eye had nowhere to land. Two now dominate: the `h1`
+				above, and this. Everything else was demoted rather than removed.
+
+				`.thrive-display` at the `xl` step, which is the same treatment the
+				page title takes one step larger. The date under it stays in the
+				interface sans: a display face on both lines would make them compete
+				with each other instead of reading as one block.
+			-->
+			<header>
+				<!-- The full display step, one above the month label in the grid card.
+				     This is the page's subject: the reference has no page title at all
+				     and lets TODAY be the largest thing on the screen. Ours keeps the
+				     `h1`, so the two sit one step apart rather than competing. -->
+				<h2 id={copy.header.headingId} class="thrive-display text-ink">
+					{railTitle}
+				</h2>
+					<!-- The date takes the eyebrow treatment rather than the numeric one.
+				     It reads as a subtitle to the display line above it, and an eyebrow
+				     is the system's one answer for "small, uppercase, tracked, muted".
+				     It is prose ("August 30"), not a value in a column, so the mono
+				     face it used to carry was the wrong half of the two-face rule. -->
+				<!-- `text-body` overrides the eyebrow's muted colour, and it wins because
+				     utilities beat the components layer. Deliberate: under a display line
+				     this is a subtitle rather than a label on something, and the
+				     reference sets it dark. -->
+				<p class="thrive-eyebrow mt-1 text-body">{railDate}</p>
+
+				{#if nextUp}
+					<!-- "Next up" earns rail space because it is the one line that says
+					     what to do NEXT rather than what exists. The time is a value and
+					     the reserved locator colour; the title is something a person
+					     wrote. -->
+					<p class="mt-2 text-sm text-muted-ink">
+						{copy.header.nextUpLabel}
+						<span class="thrive-numeric text-indigo">{nextUp.timeLabel}</span>
+						<span class="text-ink">{nextUp.title}</span>
+					</p>
+				{/if}
+			</header>
 
 			<!--
 				The day, by type. Groups run in DAY_GROUPS order -- classes, then what
@@ -338,13 +413,14 @@
 				is the order a day gets planned in rather than the order things happen.
 				`time` collapses all of it into one chronological list for the other
 				reading.
-			-->
-			<section aria-labelledby={copy.day.headingId} class="space-y-3">
-				<div class="flex items-baseline justify-between gap-2">
-					<h2 id={copy.day.headingId} class="thrive-eyebrow">{copy.day.eyebrow}</h2>
-					<DayGroupToggle mode={prefs.dayGroupBy} />
-				</div>
 
+				The "your day" eyebrow that used to head this section is GONE rather
+				than demoted: it sat directly under a heading that now names the day in
+				display type, so it was labelling the thing above it a second time. The
+				`aria-labelledby` still resolves -- it points at the rail heading, which
+				is the honest label for this list.
+			-->
+			<section aria-labelledby={copy.header.headingId} class="space-y-3">
 				{#if dayGroups.length === 0}
 					<div data-tone="sunken" class="thrive-panel">
 						<p class="text-xs text-muted-ink">{copy.day.empty}</p>
@@ -355,6 +431,7 @@
 							id={`day-${group.key}`}
 							title={group.heading}
 							items={group.items}
+							density="rail"
 							{onTick}
 							{onOpen}
 						/>
@@ -362,13 +439,40 @@
 				{/if}
 			</section>
 
-			<!-- Adding sits BETWEEN the day and the events, and that order is the
-			     argument: everything above is the student's own day, everything below
-			     is what someone else is putting on. The add form belongs to the first
-			     of those. -->
-			<AddItemForm dayKey={selectedKey} />
-
 			<DayEventsSection items={events} />
+		</div>
+	{/key}
+{/snippet}
+
+<!--
+	What stayed under the grid: the day's shape rather than its contents.
+
+	The figure, the breakdown, "n of m done" and the square strip are a SUMMARY --
+	they answer "how much is today" in one glance and none of them is a thing you
+	act on. The group toggle and the add form are controls. Both belong with the
+	grid, which is the other thing on this page you look at rather than work
+	through; the rail is where the working happens.
+
+	`aria-labelledby` points at the rail's heading, which lives in a different
+	subtree. That is valid -- ids are document-global -- and it is deliberate:
+	this section is still "the selected day", and duplicating the heading to own a
+	label locally would put two of them in the document outline.
+-->
+{#snippet daySummary()}
+	{#key selectedKey}
+		<div class="animate-rise space-y-3">
+			<CalendarHeader {heading} {isToday} items={dayItems} {nextUp} {squares} />
+
+			<div class="flex flex-wrap items-center justify-between gap-2">
+				<h2 class="thrive-eyebrow">{copy.day.eyebrow}</h2>
+				<DayGroupToggle mode={prefs.dayGroupBy} />
+			</div>
+
+			<!-- Adding sits with the controls now. The old comment argued it belonged
+			     between the student's own day and what someone else is putting on --
+			     that ordering went with the split, and what is left is the simpler
+			     rule: a form is a control, and the controls are here. -->
+			<AddItemForm dayKey={selectedKey} />
 		</div>
 	{/key}
 {/snippet}
@@ -468,39 +572,49 @@
 		</div>
 
 		<!--
-			THE GRID AND THE KEY, SIDE BY SIDE ABOVE `xl`.
+			THE GRID AND THE RAIL, SIDE BY SIDE ABOVE `xl`.
 
-			## Why the Key is back in a column, and what is different this time
+			## The rail changed hands on 2026-08-30
 
-			It spent a few hours as a full-width disclosure above the calendar. That
-			fixed the width problem — the month grid went 927px to 1198px — and created
-			two worse ones: opening it pushed the whole month down the page, and eleven
-			stream rows stacked in a narrow left column left most of a 1200px panel
-			empty.
+			It used to hold the Key and nothing else, at `--thrive-key-width` (11rem),
+			sized from the longest stream name. The reasoning was that the grid is the
+			page's subject and a legend should take the least room its content needs.
 
-			So it is a column again, but a NARROW one, sized from its content rather
-			than from a round number: `--thrive-key-width` is 11rem against the 18rem
-			it used to take. The grid gets 1024px instead of the 927px it had under the
-			old column — still less than the 1198px it had with no column at all, and
-			that trade is the point of the arrangement rather than a regression to
-			apologise for. A side panel and a full-width grid cannot both exist.
+			That was right while the rail held a LEGEND. The selected day's detail now
+			lives here and the Key is demoted to a quiet block at the bottom, which
+			reverses the argument: the rail holds the page's second focal point, and
+			the thing paying rent by the inch is the legend underneath it. So it is
+			sized from the day rows instead -- `--thrive-day-rail-width`, 20rem -- and
+			the grid pays, going from 1016px to roughly 700px.
 
-			## The order is grid THEN key, at every width
+			A side panel and a full-width grid cannot both exist. That sentence was
+			here before and it still holds; what changed is which of the two is worth
+			more, and the answer moved when the panel stopped being a legend.
+
+			## The order is view THEN rail, at every width
 
 			This is what makes "opening the Key never pushes the calendar down" true
-			rather than approximately true. Below `xl` the Key is the second row of a
-			one-column grid, so revealing it appends BELOW the month — the grid does not
-			move by a pixel. Above `xl` the explicit `row-start-1` on both children
-			pulls it up beside the grid instead.
+			rather than approximately true. Below `xl` the rail is the second row of a
+			one-column grid, so it appends BELOW the month -- the grid does not move by
+			a pixel. Above `xl` the explicit `row-start-1` on both children pulls it up
+			beside the grid instead.
 
-			## `items-start`, so the Key does not stretch
+			## `items-start`, so the rail does not stretch
 
-			Without it the Key's panel would grow to the height of the left column,
-			which on the calendar is the grid plus the whole day panel — a 165px-wide
-			box several thousand pixels tall.
+			Without it the rail would grow to the height of the left column and the
+			Key would float at the bottom of a mostly empty box.
+
+			## Why the day detail is not in the agenda's rail
+
+			The agenda IS a list of days, so pinning one day beside it duplicates what
+			the page already is. Month and week both had a day panel before this pass
+			and both keep one; agenda had none and still has none. The rail's Key half
+			is unconditional, exactly as it was.
 		-->
-		<div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_var(--thrive-key-width)] xl:items-start">
-			<div class="min-w-0 space-y-3 xl:col-start-1 xl:row-start-1">
+		<div
+			class="grid gap-page-rhythm xl:grid-cols-[minmax(0,1fr)_var(--thrive-day-rail-width)] xl:items-start"
+		>
+			<div class="min-w-0 space-y-page-rhythm xl:col-start-1 xl:row-start-1">
 	{#if prefs.view === 'agenda'}
 		{@render agenda()}
 	{:else if prefs.view === 'week'}
@@ -533,7 +647,7 @@
 		-->
 		<div class="hidden space-y-3 md:block">
 			<WeekView data={filtered} {selectedKey} {todayKey} onSelect={select} />
-			{@render dayPanel()}
+			{@render daySummary()}
 		</div>
 
 		<div class="space-y-3 md:hidden">
@@ -557,34 +671,62 @@
 			showTodayButton
 			size="comfortable"
 		/>
-		{@render dayPanel()}
+		{@render daySummary()}
 	{/if}
 			</div>
 
 			<!--
-				THE KEY. Second in DOM order, second column above `xl`.
+				THE RAIL. Second in DOM order, second column above `xl`.
 
-				`hidden`/`block` rather than an `{#if}`, because this element has two
-				jobs at two widths and only one instance may exist: duplicating it would
-				duplicate eleven checkboxes, and a screen reader would find two "Class"
-				toggles for one filter.
+				Two halves with different visibility rules, which is why the wrapper is
+				not itself the disclosure panel:
 
-				`hidden` is `display: none`, which takes the panel out of the
-				accessibility tree AND out of the tab order — the property the earlier
-				`{#if}` was chosen for. What it does not do is remove it from
-				`querySelectorAll`, which is why the gate now asserts VISIBILITY rather
-				than presence below `xl`.
+				  the day    always shown, in month and week. It is the page's second
+				             focal point; hiding it behind the "Key and filters" trigger
+				             would make that button toggle the thing it does not name.
+				  the Key    still the disclosure, still `#calendar-key-panel`, still
+				             what `aria-controls` points at.
 
-				`xl:block` is unconditional, so above `xl` the panel is always there
-				whatever `keyOpen` happens to be. The trigger is `xl:hidden` for the same
-				reason, and the two cannot disagree because neither is asked to.
+				Getting that wrong would have been silent: the trigger would have worked,
+				and it would have hidden a student's whole day along with the legend.
 			-->
-			<div
-				id={KEY_PANEL_ID}
-				class={cn('min-w-0 xl:col-start-2 xl:row-start-1 xl:block', keyOpen ? 'block' : 'hidden')}
-			>
-				<KeyBar {prefs} {labels} ignoredEventCount={ignoredEventIds.length} />
-			</div>
+			<aside class="min-w-0 space-y-page-rhythm xl:col-start-2 xl:row-start-1">
+				{#if prefs.view !== 'agenda'}
+					{@render dayRail()}
+				{/if}
+
+				<!--
+					`hidden`/`block` rather than an `{#if}`, because this element has two
+					jobs at two widths and only one instance may exist: duplicating it
+					would duplicate eleven checkboxes, and a screen reader would find two
+					"Class" toggles for one filter.
+
+					`hidden` is `display: none`, which takes the panel out of the
+					accessibility tree AND out of the tab order — the property the earlier
+					`{#if}` was chosen for. What it does not do is remove it from
+					`querySelectorAll`, which is why the gate asserts VISIBILITY rather
+					than presence below `xl`.
+
+					`xl:block` is unconditional, so above `xl` the panel is always there
+					whatever `keyOpen` happens to be. The trigger is `xl:hidden` for the
+					same reason, and the two cannot disagree because neither is asked to.
+
+					THE DIVIDER IS THE DEMOTION, and it only draws above `xl`. Below that
+					the Key is a disclosure the student opened on purpose, so a rule
+					separating it from the day above would be marking a boundary they
+					already crossed deliberately.
+				-->
+				<div
+					id={KEY_PANEL_ID}
+					class={cn(
+						'min-w-0 xl:block',
+						prefs.view !== 'agenda' && 'xl:border-t xl:border-hairline xl:pt-4',
+						keyOpen ? 'block' : 'hidden'
+					)}
+				>
+					<KeyBar {prefs} {labels} ignoredEventCount={ignoredEventIds.length} />
+				</div>
+			</aside>
 		</div>
 	</div>
 

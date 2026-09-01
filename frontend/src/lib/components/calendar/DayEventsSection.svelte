@@ -87,11 +87,15 @@
 </script>
 
 <section aria-labelledby={copy.headingId} class="thrive-panel">
+	<!-- Quiet, for the same reason "Tasks" is: "Happening" labels one block inside
+	     one day's rail, under a heading that already names the day. It was drawn at
+	     `text-lg` bold, which is the weight a page title should have. -->
 	<SectionHeading
 		as="h3"
 		id={copy.headingId}
 		title={copy.title}
 		prefix={copy.prefix}
+		tone="quiet"
 		count={items.length === 0 ? undefined : copy.joinedCount(joined, items.length)}
 	/>
 

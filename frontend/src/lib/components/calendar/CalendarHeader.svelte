@@ -78,46 +78,63 @@
 	);
 </script>
 
-<section aria-labelledby={copy.headingId} class="thrive-panel">
-	<div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-		<h2 id={copy.headingId} class="text-lg font-bold text-ink">{heading}</h2>
-		{#if isToday}
-			<!-- Indigo, because "today" is literally "this is where you are now".
-			     A word, so no numeric treatment. -->
-			<span class="rounded-xs bg-indigo px-2 py-0.5 text-3xs text-on-primary">
-				{copy.todayChip}
-			</span>
+<!--
+	THE HEADING LEFT THIS COMPONENT on 2026-08-30 and now lives in the rail, in
+	display type, as the page's second focal point. Two things follow from that:
+
+	  - There is no `<h2>` here any more. `aria-labelledby` still names
+	    `copy.headingId`, which resolves to the rail's heading in another subtree.
+	    Ids are document-global, so this is valid, and it keeps ONE heading for the
+	    selected day in the document outline instead of two saying the same date.
+	  - The indigo "today" chip went with it. The rail says TODAY in 19.5px caps;
+	    a chip repeating that three inches away is the kind of duplication that
+	    made this page read as six competing headings in the first place.
+
+	`heading` is still a prop, and still required: it is what the section's
+	`aria-label`-shaped announcement in `CalendarView` reads from, and dropping it
+	would make this component's contract quietly narrower than its callers expect.
+-->
+<!--
+	ONE ROW, NOT A STACK, since 2026-08-30.
+
+	This was three stacked blocks -- figure, "n of m done", then the squares -- and
+	that shape was right when it sat under a heading in a narrow-ish column. Under
+	the grid it is 869px wide, and a stack put every piece in the left third with
+	two thirds of a panel empty beside it. A summary that occupies a large blank
+	block is the thing this pass was called in to fix, so it reads across instead:
+	the count on the left, the progress strip pushed to the right edge.
+
+	It wraps rather than shrinking. Below `sm` the squares drop under the figure,
+	which is the stack this used to be and is correct at that width.
+-->
+<section
+	aria-labelledby={copy.headingId}
+	class="thrive-panel flex flex-wrap items-center justify-between gap-x-6 gap-y-3"
+>
+	<div class="min-w-0">
+		<!-- The figure and its breakdown, on one baseline. -->
+		<div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+			<p class="thrive-numeric text-3xl font-bold text-ink">
+				{items.length}
+				<!-- A bare 40px number reads as a heading to a screen reader and as
+				     nothing at all without the breakdown beside it. -->
+				<span class="sr-only">{copy.dayFigureLabel(items.length)}</span>
+			</p>
+			<p class="text-xs text-muted-ink">
+				{items.length === 0 ? copy.nothing : countsLine}
+			</p>
+		</div>
+
+		{#if tickable > 0}
+			<p class="thrive-numeric mt-1 text-xs text-muted-ink">
+				{copy.doneOfTickable(done, tickable)}
+			</p>
 		{/if}
 	</div>
 
-	<!-- The figure and its breakdown, on one baseline. -->
-	<div class="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-		<p class="thrive-numeric text-3xl font-bold text-ink">
-			{items.length}
-			<!-- A bare 40px number reads as a heading to a screen reader and as
-			     nothing at all without the breakdown beside it. -->
-			<span class="sr-only">{copy.dayFigureLabel(items.length)}</span>
-		</p>
-		<p class="text-xs text-muted-ink">
-			{items.length === 0 ? copy.nothing : countsLine}
-		</p>
-	</div>
-
-	{#if tickable > 0}
-		<p class="thrive-numeric mt-1 text-xs text-muted-ink">
-			{copy.doneOfTickable(done, tickable)}
-		</p>
-	{/if}
-
-	{#if nextUp}
-		<p class="mt-2 text-sm text-muted-ink">
-			{copy.nextUpLabel}
-			<!-- The time is a value and the reserved locator colour; the title is
-			     something a person wrote. -->
-			<span class="thrive-numeric text-indigo">{nextUp.timeLabel}</span>
-			<span class="text-ink">{nextUp.title}</span>
-		</p>
-	{/if}
-
-	<SquareGrid groups={squares} nextId={nextUp?.id} class="mt-3" />
+	<!-- The "next up" LINE moved to the rail, where it sits under the day heading
+	     and is the first thing read. `nextUp` stays a prop because the square strip
+	     still marks that item, and the strip and the line have to agree about which
+	     one it is -- passing the id separately would be two sources for one fact. -->
+	<SquareGrid groups={squares} nextId={nextUp?.id} />
 </section>

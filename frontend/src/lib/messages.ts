@@ -542,6 +542,11 @@ export const messages = {
 		day: {
 			headingId: 'day-items',
 			eyebrow: 'your day',
+			/* The rail's display line when the selection IS today. Any other day
+			   names its weekday instead -- see `railTitle` in `CalendarView`.
+			   Lowercase here because `.thrive-display` sets the case; the string a
+			   screen reader announces stays sentence-shaped. */
+			todayTitle: 'Today',
 			empty: 'Nothing scheduled this day. A good day to get ahead.',
 			/** Arrange-by control. Words, so this is not a numeric treatment. */
 			groupByLabel: 'Arrange the day by',

@@ -126,10 +126,16 @@
 </script>
 
 <section aria-labelledby={copy.headingId} class="thrive-panel">
+	<!-- Quiet since 2026-08-30. "Key" was drawn at the same weight as the day
+	     heading and the page title, so a legend was competing with the calendar it
+	     explains. It is the LAST thing in the rail, under a divider, and it should
+	     read as a footnote to the day above it. Nothing was removed: every stream,
+	     both dimensions and the hidden count are exactly where they were. -->
 	<SectionHeading
 		id={copy.headingId}
 		title={copy.title}
 		prefix={copy.prefix}
+		tone="quiet"
 		count={hiddenCount > 0 ? copy.hiddenCount(hiddenCount) : undefined}
 	>
 		{#snippet action()}

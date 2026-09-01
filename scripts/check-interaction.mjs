@@ -2271,10 +2271,24 @@ try {
 		arrangement.gridTop !== null && arrangement.gridTop < 320,
 		`grid top ${arrangement.gridTop}px of a ${arrangement.viewportHeight}px viewport (472 above the Key, 202 beside it)`
 	);
+	/*
+	 * RETUNED 2026-08-30, when the rail stopped being a legend.
+	 *
+	 * This asserted `> 1000` and it was right for two arrangements: the grid was
+	 * the page's subject and the only thing beside it was an 11rem Key, so
+	 * anything under 1000px meant something had gone wrong with the container.
+	 *
+	 * The day's detail now lives in the rail and the Key is demoted to a quiet
+	 * block at its foot, so the grid pays 138px for it BY DESIGN and lands at
+	 * 878px. The floor moves rather than going away, because the thing it really
+	 * guards is unchanged: the grid must not be squeezed by anything nobody chose.
+	 * 800px is under the deliberate value with room, and far above the 672px the
+	 * old `max-w-2xl` bug produced.
+	 */
 	check(
 		'the month grid uses the width it was given',
-		(arrangement.gridWidth ?? 0) > 1000,
-		`${arrangement.gridWidth}px (672 at max-w-2xl, 927 beside an 18rem Key, 1198 with no Key column)`
+		(arrangement.gridWidth ?? 0) > 800,
+		`${arrangement.gridWidth}px (672 at max-w-2xl, 878 beside the 20rem day rail, 1198 with no rail)`
 	);
 
 	/*
@@ -2312,10 +2326,24 @@ try {
 		arrangement.keyVisible === true && arrangement.triggerVisible === false,
 		`panel displayed: ${arrangement.keyVisible}, trigger displayed: ${arrangement.triggerVisible}`
 	);
+	/*
+	 * RETUNED with the one above, and the CEILING is the half worth keeping.
+	 *
+	 * It read `<= 200`, sized from `--thrive-key-width` (11rem) when the rail held
+	 * eleven stream rows and nothing else. The rail is `--thrive-day-rail-width`
+	 * (20rem) now because it holds the selected day, so 300px is the intended
+	 * value rather than a regression.
+	 *
+	 * The ceiling still binds and still means the same thing: every pixel the rail
+	 * takes comes off the grid, so it must not creep. 320px leaves 20px of slack
+	 * for a future retune and fails loudly on anything that would take the grid
+	 * under the floor asserted above. The two numbers are a pair -- move one and
+	 * the other has to be re-derived.
+	 */
 	check(
-		'the Key column stays narrow enough that the grid keeps the page',
-		(arrangement.keyWidth ?? 0) > 0 && (arrangement.keyWidth ?? 0) <= 200,
-		`${arrangement.keyWidth}px from --thrive-key-width (11rem), against 18rem before`
+		'the day rail stays narrow enough that the grid keeps the page',
+		(arrangement.keyWidth ?? 0) > 0 && (arrangement.keyWidth ?? 0) <= 320,
+		`${arrangement.keyWidth}px from --thrive-day-rail-width (20rem), against 11rem when it was only the Key`
 	);
 
 	const keyOpened = await wide.evaluate(() => {

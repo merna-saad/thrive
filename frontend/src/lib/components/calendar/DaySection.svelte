@@ -16,12 +16,29 @@
 		id,
 		title,
 		items,
+		density = 'full',
 		onTick,
 		onOpen
 	}: {
 		id: string;
 		title: string;
 		items: ScheduleItem[];
+		/**
+		 * Passed straight through to every row. See `ItemRow`.
+		 *
+		 * ADDITIVE, and deliberately so: it defaults to `full`, so this component's
+		 * existing contract is unchanged and no call site had to move. The rail
+		 * needed a narrower row, not a different section.
+		 *
+		 * Chosen over a container query, which was the tempting alternative -- the
+		 * row would read its own width and adapt with no prop at all. The failure
+		 * mode decided it: a container query with no `@container` ancestor never
+		 * matches, so a section rendered somewhere that forgot the ancestor would
+		 * silently pick the narrow shape and look almost right. An explicit prop is
+		 * greppable and cannot fail quietly, which is the trade this repo makes
+		 * everywhere else.
+		 */
+		density?: 'full' | 'rail' | 'column';
 		onTick?: (item: ScheduleItem, done: boolean) => void;
 		/** Passed straight through to the row. See `ItemRow`. */
 		onOpen?: (item: ScheduleItem) => void;
@@ -55,12 +72,25 @@
      section that renders always has something in it and needs no empty state. -->
 {#if items.length > 0}
 	<section aria-labelledby={id} class="thrive-panel">
-		<SectionHeading as="h3" {id} {title} {count} />
+		<!-- Quiet in the rail. "Tasks" and "Classes" are wayfinding inside one day's
+		     list, not things competing with the day heading above them -- see the
+		     two-focal-points note in `CalendarView`. Loud everywhere else, because
+		     under the grid and in the agenda this heading IS the top of its block. -->
+		<SectionHeading
+			as="h3"
+			{id}
+			{title}
+			{count}
+			tone={density === 'rail' ? 'quiet' : 'default'}
+		/>
 
-		<ul class="mt-2 space-y-0.5">
+		<!-- REAL GAP BETWEEN CARDS IN THE RAIL. `space-y-0.5` is a list separator --
+		     right when rows are rows inside a panel, wrong when each row is its own
+		     white card, because two cards 1.7px apart read as one card with a seam. -->
+		<ul class={density === 'rail' ? 'mt-2 space-y-2' : 'mt-2 space-y-0.5'}>
 			{#each items as item (item.id)}
 				<li>
-					<ItemRow {item} {onTick} {onOpen} />
+					<ItemRow {item} {density} {onTick} {onOpen} />
 				</li>
 			{/each}
 		</ul>
