@@ -96,24 +96,32 @@
 		'has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary';
 
 	/**
-	 * A STREAM is a row now, not a chip in a wrapping strip.
+	 * A CHIP THAT WRAPS. Changed back on 2026-09-01, when the Key left the rail.
 	 *
-	 * Eleven chips wrapped into four ragged rows, which is the hardest possible
-	 * shape to scan: no two rows start in the same place, and the dot -- the thing
-	 * that ties a name to a colour in the grid -- landed at a different x on every
-	 * line. One per line puts every dot in one column, so the legend can be read
-	 * down its left edge.
+	 * ## This is the second flip, and the first one was right at the time
 	 *
-	 * `w-full` is what makes the dots align: without it each row shrinks to its
-	 * text and the border ends somewhere different on every line, which looks like
-	 * a mistake even though the dots would still line up.
+	 * These were wrapping chips, became full-width rows, and are chips again. The
+	 * note that made them rows is worth keeping because its reasoning still holds
+	 * wherever it applies:
 	 *
-	 * `min-h-11` below `lg` so a stream is a full touch target on a phone, and
-	 * `lg:min-h-8` (30px) above it -- eleven rows is the point at which a desktop
-	 * row height stops being free.
+	 *   "Eleven chips wrapped into four ragged rows, which is the hardest possible
+	 *    shape to scan: no two rows start in the same place, and the dot -- the
+	 *    thing that ties a name to a colour in the grid -- landed at a different x
+	 *    on every line. One per line puts every dot in one column, so the legend
+	 *    can be read down its left edge."
+	 *
+	 * True, and it was measured against a ~165px column where eleven chips wrapped
+	 * to FOUR ragged lines. Under the grid the width is ~855px and the same eleven
+	 * fit on two, which is not a ragged block -- it is a strip. The scanning cost
+	 * the old note describes scales with how many lines the wrap produces, and at
+	 * two it is smaller than the cost of an 11-deep column of furniture.
+	 *
+	 * So `w-full` is gone, which is the whole difference. What did NOT change:
+	 * `min-h-11` on touch relaxing to `lg:min-h-8`. Wrapping is a layout decision
+	 * and must not quietly become a touch-target decision.
 	 */
 	const streamRow =
-		'flex w-full min-h-11 cursor-pointer items-center gap-2 rounded-sm border px-2 text-2xs ' +
+		'flex min-h-11 cursor-pointer items-center gap-2 rounded-sm border px-2.5 text-2xs ' +
 		'transition-colors duration-(--motion-fast) ease-standard lg:min-h-8 ' +
 		'has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary';
 
@@ -128,9 +136,11 @@
 <section aria-labelledby={copy.headingId} class="thrive-panel">
 	<!-- Quiet since 2026-08-30. "Key" was drawn at the same weight as the day
 	     heading and the page title, so a legend was competing with the calendar it
-	     explains. It is the LAST thing in the rail, under a divider, and it should
-	     read as a footnote to the day above it. Nothing was removed: every stream,
-	     both dimensions and the hidden count are exactly where they were. -->
+	     explains. It sits UNDER THE GRID as of 2026-09-01 -- beside the thing it
+	     explains rather than at the foot of a rail about the day -- and it should
+	     read as a footnote to the month above it. Nothing was ever removed: every
+	     stream, both dimensions and the hidden count have survived all three
+	     arrangements. -->
 	<SectionHeading
 		id={copy.headingId}
 		title={copy.title}
@@ -162,20 +172,18 @@
 	</SectionHeading>
 
 <!--
-	ONE COLUMN, because the panel is a 165px side column again.
+	WRAPPING ROWS, UNDER THE GRID. (2026-09-01)
 
-	It was briefly two, which was the right answer to a 1200px full-width panel and
-	the wrong one here — the Key is back beside the grid at `--thrive-key-width`
-	(11rem), and two columns inside 165px would wrap "appointment" onto two lines to
-	save vertical space the page has plenty of.
+	The note here used to read "ONE COLUMN, because the panel is a 165px side
+	column again", and every part of that premise has since expired: the rail is
+	300px, it holds the selected day, and the Key is no longer in it at all.
 
-	Height is no longer the problem it was. Beside the grid, the Key's ~400px sits
-	against a left column that is the month plus the entire day panel, so the panel
-	does not drive the page's height at any point. That is the whole reason the
-	column arrangement can afford eleven stacked rows and the full-width one could
-	not.
+	Under the grid the constraint inverts. Width went from 165px to ~855px and the
+	scarce axis became vertical, so eleven stacked full-width rows -- which cost
+	nothing beside a tall day panel -- became the tallest thing on the page after
+	the month itself. Wrapped chips put the same eleven controls on two lines.
 
-	THE TWO DIMENSIONS ARE STILL TWO DIMENSIONS. Stacked is not merged: each keeps
+	THE TWO DIMENSIONS ARE STILL TWO DIMENSIONS. Wrapped is not merged: each keeps
 	its own heading, its own `aria-labelledby` list, and its own toggle function.
 	Nothing was flattened into one list of chips.
 -->
@@ -183,7 +191,7 @@
 	<div class="min-w-0">
 		<!-- Dimension one: streams. A fixed list, in legend order, one per line. -->
 		<p id="key-streams" class="thrive-eyebrow">{copy.streams}</p>
-		<ul aria-labelledby="key-streams" class="mt-1.5 flex flex-col gap-0.5">
+		<ul aria-labelledby="key-streams" class="mt-1.5 flex flex-wrap gap-1.5">
 			{#each legendOrder as category (category)}
 				{@const on = !prefs.hidden.includes(category)}
 				{@const name = categoryLabel[category]}
@@ -213,7 +221,7 @@
 			labelled — an empty "labels" heading would advertise a dimension this
 			student does not use.
 
-			Stacked to match the streams, so the two dimensions read as the same KIND
+			Wrapped to match the streams, so the two dimensions read as the same KIND
 			of list rather than one being a strip and the other a column.
 
 			No dot. A label has no colour because it has no stream, and giving it one
@@ -225,7 +233,7 @@
 		{#if labels.length > 0}
 			<div>
 				<p id="key-labels" class="thrive-eyebrow">{copy.labels}</p>
-				<ul aria-labelledby="key-labels" class="mt-1.5 flex flex-col items-start gap-0.5">
+				<ul aria-labelledby="key-labels" class="mt-1.5 flex flex-wrap items-start gap-1.5">
 					{#each labels as label (label)}
 						{@const on = !prefs.hiddenLabels.includes(label)}
 						<li>
@@ -248,16 +256,20 @@
 		<!--
 			The three view toggles, STACKED as well.
 
-			They were a horizontal row, which was right beside a horizontal strip of
-			chips and reads as a leftover beside two vertical lists. Same reasoning as
-			the streams: one control per line, and their checkboxes form a column the
-			way the dots do.
+			A horizontal row again, and this is the second time this has flipped --
+			worth recording, because both flips were right. Beside a horizontal strip
+			of chips a row was correct; inside a 165px column it read as a leftover and
+			became one control per line; under an 855px grid it is a row once more.
+			The rule underneath is stable even though the answer keeps moving: THESE
+			FOLLOW THE FLOW OF THE CHIPS ABOVE THEM, because they belong to the same
+			panel and a panel with a wrapped strip over a stacked column reads as two
+			panels.
 
 			The rule above them is kept. They are not a third dimension — they change
 			what the calendar shows about items it is already showing — and the line is
 			what says so.
 		-->
-		<div class="flex flex-col gap-0.5 border-t border-hairline pt-2.5">
+		<div class="flex flex-wrap gap-x-4 gap-y-1 border-t border-hairline pt-2.5">
 		<label class={toggleRow}>
 			<input
 				type="checkbox"

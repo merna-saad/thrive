@@ -673,59 +673,58 @@
 		/>
 		{@render daySummary()}
 	{/if}
+
+			<!--
+				THE KEY, UNDER THE GRID. Its third home, and this one is argued from
+				what it EXPLAINS rather than from where there was room.
+
+				It began beside the grid in its own column, moved to the foot of the
+				rail when the rail took the selected day, and lands here. The rail
+				version failed on its own terms: a legend for the MONTH sat underneath a
+				panel about the DAY, so the one thing it decodes was the one thing it
+				was not next to.
+
+				Under the grid it is beside the dots it names, and the compaction that
+				shortened the month is what made room -- the grid went 575px to 296px
+				and left the left column ending well above the rail's foot.
+
+				STILL THE DISCLOSURE, still `#calendar-key-panel`, still what the
+				trigger's `aria-controls` points at. `hidden`/`block` rather than an
+				`{#if}` because only one instance may exist: duplicating it would
+				duplicate eleven checkboxes and a screen reader would find two "Class"
+				toggles for one filter. `hidden` is `display: none`, so it leaves the
+				accessibility tree and the tab order, which is the property the earlier
+				`{#if}` was chosen for -- it just does not leave `querySelectorAll`,
+				which is why the gate asserts VISIBILITY rather than presence below `xl`.
+
+				`xl:block` is unconditional, so above `xl` it is always there whatever
+				`keyOpen` happens to be, and the trigger is `xl:hidden` for the same
+				reason. Neither is asked about the other, so they cannot disagree.
+			-->
+			<div
+				id={KEY_PANEL_ID}
+				class={cn('min-w-0 xl:block', keyOpen ? 'block' : 'hidden')}
+			>
+				<KeyBar {prefs} {labels} ignoredEventCount={ignoredEventIds.length} />
+			</div>
 			</div>
 
 			<!--
-				THE RAIL. Second in DOM order, second column above `xl`.
+				THE RAIL. Second in DOM order, second column above `xl`, and it is the
+				DAY and nothing else as of 2026-09-01.
 
-				Two halves with different visibility rules, which is why the wrapper is
-				not itself the disclosure panel:
-
-				  the day    always shown, in month and week. It is the page's second
-				             focal point; hiding it behind the "Key and filters" trigger
-				             would make that button toggle the thing it does not name.
-				  the Key    still the disclosure, still `#calendar-key-panel`, still
-				             what `aria-controls` points at.
-
-				Getting that wrong would have been silent: the trigger would have worked,
-				and it would have hidden a student's whole day along with the legend.
+				The Key used to sit under it behind a divider. That was already the
+				second home for a legend that started beside the grid, and it was the
+				wrong one for a reason the rail's own success created: once the rail was
+				the selected day, eleven full-width stream rows at its foot were an
+				11-deep block of filter furniture below the thing a student actually
+				came to read. The Key now sits under the grid -- see below -- which is
+				beside the thing it explains rather than beside the thing it does not.
 			-->
-			<aside class="min-w-0 space-y-page-rhythm xl:col-start-2 xl:row-start-1">
+			<aside class="min-w-0 xl:col-start-2 xl:row-start-1">
 				{#if prefs.view !== 'agenda'}
 					{@render dayRail()}
 				{/if}
-
-				<!--
-					`hidden`/`block` rather than an `{#if}`, because this element has two
-					jobs at two widths and only one instance may exist: duplicating it
-					would duplicate eleven checkboxes, and a screen reader would find two
-					"Class" toggles for one filter.
-
-					`hidden` is `display: none`, which takes the panel out of the
-					accessibility tree AND out of the tab order — the property the earlier
-					`{#if}` was chosen for. What it does not do is remove it from
-					`querySelectorAll`, which is why the gate asserts VISIBILITY rather
-					than presence below `xl`.
-
-					`xl:block` is unconditional, so above `xl` the panel is always there
-					whatever `keyOpen` happens to be. The trigger is `xl:hidden` for the
-					same reason, and the two cannot disagree because neither is asked to.
-
-					THE DIVIDER IS THE DEMOTION, and it only draws above `xl`. Below that
-					the Key is a disclosure the student opened on purpose, so a rule
-					separating it from the day above would be marking a boundary they
-					already crossed deliberately.
-				-->
-				<div
-					id={KEY_PANEL_ID}
-					class={cn(
-						'min-w-0 xl:block',
-						prefs.view !== 'agenda' && 'xl:border-t xl:border-hairline xl:pt-4',
-						keyOpen ? 'block' : 'hidden'
-					)}
-				>
-					<KeyBar {prefs} {labels} ignoredEventCount={ignoredEventIds.length} />
-				</div>
 			</aside>
 		</div>
 	</div>

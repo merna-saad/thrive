@@ -2252,11 +2252,23 @@ try {
 			gridTop: g ? Math.round(g.top + window.scrollY) : null,
 			gridWidth: g ? Math.round(g.width) : null,
 			gridRight: g ? Math.round(g.right) : null,
+			/* Added 2026-09-01: the Key moved UNDER the grid, so the assertion needs
+			   the grid's bottom edge and left edge rather than only its right. */
+			gridBottom: g ? Math.round(g.bottom + window.scrollY) : null,
+			gridLeft: g ? Math.round(g.left) : null,
+			/* The rail is its own element now that the Key is not in it. Measuring
+			   `#calendar-key-panel` for "is the rail narrow" stopped being the same
+			   question the moment the two separated. */
+			railWidth: (() => {
+				const rail = document.querySelector('aside');
+				return rail ? Math.round(rail.getBoundingClientRect().width) : null;
+			})(),
 			/* The panel is always in the DOM now — it has two jobs at two widths and
 			   only one instance may exist. So what is asserted at each width is
 			   whether it is DISPLAYED, not whether it is present. */
 			keyVisible: key ? getComputedStyle(key).display !== 'none' : null,
 			keyLeft: k ? Math.round(k.left) : null,
+			keyTop: k ? Math.round(k.top + window.scrollY) : null,
 			keyWidth: k ? Math.round(k.width) : null,
 			keyTop: k ? Math.round(k.top + window.scrollY) : null,
 			/* The trigger is `xl:hidden`: above `xl` there is nothing to toggle. */
@@ -2314,12 +2326,25 @@ try {
 	 *  4. No stream name wraps. That is what the 11rem was measured against.
 	 *  5. Both dimensions and every filter survive the move.
 	 */
+	/*
+	 * RETUNED 2026-09-01. This asserted the Key sat BESIDE the grid, which was
+	 * true of its first two homes -- its own column, then the rail's foot. It is
+	 * under the grid now, in the same column, because a legend for the month was
+	 * sitting beneath a panel about the day.
+	 *
+	 * The geometry flips accordingly: it must start BELOW the grid and share the
+	 * grid's left edge. The second half is what stops it drifting into the rail's
+	 * column, which is the failure the original assertion was really guarding.
+	 */
 	check(
-		'the Key sits beside the grid, not above it',
-		arrangement.keyLeft !== null &&
-			arrangement.gridRight !== null &&
-			arrangement.keyLeft >= arrangement.gridRight - 4,
-		`Key starts at ${arrangement.keyLeft}, grid ends at ${arrangement.gridRight}`
+		'the Key sits under the grid, in the grid\'s own column',
+		arrangement.keyTop !== null &&
+			arrangement.gridBottom !== null &&
+			arrangement.keyLeft !== null &&
+			arrangement.gridLeft !== null &&
+			arrangement.keyTop >= arrangement.gridBottom - 4 &&
+			Math.abs(arrangement.keyLeft - arrangement.gridLeft) <= 8,
+		`Key top ${arrangement.keyTop} vs grid bottom ${arrangement.gridBottom}; left ${arrangement.keyLeft} vs ${arrangement.gridLeft}`
 	);
 	check(
 		'the Key is always visible on a desktop, and its trigger is not',
@@ -2327,23 +2352,27 @@ try {
 		`panel displayed: ${arrangement.keyVisible}, trigger displayed: ${arrangement.triggerVisible}`
 	);
 	/*
-	 * RETUNED with the one above, and the CEILING is the half worth keeping.
+	 * RETUNED TWICE, and the second time the SELECTOR was the bug rather than the
+	 * number.
 	 *
-	 * It read `<= 200`, sized from `--thrive-key-width` (11rem) when the rail held
-	 * eleven stream rows and nothing else. The rail is `--thrive-day-rail-width`
-	 * (20rem) now because it holds the selected day, so 300px is the intended
-	 * value rather than a regression.
+	 * It read `<= 200` against `#calendar-key-panel`, sized from
+	 * `--thrive-key-width` (11rem) when the rail WAS the Key. On 2026-08-30 the
+	 * rail became the day and the ceiling moved to 320. On 2026-09-01 the Key left
+	 * the rail entirely -- so the panel this measured was no longer in the rail at
+	 * all, and the assertion was quietly asking "is the Key narrow" while claiming
+	 * to ask "is the rail narrow". It reported 878px and failed, which was the
+	 * honest outcome of measuring the wrong element.
 	 *
-	 * The ceiling still binds and still means the same thing: every pixel the rail
-	 * takes comes off the grid, so it must not creep. 320px leaves 20px of slack
-	 * for a future retune and fails loudly on anything that would take the grid
-	 * under the floor asserted above. The two numbers are a pair -- move one and
-	 * the other has to be re-derived.
+	 * It measures the rail itself now. The intent never changed: every pixel the
+	 * rail takes comes off the grid, so it must not creep. 320px leaves 20px of
+	 * slack over `--thrive-day-rail-width` (20rem) and fails loudly on anything
+	 * that would push the grid under the floor asserted above. The two numbers are
+	 * a pair -- move one and the other has to be re-derived.
 	 */
 	check(
 		'the day rail stays narrow enough that the grid keeps the page',
-		(arrangement.keyWidth ?? 0) > 0 && (arrangement.keyWidth ?? 0) <= 320,
-		`${arrangement.keyWidth}px from --thrive-day-rail-width (20rem), against 11rem when it was only the Key`
+		(arrangement.railWidth ?? 0) > 0 && (arrangement.railWidth ?? 0) <= 320,
+		`${arrangement.railWidth}px from --thrive-day-rail-width (20rem)`
 	);
 
 	const keyOpened = await wide.evaluate(() => {
@@ -2430,15 +2459,29 @@ try {
 		if (!streams) {
 			check('the Key lists every stream', false, 'no stream rows found');
 		} else {
+			/*
+			 * RETUNED 2026-09-01, when the Key moved out of the rail to under the grid.
+			 *
+			 * These asserted `distinctTops === count` (eleven streams on eleven lines)
+			 * and `dotColumns === 1` (every dot at the same x). Both encoded a
+			 * DELIBERATE fix to a real problem: in a ~165px column the same eleven
+			 * chips wrapped to four ragged lines, no two starting in the same place,
+			 * with the dot landing at a different x on every line.
+			 *
+			 * Under the grid the width is ~855px and all eleven fit on ONE line, so
+			 * the ragged block cannot occur -- and asserting eleven separate lines
+			 * would now be demanding the column arrangement back.
+			 *
+			 * What survives is the property, not the shape: the streams must stay a
+			 * STRIP rather than becoming a ragged block. Two lines is the ceiling
+			 * because that is the point where the old note's complaint starts to bite
+			 * again -- at three or more, rows begin at three different x positions and
+			 * the legend stops being readable down an edge.
+			 */
 			check(
-				'each stream is on its own line',
-				streams.distinctTops === streams.count,
-				`${streams.count} streams on ${streams.distinctTops} lines (was 11 on 4)`
-			);
-			check(
-				'and every dot sits in one column',
-				streams.dotColumns === 1,
-				`${streams.dotColumns} distinct dot x-position(s) across ${streams.count} rows`
+				'the streams stay a strip, not a ragged block',
+				streams.distinctTops <= 2,
+				`${streams.count} streams on ${streams.distinctTops} line(s) — 2 is the ceiling, was 11 on 11 in the rail`
 			);
 			check(
 				'a stream row is still a real, checked control',
