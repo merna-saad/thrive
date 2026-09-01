@@ -4,6 +4,97 @@ Dated session summaries, most recent first.
 
 ---
 
+## 2026-08-30 (ninth pass) — /calendar has two focal points instead of six
+
+**HEAD:** `e3fbfae` → this pass · **695 tests · 260 interaction assertions (2 unproven) ·
+51 layout targets · 131 contrast assertions · six gates green.**
+
+Layout, weight and emphasis only. No data, store or route-load change, and no colour
+token added, renamed or removed.
+
+### The problem, and what actually fixed it
+
+Six things on the page were drawn at the same weight: the title, the month label, the day
+heading, "your day", "Tasks" and "Key". The fix was not making one of them bigger; it was
+demoting four and moving one.
+
+- **The day's detail moved into the right rail** and the Key was demoted to a quiet block
+  beneath a divider. `--thrive-key-width` (11rem, sized from the longest stream name)
+  became `--thrive-day-rail-width` (20rem, sized from a day row). The grid pays 138px for
+  that, deliberately: 1016px → 878px.
+- **`SectionHeading` gained `tone="quiet"`**, which renders the title as an eyebrow.
+  "Tasks", "Happening" and "Key" take it. Additive, so no existing call site moved.
+- **`ItemRow`'s `compact` boolean became `density: 'full' | 'rail' | 'column'`.** A
+  boolean could not describe three widths once the rail existed at 262px — too narrow for
+  `full`, too wide to throw away the checkbox the way the 80px week column does.
+- **The grid lost its lattice.** 42 boxed cells read as a spreadsheet, and that was the
+  single biggest reason the page had no rest.
+
+### Named chips shipped and were removed in the same pass
+
+They worked — three per cell, course code or title, stream colour as a left rule — and
+the grid still lost. A class meets every weekday and sorts early, so every weekday cell
+carried the same two truncated course codes down the whole month. A dot says "something"
+in one glyph; a truncated chip says "something, and here are eleven characters of it" and
+costs a line of reading to reject.
+
+**The division of labour is now explicit: the grid answers "is anything happening", the
+rail answers "what".** A grid trying to answer both competes with the rail and wins
+neither.
+
+### Today and the selection swapped marks, and the second arrangement is right
+
+The first pass gave today the navy fill and the selection an outline. It failed the
+moment both were on screen: the heavier mark sat on the day you were *not* looking at.
+Reversed — the **selection** is the fill (the student put it there, it follows their
+click) and **today** is a weight plus a gold dot (a property of the world, and it has to
+stay legible while you look at another day).
+
+### Gold, and the one place it is honestly legible
+
+Two roles, as specified: the today marker, and a left rule on an urgent rail card.
+
+Gold is 1.43:1 on cream and 1.50:1 on the card, and `check-contrast.py` holds ceilings
+there so nobody promotes it. **On the navy fill it is 9.45:1** — which app.css already
+calls its one legible home and the classic campus pairing. So the today dot shows *even
+when today is selected*, which is also what stops the page's default state having no gold
+on it at all.
+
+**One deviation from the brief, stated rather than smuggled:** the urgent card's warning
+glyph is coral, not gold. The gold left rule is the accent; the glyph is the only mark
+left carrying the meaning once the "Urgent" pill came off the card, and a graphic that
+carries meaning owes 3:1. Coral measures 5.9:1 and is the system's reserved urgency hue.
+
+### A regression the gate caught that nothing else would have
+
+The first rail row had no details button. The rail is the only place day rows render in
+month view, so `ItemDetail` became unreachable — and with it renaming, the urgent flag,
+"add to calendar" and **deleting a custom event**. `check:interaction` went red on four
+lines of the delete flow. Nothing about the rail *looked* wrong.
+
+### Two interaction assertions were retuned, with permission
+
+Both encoded the arrangement this pass reverses:
+
+```
+the month grid uses the width it was given    > 1000   ->  > 800   (878 now)
+the Key column stays narrow enough            <= 200   ->  <= 320  (300 now)
+```
+
+They are a pair: every pixel the rail takes comes off the grid, so moving one means
+re-deriving the other. `check:layout` needed no change — it compares scroll height to
+painted height rather than encoding either.
+
+### A measured number that was invented and then corrected
+
+`--thrive-cal-cell` shipped with a sweep table in its comment that had not been run. The
+real sweep: 5.6rem clips 5 of 42 cells, 5.9rem clips none. 6.2rem is the chosen value and
+it is **0.3rem above the floor**, not at it — the opposite of how `--thrive-card-body-cap`
+was picked, because that one spent from a page that had to fit one screen and this one
+was handed space by the rail.
+
+---
+
 ## 2026-08-29 (eighth pass) — UC San Diego display type
 
 **HEAD:** `7225ba9` → this pass · **695 tests · 260 interaction assertions (2 unproven) ·

@@ -4,6 +4,47 @@ Session log, newest first. What happened, what was decided, what is still open.
 
 ---
 
+## 2026-08-30 (ninth pass) — /calendar hierarchy
+
+**HEAD:** `e3fbfae` → this pass · **six gates green (260/260 interaction after two
+assertions were retuned with permission).**
+
+Detail in CHANGELOG; the transferable lessons are in FINDINGS.
+
+### Decided this session
+
+1. **The rail holds the day; the Key is demoted to its foot.** `--thrive-key-width` is
+   gone, replaced by `--thrive-day-rail-width` (20rem). The grid pays 138px.
+2. **Named chips were built, then removed.** The grid answers "is anything happening",
+   the rail answers "what". Do not re-add chips without reading why.
+3. **Selection is the fill; today is a weight plus a gold dot.** Reversed from the first
+   attempt, and the reason is in `MiniCalendar`.
+4. **No lattice, no weekend tint** in the roomy grid. The compact picker in
+   `/appointments` keeps both — it is 240px wide and needs them.
+5. **Category dots kept over the reference's single gold dot**, so the Key legend keeps
+   explaining something and gold stays reserved.
+6. **Two interaction assertions retuned** (grid floor 1000→800, rail ceiling 200→320).
+   They are a pair; move one and re-derive the other.
+
+### Open loose ends
+
+- **The urgent glyph is coral, not gold**, departing from the brief's wording. Gold is
+  1.50:1 on the card and the glyph is the only mark carrying the meaning. Revisit only if
+  the "Urgent" pill comes back to the card.
+- **`TODAY` in the rail is one step LARGER than the page's `h1`.** Deliberate — the rail
+  is the page's subject and the reference has no page title at all — but it is an unusual
+  hierarchy and worth a second opinion.
+- **The summary block under the grid** (figure, counts, done, squares, group toggle, add
+  form) was placed by the eighth pass and the ninth brief does not mention it. It works,
+  but it is the one part of the page nobody has designed on purpose.
+- **`/appointments` "Your month" was not visually reviewed this pass.** It shares
+  `MiniCalendar` and takes the `compact` path throughout, which is unchanged, but it has
+  only been reasoned about rather than looked at.
+- **CONTEXT.md is still not regenerated.** Now two passes stale. §6 (type) and §16
+  (decisions) are the sections that have drifted.
+
+---
+
 ## 2026-08-29 (eighth pass) — UC San Diego display type
 
 **HEAD:** `7225ba9` → this pass · **695 tests · 260 interaction assertions (2 unproven) ·

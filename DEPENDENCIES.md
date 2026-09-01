@@ -2,7 +2,7 @@
 
 What is installed in `frontend/`, and why each thing is here.
 
-**Last verified:** 2026-08-29 at `7225ba9`.
+**Last verified:** 2026-08-30 at `e3fbfae`.
 
 ---
 

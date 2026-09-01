@@ -4,6 +4,86 @@ Reusable patterns and lessons. Things worth knowing again.
 
 ---
 
+## 2026-08-30 (ninth pass) — hierarchy is subtraction
+
+### Six focal points is the same as none, and the fix is demotion not promotion
+
+The instinct on "nothing stands out" is to make the important thing bigger. That was
+already tried on /calendar and it is why six things ended up at the same weight: each was
+promoted when someone noticed it, and promotion is not relative.
+
+What worked was demoting four of them and moving one. Nothing was renamed, nothing was
+removed, and no type step moved except downward.
+
+### A boolean prop stops being able to describe a design the moment a third case exists
+
+`ItemRow` had `compact?: boolean` for the 80px week column. When a 262px rail appeared,
+the boolean could describe neither — too narrow for the full row, too wide to justify
+throwing away the checkbox. `density: 'full' | 'rail' | 'column'` says what a boolean
+could not, and the values name CONTEXTS rather than sizes, so a call site cannot pick the
+wrong one by guessing a number.
+
+The tell that a boolean has expired: you find yourself wanting `compact` to mean two
+different things depending on where it is.
+
+### An explicit prop beat a container query, on failure mode alone
+
+The rail row could have read its own width and adapted with no prop at all. It was
+rejected because a container query with no `@container` ancestor never matches — so a
+section rendered somewhere that forgot the ancestor picks the narrow shape silently and
+looks almost right. An explicit prop is greppable and fails loudly.
+
+### Removing lines beat adding space
+
+The grid had short rows, tinted weekends, three surfaces and a hairline lattice. Every
+one of those was a considered decision that measured correctly on its own. Together they
+made 42 boxed cells that read as a spreadsheet.
+
+**Deleting the lattice did more for the page's calm than any spacing change.** Whitespace
+separates cells perfectly well at 869px; the lines were doing something worse than
+nothing. The tinted weekend surfaces went with them for the same reason — once there is
+no box, a tint reads as a block of colour rather than a recessed day.
+
+### The heavier mark must sit on the thing you are looking at
+
+Today was the navy fill and the selection was an outline. It failed the instant both were
+on screen: the strongest mark on the grid was on the day the student was *not* looking
+at.
+
+The rule that came out of it: **a fill follows the pointer, a weight describes the
+world.** The selection is something the student did and it should look like a cursor
+landing; today is a fact that moves on its own and has to stay legible while attention is
+elsewhere, which a fill cannot do because the selection needs the fill.
+
+### A reserved colour can have exactly one legible home, and it is worth finding
+
+Gold fails 3:1 on every light surface in this system and is held under ceilings so nobody
+promotes it. It is 9.45:1 on navy. So the only place gold can be a real marker rather
+than decoration is *on the navy fill* — which is why the today dot shows even when today
+is selected, and why the urgent card's rule is gold while its glyph is coral.
+
+Do not read "reserved" as "unusable". Read it as "find the one pairing where the
+measurement allows it, and spend it there".
+
+### A gate that drives the real app catches what looks completely fine
+
+The first rail row omitted the details button. The rail is the only place day rows render
+in month view, so the detail dialog became unreachable and deleting a custom event became
+impossible. **The rail looked correct.** Four red lines in `check:interaction`'s delete
+flow were the only signal, and a source scan or a screenshot would both have passed it.
+
+### Do not write a measurement you have not taken
+
+`--thrive-cal-cell` shipped with a sweep table in its comment that was invented to look
+like the ones around it. Running it found the real floor was 5.9rem, not the 5.90-clips-6
+the comment claimed.
+
+The chosen value is deliberately 0.3rem ABOVE that floor, which is the opposite of how
+the card-body cap was chosen — and that difference is itself worth recording, because
+"take the tightest passing value" is a rule that only applies when pixels are scarce.
+
+---
+
 ## 2026-08-29 (eighth pass) — a treatment class has to own everything it can be overridden on
 
 ### A component-layer class cannot set anything a utility also sets

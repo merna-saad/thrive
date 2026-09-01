@@ -5,6 +5,32 @@ files, all passing. 260 interaction assertions (2 unproven), 51 layout targets,
 131 contrast assertions across BOTH THEMES.** Verified green in **all seven timezones**
 as of 7a, where the sweep **caught a real failure** — recorded below.
 
+### What the calendar hierarchy pass found (2026-08-30)
+
+**The interaction gate caught a regression nothing else could have.** The reworked rail
+row omitted its details button, and since the rail became the only place day rows render
+in month view, `ItemDetail` went unreachable — taking renaming, the urgent flag, "add to
+calendar" and deleting a custom event with it. Four red lines in the delete flow. A source
+scan would have passed it and so would a screenshot: the rail looked right.
+
+That is the clearest argument yet for a gate that DRIVES the app rather than reading it.
+The defect was not in what any component rendered; it was in what became unreachable once
+two components were rearranged.
+
+**Two assertions were retuned rather than deleted, with permission**, and both encoded
+the arrangement the pass reversed: the grid's width floor (1000 → 800) and the rail's
+ceiling (200 → 320). They are a PAIR — every pixel the rail takes comes off the grid — so
+the file now says that at both sites. Retuned, not removed, because the property they
+guard is unchanged: neither column may be squeezed by something nobody chose.
+
+**`check:layout` again needed no change**, for the third pass running. Taller cells and a
+451→568px grid moved nothing it measures, because it compares scroll height to painted
+height rather than encoding either.
+
+**What is still not covered:** the cell height (`--thrive-cal-cell`) is verified by a
+manual clipping sweep, not by an assertion. Nothing would fail if a future edit made
+chips clip again. The sweep is recorded in the token's comment.
+
 ### What the display type added (2026-08-29)
 
 **Contrast went 127 → 131.** Four structural assertions, all in the "silent when broken"
