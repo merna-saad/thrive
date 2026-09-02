@@ -1343,3 +1343,104 @@ Recorded so they are not rediscovered. None is reachable in the port yet.
 - **Module-level stores shared by every visitor** — was BLOCKING in the
   prototype. Resolved by construction here: there is no server-side store, and
   the Django backend is the real fix.
+
+---
+
+## 2026-09-01 (thirteenth pass) — five defects, all introduced and fixed this pass
+
+All five are mine, from this session. None reached a commit except where noted.
+
+### 1. `| head` turned into 129 phantom conversion failures
+
+**Symptom.** The first full run reported `Failed to convert: 129` with
+`BrokenPipeError: [Errno 32] Broken pipe` against each file. Read at face value
+it said four fifths of the corpus was unreadable.
+
+**Cause.** Two things compounding:
+
+1. `pymupdf-layout` writes progress to stdout. The command piped stdout to
+   `head -80`, so once `head` exited, every subsequent library write got
+   `SIGPIPE`.
+2. `convert.py` wrapped extraction in `except Exception` and recorded the error
+   on the record. So a **plumbing** failure was reported as a **corpus**
+   failure, per file, with a confident total.
+
+**Fix.** `convert.py` now redirects fd 1 around each extraction, so the library
+cannot write to the inherited stdout at all. `contextlib.redirect_stdout` was
+tried first and does **not** work — the writes come from the C layer.
+
+**The pattern to watch.** A broad `except Exception` that records rather than
+raises will happily convert an environment problem into a data problem. The
+handler is still there — one bad file must not stop a 141-file run — but the
+class of error it can now catch is much narrower.
+
+### 2. Absolute paths written into a committed index
+
+**Symptom.** `index.json` and `report.md` contained
+`/Users/mernasalama/code/thrive/backend/data/syllabi/...`.
+
+**Cause.** The record path was built from the *resolved absolute* source root
+rather than the repo-relative one, despite the brief saying "no absolute paths".
+
+**Fix.** A `Roots` dataclass now carries both forms — absolute for I/O,
+repo-relative for the record — and a test asserts no record path starts with
+`/`. `grep -c '/Users/' index.json` → 0.
+
+### 3. A quality metric that measured the library, not the documents
+
+**Symptom.** `ocr_pages: 4` on a PDF with 9,301 characters of extractable text.
+
+**Cause.** Counting the OCR engine's progress lines assumed OCR implies a
+missing text layer. `pymupdf-layout` OCRs every page unconditionally.
+
+**Fix.** Replaced with `pages_without_text_layer`, measured directly with
+`page.get_text()` before extraction. It reports 0 across all 139 PDFs — which
+is what justified making OCR opt-in, cutting runtime in half and removing
+garbled logo text (`Ray| schoolof m`) from 119 of 141 files.
+
+### 4. `filename` lived on the wrong level, and the fix broke a round trip
+
+**Symptom.** Every course-grouping test failed with `KeyError: 'filename'`.
+
+**Cause.** `build_courses` needs a filename to name the most recent offering,
+but `filename` was on the `Record`, not the `Offering`.
+
+**Fix.** Moved `filename` onto `Offering`, which makes the offering record
+self-describing — the right shape for a two-level index.
+
+**But that silently broke `Record.from_dict`.** It rebuilt an offering from
+*any* offering fields present in the JSON, and since `filename` now sits on both
+levels, catalog and unparsed records came back holding
+`offering={'filename': ...}` instead of `None`. Caught by the existing
+`test_record_survives_a_json_round_trip`, which is the whole reason that test
+was worth writing. `from_dict` now requires **every** offering field before
+reconstructing one.
+
+**The pattern to watch.** Testing for one key as a proxy for "is this an X" is
+fragile the moment any key is shared between two record types.
+
+### 5. Report totals that were true and misleading
+
+**Symptom.** "Courses that have appeared under more than one code: 10", listing
+only `403`/`403R`-style pairs.
+
+**Cause.** Not a code defect — a **structural** one. The course key contains the
+base code, so a renumbered course is two keys by construction and can never
+appear in that count. The section could only ever show section variants.
+
+**Fix.** The number stays, because it was asked for and it is accurate, but the
+report now says explicitly what it can and cannot contain, and points at
+`same_title_different_code` in the review list for the renumbering case.
+
+**Worth recording as a bug rather than a note**: a correct number under a
+heading that implies something else is a defect in the report, and the report is
+the deliverable here.
+
+### Also, not a code bug: two commits with identical messages
+
+`d77718d` and `1868720` both read "data: import course catalog, career bundles,
+skills vocabulary, and eval seed". The first contains the six JSON files that
+message describes; the second contains 143 generated syllabus markdown files and
+none of them. `1868720` appeared outside the tool calls that staged it and could
+not be accounted for. Left as-is on the user's instruction; `--amend` was
+offered and declined.

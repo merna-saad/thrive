@@ -1,4 +1,4 @@
-<!-- built-at: cceedcf -->
+<!-- built-at: 99b9f6f -->
 <!-- updated: 2026-09-01 -->
 
 # CODEMAP
@@ -21,6 +21,8 @@ see CHANGELOG passes 8-12):
 | **New tokens** | `--thrive-page-rhythm`, `--thrive-cal-cell`, `--thrive-day-rail-width`, `--thrive-orange`, `--thrive-soon`, `--thrive-on-bright`, `--font-teko`. **`--thrive-key-width` is gone** |
 | **Removed** | `categoryChipBorder` from `lib/schedule.ts` — the month grid's named chips shipped and were withdrawn in the same day |
 | **`ItemRow` prop change** | `compact: boolean` became `density: 'full' \| 'rail' \| 'column'` |
+| **New tree, and the first Python that is not a script in `scripts/`** | `backend/tools/syllabi/` — the syllabus converter and filename parser, 70 tests. See the `backend/` section below; this map was frontend-only until now |
+| **New data** | `backend/data/syllabi/` (139 PDFs, raw source), `backend/data/syllabi_md/` (derived), `backend/data/{catalog,jobs,evals}/` (six JSON from upstream) |
 
 > The `built-at` comment above is machine-read by the codemap staleness hook.
 > Keep it as the first line, in that exact `<!-- built-at: <hash> -->` form.
@@ -561,9 +563,50 @@ message and went red against correct code.
 
 ---
 
+## `backend/` — data, and one offline tool
+
+Django is still not started. This is the whole of the backend, and **none of it
+is in a request path**.
+
+| Path | What |
+|---|---|
+| `data/corpus/` | 234 markdown retrieval documents. Nothing in this repo reads them. |
+| `data/syllabi/` | **Source of truth.** 139 Rady syllabus PDFs in `MGT/ MGTA/ MGTF/ MGTP/`, plus `Course Descriptions/` with two DOCX catalogs. |
+| `data/syllabi_md/` | **Derived.** 141 `.md` mirroring that tree, plus `index.json` and `report.md`. Rebuilt by the tool; never hand-edited. |
+| `data/{catalog,jobs,evals}/` | Six JSON files from the upstream `thrive-production` repo. Nothing reads them. |
+| `tools/syllabi/` | The converter. Read **its README first** — it is the only place the course-identity rule is fully written down. |
+
+### `tools/syllabi/` — four files that matter
+
+| File | Why |
+|---|---|
+| `filename_parser.py` | Pure, no I/O. Turns one filename into an offering: code, base code, `R` variant, title, instructor, term, qualifier, and the `course_key`. Anchors on the trailing term code and the last `(...)` group — never on position. |
+| `course_index.py` | Groups offerings into courses and builds the **title review list**. Does not merge anything. |
+| `convert.py` | The CLI. PDF/DOCX → markdown, writes `index.json` and `report.md`. `--ocr`, `--report-only`, `--source/--out/--repo-root`. |
+| `tests/` | 70 tests, three files. Every parser case is a **real filename** from the corpus. |
+
+### The one thing to know
+
+**A course code is not a course identity.** `MGTA 495` is four different
+courses; `MGT 453` is two in one term. A new course is registered under a
+495-style special topics number until it is approved, then renumbered — so the
+code carries registration status and the *title* carries identity. Join on
+`course_key`. 139 offerings → 120 courses → 114 codes. Full account in
+CONTEXT.md §21.
+
+---
+
 ## Commands
 
 ```bash
+# backend — the syllabus tool. Its venv is uv-created and gitignored.
+uv venv backend/.venv
+VIRTUAL_ENV=backend/.venv uv pip install -r backend/tools/syllabi/requirements.txt
+backend/.venv/bin/python backend/tools/syllabi/convert.py          # ~3 min, 141 files
+backend/.venv/bin/python backend/tools/syllabi/convert.py --report-only   # seconds
+backend/.venv/bin/python -m pytest backend/tools/syllabi/tests -q  # 70 tests
+ruff check backend/tools/syllabi/
+
 cd frontend
 npm run dev -- --open      # dev server, :5173
 npm run build              # production build

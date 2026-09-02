@@ -2259,3 +2259,110 @@ Three numbers in the original inventory brief were wrong (21 providers, 61
 tests, the location of `todayKey`). Running the suite and grepping the exports
 took two minutes and corrected all three. The old repo's own `CODEMAP.md`
 undercounts providers the same way, which is probably the source.
+
+---
+
+## 2026-09-01 (thirteenth pass) — parsing a corpus somebody else named
+
+### An identifier that encodes process is not an identity
+
+Rady registers a new course under a **495-style special topics number** until it
+is formally approved, then renumbers it. So `MGTA 495` is four different
+courses, `MGT 453` is two in the same term, and the same course appears under
+`MGTF 408` one year and `MGT 486` the next.
+
+The generalisable shape: **when an identifier carries workflow state, it cannot
+also carry identity.** Course code, ticket prefix, draft slug, staging bucket
+name — all the same trap. The first version of this index keyed on code alone
+and produced 114 "courses" from 139 files, which looked plausible and was wrong.
+
+Keying on code **plus** title gives 120. The remaining error is in the other
+direction and is *visible* (see the review list), which is the trade to want.
+
+### Normalise for keys; never normalise for display
+
+Two rules, and the discipline is keeping them apart:
+
+- **Key form**: case folded, `&` spelled out, punctuation flattened, whitespace
+  collapsed. Lets `Topics in Ops & Tech` meet `Topics in Ops and Tech`.
+- **Display form**: verbatim from the source, typos and all.
+
+The corpus has six real typos in titles (`Fruad Analytics`, `Unsructured`,
+`Finnacial`, `Resaerch`, `Audiitng`, `Techology`). Preserving them is right —
+the title is free text the registrar owns, and a silently corrected one stops
+matching what they publish.
+
+**But preserving them has a cost, and it is worth naming**: `Mangerial Judg
+Decis Making` and `Managerial Judg-Decis Making` are one course, and
+title-as-identity splits them. You cannot both preserve the typo and merge on
+the title. That tension does not resolve; it gets *surfaced*.
+
+### The asymmetry: controlled values get normalised, free text does not
+
+Terms are normalised (`W26` → `WI26`) and validated against a known set, with
+unknown seasons **rejected** rather than passed through. Titles are not.
+
+The distinguishing question is not "is it a typo" but **"who owns the
+vocabulary"**. A term is a closed set the parser can be authoritative about. A
+title is prose owned by someone else. Same-looking mistakes, opposite handling.
+
+Corollary worth remembering: `term_sort` exists because `FA26` sorts before
+`WI26` alphabetically and after it chronologically. **Any code that displays a
+season needs a second, sortable field.** Storing only the display form is a bug
+waiting for the first `ORDER BY`.
+
+### When no threshold works, do not pick one — build a review list
+
+| Pair | Similarity | Truth |
+|---|---|---|
+| `Mangerial Judg Decis Making` / `Managerial Judg-Decis Making` | 0.982 | one course |
+| `Data Science for Finance I` / `Data Science for Finance - M` | 0.962 | two courses |
+
+There is no cutoff between 0.962 and 0.982 that is anything but luck. The move
+is to group on **exact** normalised equality and emit the near-misses for a
+human — 30 pairs here, which is a reviewable number.
+
+Similarity is still used, but **only to nominate, never to decide.** And the
+nomination rule needs care: same-code pairs are listed at *any* similarity,
+because the MGT 402 rename (`Management Comms` → `Data Driven Communications`)
+scores 0.476 and a threshold would hide the most interesting case in the corpus.
+
+### `contextlib.redirect_stdout` does not catch C-level writes
+
+`pymupdf-layout` prints parser chatter to **file descriptor 1 directly**.
+`redirect_stdout` rebinds `sys.stdout`, which the C layer never consults. The
+fix is `os.dup2` around a `tempfile`:
+
+```python
+sys.stdout.flush()
+saved = os.dup(1)
+with tempfile.TemporaryFile() as sink:
+    try:
+        os.dup2(sink.fileno(), 1)
+        result = fn(*args, **kwargs)
+    finally:
+        os.dup2(saved, 1)
+        os.close(saved)
+    sink.seek(0)
+    return result, sink.read().decode("utf-8", "replace")
+```
+
+**How this was found is the more useful lesson**: piping the run to `head`
+closed the pipe, and every subsequent library write raised `BrokenPipeError`
+*inside* the extraction call, where a `except Exception` recorded it as a failed
+file. 129 files "failed to convert" and the report said so confidently. See
+BUGS.md.
+
+### A metric can measure the library instead of the data
+
+The first quality signal counted pages the OCR engine processed, on the
+assumption that OCR means no text layer. It does not: `pymupdf-layout` OCRs
+**every** page regardless. A 4-page PDF with a complete text layer reported "4
+pages needed OCR".
+
+Replaced with a direct measurement — `page.get_text()` over the document before
+extraction — which reported 0 across all 139 files, and *that* is what justified
+turning OCR off.
+
+**Test the instrument against a case whose answer you already know.** The
+original metric was never wrong in a way that looked wrong.

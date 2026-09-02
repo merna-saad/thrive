@@ -4,6 +4,110 @@ Dated session summaries, most recent first.
 
 ---
 
+## 2026-09-01 (thirteenth pass) — 139 syllabi become data, and a course code stops being an identity
+
+**HEAD:** `99b9f6f` · 70 Python tests · ruff clean · 141/141 files convert. Three commits,
+all pushed. **The frontend was not touched**; the six frontend gates were not re-run.
+
+### The pass in one sentence
+
+`backend/data/syllabi/` held 139 PDFs somebody had downloaded from a Google Drive folder;
+it now also holds 141 markdown files and an `index.json` with two levels, because the
+first version of that index was built on an assumption that turned out to be false.
+
+### The assumption, and why it was wrong
+
+The first pass keyed the index on **course code**. That gives 114 courses from 139 files,
+which looks reasonable until you read the rows: `MGTA 495` had four offerings that are four
+genuinely different courses — GenAI for Business, Healthcare Analytics, Marketing
+Analytics, AI & Prescriptive Analytics — and `MGT 453` had two in the *same term*, Brand
+Management and Supply Chain Management.
+
+The reason is institutional. A new course at Rady is registered under a 495-style special
+topics number until it is formally approved, then it receives its own number. **The code
+carries registration status; the title carries the identity.** A course can even change
+code between terms and still be the same course.
+
+So the index has two levels now. An offering is one file: 139 rows. A course groups
+offerings on a key built from the normalised base code **and** the normalised title: 120
+courses. Join on `course_key`, never `course_code`.
+
+### Normalisation is for keys only, and the typos stay
+
+Key form is case folded, `&` spelled out, punctuation flattened. Display form is verbatim,
+including `Fruad Analytics`, `Unsructured`, `Finnacial`, `Resaerch`, `Audiitng`,
+`Techology`, and a filename reading `MGtA 495`. The title is free text the registrar owns
+and a corrected one stops matching what they publish.
+
+**That has a cost and it does not resolve.** `Mangerial Judg Decis Making` and `Managerial
+Judg-Decis Making` are one course; keying on title splits them. You cannot preserve the
+typo and merge on the title.
+
+### So there is a review list, and nothing on it is merged
+
+| Pair | Similarity | Truth |
+|---|---|---|
+| MGTA 459's two spellings | 0.982 | **one** course |
+| `Data Science for Finance I` / `... - M` | 0.962 | **two** courses |
+
+No threshold separates those. Grouping is on exact equality and 30 related-looking pairs
+are listed for a human: 22 `same_code_different_title`, 6 `same_title_different_code`, 2
+`near_identical_title`. Similarity nominates; it never decides. Same-code pairs are listed
+at any score, because the MGT 402 rename scores 0.476 and would otherwise be invisible.
+
+**The 6 `same_title_different_code` pairs are an open decision** — Real Estate Finance and
+New Venture Finance look like genuine renumberings (same instructor, consecutive terms).
+
+### Terms are treated as the opposite of titles
+
+Validated against `{FA, WI, SP, SU}`, with unknown seasons **rejected** rather than passed
+through. `W26` normalises to `WI26`; `term_raw` keeps the source form. Every offering
+carries `term_sort` because `FA26` sorts before `WI26` alphabetically and after it
+chronologically.
+
+The distinguishing question is not "is it a typo" but **who owns the vocabulary**.
+
+### Extraction
+
+`pymupdf4llm` for PDF, `python-docx` for DOCX — chosen for two-column schedules and
+grading tables. **PyMuPDF is AGPL-3.0**, which is a real constraint on ever putting this
+behind Django. **OCR is off by default**: all 139 PDFs have complete text layers, and with
+it on Tesseract's only contribution was a mangled Rady logo in 119 of 141 files at double
+the runtime.
+
+### What broke
+
+Five defects, all introduced this pass, all in BUGS.md. The one worth repeating: piping the
+first run to `head` closed stdout, `pymupdf-layout` writes to fd 1 from the C layer, and a
+broad `except Exception` recorded each resulting `BrokenPipeError` as a **failed file**. The
+report announced 129 conversion failures in a corpus where nothing was wrong.
+
+### Also this pass
+
+- Imported six JSON files from the upstream `thrive-production` repo (`catalog/`, `jobs/`,
+  `evals/`). Nothing reads them.
+- Corrected `backend/README.md`, which said "There is no Python in this repo".
+- CODEMAP.md gained a `backend/` section; it had been frontend-only.
+- **CONTEXT.md was patched rather than regenerated** — a knowing deviation from its own
+  rule, flagged at the top of the file. §§3–17 are unverified since `cceedcf`.
+
+### Known issues
+
+- `d77718d` and `1868720` carry **identical commit messages** and disjoint contents. The
+  second holds 143 generated markdown files under a message about a catalog import.
+- No test converts a real PDF; the extraction path is only exercised by running the tool.
+- The frontend gates were not run this pass. Nothing frontend changed, but that is an
+  assumption, not a measurement.
+
+### Next priorities
+
+1. Confirm or reject the 6 `same_title_different_code` pairs.
+2. Decide how a confirmed merge is **recorded** so it survives reconversion — probably a
+   checked-in alias file mapping keys to a canonical key. There is no mechanism yet.
+3. Skills extraction, which is what this corpus was prepared for.
+
+---
+
 ## 2026-09-01 (twelfth pass) — a mockup, a vibrant ramp, and a backend that is not there
 
 **HEAD:** `cceedcf` · **Six gates green.** 695 tests · 138/138 contrast (was 134) ·

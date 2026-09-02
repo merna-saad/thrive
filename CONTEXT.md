@@ -1,4 +1,4 @@
-<!-- updated-at: cceedcf -->
+<!-- updated-at: 99b9f6f -->
 
 # CONTEXT
 
@@ -7,6 +7,17 @@ without asking anyone.
 
 **Regenerated in full every handoff.** Never patch it — a partial edit leaves
 stale claims sitting beside fresh ones with no way to tell them apart.
+
+> **⚠ This pass broke that rule, knowingly.** The 2026-09-01 syllabus work
+> patched three places (§2's tree, §18's first loose end, and this header) and
+> appended **§21**, rather than regenerating 3,474 lines. The reason: the
+> syllabus corpus touches only `backend/`, and a regeneration driven by a
+> session that never read §§6–17 would have restated the frontend from a
+> weaker model of it than the existing text holds. The risk of the rule —
+> stale frontend claims surviving unexamined — is real and **unpaid**: nothing
+> in §§3–17 was re-checked against the tree this pass. **The next full handoff
+> should regenerate properly**, and should treat §§6–17 as unverified since
+> `cceedcf`.
 
 This pass covers **the dark theme**, **two fixture bugs on Home**, **the deletion of
 the two fields those bugs were hiding in**, and **the switch from DM Sans to the system
@@ -93,8 +104,13 @@ thrive/
 ├── README.md        the public-facing explanation, and the doc guide
 ├── netlify.toml     the deploy config, at the root because Netlify reads it there
 ├── frontend/        the SvelteKit app
-├── backend/         Django — NOT STARTED. 234 markdown corpus files, zero Python.
-│                    `git log --diff-filter=A -- 'backend/**/*.py'` is empty.
+├── backend/         Django — STILL NOT STARTED, but no longer Python-free.
+│   ├── data/corpus/     234 markdown retrieval documents. Nothing reads them.
+│   ├── data/syllabi/    139 Rady syllabus PDFs + 2 DOCX catalogs. Raw source.
+│   ├── data/syllabi_md/ derived: 141 .md, index.json, report.md. Rebuilt, not edited.
+│   ├── data/{catalog,jobs,evals}/  six JSON files from the upstream production repo
+│   └── tools/syllabi/   the converter + filename parser. 70 tests. NOT Django —
+│                        an offline script that writes files and exits (§21)
 └── scripts/
     ├── check-contrast.py       127 assertions over BOTH palettes and app.css
     ├── check-layout.mjs        17 targets x 3 viewports, in a real browser
@@ -3283,8 +3299,10 @@ Calm, plain, honest about what is simulated.
 ### Blocking
 
 1. **The chat pipeline is blocked on a retrieval layer that does not exist.** Asked for on
-   2026-09-01 and stopped on, per its own prerequisite. `backend/` is 234 markdown files
-   and no Python; `git log --diff-filter=A -- 'backend/**/*.py'` is empty. The corpus
+   2026-09-01 and stopped on, per its own prerequisite. `backend/` now holds Python —
+   `tools/syllabi/`, added later the same day — but it is an offline script, not a Django
+   app, so this loose end is unchanged in substance: still no models, no migrations, no
+   request path. The corpus
    README described `ingest_corpus`, `run_playground` and a `Document` model in the present
    tense — corrected and marked UPSTREAM ONLY on 2026-09-01. The upstream project (an
    `rsm_thrive/` layout) is **not on this machine**. Needs either that path or three
@@ -3470,5 +3488,102 @@ the rule exists to prevent.
 If it should follow the viewer instead, that is a **product decision**, not a formatting
 fix: it means storing a per-student timezone and reading it in the `load` alongside
 `new Date()`. Nothing about the current behaviour needs changing to support that later.
+
+---
+
+## 21. The syllabus corpus, and why a course code is not a course
+
+Landed 2026-09-01, after §20. Two passes: convert, then fix identity.
+
+### What is on disk
+
+| Path | What | Committed |
+|---|---|---|
+| `backend/data/syllabi/` | 139 Rady syllabus PDFs in four department folders, plus a `Course Descriptions/` folder with two DOCX catalogs | yes — **the source of truth** |
+| `backend/data/syllabi_md/` | 141 markdown files mirroring that tree, `index.json`, `report.md` | yes — derived, rebuilt not edited |
+| `backend/tools/syllabi/` | `filename_parser.py`, `course_index.py`, `convert.py`, three test files, README | yes |
+| `backend/data/{catalog,jobs,evals}/` | six JSON files from the upstream `thrive-production` repo | yes — nothing reads them |
+
+Rebuild with `backend/.venv/bin/python backend/tools/syllabi/convert.py`. The
+venv is `uv`-created and gitignored; deps are pinned in
+`tools/syllabi/requirements.txt`.
+
+### The institutional fact that drives the data shape
+
+A new course at Rady is registered under a **495-style special topics number**
+until it is formally approved, at which point it receives its own number. So:
+
+- **The code carries registration status. The title carries the identity.**
+- `MGTA 495` holds four genuinely different courses (GenAI for Business,
+  Healthcare Analytics, Marketing Analytics, AI & Prescriptive Analytics).
+- `MGT 453` holds two in a single term (Brand Management, Supply Chain
+  Management).
+- A course can change code across terms and still be the same course.
+
+**Join on `course_key`, never on `course_code`.** That is the whole point of the
+second level in the index.
+
+### Two levels
+
+An **offering** is one file: 139 rows. A **course** groups offerings on a key
+built from the normalised base code *and* the normalised title: 120 courses,
+against 114 distinct codes.
+
+An `R` suffix (`403R`, `455R`) is a **section variant**, not a different course.
+It drops out of the key, groups with its base, and is recorded on the offering
+as `section_variant`.
+
+### Normalisation is for keys only, and never for display
+
+Case folded, `&` spelled out, remaining punctuation flattened to spaces,
+whitespace collapsed. That makes `Topics in Ops & Tech` and `Topics in Ops and
+Tech` agree and absorbs the stray `)` in `...(SD Immersion))`.
+
+It **does not touch spelling.** The corpus contains real typos —
+`Fruad Analytics`, `Unsructured`, `Finnacial`, `Resaerch`, `Audiitng`,
+`Techology`, and one filename reading `MGtA 495`. They are preserved verbatim,
+because the code is the reliable key and a silently "fixed" title would stop
+matching whatever the registrar publishes.
+
+### The title review list, and why there is no fuzzy matching
+
+Two spellings can be one course or two, and no threshold separates the cases:
+
+| Pair | Similarity | Truth |
+|---|---|---|
+| `Mangerial Judg Decis Making` / `Managerial Judg-Decis Making` (MGTA 459) | 0.982 | **one** course, one typo |
+| `Data Science for Finance I` / `Data Science for Finance - M` (MGTF 423/424) | 0.962 | **two** courses |
+
+So grouping is on exact normalised titles, and 30 related-looking pairs are
+**listed for a human** in `report.md` and `index.json → title_review`. Nothing
+on that list is merged. Three reasons: `same_code_different_title` (22),
+`same_title_different_code` (6), `near_identical_title` (2).
+
+**The 6 `same_title_different_code` pairs are an open decision** — see §18.
+
+### Terms are a controlled value, unlike titles
+
+Seasons are validated against `{FA, WI, SP, SU}` and anything else is a parse
+failure rather than a value that gets through. One file says `W26`; it
+normalises to `WI26` with `term_raw` keeping the source form. Every offering
+carries `term_sort` (`FA25` → `2025-4`) because the display form sorts wrong —
+alphabetically `FA26` precedes `WI26`, chronologically it follows it.
+
+The asymmetry is deliberate: a term has to sort and group, so it is normalised.
+A title is free text the registrar owns, so it is not.
+
+### Extraction
+
+`pymupdf4llm` for PDF, `python-docx` for DOCX. Chosen for two-column schedules
+and grading tables, which the syllabi are full of; `pdfplumber` has better table
+geometry but inherits pdfminer's reading order, which interleaves columns.
+
+**PyMuPDF is AGPL-3.0.** Fine for an offline step whose output is what ships;
+read the licence before it runs inside a served product.
+
+**OCR is off by default.** All 139 PDFs have complete text layers, and with OCR
+on, Tesseract's only contribution was a mangled Rady logo (`Ray| schoolof m`) in
+119 of 141 files, at double the runtime. `--ocr` turns it back on; the report's
+"pages with no text layer" count is the signal for when that is worth doing.
 
 ---

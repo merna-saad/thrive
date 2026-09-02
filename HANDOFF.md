@@ -4,6 +4,84 @@ Session log, newest first. What happened, what was decided, what is still open.
 
 ---
 
+## 2026-09-01 (thirteenth pass) — the syllabus corpus, and course identity
+
+**HEAD:** `99b9f6f` · 70 Python tests · ruff clean · 141/141 files convert. Three commits,
+all pushed. **Frontend untouched; the six frontend gates were not re-run this pass.**
+
+Detail in CHANGELOG §thirteenth; lessons in FINDINGS; defects in BUGS; the standing
+account is CONTEXT §21 and `backend/tools/syllabi/README.md`.
+
+### Decided this session
+
+1. **A course code is not a course identity.** Rady registers a new course under a
+   495-style special topics number until it is approved, then renumbers it. The code
+   carries registration status; the **title** carries identity. `index.json` has two
+   levels and consumers join on `course_key`.
+2. **Course key = normalised base code + normalised title.** Never code alone. 139
+   offerings → 120 courses → 114 codes.
+3. **`R` is a section variant, not a course.** `403` and `403R` group; the variant is
+   recorded on the offering.
+4. **Normalise for keys, never for display.** Title typos are preserved verbatim.
+5. **No fuzzy matching, ever.** The MGTA 459 typo pair scores 0.982 and is one course;
+   MGTF 423/424 scores 0.962 and is two. Grouping is on exact equality and near-misses go
+   to a review list for a human. Similarity nominates, never decides.
+6. **Terms are normalised and validated; titles are not.** The question is who owns the
+   vocabulary, not whether it is a typo. `W26` → `WI26`, unknown seasons rejected, and
+   every term carries a sortable form.
+7. **OCR off by default.** All 139 PDFs have text layers; OCR added only a garbled logo in
+   119 of 141 files at double the runtime. `--ocr` re-enables it.
+8. **`pymupdf4llm` over `pdfplumber`** for column ordering. Its AGPL-3.0 licence is a real
+   constraint on running it behind Django.
+9. **Generated markdown is committed** rather than gitignored, so it is rebuilt and
+   recommitted each quarter.
+10. **CONTEXT.md was patched, not regenerated** — knowingly, and flagged at the top of the
+    file.
+
+### Open, and needs a human
+
+1. **The 6 `same_title_different_code` pairs.** Same title, two codes — the renumbering
+   case. Real Estate Finance (`MGTF 408` SP25 → `MGT 486R` SP26) and New Venture Finance
+   (`MGTF 410` WI26 → `MGT 493R` FA26) look genuine: same instructor, consecutive terms.
+   Brand Management under `MGT 453` and `MGT 482` is Yorkston in the *same* term, which
+   looks more like a duplicate listing. Full list in `report.md`. **Nothing is merged.**
+2. **There is no mechanism to record a confirmed merge.** A checked-in alias file mapping
+   keys to a canonical key would survive reconversion; the shape is undecided. This blocks
+   acting on (1).
+3. **Skills extraction** — what the corpus was prepared for. Not started, by instruction.
+
+### Open, smaller
+
+4. **`d77718d` and `1868720` have identical commit messages** and disjoint contents. The
+   second holds 143 generated markdown files under a message describing a catalog import.
+   `--amend` was offered and declined; both are pushed now, so amending means a force
+   push.
+5. **No test converts a real PDF.** The extraction path is exercised only by running the
+   tool. A 4-page fixture PDF is the fix.
+6. **CONTEXT §§3–17 are unverified since `cceedcf`.** The next full handoff should
+   regenerate rather than patch.
+7. **The frontend gates were not run.** Nothing frontend changed, but that is an
+   assumption.
+8. **`MGT 486R` is the display code for a course whose base is `MGT 486`**, because the R
+   offering is the only one. Harmless unless something joins on display codes.
+
+### Where things are
+
+```
+backend/data/syllabi/      139 PDFs + 2 DOCX   source of truth, committed
+backend/data/syllabi_md/   141 .md + index.json + report.md   derived, committed
+backend/tools/syllabi/     the converter, 70 tests
+backend/.venv              uv-created, gitignored; needs tesseract only for --ocr
+```
+
+```bash
+backend/.venv/bin/python backend/tools/syllabi/convert.py              # ~3 min
+backend/.venv/bin/python backend/tools/syllabi/convert.py --report-only  # seconds
+backend/.venv/bin/python -m pytest backend/tools/syllabi/tests -q
+```
+
+---
+
 ## 2026-09-01 (twelfth pass) — mockups, the ramp, and a backend that is not there
 
 **HEAD:** `cceedcf` · **Six gates green.** 695 tests · 138/138 contrast · 51/51 layout ·

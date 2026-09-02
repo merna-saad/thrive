@@ -156,7 +156,40 @@ the README.
 ### Python
 
 `scripts/check-contrast.py` has **zero dependencies** — standard library only.
-No `requirements.txt`, and none needed. Run it with the system `python3`.
+Run it with the system `python3`. That was the whole story until 2026-09-01.
+
+#### ADDED: the syllabus tool's three dependencies (2026-09-01)
+
+`backend/tools/syllabi/requirements.txt`, installed into `backend/.venv`
+(`uv`-created, gitignored — `.venv/` was already in `.gitignore`):
+
+| Package | Version | Why |
+|---|---|---|
+| `pymupdf4llm` | 1.28.2 | PDF → markdown. Reconstructs headings and pipe tables, and orders multi-column pages **by column** rather than by raw block order. The syllabi are full of two-column schedules and grading tables. |
+| `python-docx` | 1.2.0 | The two course-description DOCX catalogs. `.paragraphs` and `.tables` are separate flat lists, so the tool walks the body XML to keep them interleaved in document order. |
+| `pytest` | 9.1.1 | 70 tests. The first Python tests in the repo. |
+
+Rejected: **`pdfplumber`** has better raw table geometry but inherits
+pdfminer's reading order, which interleaves columns — the exact failure mode
+that matters here. **`pypdf`** has no table or column handling at all.
+
+Three things to know:
+
+1. **PyMuPDF is AGPL-3.0**, pulled in transitively by `pymupdf4llm`. Fine for
+   an offline conversion step whose *output* is what ships. **Read the licence
+   before it runs inside a served product** — that is a real constraint on
+   putting this behind Django rather than a footnote.
+2. **`pymupdf4llm` hard-depends on `pymupdf-layout`**, which shells out to the
+   system `tesseract` binary for OCR. That is a **binary dependency no
+   `requirements.txt` records** (`brew install tesseract`). It is only reached
+   with `--ocr`, which is off by default, so a machine without Tesseract runs
+   the default path fine.
+3. **`pymupdf-layout` writes to file descriptor 1 from the C layer.**
+   `contextlib.redirect_stdout` does not catch it; `convert.py` redirects the
+   fd. See BUGS.md — it cost 129 phantom conversion failures.
+
+`ruff` is used on this tree and is **not** in `requirements.txt` — it comes
+from the machine (`ruff 0.16.2`), invoked by the `lint-changed` hook.
 
 ---
 

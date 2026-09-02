@@ -932,3 +932,66 @@ No assertion failed. `check:interaction` reported *"a keyboard can scroll the lo
 — SKIP: could not make the log overflow"*, and that was the only signal. The
 layout looked fine. **A skipped assertion is a result, not an absence** — worth
 reading the SKIP lines rather than only the FAIL lines.
+
+---
+
+## 2026-09-01 (thirteenth pass) — the first Python tests: 70, three files
+
+Everything above this line is the frontend. This section is
+`backend/tools/syllabi/tests/`, which shares no runner, no config, and no
+assertion style with vitest.
+
+```bash
+backend/.venv/bin/python -m pytest backend/tools/syllabi/tests -q
+# 70 passed, 7 warnings in 0.66s
+```
+
+The 7 warnings are SWIG `DeprecationWarning`s from PyMuPDF's import, not ours.
+
+| File | Tests | Covers |
+|---|---|---|
+| `test_filename_parser.py` | 49 | one filename → one offering |
+| `test_course_index.py` | 16 | offerings → courses, and the title review list |
+| `test_index_record.py` | 5 | `index.json` record round trip |
+
+### The convention that matters here
+
+**Every filename in these tests is a real one from `backend/data/syllabi/`,
+pasted literally.** Not a simplified fixture. That is deliberate: the value of
+this suite is entirely in the awkwardness of the input, and a tidied-up
+filename tests nothing. So the cases include the double spaces, the stray `)`
+in `...(SD Immersion))`, the underscore standing in for a colon, `MGtA 495`,
+the comma inside `(Meyer, A)`, and the six preserved typos.
+
+Each case pins **fields**, never "it returned without error".
+
+### What is asserted about identity
+
+The five the brief named, all verified against the generated `index.json` as
+well as in tests:
+
+| Assertion | Result |
+|---|---|
+| MGTA 495's four offerings → four courses | ✅ |
+| MGT 453's two same-term offerings → two courses | ✅ |
+| MGTA 464's two offerings → one course, two offerings | ✅ |
+| `403` and `403R` → one course | ✅ |
+| `W26` → `WI26` | ✅ |
+
+Plus: unknown seasons are **rejected** rather than passed through
+(`AU`/`XX`/`FL`/`WN`); terms sort chronologically not alphabetically; title
+normalisation absorbs punctuation but **not** spelling; and the two review-list
+cases that must never merge — the MGTA 459 typo pair (0.982, one course) and
+MGTF 423/424 (0.962, two courses).
+
+### Gaps
+
+- **No test converts a real PDF.** The extraction path (`pdf_to_markdown`,
+  `docx_to_markdown`, the fd-level stdout capture) is exercised only by running
+  the tool. A 4-page fixture PDF would be worth committing.
+- **`build_report` is untested.** It is string assembly, but the
+  `--report-only` path reconstructs `Record`s from JSON and only the round trip
+  itself is covered, not the report built from them.
+- **No test asserts the review list is exhaustive** — that no pair a human
+  would want to see is missing. That is not really testable; the 0.85 threshold
+  for cross-code pairs is a judgement call recorded in FINDINGS.
